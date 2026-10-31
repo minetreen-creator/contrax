@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { EVERYDAY_SAMPLE_TRADES, pickEverydaySample } from "./sample-bids";
+import { EVERYDAY_SAMPLE_TRADES, isHandsOnWork, pickEverydaySample } from "./sample-bids";
 
 // Owner 2026-10-31 homepage review: "fix all".
 describe("homepage examples are everyday trades, not SDVOSB jargon", () => {
@@ -14,6 +14,12 @@ describe("homepage examples are everyday trades, not SDVOSB jargon", () => {
     ];
     expect(pickEverydaySample(rows)).toEqual([2, 0, 4]);
     expect(EVERYDAY_SAMPLE_TRADES.map((t) => t.label)).toContain("Janitorial");
+  });
+  test("engineering, design and consulting contracts are not trade examples", () => {
+    expect(isHandsOnWork("Request for Qualifications (RFQ) – Mechanical, Electrical and Plumbing (MEP) Engineering Basic Ordering Agreement Professional Services")).toBe(false);
+    expect(isHandsOnWork("Design Services for Roof and HVAC Replacements")).toBe(false);
+    expect(isHandsOnWork("Chiller and Ventilation Maintenance")).toBe(true);
+    expect(isHandsOnWork("Janitorial Services - Crystal City")).toBe(true);
   });
   test("an agency's own listing beats an aggregator copy; the copy is the fallback", () => {
     const rows = [

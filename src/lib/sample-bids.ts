@@ -6,6 +6,7 @@ import { isProductBuy } from "~/lib/trade-classification";
 import { cleanBidTitle, fixTitleTypos, isCodeHeavyTitle } from "~/lib/bid-title";
 import { displayAgency, displayLocation } from "~/lib/agency-display";
 import { isAggregatorMirror } from "~/lib/notice-dedupe";
+import { bidIsServiceJob } from "~/lib/outreach";
 
 // Live sample of REAL open SDVOSB set-asides, NEWEST first (owner 2026-10-03:
 // "closing soonest" showed the same five rows day after day until each aged
@@ -91,6 +92,16 @@ export const EVERYDAY_SAMPLE_TRADES: { naics: string; label: string }[] = [
 export type EverydaySampleBid = SampleBid & { trade: string };
 
 /**
+ * Work a tradesperson does with their own crew: the outreach rule
+ * (bidIsServiceJob: no supplies, RFIs, design or consulting) plus engineering,
+ * architecture and "professional services" contracts (owner 2026-10-31: an MEP
+ * engineering ordering agreement showed as the HVAC example). PURE.
+ */
+export function isHandsOnWork(title: string): boolean {
+  return bidIsServiceJob(title) && !/\b(engineering|architect\w*|professional services)\b/i.test(title);
+}
+
+/**
  * One row per trade, in EVERYDAY_SAMPLE_TRADES order, skipping unreadable
  * titles. A bid listed by the agency itself wins over an aggregator copy
  * ("Washington Purchasing Group (BidNet Direct)"), which is used only when a
@@ -103,7 +114,13 @@ export function pickEverydaySample(
   for (const { naics } of EVERYDAY_SAMPLE_TRADES) {
     const fits = (r: (typeof rows)[number]) => {
       const title = String(r.title ?? "");
-      return r.naics_code === naics && !!title && !isProductListingTitle(title) && !isCodeHeavyTitle(title);
+      return (
+        r.naics_code === naics &&
+        !!title &&
+        !isProductListingTitle(title) &&
+        !isCodeHeavyTitle(title) &&
+        isHandsOnWork(title)
+      );
     };
     let i = rows.findIndex((r) => fits(r) && !isAggregatorMirror(r));
     if (i < 0) i = rows.findIndex(fits);

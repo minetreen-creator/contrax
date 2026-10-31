@@ -27,6 +27,9 @@ import {
   consumeRadarSearchCredits,
   evaluateRadarSearchGate,
   neonRadarSearchStore,
+  ANON_IP_DAILY_SEARCHES,
+  ipWindowExpired,
+  radarKeyLimit,
   radarSearchKeyHash,
   radarSearchKeys,
   type RadarSearchStore,
@@ -189,20 +192,37 @@ describe("(b) VPN switch — NEW address, SAME browser id (the regression)", () 
   });
 });
 
-describe("(c) fresh browser — NEW visitor id, SAME address", () => {
-  test("clearing the cookie does NOT reset the address counter", async () => {
+describe("(c) shared address — NEW visitor id, SAME address (owner 2026-10-31)", () => {
+  test("a stranger on the same carrier address still gets their own free search", async () => {
     const store = memoryStore();
     await attemptTimes(store, IP_A, BROWSER_1, FREE_RADAR_SEARCH_LIMIT);
-    expect(await store.getUsed(`${RADAR_SEARCH_VISITOR_PREFIX}${BROWSER_2}`)).toBe(0);
+    expect(await attemptRadarScan(store, IP_A, BROWSER_1)).toBe("blocked");
+    expect(await attemptRadarScan(store, IP_A, BROWSER_2)).toBe("scanned");
+  });
+
+  test("cookie clearing on one address is capped at the daily address allowance", async () => {
+    const store = memoryStore();
+    const browsers = Array.from({ length: ANON_IP_DAILY_SEARCHES }, (_, i) => `aaaaaaaa-0000-4000-8000-${String(i).padStart(12, "0")}`);
+    for (const b of browsers) expect(await attemptRadarScan(store, IP_A, b)).toBe("scanned");
     expect(await attemptRadarScan(store, IP_A, BROWSER_2)).toBe("blocked");
+    expect((await checkAnonymousRadarSearch(IP_A, BROWSER_2, store)).used).toBe(FREE_RADAR_SEARCH_LIMIT);
   });
 
   test("a cookie-less visitor is bounded by the address alone", async () => {
     const store = memoryStore();
-    expect(await attemptTimes(store, IP_A, null, FREE_RADAR_SEARCH_LIMIT)).toEqual(
-      Array.from({ length: FREE_RADAR_SEARCH_LIMIT }, () => "scanned"),
+    expect(await attemptTimes(store, IP_A, null, ANON_IP_DAILY_SEARCHES)).toEqual(
+      Array.from({ length: ANON_IP_DAILY_SEARCHES }, () => "scanned"),
     );
     expect(await attemptRadarScan(store, IP_A, null)).toBe("blocked");
+  });
+
+  test("an address window runs out after a day; a browser's never does", () => {
+    const now = Date.parse("2026-10-31T12:00:00Z");
+    expect(ipWindowExpired("2026-10-30T11:59:00Z", now)).toBe(true);
+    expect(ipWindowExpired("2026-10-31T01:00:00Z", now)).toBe(false);
+    expect(radarKeyLimit(`${RADAR_SEARCH_IP_PREFIX}${IP_A}`, FREE_RADAR_SEARCH_LIMIT)).toBe(ANON_IP_DAILY_SEARCHES);
+    expect(radarKeyLimit(`${RADAR_SEARCH_VISITOR_PREFIX}${BROWSER_1}`, FREE_RADAR_SEARCH_LIMIT)).toBe(FREE_RADAR_SEARCH_LIMIT);
+    expect(radarKeyLimit("account:12", 2)).toBe(2);
   });
 });
 
@@ -217,8 +237,8 @@ describe("(d) a missing dimension never denies", () => {
 
   test("no browser, ip only → address dimension still enforced", async () => {
     const store = memoryStore();
-    expect(await attemptTimes(store, IP_A, "", FREE_RADAR_SEARCH_LIMIT)).toEqual(
-      Array.from({ length: FREE_RADAR_SEARCH_LIMIT }, () => "scanned"),
+    expect(await attemptTimes(store, IP_A, "", ANON_IP_DAILY_SEARCHES)).toEqual(
+      Array.from({ length: ANON_IP_DAILY_SEARCHES }, () => "scanned"),
     );
     expect(await attemptRadarScan(store, IP_A, undefined)).toBe("blocked");
   });

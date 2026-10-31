@@ -4,6 +4,8 @@
  *  - recordCheckoutPass: after a paid plan checkout (webhook and /post-checkout,
  *    both idempotent), a pass sets its end date; a subscription clears any pass
  *    so the expiry job never touches a subscriber.
+ *    The first time an account buys a pass, the owner gets a phone push
+ *    (Mission Control alerts) and an email.
  *  - starterKindForUser: which monthly Starter checkout an account gets.
  *  - runStarterPassJobs (daily, /api/cron/starter-pass): one reminder email five
  *    days before the end, then the account returns to free Basic once the pass
@@ -13,6 +15,7 @@ import { Resend } from "resend";
 import { sql } from "~/db";
 import {
   PASS_ENDED_STATUS,
+  passBoughtOwnerAlert,
   passReminderEmail,
   STARTER_PASS_FLAG,
   STARTER_PASS_REMIND_DAYS,
@@ -40,13 +43,43 @@ export async function recordCheckoutPass(
   if (session.metadata?.[STARTER_PASS_FLAG] === "true") {
     const ends = starterPassEndsAt(session.created).toISOString();
     const bought = new Date(session.created * 1000).toISOString();
+    // Claim the first purchase atomically: the webhook and /post-checkout both
+    // land here, and only the call that sets bought_at alerts the owner.
+    const firstPurchase = (await sql()`UPDATE users SET starter_pass_bought_at = ${bought}
+      WHERE id = ${userId} AND starter_pass_bought_at IS NULL
+      RETURNING email`) as { email: string | null }[];
     await sql()`UPDATE users
       SET starter_pass_bought_at = COALESCE(starter_pass_bought_at, ${bought}),
           starter_pass_ends_at = ${ends},
           starter_pass_reminded_at = NULL
       WHERE id = ${userId}`;
+    if (firstPurchase.length) await alertOwnerOfPass(firstPurchase[0].email, new Date(ends));
   } else if (session.mode === "subscription") {
     await sql()`UPDATE users SET starter_pass_ends_at = NULL WHERE id = ${userId}`;
+  }
+}
+
+const OWNER_EMAIL = "minetreen@gmail.com";
+
+/** Phone push and email to the owner for a new pass. Never throws: a failed alert must not fail the checkout. */
+async function alertOwnerOfPass(buyerEmail: string | null, endsAt: Date): Promise<void> {
+  const alert = passBoughtOwnerAlert(buyerEmail, endsAt);
+  try {
+    const { alertOwner } = await import("~/lib/live-push.server");
+    await alertOwner(alert.push);
+  } catch (e) {
+    console.error("[starter-pass] owner push failed:", (e as Error).message);
+  }
+  if (!process.env.RESEND_API_KEY) return;
+  try {
+    await new Resend(process.env.RESEND_API_KEY).emails.send({
+      from: "Contrax <hello@contrax.company>",
+      to: OWNER_EMAIL,
+      subject: alert.subject,
+      text: alert.text,
+    });
+  } catch (e) {
+    console.error("[starter-pass] owner email failed:", (e as Error).message);
   }
 }
 

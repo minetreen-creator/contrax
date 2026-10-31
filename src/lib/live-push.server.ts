@@ -239,3 +239,20 @@ export async function alertNewVisit(v: {
     console.error("[live-push] alert failed (non-fatal):", err);
   }
 }
+
+/** Push the owner a one-off alert (e.g. a payment) on every enabled device. Never throws. */
+export async function alertOwner(payload: { title: string; body: string; tag: string; url?: string }): Promise<void> {
+  try {
+    await ensureTables();
+    const subs = (await sql()`SELECT id, endpoint, p256dh, auth FROM push_subscriptions WHERE enabled`) as {
+      id: number;
+      endpoint: string;
+      p256dh: string;
+      auth: string;
+    }[];
+    if (!subs.length) return;
+    await sendTo(subs, payload);
+  } catch (err) {
+    console.error("[live-push] owner alert failed (non-fatal):", err);
+  }
+}

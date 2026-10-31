@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import {
   CHECKOUT_SUBMIT_MESSAGE,
   PASS_RENEW_URL,
+  passBoughtOwnerAlert,
   passReminderEmail,
   STARTER_PASS_AMOUNT,
   STARTER_PASS_DAYS,
@@ -54,5 +55,27 @@ describe("Starter $5 30-day pass (owner 2026-10-30)", () => {
       expect(readFileSync(f, "utf8")).toContain("starterCheckoutOptions");
     }
     expect(readFileSync("build-vercel.sh", "utf8")).toContain('"/api/cron/starter-pass"');
+  });
+});
+
+describe("owner alert for a new pass", () => {
+  test("names the buyer and the end date in the push and the email", () => {
+    const a = passBoughtOwnerAlert("buyer@biz.com", new Date("2026-11-30T15:00:00Z"));
+    expect(a.subject).toBe("💰 New $5 Starter pass: buyer@biz.com");
+    expect(a.push.title).toBe("💰 New $5 Starter pass");
+    expect(a.push.body).toContain("buyer@biz.com");
+    expect(a.push.body).toContain("November 30");
+    expect(a.push.url).toBe("/admin/live");
+    expect(a.text).toContain("$19/month");
+  });
+  test("a checkout without an email still alerts", () => {
+    expect(passBoughtOwnerAlert(null, new Date("2026-11-30T15:00:00Z")).push.body).toContain("(no email on the checkout)");
+  });
+  test("only the first purchase alerts, and a failed alert never fails the checkout", () => {
+    const src = readFileSync(new URL("./starter-pass.server.ts", import.meta.url), "utf8");
+    expect(src).toContain("WHERE id = ${userId} AND starter_pass_bought_at IS NULL");
+    expect(src).toContain("if (firstPurchase.length) await alertOwnerOfPass(");
+    expect(src).toContain('console.error("[starter-pass] owner push failed:"');
+    expect(src).toContain('console.error("[starter-pass] owner email failed:"');
   });
 });

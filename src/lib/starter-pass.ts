@@ -108,3 +108,31 @@ export function passReminderEmail(endsAt: Date): { subject: string; text: string
 </div>`;
   return { subject, text: lines.join("\n\n"), html };
 }
+
+/**
+ * The owner's alert when someone buys a pass (owner 2026-10-31: "Can I be
+ * notified of signups for that plan?"): a phone push and an email. PURE.
+ */
+export function passBoughtOwnerAlert(buyerEmail: string | null, endsAt: Date): {
+  subject: string;
+  text: string;
+  push: { title: string; body: string; tag: string; url: string };
+} {
+  const who = buyerEmail?.trim() || "(no email on the checkout)";
+  const ends = passEndDateLabel(endsAt);
+  return {
+    subject: `💰 New $5 Starter pass: ${who}`,
+    text: [
+      "Someone just bought the $5 Starter 30-day pass.",
+      `Buyer: ${who}`,
+      `Pass ends: ${ends}. They get one reminder 5 days before, asking whether to continue at $19/month.`,
+      "Live view: https://www.contrax.company/admin/live",
+    ].join("\n\n"),
+    push: {
+      title: "💰 New $5 Starter pass",
+      body: `${who} just bought 30 days of Starter (ends ${ends}).`,
+      tag: `pass-${who}`.slice(0, 64),
+      url: "/admin/live",
+    },
+  };
+}

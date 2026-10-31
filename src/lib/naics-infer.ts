@@ -255,6 +255,31 @@ const TRUCKING_SERVICE_CODES = [
  * @param title       title text (strong-signal surface)
  * @param description description text (weaker-signal surface)
  */
+/**
+ * "Landscape" used figuratively (owner 2026-10-31: a biology research bid,
+ * "Binding Landscape Emulators", was labelled landscaping). These phrases name
+ * a field of study or a market, not grounds work.
+ */
+const FIGURATIVE_LANDSCAPE_RE =
+  /\b(?:threat|competitive|regulatory|market|media|policy|funding|binding|energy|digital|political|cyber(?:security)?|technology|vendor|industry|economic|business|financial|legal|information|fitness|protein|genomic|genetic|molecular|evolutionary)\s+landscapes?\b|\blandscapes?\s+emulators?\b/g;
+
+/** Landscaping words that still count once figurative phrases are removed. */
+const LANDSCAPE_WORK_WORDS = ["landscaping", "landscape", "landscaper", "lawn", "grounds maintenance", "grounds keeping", "groundskeeping", "snow removal", "mowing"];
+
+/**
+ * True when the text mentions "landscape" only figuratively: it has a
+ * figurative phrase and no landscaping word survives removing those phrases.
+ * PURE.
+ */
+export function isFigurativeLandscapeOnly(text: string | null | undefined): boolean {
+  const lower = String(text ?? "").toLowerCase();
+  if (!FIGURATIVE_LANDSCAPE_RE.test(lower)) return false;
+  FIGURATIVE_LANDSCAPE_RE.lastIndex = 0;
+  const rest = lower.replace(FIGURATIVE_LANDSCAPE_RE, " ");
+  FIGURATIVE_LANDSCAPE_RE.lastIndex = 0;
+  return !LANDSCAPE_WORK_WORDS.some((w) => keywordIn(rest, w));
+}
+
 export function inferNaics(
   title: string | null | undefined,
   description: string | null | undefined,
@@ -283,6 +308,7 @@ export function inferNaics(
   // row that is not janitorial work may not infer 561720; a row that is not
   // transportation work may not infer any trucking/courier code.
   if (!isJanitorialWork(titleTxt, fullTxt)) vetoedCodes.add("561720");
+  if (isFigurativeLandscapeOnly(fullTxt)) vetoedCodes.add("561730");
   if (!isTransportationWork(titleTxt, fullTxt)) {
     for (const code of TRUCKING_SERVICE_CODES) vetoedCodes.add(code);
   }

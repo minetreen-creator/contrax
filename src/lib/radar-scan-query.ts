@@ -13,7 +13,7 @@
  * rejects with RadarScanError("keyword-scan") / ("related-scan") instead of
  * resolving with rows.
  */
-import { collapseDuplicateNotices } from "~/lib/notice-dedupe";
+import { collapseAggregatorMirrors, collapseDuplicateNotices, type MirrorRow } from "~/lib/notice-dedupe";
 import { STATE_CODE_TO_NAME } from "~/lib/location-state";
 
 export class RadarScanError extends Error {
@@ -266,7 +266,7 @@ export async function loadNoticeDedupeKeys(
  * Collapse one scan result set through `~/lib/notice-dedupe`. The loader is
  * injected so the collapse is unit-testable with zero network and zero database.
  */
-export async function collapseScanRows<T extends { id: number }>(
+export async function collapseScanRows<T extends { id: number } & MirrorRow>(
   rows: readonly T[],
   loadNoticeKeys: NoticeKeyLoader,
 ): Promise<ScanCollapseResult<T>> {
@@ -294,6 +294,8 @@ export async function collapseScanRows<T extends { id: number }>(
       notice_type: key?.notice_type ?? null,
     };
   });
-  const { rows: kept, collapsed } = collapseDuplicateNotices(withKeys);
-  return { rows: kept, collapsed, noticeKeyColumns: keyedByNoticeColumns };
+  const { rows: distinct, collapsed } = collapseDuplicateNotices(withKeys);
+  // BidNet Direct copies of an agency's own listing (owner 2026-10-31).
+  const { rows: kept, collapsed: mirrors } = collapseAggregatorMirrors(distinct);
+  return { rows: kept, collapsed: collapsed + mirrors, noticeKeyColumns: keyedByNoticeColumns };
 }

@@ -136,3 +136,50 @@ export function noticeKeySql(alias: string = "bids"): string {
     `COALESCE(lower(btrim(${alias}.notice_type)), '')`
   );
 }
+
+/**
+ * Aggregator mirrors (owner 2026-10-31: Virginia landscaping listed bids twice,
+ * once from the agency and once from BidNet Direct). A BidNet row whose title
+ * matches an agency row in the same result set, due within two days of it, is
+ * the same notice; the agency's own listing is kept.
+ */
+export interface MirrorRow {
+  title?: string | null;
+  agency?: string | null;
+  source?: string | null;
+  due_date?: string | Date | null;
+}
+
+/** True for a row listed by a third-party aggregator rather than the agency. PURE. */
+export function isAggregatorMirror(row: MirrorRow): boolean {
+  return /\bbidnet\b/i.test(String(row.agency ?? "")) || /bidnet/i.test(String(row.source ?? ""));
+}
+
+function mirrorTitleKey(title: string | null | undefined): string {
+  return String(title ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function sameTitle(a: string, b: string): boolean {
+  if (!a || !b) return false;
+  if (a === b) return true;
+  const [short, long] = a.length <= b.length ? [a, b] : [b, a];
+  return short.length >= 15 && long.startsWith(short);
+}
+
+const MIRROR_DUE_WINDOW_MS = 2 * 24 * 60 * 60 * 1000;
+
+/** Drop aggregator rows that mirror an agency row in the same set. PURE; keeps order. */
+export function collapseAggregatorMirrors<T extends MirrorRow>(rows: readonly T[]): { rows: T[]; collapsed: number } {
+  const agencyRows = rows
+    .filter((r) => !isAggregatorMirror(r))
+    .map((r) => ({ key: mirrorTitleKey(r.title), due: r.due_date ? new Date(r.due_date).getTime() : NaN }));
+  const out = rows.filter((r) => {
+    if (!isAggregatorMirror(r)) return true;
+    const key = mirrorTitleKey(r.title);
+    const due = r.due_date ? new Date(r.due_date).getTime() : NaN;
+    return !agencyRows.some(
+      (a) => sameTitle(a.key, key) && (!Number.isFinite(a.due) || !Number.isFinite(due) || Math.abs(a.due - due) <= MIRROR_DUE_WINDOW_MS),
+    );
+  });
+  return { rows: out, collapsed: rows.length - out.length };
+}

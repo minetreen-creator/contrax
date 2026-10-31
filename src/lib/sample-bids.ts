@@ -71,3 +71,72 @@ export const getSdvosbSample = createServerFn({ method: "GET" }).handler(
     }
   },
 );
+
+/**
+ * Everyday-trade examples for the homepage (owner 2026-10-31: the "Live SDVOSB
+ * opportunities" strip showed VA hospital fire-alarm and pneumatic-tube jobs
+ * under jargon a janitorial or landscaping owner doesn't use). Real open bids,
+ * newest first, at least two days from the deadline, at most one per trade so
+ * the row shows the range of work. Never throws: [] hides the strip.
+ */
+export const EVERYDAY_SAMPLE_TRADES: { naics: string; label: string }[] = [
+  { naics: "561720", label: "Janitorial" },
+  { naics: "561730", label: "Landscaping" },
+  { naics: "238220", label: "HVAC & plumbing" },
+  { naics: "561612", label: "Security guards" },
+  { naics: "236220", label: "Construction" },
+];
+
+export type EverydaySampleBid = SampleBid & { trade: string };
+
+/** One row per trade, in EVERYDAY_SAMPLE_TRADES order, skipping unreadable titles. PURE. */
+export function pickEverydaySample(
+  rows: readonly { naics_code: string | null; title: string | null; agency: string | null }[],
+): number[] {
+  const picked: number[] = [];
+  for (const { naics } of EVERYDAY_SAMPLE_TRADES) {
+    const i = rows.findIndex((r) => {
+      const title = String(r.title ?? "");
+      return r.naics_code === naics && !!title && !isProductListingTitle(title) && !isCodeHeavyTitle(title);
+    });
+    if (i >= 0) picked.push(i);
+  }
+  return picked;
+}
+
+export const getEverydaySample = createServerFn({ method: "GET" }).handler(
+  async (): Promise<EverydaySampleBid[]> => {
+    try {
+      const { sql } = await import("~/db");
+      const codes = EVERYDAY_SAMPLE_TRADES.map((t) => t.naics);
+      const rows = (await sql()`
+        SELECT id, title, agency, location, due_date, set_aside, source_url, created_at, naics_code
+        FROM bids
+        WHERE due_date::date >= (NOW() + INTERVAL '2 days')::date
+          AND naics_code = ANY(${codes})
+          AND title !~ '^[[:space:]]*[0-9]{2,4}[[:space:]]*--'
+          AND ${sql().unsafe(LOW_CONTENT_SQL)}
+          AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
+        ORDER BY created_at DESC NULLS LAST, id DESC
+        LIMIT 200
+      `) as any[];
+      const label = new Map(EVERYDAY_SAMPLE_TRADES.map((t) => [t.naics, t.label]));
+      return pickEverydaySample(rows).map((i) => {
+        const r = rows[i];
+        return {
+          id: Number(r.id),
+          title: fixTitleTypos(cleanBidTitle(String(r.title ?? "")).title),
+          agency: displayAgency(r.agency),
+          location: displayLocation(r.location),
+          due_date: r.due_date ? String(r.due_date) : null,
+          set_aside: r.set_aside ? String(r.set_aside) : null,
+          source_url: r.source_url ? String(r.source_url) : null,
+          created_at: r.created_at ? new Date(r.created_at).toISOString() : null,
+          trade: label.get(String(r.naics_code)) ?? "",
+        };
+      });
+    } catch {
+      return [];
+    }
+  },
+);

@@ -10,10 +10,10 @@ import { MoneyJar } from "~/components/MoneyJar";
 import { SubLeads } from "~/components/SubLeads";
 import { MaxAssistant } from "~/components/MaxAssistant";
 import { MoneyCounter } from "~/components/MoneyCounter";
-import { TownBuyingCallout } from "~/components/TownBuyingCallout";
 import { ExampleBrief } from "~/components/ExampleBrief";
 
 import { trackEvent } from "~/lib/track";
+import { STARTER_PASS_NOTE } from "~/lib/starter-pass";
 import { SiteHeader } from "~/components/SiteHeader";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
@@ -234,6 +234,9 @@ function Home() {
       />
       <Navbar />
       <HomeContractFinder sample={sample} openTotal={contractMap?.totals?.totalOpen ?? 0} />
+      {/* The $5 Starter pass, right under the search (owner 2026-10-31 funnel
+          check: the homepage never mentioned the offer). */}
+      <StarterPassStrip />
       {/* "Spin the map" (owner 2026-10-29: "Do 3"): tap a state, then a trade. */}
       <HomeStateMap contractMap={contractMap} />
       {/* Max, the public AI assistant (owner 2026-10-25: "something high tech"). */}
@@ -252,8 +255,8 @@ function Home() {
       {/* Founding Businesses wall (owner 2026-10-29); hidden until one is published. */}
       <FoundingWall />
       <BidScoutCallout />
-      {/* "What's Your Town Buying?" (owner 2026-10-23). */}
-      <TownBuyingCallout />
+      {/* "What's Your Town Buying?" (owner 2026-10-23) lives in the Free from
+          Contrax strip below; its separate callout was a duplicate (2026-10-31). */}
       <FreeToolsStrip />
       <Footer />
     </div>
@@ -301,6 +304,27 @@ function HowItWorks() {
             See the full example brief →
           </a>
         </p>
+      </div>
+    </section>
+  );
+}
+
+// The $5 Starter pass offer (src/lib/starter-pass.ts), one compact strip.
+function StarterPassStrip() {
+  return (
+    <section aria-label="Contrax Starter for $5" className="mx-auto mt-8 max-w-[1120px] px-4 sm:px-6">
+      <div className="flex flex-col gap-4 rounded-2xl border border-blue-200 bg-blue-50 p-5 sm:flex-row sm:items-center sm:justify-between dark:border-blue-900 dark:bg-blue-950/40">
+        <div>
+          <p className="text-lg font-bold text-slate-900 dark:text-white">📬 New bids in your trade, in your inbox every morning at 6 AM</p>
+          <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">{STARTER_PASS_NOTE}</p>
+        </div>
+        <a
+          href="/pricing?source=home_strip"
+          onClick={() => trackEvent("home_starter_pass_click", "strip")}
+          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 font-bold text-white transition hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600"
+        >
+          Start for $5 <ArrowRight aria-hidden="true" className="h-4 w-4" />
+        </a>
       </div>
     </section>
   );

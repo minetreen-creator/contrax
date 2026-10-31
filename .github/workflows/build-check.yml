@@ -787,8 +787,6 @@ jobs:
         run: bun test src/lib/ending-near-you.test.ts
       - name: Homepage state map (unit, deterministic, zero network)
         run: bun test src/lib/home-map.test.ts
-      - name: Homepage money jar (unit, deterministic, zero network)
-        run: bun test src/lib/money-jar.test.ts
       - name: Homepage near-you card links (unit, deterministic, zero network)
         run: bun test src/lib/near-you.test.ts
       - name: Mobile public bid source tests

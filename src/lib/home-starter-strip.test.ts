@@ -10,7 +10,7 @@ describe("homepage $5 Starter strip", () => {
     const strip = page.indexOf("<StarterPassStrip />");
     expect(finder).toBeGreaterThan(-1);
     expect(strip).toBeGreaterThan(finder);
-    expect(page.slice(finder, strip)).not.toMatch(/<HomeStateMap|<MaxAssistant|<MoneyJar/);
+    expect(page.slice(finder, strip)).not.toMatch(/<HomeStateMap|<MaxAssistant|<SubLeads/);
     expect(page).toContain('href="/pricing?source=home_strip"');
     expect(page).toContain("{STARTER_PASS_NOTE}");
   });

@@ -281,3 +281,20 @@ export function moneySteps(m: MoneyStats): { label: string; value: number }[] {
     { label: "Opened checkout", value: m.openedCheckout },
   ];
 }
+
+/**
+ * Stripe checkouts actually paid (owner 2026-10-31: "it says I have 5 money
+ * moments but nobody has paid"). Counts paid sessions only, minus admin and
+ * @test.contrax buyers. PURE.
+ */
+export function paidCheckoutCount(
+  sessions: readonly { payment_status?: string | null; customer_details?: { email?: string | null } | null }[],
+  isAdmin: (email: string) => boolean,
+): number {
+  return sessions.filter((s) => {
+    if (s.payment_status !== "paid") return false;
+    const email = String(s.customer_details?.email ?? "").trim().toLowerCase();
+    if (email && (isAdmin(email) || email.endsWith("@test.contrax"))) return false;
+    return true;
+  }).length;
+}

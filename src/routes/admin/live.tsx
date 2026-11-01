@@ -1,9 +1,8 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { cleanBody, OWNER_POLL_MS, type ChatMessage } from "~/lib/live-chat";
 import { afterWakeWord, bootReport, isWakePhrase, JARVIS_VISUALS, type JarvisAction, type JarvisServerStats, type JarvisSnapshot, type JarvisVisual, type SimMonth, type SimResult } from "~/lib/jarvis";
 import { announcements, isRedAlert, HOT_SCORE, pageName, radarSpot, type Announcement, type AnnounceState, type LeadLevel } from "~/lib/hot-leads";
-import { Search, UserPlus, Timer, CreditCard, PartyPopper, Radio, Flame, Map as MapIcon, Users, DollarSign, MessageCircle, Send, X, Volume2, VolumeX, Crosshair, ScanEye } from "lucide-react";
+import { Search, UserPlus, Timer, CreditCard, PartyPopper, Radio, Flame, Map as MapIcon, Users, DollarSign, X, Volume2, VolumeX, Crosshair, ScanEye } from "lucide-react";
 import { getCurrentUser } from "~/lib/auth";
 import { TRIAL_DAYS } from "~/lib/trial";
 import { AdminHeader, AdminTabs, MrrScoreboard, SectionError, SectionLoading } from "~/components/AdminShared";
@@ -218,7 +217,7 @@ function SearchMap({ stats, visitors, now, onChat }: { stats: StateSearchStat[];
                 >
                   <circle className="live-visitor-ring" r="7" />
                   <circle r="6" />
-                  <title>{`${v.place ?? v.state} · on ${v.path} · ${agoLabel(v.at, now)} · click to say hi`}</title>
+                  <title>{`${v.place ?? v.state} · on ${v.path} · ${agoLabel(v.at, now)} · click for their trail`}</title>
                 </g>
               );
             });
@@ -238,7 +237,7 @@ function SearchMap({ stats, visitors, now, onChat }: { stats: StateSearchStat[];
   );
 }
 
-function OnlineNow({ count, visitors, now, hidden, onChat, onTrack }: { count: number; visitors: OnlineVisitor[]; now: number; hidden: number; onChat: (v: OnlineVisitor) => void; onTrack: (v: OnlineVisitor) => void }) {
+function OnlineNow({ count, visitors, now, hidden, onTrack }: { count: number; visitors: OnlineVisitor[]; now: number; hidden: number; onTrack: (v: OnlineVisitor) => void }) {
   return (
     <div className="live-online">
       <div className="flex items-baseline gap-3">
@@ -260,9 +259,6 @@ function OnlineNow({ count, visitors, now, hidden, onChat, onTrack }: { count: n
               <span className="ml-auto shrink-0 text-slate-500">{agoLabel(v.at, now)}</span>
               <button type="button" onClick={() => onTrack(v)} className={`live-track${v.tracked ? " is-on" : ""}`} title="See what this visitor is doing and keep tabs on them">
                 <ScanEye size={12} aria-hidden="true" /> {v.tracked ? "Tracked" : "Track"}
-              </button>
-              <button type="button" onClick={() => onChat(v)} className="live-sayhi" title="Send this visitor a message">
-                <MessageCircle size={12} aria-hidden="true" /> Say hi
               </button>
             </li>
           ))}
@@ -469,173 +465,6 @@ function TrackDrawer({ vid, label, onClose, onChanged }: { vid: string; label: s
   );
 }
 
-interface ChatThread {
-  visitorId: string;
-  lastAt: string;
-  lastBody: string;
-  lastSender: "owner" | "visitor";
-  unread: number;
-}
-
-/** Last 24 hours of founder chats; unread replies glow. */
-function Conversations({ threads, online, onOpen }: { threads: ChatThread[]; online: OnlineVisitor[]; onOpen: (vid: string, label: string) => void }) {
-  if (!threads.length) return null;
-  const here = new Map(online.map((v) => [v.vid, v]));
-  return (
-    <div className="mt-4">
-      <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-        <MessageCircle size={12} aria-hidden="true" /> Your chats · 24 hours
-      </p>
-      <ul className="space-y-1.5">
-        {threads.map((t) => {
-          const v = here.get(t.visitorId);
-          const label = v ? `${v.place ?? "Unknown location"} · ${v.path}` : "Visitor (left the site)";
-          return (
-            <li key={t.visitorId}>
-              <button type="button" onClick={() => onOpen(t.visitorId, label)} className={`live-chat-thread ${t.unread ? "is-unread" : ""}`}>
-                <span className="min-w-0 flex-1 text-left">
-                  <span className="block truncate text-xs font-semibold text-white">
-                    {v ? <span className="live-dot mr-1.5 inline-block align-middle" aria-hidden="true" /> : null}
-                    {label}
-                  </span>
-                  <span className="block truncate text-[11px] text-slate-400">
-                    {t.lastSender === "owner" ? "You: " : ""}
-                    {t.lastBody}
-                  </span>
-                </span>
-                {t.unread ? <span className="live-chat-badge">{t.unread}</span> : null}
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
-  );
-}
-
-const OPENER = "Hi, I'm Nathaniel, the founder of Contrax. Can I help you find bids for your business?";
-
-/** One conversation: polls every 5 seconds while open. */
-function ChatDrawer({ vid, label, onClose }: { vid: string; label: string; onClose: () => void }) {
-  const [messages, setMessages] = useState<ChatMessage[] | null>(null);
-  const [input, setInput] = useState("");
-  const [sending, setSending] = useState(false);
-  const [error, setError] = useState("");
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    let stop = false;
-    const load = () =>
-      fetch(`/api/admin/live-chat?vid=${encodeURIComponent(vid)}`)
-        .then((r) => r.json())
-        .then((d) => {
-          if (stop || !d.messages) return;
-          setMessages(d.messages);
-          setInput((cur) => (cur || d.messages.length ? cur : OPENER));
-        })
-        .catch(() => {});
-    load();
-    const t = setInterval(load, OWNER_POLL_MS);
-    return () => {
-      stop = true;
-      clearInterval(t);
-    };
-  }, [vid]);
-
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [messages]);
-
-  const send = async () => {
-    const body = cleanBody(input);
-    if (!body || sending) return;
-    setSending(true);
-    setError("");
-    try {
-      const res = await fetch("/api/admin/live-chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ vid, body }),
-      });
-      const d = await res.json();
-      if (!res.ok || !d.message) throw new Error(d.error || "Could not send");
-      setMessages((prev) => [...(prev ?? []), d.message]);
-      setInput("");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not send");
-    } finally {
-      setSending(false);
-    }
-  };
-
-  return (
-    <aside className="live-chat-drawer" aria-label="Chat with a visitor">
-      <header className="flex items-start justify-between gap-2 border-b border-slate-700/60 px-4 py-3">
-        <div className="min-w-0">
-          <p className="flex items-center gap-2 text-sm font-bold text-white">
-            <MessageCircle size={15} aria-hidden="true" /> Live chat
-          </p>
-          <p className="truncate text-xs text-slate-400">{label}</p>
-        </div>
-        <button type="button" onClick={onClose} aria-label="Close chat" className="rounded-lg p-1 text-slate-400 hover:bg-slate-800 hover:text-white">
-          <X size={18} />
-        </button>
-      </header>
-      <div ref={scrollRef} className="flex-1 space-y-2 overflow-y-auto px-4 py-3">
-        {messages === null ? (
-          <p className="text-xs text-slate-500">Loading…</p>
-        ) : messages.length === 0 ? (
-          <p className="text-xs text-slate-400">
-            Say hi. They'll see a small card from you on whatever page they're on (checked every 15 seconds), and can reply here.
-          </p>
-        ) : (
-          messages.map((m) => (
-            <div key={m.id} className={`flex ${m.sender === "owner" ? "justify-end" : "justify-start"}`}>
-              <div className={`live-chat-bubble ${m.sender === "owner" ? "is-owner" : "is-visitor"}`}>
-                {m.body}
-                <span className="mt-0.5 block text-[10px] opacity-60">
-                  {new Date(m.at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
-                </span>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-      {error ? <p className="px-4 text-xs text-rose-300">{error}</p> : null}
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          send();
-        }}
-        className="flex items-end gap-2 border-t border-slate-700/60 px-3 py-3"
-      >
-        <textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              send();
-            }
-          }}
-          rows={2}
-          maxLength={1000}
-          placeholder="Write a message…"
-          className="flex-1 resize-none rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:border-amber-400 focus:outline-none"
-        />
-        <button
-          type="submit"
-          disabled={sending || !input.trim()}
-          aria-label="Send"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-500 text-slate-950 hover:bg-amber-400 disabled:opacity-50"
-        >
-          <Send size={16} />
-        </button>
-      </form>
-    </aside>
-  );
-}
 
 /**
  * Money panel (owner 2026-10-20): who pays now, which trials end in the next
@@ -955,8 +784,8 @@ function HotLeadRadar({ visitors, onChat }: { visitors: OnlineVisitor[]; onChat:
                   </span>
                   {v.lead!.reasons.length ? <span className="block truncate text-[11px] text-slate-400">{v.lead!.reasons.join(" · ")}</span> : null}
                 </span>
-                <button type="button" onClick={() => onChat(v)} className="live-sayhi" title="Send this visitor a message">
-                  <MessageCircle size={12} aria-hidden="true" /> Say hi
+                <button type="button" onClick={() => onChat(v)} className="live-track" title="See what this visitor is doing">
+                  <ScanEye size={12} aria-hidden="true" /> Trail
                 </button>
               </li>
             ))}
@@ -1004,7 +833,7 @@ function RedAlert({ alert, more, visitor, onSayHi, onClose }: { alert: Announcem
         <div className="mt-5 flex flex-wrap justify-center gap-3">
           {visitor ? (
             <button type="button" className="live-redalert-go" onClick={() => onSayHi(visitor)}>
-              <MessageCircle size={16} aria-hidden="true" /> Say hi now
+              <ScanEye size={16} aria-hidden="true" /> See what they're doing
             </button>
           ) : null}
           <button type="button" className="live-redalert-close" onClick={onClose}>
@@ -1611,7 +1440,7 @@ function Jarvis({ data, now, onChat }: { data: LiveData; now: number; onChat: (v
             ))}
           </ul>
         ) : (
-          <p className="mt-2 text-sm text-slate-400">Try: "Jarvis, wake up", "Show me the funnel", "What if I double the ad budget?", "Any hot leads?", "Say hi to the hottest lead".</p>
+          <p className="mt-2 text-sm text-slate-400">Try: "Jarvis, wake up", "Show me the funnel", "What if I double the ad budget?", "Any hot leads?", "Show me the hottest lead".</p>
         )}
         {note ? <p className="mt-2 text-xs font-semibold text-amber-300">{note}</p> : null}
         <form
@@ -1643,13 +1472,12 @@ function LivePage() {
   const [error, setError] = useState("");
   const seen = useRef<Set<string> | null>(null);
   const [fresh, setFresh] = useState<Set<string>>(new Set());
-  const [chat, setChat] = useState<{ vid: string; label: string } | null>(null);
-  const [threads, setThreads] = useState<ChatThread[]>([]);
-  const replySeen = useRef<Map<string, number> | null>(null);
-  const openChat = (v: OnlineVisitor) => setChat({ vid: v.vid, label: `${v.place ?? "Unknown location"} · ${v.path}` });
   const [track, setTrack] = useState<{ vid: string; label: string } | null>(null);
   const [reload, setReload] = useState(0);
   const openTrack = (v: OnlineVisitor) => setTrack({ vid: v.vid, label: `${v.place ?? "Unknown location"} · ${v.path}` });
+  // Owner 2026-11-01: the live chat with visitors is removed; every visitor click
+  // (map dot, hot-lead list, red alert) opens the visitor trail instead.
+  const openChat = openTrack;
   const voice = useVoiceAnnouncer();
   const sayRef = useRef(voice.say);
   sayRef.current = voice.say;
@@ -1657,32 +1485,6 @@ function LivePage() {
   const [redAlert, setRedAlert] = useState<{ alert: Announcement; more: number } | null>(null);
   const closeRedAlert = useCallback(() => setRedAlert(null), []);
 
-  // Founder live chat: conversations with unread replies, on the same 15s beat.
-  useEffect(() => {
-    let stop = false;
-    const load = () =>
-      fetch("/api/admin/live-chat")
-        .then((r) => (r.ok ? r.json() : null))
-        .then((d) => {
-          if (stop || !d?.threads) return;
-          const list = d.threads as ChatThread[];
-          // A visitor answered "Say hi": say so out loud (push covers the phone).
-          if (replySeen.current) {
-            const prev = replySeen.current;
-            const replied = list.filter((t) => t.lastSender === "visitor" && t.unread > (prev.get(t.visitorId) ?? 0));
-            if (replied.length) sayRef.current(replied.map((t) => ({ text: `A visitor replied in live chat: ${t.lastBody}`, tone: "blip" as const })));
-          }
-          replySeen.current = new Map(list.map((t) => [t.visitorId, t.unread]));
-          setThreads(list);
-        })
-        .catch(() => {});
-    load();
-    const t = setInterval(load, POLL_MS);
-    return () => {
-      stop = true;
-      clearInterval(t);
-    };
-  }, []);
   const now = useNow(1000);
 
   useEffect(() => {
@@ -1779,9 +1581,8 @@ function LivePage() {
                 <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-300">
                   <Users size={15} aria-hidden="true" /> On the site now
                 </h2>
-                <OnlineNow count={data.onlineCount} visitors={data.online.slice(0, 12)} now={now} hidden={data.scannersHidden ?? 0} onChat={openChat} onTrack={openTrack} />
+                <OnlineNow count={data.onlineCount} visitors={data.online.slice(0, 12)} now={now} hidden={data.scannersHidden ?? 0} onTrack={openTrack} />
                 <TrackedList tracked={data.tracked ?? []} now={now} onOpen={(vid, label) => setTrack({ vid, label })} />
-                <Conversations threads={threads} online={data.online} onOpen={(vid, label) => setChat({ vid, label })} />
               </div>
             </div>
           ) : null}
@@ -1839,12 +1640,11 @@ function LivePage() {
           visitor={(redAlert.alert.vid && data?.online.find((v) => v.vid === redAlert.alert.vid)) || null}
           onSayHi={(v) => {
             setRedAlert(null);
-            openChat(v);
+            openTrack(v);
           }}
           onClose={closeRedAlert}
         />
       ) : null}
-      {chat ? <ChatDrawer vid={chat.vid} label={chat.label} onClose={() => setChat(null)} /> : null}
       {track ? <TrackDrawer vid={track.vid} label={track.label} onClose={() => setTrack(null)} onChanged={() => setReload((n) => n + 1)} /> : null}
     </div>
   );

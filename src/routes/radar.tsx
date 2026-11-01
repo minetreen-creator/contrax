@@ -2090,7 +2090,7 @@ function RadarLanding() {
                     onClick={() => trackEvent("radar_pass_offer_click", `${trade}|${state}`)}
                     className="mt-3 block rounded-xl border border-amber-400/50 bg-amber-500/15 px-4 py-3 text-sm text-amber-50 hover:bg-amber-500/25"
                   >
-                    📬 <b>{passOfferCount(scan.localMatched ?? 0)} open {tradeLabel(track)} bids{state ? ` in ${STATE_NAMES[state] ?? state}` : ""} right now.</b>{" "}
+                    📬 <b>{passOfferCount(scan.localMatched ?? 0)} open {tradeLabel(track).replace(/["“”]/g, "")} bids{state ? ` in ${STATE_NAMES[state] ?? state}` : ""} right now.</b>{" "}
                     Get every new one at 6 AM for 30 days: <b className="text-amber-300">${STARTER_FIRST_MONTH_PRICE} →</b>
                   </a>
                 )}

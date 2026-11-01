@@ -8,7 +8,6 @@ import {
 import { useEffect, useRef, type ReactNode } from "react";
 import { initBotId } from "botid/client/core";
 
-import { FounderChat } from "~/components/FounderChat";
 import { ReturnVisitorCatch } from "~/components/ReturnVisitorCatch";
 import {
   ATTR_COOKIE_NAME,
@@ -238,7 +237,6 @@ function RootComponent() {
       <GoogleAdsTag />
       <AttributionCookie />
       <PageViewTracker />
-      <FounderChat />
       <ReturnVisitorCatch />
     </RootDocument>
   );

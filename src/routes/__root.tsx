@@ -8,7 +8,6 @@ import {
 import { useEffect, useRef, type ReactNode } from "react";
 import { initBotId } from "botid/client/core";
 
-import { ChatWidget } from "~/components/ChatWidget";
 import { FounderChat } from "~/components/FounderChat";
 import { ReturnVisitorCatch } from "~/components/ReturnVisitorCatch";
 import {
@@ -239,7 +238,6 @@ function RootComponent() {
       <GoogleAdsTag />
       <AttributionCookie />
       <PageViewTracker />
-      <ChatWidget />
       <FounderChat />
       <ReturnVisitorCatch />
     </RootDocument>

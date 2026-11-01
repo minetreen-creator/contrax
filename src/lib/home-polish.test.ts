@@ -47,9 +47,9 @@ describe("homepage length and the phone chat bubble", () => {
     expect(page.indexOf('<ExampleBrief variant="embed" />')).toBeGreaterThan(open);
     expect(page).toContain("Show an example AI brief");
   });
-  test("on phones the bubble tucks away while scrolling down", () => {
-    const widget = readFileSync("src/components/ChatWidget.tsx", "utf8");
-    expect(widget).toContain("setScrollingDown(y > lastY)");
-    expect(widget).toContain('open || (scrolledPastFold && !scrollingDown) ? "" : "max-sm:hidden"');
+  test("the floating AI chat bubble is gone; Max is the one assistant (owner 2026-11-01)", () => {
+    const root = readFileSync("src/routes/__root.tsx", "utf8");
+    expect(root).not.toContain("<ChatWidget");
+    expect(readFileSync("src/routes/index.tsx", "utf8")).toContain("<MaxAssistant />");
   });
 });

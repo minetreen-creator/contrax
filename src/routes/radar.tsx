@@ -48,6 +48,7 @@ import { matchPriorLoss, type PriorLossBadge, type PriorLossRow } from "~/lib/aw
 import { expandTrade, tradeProvenanceFor, isStrongTradeMatch, RELATED_TRADE_TERMS, isCourierFamilyNaics, tradeExpresslyCourier, type TradeExpansion, type TradeMatchProvenance } from "~/lib/trade-registry";
 import { TRADE_SUGGESTIONS } from "~/lib/trade-suggestions";
 import { STATE_NAMES } from "~/lib/contract-map";
+import { STARTER_FIRST_MONTH_PRICE } from "~/lib/starter-offer";
 import { wantsRadarMore } from "~/lib/radar-more";
 import { broaderRadarTrade } from "~/lib/radar-fallback";
 import {
@@ -492,6 +493,11 @@ export const getLiveStateBids = createServerFn({ method: "GET" }).handler(
 );
 
 /** True when the visit came from a paid ad click (Google Ads ids or a paid utm_medium). PURE. */
+/** "23" or "100+" (the scan caps how many rows it reads). PURE. */
+export function passOfferCount(total: number): string {
+  return total >= 100 ? "100+" : String(total);
+}
+
 export function isPaidAdVisit(search: Record<string, unknown> | null | undefined): boolean {
   if (!search) return false;
   if (["gclid", "gbraid", "wbraid"].some((k) => String(search[k] ?? "").trim())) return true;
@@ -934,6 +940,10 @@ export const runRadarScan = createServerFn({ method: "POST" })
     return {
       paidRequired: false,
       freeSearchKept,
+      // Owner 2026-11-01: signed-in free accounts see their own count with the $5 offer.
+      paidMember: subscribed,
+      // In-state matches before the free cap, for the $5 offer's count.
+      localMatched: state ? local.length : matches.length,
       matches: visibleMatches,
       // Owner 2026-10-15: admin's "Matches found" showed the free 3, not the real count.
       totalMatched: matches.length,
@@ -1238,7 +1248,7 @@ export interface RadarSections {
 type ScanState =
   | { status: "idle" }
   | { status: "loading" }
-  | { status: "done"; matches: RadarMatch[]; certLabel: string; sections: RadarSections; intelTicket: string | null; freeSearchKept?: boolean; totalMatched?: number; emailUnlocked?: boolean }
+  | { status: "done"; matches: RadarMatch[]; certLabel: string; sections: RadarSections; intelTicket: string | null; freeSearchKept?: boolean; totalMatched?: number; emailUnlocked?: boolean; paidMember?: boolean; localMatched?: number }
   | { status: "paid_required"; limit?: number; signupRequired?: boolean }
   | { status: "error" };
 /** Resolved payload of a successful runRadarScan call (handler return shape).
@@ -1255,6 +1265,10 @@ type ScanResult = {
   intelTicket: string | null;
   /** true = a free (unpaid) search that showed no bids, so it was not counted. */
   freeSearchKept?: boolean;
+  /** The searcher is a paying (or trial/admin) member: no $5 offer banner. */
+  paidMember?: boolean;
+  /** Matches in the searched state (every match when no state), before the free cap. */
+  localMatched?: number;
   /** Every match found, including those past the free limit (matches holds only the shown ones). */
   totalMatched?: number;
   /** An email unlocked this scan: matches holds all of them. */
@@ -1662,6 +1676,8 @@ function RadarLanding() {
         freeSearchKept: res.freeSearchKept === true,
         totalMatched: res.totalMatched,
         emailUnlocked: res.emailUnlocked === true,
+        paidMember: res.paidMember,
+        localMatched: res.localMatched,
       });
       setRestoredResults(false);
       setStep(3);
@@ -2067,6 +2083,16 @@ function RadarLanding() {
                   <p className="mt-1 text-xs font-semibold text-amber-300">
                     Without an account: {FREE_RADAR_PREVIEW_SCANS} search, {FREE_ANONYMOUS_RADAR_RESULTS === 1 ? "your top match" : `up to ${FREE_ANONYMOUS_RADAR_RESULTS} matches`}.
                   </p>
+                )}
+                {!isAnonymous && scan.paidMember === false && (scan.localMatched ?? 0) > 0 && (
+                  <a
+                    href="/upgrade?plan=starter"
+                    onClick={() => trackEvent("radar_pass_offer_click", `${trade}|${state}`)}
+                    className="mt-3 block rounded-xl border border-amber-400/50 bg-amber-500/15 px-4 py-3 text-sm text-amber-50 hover:bg-amber-500/25"
+                  >
+                    📬 <b>{passOfferCount(scan.localMatched ?? 0)} open {tradeLabel(track)} bids{state ? ` in ${STATE_NAMES[state] ?? state}` : ""} right now.</b>{" "}
+                    Get every new one at 6 AM for 30 days: <b className="text-amber-300">${STARTER_FIRST_MONTH_PRICE} →</b>
+                  </a>
                 )}
               </div>
               {state !== "" ? (

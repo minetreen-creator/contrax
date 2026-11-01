@@ -61,11 +61,11 @@ function Upgrade() {
           {signedIn ? "← Dashboard" : "← Back to Radar"}
         </a>
         <h1 className="mt-8 text-center text-3xl font-bold text-slate-900">
-          {signedIn ? "Keep going with Contrax" : "Try Contrax free for 7 days"}
+          {signedIn ? "Keep going with Contrax" : "Get every new bid in your trade"}
         </h1>
         <p className="mt-3 text-center text-slate-600">
           {!signedIn
-            ? "No card needed. Pick a plan later, or never: after the trial your account stays free for search."
+            ? "Starter is $5 for your first 30 days, one time, with no automatic renewal. Or create a free account and keep searching."
             : plan && checkout !== "cancelled" ? "Continue with your selected plan, or explore Contrax first." : status?.active
             ? `Your trial ends in ${status.daysLeft} day${status.daysLeft === 1 ? "" : "s"}${
                 endsLabel ? ` (${endsLabel})` : ""
@@ -88,11 +88,11 @@ function Upgrade() {
         {!signedIn && (
           <div className="mx-auto mt-6 max-w-xl rounded-2xl border border-amber-300 bg-amber-50 p-6 text-center">
             <p className="text-sm text-slate-700">
-              Every new account starts with a 7-day Professional trial: unlimited Radar searches, every state and trade,
-              and the 6 AM email of new bids.
+              Not ready to pay? A free account keeps searching on Basic. When you want unlimited Radar searches, every
+              state and trade and the 6 AM email of new bids, Starter is $5 for your first 30 days.
             </p>
             <a href={TRIAL_SIGNUP_HREF} className="mt-4 inline-block rounded-xl bg-amber-500 px-6 py-3 font-bold text-slate-950 hover:bg-amber-400">
-              Start my free trial
+              Create my free account
             </a>
             <p className="mt-3 text-xs text-slate-500">
               Already have an account? <a href="/login?redirect=%2Fupgrade" className="underline">Sign in</a>

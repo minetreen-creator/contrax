@@ -666,7 +666,7 @@ function NoticeLock({ bidId, signedIn }: { bidId: number; signedIn: boolean }) {
       <p className="mt-1 text-sm text-slate-300">
         {signedIn
           ? `Get Starter for $${STARTER_FIRST_MONTH_PRICE} for 30 days to open this notice and every other one. No automatic renewal.`
-          : `Start a free 7-day trial (no card) to open this notice, or get Starter for $${STARTER_FIRST_MONTH_PRICE} for 30 days.`}
+          : `Get Starter for $${STARTER_FIRST_MONTH_PRICE} for 30 days to open this notice and every other one. No automatic renewal.`}
       </p>
       <div className="mt-3 flex flex-wrap gap-3">
         {signedIn ? (
@@ -676,7 +676,7 @@ function NoticeLock({ bidId, signedIn }: { bidId: number; signedIn: boolean }) {
         ) : (
           <>
             <a href={`/signup?next=${next}`} className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-amber-400">
-              Start free trial
+              Create a free account
             </a>
             <a href="/upgrade?plan=starter" className="rounded-lg border border-slate-600 px-4 py-2 text-sm font-semibold text-slate-200 hover:border-slate-400">
               See plans

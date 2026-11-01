@@ -222,7 +222,7 @@ export function IncumbentCard({
         >
           Unlock full name &amp; pricing history
         </a>
-        <p className="text-xs text-slate-400">Every new account starts with a 7-day Professional trial · No credit card</p>
+        <p className="text-xs text-slate-400">Part of Contrax Professional · Cancel anytime</p>
       </div>
     )
   ) : null;

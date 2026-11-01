@@ -618,7 +618,7 @@ function SettingsPage({ currentUser }: { currentUser: AuthUser }) {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold text-slate-900 mb-1">Plan &amp; Trial</h2>
-              <p className="text-sm text-slate-500">Your subscription status and 7-day free trial.</p>
+              <p className="text-sm text-slate-500">Your subscription status.</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               {isPaidTier && (

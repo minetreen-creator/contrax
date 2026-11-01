@@ -80,7 +80,7 @@ function PublicCopilot() {
               </p>
               <div className="mt-9 flex flex-wrap gap-4">
                 <a href="/signup" className="rounded-xl bg-blue-500 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:bg-blue-400">
-                  Start Your Free Trial <span aria-hidden="true">→</span>
+                  Create a Free Account <span aria-hidden="true">→</span>
                 </a>
                 <a href="#how-it-works" className="rounded-xl border border-slate-700 px-6 py-3.5 text-sm font-semibold text-slate-200 transition hover:border-slate-500 hover:bg-slate-900">
                   See how it works
@@ -114,9 +114,9 @@ function PublicCopilot() {
           <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-8 md:flex-row md:items-center">
             <div>
               <h2 className="text-3xl font-bold">Make every bid decision count.</h2>
-              <p className="mt-2 text-blue-100">Start your free trial. Plans start at $19/month, with Professional at $79 and Agency at $199.</p>
+              <p className="mt-2 text-blue-100">Create a free account. Starter is $5 for your first 30 days, then $19/month, with Professional at $79 and Agency at $199.</p>
             </div>
-            <a href="/signup" className="shrink-0 rounded-xl bg-white px-6 py-3.5 text-sm font-semibold text-blue-700 shadow-lg transition hover:bg-blue-50">Start Your Free Trial <span aria-hidden="true">→</span></a>
+            <a href="/signup" className="shrink-0 rounded-xl bg-white px-6 py-3.5 text-sm font-semibold text-blue-700 shadow-lg transition hover:bg-blue-50">Create a Free Account <span aria-hidden="true">→</span></a>
           </div>
         </section>
       </main>

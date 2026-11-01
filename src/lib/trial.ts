@@ -15,6 +15,18 @@ import { sql } from "~/db";
 import { getCurrentUser } from "~/lib/auth";
 /** Owner 2026-10-12: every signup starts a 7-day Professional trial (was 14, lazy). */
 export const TRIAL_DAYS = 7;
+/**
+ * Owner 2026-11-01 ("do B"): new accounts no longer get the automatic 7-day
+ * Professional trial; the $5 Starter pass (starter-pass.ts) is the way in. A
+ * new account starts on free Basic, and accounts that never had a trial are
+ * not given one. Trials already running finish normally. Set back to true to
+ * restore the free trial everywhere (signup, Google sign-in, lazy start).
+ */
+export const NEW_ACCOUNT_TRIAL = false;
+/** The plan tier and trial start a brand-new account is created with. PURE. */
+export function newAccountPlan(now: Date = new Date()): { planTier: "professional" | "basic"; trialStartedAt: string | null } {
+  return NEW_ACCOUNT_TRIAL ? { planTier: "professional", trialStartedAt: now.toISOString() } : { planTier: "basic", trialStartedAt: null };
+}
 const DAY_MS = 24 * 60 * 60 * 1000;
 /** Tier ladder — higher is more capable. Shared by PlanGate and premium gates.
  * `basic` (0) is the free tier (below Starter); `starter`, `professional` and
@@ -254,7 +266,7 @@ export async function loadUserTrialStatus(userId: number): Promise<TrialStatus> 
   // time its status is loaded. In-app only — no email. A user whose trial
   // already ran (trial_started_at set) is never restarted, and paid, granted
   // and demo accounts are never touched.
-  if (r && needsFirstTrial(r)) {
+  if (r && NEW_ACCOUNT_TRIAL && needsFirstTrial(r)) {
     const started = await ensureTrialStarted(userId);
     if (started) return computeTrialStatus(started, "professional", r.subscription_status, r.access_expires_at, r.full_access);
   }
@@ -336,6 +348,8 @@ export async function ensureTrialStarted(userId: number): Promise<string | null>
     if (r.plan_tier === "demo") return null;
     // If the trial already started, reuse it (expired stays expired).
     if (r.trial_started_at) return new Date(r.trial_started_at).toISOString();
+    // No new trials while NEW_ACCOUNT_TRIAL is off (owner 2026-11-01).
+    if (!NEW_ACCOUNT_TRIAL) return null;
     const updated = (await sql()`
       UPDATE users
       SET trial_started_at = NOW(), plan_tier = 'professional'

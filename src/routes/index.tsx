@@ -193,10 +193,6 @@ export const Route = createFileRoute("/")({
 
 // Shared page tokens (2026 redesign). Light values first, dark via `dark:`.
 const SERIF = "[font-family:Charter,'Iowan_Old_Style',Georgia,serif]";
-const CARD =
-  "rounded-xl bg-white text-[#0f1f38] shadow-[0_1px_2px_rgba(15,39,71,.08),0_8px_24px_rgba(15,39,71,.10)] dark:bg-[#131f35] dark:text-[#e7edf7] dark:shadow-[0_1px_2px_rgba(0,0,0,.4),0_8px_24px_rgba(0,0,0,.35)]";
-const BTN =
-  "mt-3.5 block w-full cursor-pointer rounded-lg border-0 bg-[#1c5fbf] px-5 py-3.5 text-center font-semibold text-white hover:brightness-110 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#8fbaf5] dark:bg-[#6aa3f0] dark:text-[#08172e]";
 
 function Home() {
 
@@ -241,7 +237,8 @@ function Home() {
       <HowItWorks />
       {/* Founding Businesses wall (owner 2026-10-29); hidden until one is published. */}
       <FoundingWall />
-      <BidScoutCallout />
+      {/* Bid Scout ($99) is listed under "Other plans" on /pricing; the homepage
+          pushes one offer, the $5 Starter pass (owner 2026-11-01). */}
       {/* "What's Your Town Buying?" (owner 2026-10-23) lives in the Free from
           Contrax strip below; its separate callout was a duplicate (2026-10-31). */}
       <FreeToolsStrip />
@@ -365,48 +362,6 @@ function Navbar() {
   // No `user` prop: SiteHeader resolves the viewer client-side after mount, so
   // the server render is session-free and edge-cacheable.
   return <SiteHeader />;
-}
-
-// ── Bid Scout callout ($99/month, same price as /bid-scout) ───────────────────
-
-function BidScoutCallout() {
-  return (
-    <section id="scout" className="scroll-mt-4 pt-18">
-      <div className="mx-auto max-w-[1120px] px-4 sm:px-6">
-        <div className="grid items-center gap-9 rounded-[14px] bg-[#0f2747] p-7 text-white md:grid-cols-[1.15fr_.85fr] md:gap-10 md:p-11 dark:bg-[#0a1930]">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-widest text-[#e0c078]">
-              Bid Scout · done for you
-            </p>
-            <h2 className={`${SERIF} mt-3 text-[clamp(26px,3.4vw,34px)] leading-[1.15] font-bold`}>
-              Five handpicked federal bids, every Friday
-            </h2>
-            <p className="mt-4 max-w-[32em] text-[#b9c7dc]">
-              Skip the searching. Each Friday we send five open federal opportunities that fit your
-              trade, with the deadline, what's required, and why it's a match.
-            </p>
-          </div>
-          <div className={`${CARD} p-6`}>
-            <div className="font-[Georgia,serif] text-[40px] font-bold">
-              $99<small className="text-base font-normal text-[#56647a] dark:text-[#9fb0c8]"> / month</small>
-            </div>
-            <div>Cancel anytime.</div>
-            <a href="/bid-scout?source=homepage" className={`${BTN} no-underline`}>
-              Start Bid Scout
-            </a>
-            <div className="mt-3.5 text-sm text-[#56647a] dark:text-[#9fb0c8]">
-              Want a second opinion on one bid? A one-page{" "}
-              <a href="/bid-fit-review" className="underline">Bid Fit Review</a> is $49 once.
-            </div>
-            <div className="mt-2 text-sm text-[#56647a] dark:text-[#9fb0c8]">
-              Get found by prime contractors:{" "}
-              <a href="/suppliers/join?source=homepage" className="underline">add your company to the supplier directory</a>.
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
 }
 
 // ── Footer ────────────────────────────────────────────────────────────────────

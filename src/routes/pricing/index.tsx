@@ -305,11 +305,12 @@ function PricingPage() {
             </div>
           </div>
 
-          {/* Plan cards. Owner 2026-10-23: two cards, Starter first, so the page
-              leads with one easy choice; Agency stays in `plans` (structured
-              data, checkout) and is linked under "Also available". */}
-          <div className="mx-auto mt-10 grid max-w-4xl gap-8 md:grid-cols-2">
-            {plans.filter((plan) => plan.slug !== "agency").map((plan) => (
+          {/* Plan cards. Owner 2026-11-01 ("do all"): ONE card, Starter, so the
+              page leads with one choice. Professional, Agency and the other
+              products stay in `plans` (structured data, checkout) and are
+              listed under "Other plans" below. */}
+          <div className="mx-auto mt-10 grid max-w-md gap-8">
+            {plans.filter((plan) => plan.slug === "starter").map((plan) => (
               <div
                 key={plan.name}
                 className={`relative flex flex-col rounded-2xl border bg-white p-8 shadow-sm transition-all hover:shadow-lg ${
@@ -412,14 +413,17 @@ function PricingPage() {
             <a href="/signup?plan=basic" className="font-medium text-amber-600 hover:text-amber-500">free Basic</a>: one state and
             one trade, 2 Radar searches, 1 saved bid, and new bids open to you after a 7-day head start for paying members.
           </p>
-          <p className="mt-3 text-center text-sm text-gray-500">
-            Also available:{" "}
-            <a href="/bid-scout?source=pricing" className="font-medium text-amber-600 hover:text-amber-500">Bid Scout</a> ($99/month, five handpicked bids every Friday, done for you) ·{" "}
-            <a href="/bid-fit-review" className="font-medium text-amber-600 hover:text-amber-500">Bid Fit Review</a> ($49 once) ·{" "}
-            <a href="/signup?plan=agency" className="font-medium text-amber-600 hover:text-amber-500">Agency</a> ($199/month, for teams and consultants) ·{" "}
-            <a href="#grants" className="font-medium text-amber-600 hover:text-amber-500">Contrax Grants</a> (free for verified nonprofits) ·{" "}
-            <a href="/contract-payments" className="font-medium text-amber-600 hover:text-amber-500">Contrax Payments</a> ($9/month)
-          </p>
+          <details className="mx-auto mt-6 max-w-2xl text-center text-sm text-gray-500">
+            <summary className="cursor-pointer font-semibold text-slate-700 hover:text-slate-900">Other plans</summary>
+            <p className="mt-3">
+              <a href="/signup?plan=professional&next=%2Fupgrade%3Fplan%3Dprofessional" className="font-medium text-amber-600 hover:text-amber-500">Professional</a> ($79/month: Starter plus who won last time and for how much, AI briefs and bid scoring) ·{" "}
+              <a href="/signup?plan=agency" className="font-medium text-amber-600 hover:text-amber-500">Agency</a> ($199/month, for teams and consultants) ·{" "}
+              <a href="/bid-scout?source=pricing" className="font-medium text-amber-600 hover:text-amber-500">Bid Scout</a> ($99/month, five handpicked bids every Friday, done for you) ·{" "}
+              <a href="/bid-fit-review" className="font-medium text-amber-600 hover:text-amber-500">Bid Fit Review</a> ($49 once) ·{" "}
+              <a href="#grants" className="font-medium text-amber-600 hover:text-amber-500">Contrax Grants</a> (free for verified nonprofits) ·{" "}
+              <a href="/contract-payments" className="font-medium text-amber-600 hover:text-amber-500">Contrax Payments</a> ($9/month)
+            </p>
+          </details>
           <p className="mt-3 text-center text-sm text-gray-500">
             Veterans Against Diabetes partner?{" "}
             <a href="/vad" className="font-medium text-amber-600 hover:text-amber-500 transition-colors">

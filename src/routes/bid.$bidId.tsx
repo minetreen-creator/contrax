@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { bidFitReviewHref } from "~/lib/bid-fit-review-link";
 import { createServerFn } from "@tanstack/react-start";
-import { FoundingSpotsLine } from "~/components/FoundingSpotsLine";
 import { WinnerPriceLine } from "~/components/WinnerPriceLine";
 import { deriveWinnerPrice } from "~/lib/winner-price";
 import type { FPDSIntel } from "~/lib/fpds";
@@ -655,8 +654,8 @@ export const Route = createFileRoute("/bid/$bidId")({
 
 /**
  * The official notice link is for members (owner 2026-10-29: "no more living
- * off the free tier"). Free accounts and visitors see what the job is; the
- * trial (no card) or a plan unlocks the link to act on it.
+ * off the free tier"). Free accounts and visitors see what the job is; the $5
+ * Starter pass is the one button to act on it (owner 2026-11-01).
  */
 function NoticeLock({ bidId, signedIn }: { bidId: number; signedIn: boolean }) {
   const next = encodeURIComponent(`/bid/${bidId}`);
@@ -664,27 +663,18 @@ function NoticeLock({ bidId, signedIn }: { bidId: number; signedIn: boolean }) {
     <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3">
       <p className="text-sm font-semibold text-amber-200">🔒 The official notice and bid documents are for members</p>
       <p className="mt-1 text-sm text-slate-300">
-        {signedIn
-          ? `Get Starter for $${STARTER_FIRST_MONTH_PRICE} for 30 days to open this notice and every other one. No automatic renewal.`
-          : `Get Starter for $${STARTER_FIRST_MONTH_PRICE} for 30 days to open this notice and every other one. No automatic renewal.`}
+        Starter opens this notice and every other one, and emails you new bids in your trade at 6 AM. No automatic renewal.
       </p>
       <div className="mt-3 flex flex-wrap gap-3">
-        {signedIn ? (
-          <a href="/upgrade?plan=starter" className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-amber-400">
-            Get Starter for ${STARTER_FIRST_MONTH_PRICE}
+        <a href="/upgrade?plan=starter" className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-amber-400">
+          Open this bid + every new one for 30 days: ${STARTER_FIRST_MONTH_PRICE}
+        </a>
+        {signedIn ? null : (
+          <a href={`/signup?next=${next}`} className="rounded-lg border border-slate-600 px-4 py-2 text-sm font-semibold text-slate-200 hover:border-slate-400">
+            Create a free account
           </a>
-        ) : (
-          <>
-            <a href={`/signup?next=${next}`} className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-amber-400">
-              Create a free account
-            </a>
-            <a href="/upgrade?plan=starter" className="rounded-lg border border-slate-600 px-4 py-2 text-sm font-semibold text-slate-200 hover:border-slate-400">
-              See plans
-            </a>
-          </>
         )}
       </div>
-      <FoundingSpotsLine where="notice_lock" className="mt-3 block text-sm font-semibold text-amber-300 hover:text-amber-200" />
     </div>
   );
 }

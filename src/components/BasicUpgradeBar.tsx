@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { checkTrial } from "~/lib/trial";
 import { STARTER_FIRST_MONTH_PRICE } from "~/lib/starter-offer";
 import { trackEvent } from "~/lib/track";
-import { FoundingSpotsLine } from "~/components/FoundingSpotsLine";
 
 /**
  * Always-on bar for free Basic accounts (owner 2026-10-29: "keep basic but no
@@ -32,7 +31,6 @@ export function BasicUpgradeBar() {
       >
         Get Starter for ${STARTER_FIRST_MONTH_PRICE} for 30 days →
       </a>
-      <FoundingSpotsLine where="basic_bar" className="ml-2 underline underline-offset-2 hover:no-underline" />
     </div>
   );
 }

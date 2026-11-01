@@ -35,3 +35,12 @@ describe("new accounts start on free Basic with no trial", () => {
     }
   });
 });
+
+describe("no 'your trial is ready' card while the trial is off", () => {
+  test("a fresh Basic account is not offered the trial card", async () => {
+    const { shouldShowTrialStartCard } = await import("./trial-start-card");
+    expect(
+      shouldShowTrialStartCard({ active: false, expired: false, fullAccess: false, planTier: "basic", trialEnded: false }, null),
+    ).toEqual({ show: false, reason: "trial-off" });
+  });
+});

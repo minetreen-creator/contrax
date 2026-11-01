@@ -10,9 +10,7 @@ import { getStripe } from "~/lib/stripe";
 import { isAdminEmail } from "~/lib/admin";
 import { ensureTrackedVisitorsTable } from "~/lib/scraper-watch.server";
 import type { TrackedVisitor } from "~/lib/scraper-watch";
-import { STARTER_FIRST_MONTH_COUPON } from "~/lib/starter-offer";
 import {
-  firstMonthStats,
   paidCheckoutCount,
   mapPoint,
   FEED_EVENTS,
@@ -403,7 +401,6 @@ async function handler({ request }: { request: Request }) {
         openedCheckout: Number(ev?.opened ?? 0),
         signinRequired: Number(ev?.signin ?? 0),
         failed: Number(ev?.failed ?? 0),
-        firstMonth: await loadFirstMonthStats(now),
         starterPass: await loadStarterPassStats(),
       };
     } catch (e) {
@@ -477,23 +474,3 @@ async function loadPaid48h(now: number): Promise<number | null> {
   }
 }
 
-async function loadFirstMonthStats(now: number) {
-  try {
-    const subs: { status: string; created: number }[] = [];
-    let page: string | undefined;
-    for (let i = 0; i < 5; i++) {
-      const res = await getStripe().subscriptions.search({
-        query: `metadata['first_month_offer']:'${STARTER_FIRST_MONTH_COUPON}'`,
-        limit: 100,
-        ...(page ? { page } : {}),
-      });
-      for (const sub of res.data) subs.push({ status: sub.status, created: sub.created });
-      if (!res.has_more || !res.next_page) break;
-      page = res.next_page;
-    }
-    return firstMonthStats(subs, now);
-  } catch (e) {
-    console.error("[api/admin/live-console] first-month stats unavailable:", e);
-    return null;
-  }
-}

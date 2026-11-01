@@ -64,3 +64,21 @@ describe("parts orders are never a trade's strong match (owner 2026-11-01)", () 
     expect(read("src/routes/signup.tsx")).not.toContain("After the trial, free Basic");
   });
 });
+
+describe("top-match spot check fixes (owner 2026-11-01)", () => {
+  test("titles with a trade's word that are not its work are not strong matches", async () => {
+    const { expandTrade, isStrongTradeMatch } = await import("./trade-registry");
+    const strong = (t: string, trade: string, naics: string | null = null) => isStrongTradeMatch(t, null, null, naics, expandTrade(trade));
+    expect(strong("Kp (Kitchen Patrol) Services", "Security guards")).toBe(false);
+    expect(strong("Unarmed Security Guard Services", "Security guards")).toBe(true);
+    expect(strong("35K lb. Base Capacity 4-wheel Sit-Down AC Electric Lift Truck, including", "Trucking")).toBe(false);
+    expect(strong("Purchase of Landscaping Flowers, Bulbs and Shrubs *222278", "Landscaping")).toBe(false);
+    expect(strong("Landscape Maintenance Services", "Landscaping")).toBe(true);
+    expect(strong("Replacement of 10 Ton HVAC Unit, Bldg.11", "HVAC")).toBe(true);
+  });
+  test("the free preview shows the searcher's own state first", () => {
+    const radar = read("src/routes/radar.tsx");
+    expect(radar).toContain("const previewPool = state && local.length ? [...local, ...nationwide] : matches;");
+    expect(radar).toContain("previewPool.slice(0, FREE_ANONYMOUS_RADAR_RESULTS)");
+  });
+});

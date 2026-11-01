@@ -22,7 +22,7 @@
  * answers "show / which bid", and never fabricates a bid.
  */
 import { sql } from "~/db";
-import { loadUserTrialStatus, TRIAL_DAYS, type TrialStatus } from "~/lib/trial";
+import { loadUserTrialStatus, NEW_ACCOUNT_TRIAL, TRIAL_DAYS, type TrialStatus } from "~/lib/trial";
 import { TRIAL_CHECKLIST } from "~/lib/trial-usage";
 import { LIVE_SQL, ARCHIVED_STATUSES } from "~/lib/bid-status";
 import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
@@ -111,6 +111,8 @@ export function shouldShowTrialStartCard(
   user?: { is_admin?: boolean } | null,
 ): { show: boolean; reason: string } {
   if (user?.is_admin) return { show: false, reason: "admin" };
+  // Owner 2026-11-01: no free trial to offer while NEW_ACCOUNT_TRIAL is off.
+  if (!NEW_ACCOUNT_TRIAL) return { show: false, reason: "trial-off" };
   if (!trial) return { show: false, reason: "no-trial-status" };
   if (trial.planTier !== "basic") return { show: false, reason: `tier-${trial.planTier ?? "null"}` };
   if (trial.active) return { show: false, reason: "trial-active" };

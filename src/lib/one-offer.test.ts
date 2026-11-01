@@ -75,6 +75,10 @@ describe("top-match spot check fixes (owner 2026-11-01)", () => {
     expect(strong("Purchase of Landscaping Flowers, Bulbs and Shrubs *222278", "Landscaping")).toBe(false);
     expect(strong("Landscape Maintenance Services", "Landscaping")).toBe(true);
     expect(strong("Replacement of 10 Ton HVAC Unit, Bldg.11", "HVAC")).toBe(true);
+    expect(strong("2011 Freightliner Coronado", "Trucking")).toBe(false);
+    expect(strong("Upfit of two (2) 2026 Freightliner 114SD Chassis into Fully Functional", "Trucking")).toBe(false);
+    expect(strong("Front-End Load Solid Waste/Recycling Hauling and Disposal Services", "Trucking")).toBe(true);
+    expect(strong("Lake Miccosukee Mechanical Muck Management", "HVAC")).toBe(false);
   });
   test("the free preview shows the searcher's own state first", () => {
     const radar = read("src/routes/radar.tsx");

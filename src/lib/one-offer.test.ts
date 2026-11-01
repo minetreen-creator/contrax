@@ -35,3 +35,18 @@ describe("a signed-in free account sees its own count with the $5 offer", () => 
     expect(passOfferCount(100)).toBe("100+");
   });
 });
+
+describe("one assistant, no live chat (owner 2026-11-01)", () => {
+  test("neither the AI bubble nor the Say hi chat is mounted, and Mission Control has no Say hi", () => {
+    const root = read("src/routes/__root.tsx");
+    expect(root).not.toContain("<ChatWidget");
+    expect(root).not.toContain("<FounderChat");
+    const live = read("src/routes/admin/live.tsx");
+    expect(live).not.toContain("/> Say hi");
+    expect(live).not.toContain("<ChatDrawer");
+    expect(live).toContain("const openChat = openTrack;");
+  });
+  test("the offer names the trade without quotation marks", () => {
+    expect(read("src/routes/radar.tsx")).toContain('tradeLabel(track).replace(/["“”]/g, "")');
+  });
+});

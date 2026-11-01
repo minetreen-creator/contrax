@@ -916,7 +916,11 @@ export const runRadarScan = createServerFn({ method: "POST" })
     } catch (e) {
       console.error("[radar] head-start lookup failed (cards unchanged):", e);
     }
-    const visibleMatches = subscribed || emailUnlocked ? matches : matches.slice(0, FREE_ANONYMOUS_RADAR_RESULTS);
+    // The free preview shows the searcher's own state first (owner 2026-11-01:
+    // a Texas HVAC search previewed a Puerto Rico job while 24 Texas bids sat
+    // below it). Each bucket keeps its ranking.
+    const previewPool = state && local.length ? [...local, ...nationwide] : matches;
+    const visibleMatches = subscribed || emailUnlocked ? matches : previewPool.slice(0, FREE_ANONYMOUS_RADAR_RESULTS);
     const visibleIds = new Set(visibleMatches.map((match) => match.id));
     // Claim only after results are assembled. Conditional writes close the
     // concurrent pre-check race before any matches are returned.

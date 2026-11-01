@@ -1388,6 +1388,24 @@ function isNonCarrierFreightWork(titleText: string, expansion: TradeExpansion): 
      /\b(?:plans?|planning|stud(?:y|ies)|consulting|consultancy)\b/.test(titleText));
 }
 
+/**
+ * Titles that carry a trade's word but are not that trade's work (owner
+ * 2026-11-01 spot check of the top match per trade): a flower or equipment
+ * purchase for landscaping/HVAC/security/trucking, a forklift ("Electric Lift
+ * Truck") for trucking, "Kitchen Patrol" for security guards. A title that
+ * also names the service (services, maintenance, repair, installation,
+ * replacement, removal) keeps its match. Janitorial has its own veto above.
+ */
+export function serviceTradeMismatch(titleText: string, expansion: TradeExpansion): boolean {
+  const codes = expansion.naicsCodes;
+  const serviceTrade = codes.some((c) => c === "561730" || c === "238220" || c === "561612" || c.startsWith("484"));
+  if (!serviceTrade) return false;
+  if (codes.some((c) => c.startsWith("484")) && /\b(?:lift trucks?|forklifts?|pallet jacks?)\b/.test(titleText)) return true;
+  if (codes.includes("561612") && /\bkitchen patrol\b/.test(titleText)) return true;
+  const namesService = /\b(?:services?|maintenance|repairs?|install(?:ation)?|replacement|replace|removal|mowing|hauling|transport(?:ation)?|guards?)\b/.test(titleText);
+  return isProductBuy(titleText) && !namesService;
+}
+
 export function isStrongTradeMatch(
   title: string | null | undefined,
   _category: string | null | undefined,
@@ -1407,6 +1425,7 @@ export function isStrongTradeMatch(
   // Paso HVAC search showed an aircraft actuator as its top "Strong Match").
   // Service notices use letter codes ("J041--", "Z1DA--"), so they are untouched.
   if (/^\s*\d{2,4}\s*--/.test(titleText)) return false;
+  if (serviceTradeMismatch(titleText, expansion)) return false;
   const terms = expansion.terms.filter((t) => t && t.length >= 2);
   // QA re-verification N1/F8 (PR #414): a TITLE-TERM hit on the janitorial
   // expansion must survive the purchased-service guards before it counts as a

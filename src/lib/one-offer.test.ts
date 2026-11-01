@@ -50,3 +50,17 @@ describe("one assistant, no live chat (owner 2026-11-01)", () => {
     expect(read("src/routes/radar.tsx")).toContain('tradeLabel(track).replace(/["“”]/g, "")');
   });
 });
+
+describe("parts orders are never a trade's strong match (owner 2026-11-01)", () => {
+  test("a numeric-FSC SAM product listing is not an HVAC match; a lettered service notice still is", async () => {
+    const { expandTrade, isStrongTradeMatch } = await import("./trade-registry");
+    const hvac = expandTrade("HVAC");
+    expect(isStrongTradeMatch("16--ACTUATOR,MECHANICAL,AI", null, null, null, hvac)).toBe(false);
+    expect(isStrongTradeMatch("4120--AIR CONDITIONING UNIT", null, null, "238220", hvac)).toBe(false);
+    expect(isStrongTradeMatch("J041--HVAC Preventive Maintenance", null, null, null, hvac)).toBe(true);
+    expect(isStrongTradeMatch("Chiller and Ventilation Maintenance", null, null, "238220", hvac)).toBe(true);
+  });
+  test("signup no longer mentions a trial", () => {
+    expect(read("src/routes/signup.tsx")).not.toContain("After the trial, free Basic");
+  });
+});

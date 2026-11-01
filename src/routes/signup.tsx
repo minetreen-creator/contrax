@@ -1515,7 +1515,7 @@ function SignupPage() {
                 free plan is limited) but under the button. */}
             {!save_bid && selectedPlan === "basic" && (
               <p className="text-center text-xs text-gray-500">
-                After the trial, free Basic includes 1 saved bid. AI Executive Briefs, Incumbent Intelligence, and AI Match Scoring are on Professional. Proposal drafting and pipeline CSV export are on Bid Scout.
+                Free Basic includes 1 saved bid. AI Executive Briefs, Incumbent Intelligence, and AI Match Scoring are on Professional. Proposal drafting and pipeline CSV export are on Bid Scout.
               </p>
             )}
             {/* Trial trust row — one visible line near the CTA. Communicates

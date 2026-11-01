@@ -1402,6 +1402,11 @@ export function isStrongTradeMatch(
   // 2026-10-31). No NAICS rescue: a stored 561730 on such a row was inferred
   // from that same figurative word.
   if (expansion.naicsCodes.includes("561730") && isFigurativeLandscapeOnly(titleText)) return false;
+  // A SAM product listing (numeric Federal Supply Class prefix, "16--ACTUATOR,
+  // MECHANICAL") is a parts order, never trade work (owner 2026-11-01: an El
+  // Paso HVAC search showed an aircraft actuator as its top "Strong Match").
+  // Service notices use letter codes ("J041--", "Z1DA--"), so they are untouched.
+  if (/^\s*\d{2,4}\s*--/.test(titleText)) return false;
   const terms = expansion.terms.filter((t) => t && t.length >= 2);
   // QA re-verification N1/F8 (PR #414): a TITLE-TERM hit on the janitorial
   // expansion must survive the purchased-service guards before it counts as a

@@ -25,7 +25,7 @@ const getGrantsPricingData = createServerFn({ method: "GET" }).handler(async () 
 // unchanged — they already carry the prices.
 const PAGE_TITLE = "Pricing: Government Bid Alerts from $19/Month";
 const META_DESCRIPTION =
-  "Contrax plans for every stage of growth. Every new account starts with a 7-day Professional trial, no credit card. After it, choose a plan or keep searching on free Basic.";
+  "Contrax plans for every stage of growth. Start with Starter for $5 for your first 30 days, with no automatic renewal, or keep searching on free Basic.";
 
 export const Route = createFileRoute("/pricing/")({
   loader: () => getGrantsPricingData(),
@@ -36,7 +36,7 @@ export const Route = createFileRoute("/pricing/")({
       { name: "description", content: META_DESCRIPTION },
       { name: "robots", content: "index, follow" },
       { property: "og:title", content: PAGE_TITLE },
-      { property: "og:description", content: "Contrax plans for every stage of growth. Every new account starts with a 7-day Professional trial. Starter $19/mo, Professional $79/mo, Basic search free." },
+      { property: "og:description", content: "Contrax plans for every stage of growth. Starter is $5 for your first 30 days, then $19/mo; Professional $79/mo; Basic search free." },
       { property: "og:image", content: "https://www.contrax.company/logo-square.png" },
       { property: "og:image:type", content: "image/png" },
       { property: "og:image:width", content: "1200" },
@@ -114,8 +114,8 @@ const plans = [
 // visitors read (8 items).
 const FAQS = [
   { q: "Can I switch plans later?", a: "Yes — upgrade or downgrade anytime. Changes take effect at the start of your next billing cycle." },
-  { q: "How much does Basic cost?", a: "Basic is $0/mo and is where an account lands after its 7-day trial if no plan is chosen. It includes 2 Radar searches per account, basic solicitations search, standard set-aside filters, and 1 saved bid, with no bid emails. Basic shows what each bid is, but the official notice link and bid documents are for members. New bids open for free accounts after a 7-day head start for paying members. Basic matches bids for one state and one trade. Upgrade to Starter ($19/mo) to open the official notice for every bid, see new bids the day they post, match every state and trade you work in, get a 6 AM Eastern email of the new bids in your trade and states every morning, save unlimited bids, see who to contact on federal bids (name, email and phone), and get your saved bids' deadlines in your calendar. AI briefs and bid scoring are part of Radar Pro (Professional), and proposal drafting plus pipeline CSV export are part of Bid Scout." },
-  { q: "Is there a free trial?", a: "Yes. Every new account starts with a 7-day Professional trial, with no credit card. When it ends, choose a plan or keep searching on free Basic." },
+  { q: "How much does Basic cost?", a: "Basic is $0/mo and is where every new account starts until a plan is chosen. It includes 2 Radar searches per account, basic solicitations search, standard set-aside filters, and 1 saved bid, with no bid emails. Basic shows what each bid is, but the official notice link and bid documents are for members. New bids open for free accounts after a 7-day head start for paying members. Basic matches bids for one state and one trade. Upgrade to Starter ($19/mo) to open the official notice for every bid, see new bids the day they post, match every state and trade you work in, get a 6 AM Eastern email of the new bids in your trade and states every morning, save unlimited bids, see who to contact on federal bids (name, email and phone), and get your saved bids' deadlines in your calendar. AI briefs and bid scoring are part of Radar Pro (Professional), and proposal drafting plus pipeline CSV export are part of Bid Scout." },
+  { q: "Is there a free trial?", a: "Instead of a free trial, Starter costs $5 for your first 30 days, one time, with no automatic renewal. That is 30 days of the daily bid email and every state and trade, and we ask before charging $19/month. Free Basic stays free if you only want to search." },
   { q: "Is there a yearly plan?", a: "Yes. Pay yearly and get 2 months free: Starter is $190 a year instead of $228, Professional $790 instead of $948, and Agency $1,990 instead of $2,388. Choose Yearly on the upgrade page at checkout." },
   { q: "Can I cancel anytime?", a: "Yes. Cancel anytime and your access continues until the end of the billing period. No refunds for partial months." },
   { q: "What payment methods do you accept?", a: "We accept all major credit and debit cards through Stripe." },
@@ -251,7 +251,7 @@ function PricingPage() {
               Never miss a bid in your trade again
             </h2>
             <p className="mt-4 text-lg text-gray-600">
-              Most businesses start with Starter: every new bid in your trade and states, in your inbox at 6 AM. Your first 30 days are $5, one time, with no automatic renewal. Every new account also gets a 7-day Professional trial, no credit card.
+              Most businesses start with Starter: every new bid in your trade and states, in your inbox at 6 AM. Your first 30 days are $5, one time, with no automatic renewal.
             </p>
             {near && (
               <p className="mt-5 text-base font-semibold text-slate-900">
@@ -270,11 +270,11 @@ function PricingPage() {
                 {starterLabel} →
               </a>
               <a
-                href="/signup"
-                onClick={() => trackEvent("pricing_trial_click", "hero")}
+                href="/signup?plan=basic"
+                onClick={() => trackEvent("pricing_basic_click", "hero")}
                 className="text-sm font-semibold text-blue-700 hover:text-blue-600"
               >
-                Or try Professional free for 7 days, no card
+                Or keep searching on free Basic
               </a>
             </div>
             {/* Owner 2026-10-30 (item 4): the merchandise before the plan cards. */}
@@ -419,11 +419,6 @@ function PricingPage() {
             <a href="/signup?plan=agency" className="font-medium text-amber-600 hover:text-amber-500">Agency</a> ($199/month, for teams and consultants) ·{" "}
             <a href="#grants" className="font-medium text-amber-600 hover:text-amber-500">Contrax Grants</a> (free for verified nonprofits) ·{" "}
             <a href="/contract-payments" className="font-medium text-amber-600 hover:text-amber-500">Contrax Payments</a> ($9/month)
-          </p>
-          <p className="mt-3 text-center">
-            <a href="/signup?plan=professional" className="text-sm font-medium text-amber-600 hover:text-amber-500 transition-colors">
-              Or start your 7-day Professional trial &rarr;
-            </a>
           </p>
           <p className="mt-3 text-center text-sm text-gray-500">
             Veterans Against Diabetes partner?{" "}

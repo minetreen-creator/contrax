@@ -1152,7 +1152,7 @@ function ScorePage() {
               to="/signup"
               className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-7 py-3.5 text-[15px] font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400 hover:shadow-xl active:scale-[0.98]"
             >
-              Start your free trial
+              Create your free account
               <ArrowRight className="h-4 w-4" />
             </Link>
             <Link

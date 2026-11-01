@@ -195,7 +195,7 @@ const PLAN_OPTIONS: {
       "Basic Solicitations Search (new bids after 7 days)",
       "2 Radar searches per account",
       "1 saved bid",
-      "No bid emails (after your 7-day trial)",
+      "No bid emails",
       "Standard set-aside filters",
     ],
   },
@@ -502,7 +502,7 @@ function SignupPage() {
     document.title =
       selectedPlan === "basic"
         ? "Contrax — Free, No Card Required"
-        : "Contrax — Start Your 7-Day Professional Trial";
+        : "Contrax — Create Your Account";
   }, [selectedPlan]);
 
   // Live countdown for the Closing Soon → signup urgency panel. Initial value is
@@ -1367,8 +1367,8 @@ function SignupPage() {
               right under the headline and the trial details follow it. */}
           <p className="mt-4 text-sm text-gray-500">
             {save_bid
-              ? "Your account includes a 7-day Professional trial, with no credit card or automatic charge. After the trial, keep your free Basic account with 1 saved bid, or choose a paid plan."
-              : "Your 7-day Professional trial starts when you create your account — no credit card required. After it, choose a plan or keep searching on free Basic."}
+              ? "Your free account keeps 1 saved bid, with no credit card. When you want every bid and the daily bid email, Starter is $5 for your first 30 days, with no automatic renewal."
+              : "Creating your account is free, with no credit card. When you want the daily bid email and every state and trade, Starter is $5 for your first 30 days, with no automatic renewal."}
           </p>
 
           {/* Social proof — live tracked-solicitation count (mirrors the homepage counter) */}
@@ -1407,9 +1407,7 @@ function SignupPage() {
               {/* A note, not a button (owner 2026-10-06): light fill, no shadow,
                   so on a phone it is not mistaken for a tap target above the email box. */}
               {!save_bid && <p className="mt-1.5 rounded-md bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800">
-                {selectedPlan === "basic"
-                  ? "🔒 Free account • No credit card"
-                  : "🔒 7-day trial starts today • No credit card"}
+                🔒 Free account • No credit card
               </p>}
               <input
                 id="email"
@@ -1525,13 +1523,7 @@ function SignupPage() {
                 (takes under 30 seconds). Paid plans keep honest 14-day-trial
                 framing instead of the "free forever" claim. */}
             {!save_bid && <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs text-gray-500">
-              {selectedPlan === "basic" ? <span>No credit card required</span> : <span>No credit card required for the trial</span>}
-              {selectedPlan !== "basic" && (
-                <>
-                  <span aria-hidden="true" className="text-gray-300">·</span>
-                  <span>7-day trial starts at signup</span>
-                </>
-              )}
+              <span>No credit card required</span>
               <span aria-hidden="true" className="text-gray-300">·</span>
               <span>Takes under 30 seconds</span>
               <span aria-hidden="true" className="text-gray-300">·</span>
@@ -1545,7 +1537,7 @@ function SignupPage() {
           {!save_bid && <div className="mt-6 border-t border-gray-100 pt-5">
             <p className="text-sm font-semibold text-slate-900">Select your plan</p>
             <p className="mt-0.5 text-xs text-gray-500">
-              Your 7-day Professional trial starts when you create your account — no credit card required. After it, choose a plan or keep searching on free Basic.
+              Creating your account is free, with no credit card. When you want the daily bid email and every state and trade, Starter is $5 for your first 30 days, with no automatic renewal.
             </p>
             <div className="mt-2.5 space-y-2" role="radiogroup" aria-label="Plan">
               {PLAN_OPTIONS.map((opt) => {
@@ -1581,7 +1573,7 @@ function SignupPage() {
                         )}
                         {freeFlowPaidCard && (
                           <span className="inline-flex rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-600">
-                            Paid · 7-day Professional trial
+                            Paid plan
                           </span>
                         )}
                       </span>
@@ -1619,7 +1611,9 @@ function SignupPage() {
             <p className="mt-2.5 text-sm text-gray-500">
               {selectedPlan === "basic"
                 ? "Basic — $0/mo, free forever"
-                : `${planInfo.name} — $${planInfo.price}/mo after your 7-day Professional trial`}
+                : selectedPlan === "starter"
+                  ? "Starter — $5 for your first 30 days, then $19/mo. Your account is free to create; you pay only when you choose to."
+                  : `${planInfo.name} — $${planInfo.price}/mo. Your account is free to create; you pay only when you choose to.`}
             </p>
           </div>}
 

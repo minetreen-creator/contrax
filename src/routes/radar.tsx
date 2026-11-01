@@ -1996,12 +1996,12 @@ function RadarLanding() {
             </h2>
             <p className="mt-3 text-slate-300">
               {scan.signupRequired
-                ? "You've used your anonymous preview. A new account starts with a 7-day trial: unlimited Radar searches, every state and trade, and the daily bid email. No credit card required."
+                ? "You've used your anonymous preview. Create a free account to keep going, or get unlimited Radar searches, every state and trade, and the daily bid email with Starter: $5 for your first 30 days, no automatic renewal."
                 : "You've used the two Radar searches included with your free Basic account. Choose a paid plan for continued Radar access."}
             </p>
             <a href={scan.signupRequired ? radarSignupHref({ trade, state, cert, sizePref }, { cta: true, free: true }) : "/upgrade"}
               className="mt-6 rounded-2xl bg-amber-500 px-6 py-4 font-bold text-slate-950 hover:bg-amber-400">
-              {scan.signupRequired ? "Start my 7-day trial" : "Choose a paid plan"}
+              {scan.signupRequired ? "Create my free account" : "Choose a paid plan"}
             </a>
             {scan.signupRequired && <a href="/login?redirect=%2Fradar" className="mt-6 text-sm text-slate-300 underline">Already have an account? Sign in</a>}
             <p className="mt-4 text-sm text-slate-400">All three government contracting courses remain free.</p>
@@ -2029,7 +2029,7 @@ function RadarLanding() {
               <div className="mb-5 rounded-2xl border border-blue-400/40 bg-blue-500/10 p-4 sm:flex sm:items-center sm:justify-between sm:gap-4">
                 <div>
                   <p className="font-bold text-white">Welcome back — your matches are still open.</p>
-                  <p className="mt-1 text-sm text-blue-100/80">Create your account to keep searching. Your 7-day trial needs no credit card.</p>
+                  <p className="mt-1 text-sm text-blue-100/80">Create your free account to keep searching.</p>
                 </div>
                 <a
                   href={radarSignupHref({ trade, state, cert, sizePref }, { cta: true })}
@@ -3118,7 +3118,7 @@ export function SignupGate({
         {locked > 0 ? `Unlock My ${locked} Matches →` : `Create my account →`}
       </a>
       <p className="mt-3 text-xs leading-relaxed text-slate-400">
-        Create your account to see them all. Your 7-day trial needs no credit card.
+        Create your free account to see them all.
       </p>
     </div>
   );
@@ -3567,7 +3567,7 @@ function EmailUnlockCard({
       <p className="mt-2 text-xs text-slate-500">
         Rather have an account?{" "}
         <a href={signupHref} className="font-semibold text-slate-300 underline">
-          Start a free 7-day trial
+          Create a free account
         </a>
       </p>
     </section>

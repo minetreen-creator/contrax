@@ -12,6 +12,7 @@ import {
 } from "~/lib/rate-limit";
 import { isBot, ensureFunnelEventsTable } from "~/lib/tracking-intake";
 import { normalizeSignupSource } from "~/lib/signup-source";
+import { newAccountPlan } from "~/lib/trial";
 import {
   extractAttemptTokenFromBody,
   resolveDedupeSecret,
@@ -223,9 +224,12 @@ async function handler({ request }: { request: Request }) {
     // trial begins when the user upgrades to a paid plan — the hard Pro gate
     // returns GATE_REQUIRED on gated attempts, so they no longer start the
     // trial (see /api/bids/{id}/analyze). No card is collected at signup.
+    // Owner 2026-11-01: with NEW_ACCOUNT_TRIAL off, a new account starts on
+    // free Basic with no trial; the $5 Starter pass is the way in.
+    const plan = newAccountPlan();
     const inserted = await sql()`
       INSERT INTO users (email, password_hash, plan_tier, trial_started_at, company_name, signup_source)
-      VALUES (${email}, ${passwordHash}, 'professional', NOW(), ${company}, ${signupSource})
+      VALUES (${email}, ${passwordHash}, ${plan.planTier}, ${plan.trialStartedAt}, ${company}, ${signupSource})
       RETURNING id, email, created_at
     `;
     const user = inserted[0] as { id: number; email: string; created_at: Date };

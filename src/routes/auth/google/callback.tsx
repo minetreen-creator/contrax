@@ -268,15 +268,17 @@ const handleGoogleAuth = createServerFn({ method: "POST" })
       // Owner 2026-10-12: every OAuth signup starts the 7-day Professional trial
       // now (plan_tier='professional', trial_started_at=now; no card). When it
       // ends unpaid, computeTrialStatus drops the account to free Basic.
-      const trialStartedAt = new Date().toISOString();
+      // Owner 2026-11-01: NEW_ACCOUNT_TRIAL off → free Basic, no trial.
+      const { newAccountPlan } = await import("~/lib/trial");
+      const { planTier, trialStartedAt } = newAccountPlan();
       const inserted = await sql()`
         INSERT INTO users (email, password_hash, plan_tier, trial_started_at)
-        VALUES (${email}, NULL, 'professional', ${trialStartedAt})
+        VALUES (${email}, NULL, ${planTier}, ${trialStartedAt})
         RETURNING id
       `.catch(async () => {
         const retry = await sql()`
           INSERT INTO users (email, password_hash, plan_tier, trial_started_at)
-          VALUES (${email}, ${`oauth:${crypto.randomUUID()}`}, 'professional', ${trialStartedAt})
+          VALUES (${email}, ${`oauth:${crypto.randomUUID()}`}, ${planTier}, ${trialStartedAt})
           RETURNING id
         `;
         return retry;

@@ -40,7 +40,7 @@ export function PremiumUpgradeModal({
   message = SAVE_LIMIT_PAYWALL_MESSAGE,
   checkoutPlan = "professional",
   ctaLabel = "Upgrade to Radar Pro →",
-  priceNote = "$79/mo · 7-day Professional trial · Cancel anytime",
+  priceNote = "$79/mo · Cancel anytime",
   ctaHref,
 }: {
   open: boolean;

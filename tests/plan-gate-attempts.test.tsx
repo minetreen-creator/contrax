@@ -635,11 +635,13 @@ describe("F3: no surface still sells proposal drafting on Professional", () => {
       "AI Executive Briefs, Incumbent Intelligence, and AI Match Scoring are on Professional.",
     );
     expect(signup).toContain("Proposal drafting and pipeline CSV export are on Bid Scout.");
-    // The #456 OWNER-RATIFIED trial copy is untouched (byte-identical, both sites).
+    // Owner 2026-11-01 ("do B"): the 7-day trial copy (#456) is replaced by
+    // the $5 Starter line at both sites, and the badge no longer promises a trial.
     expect(
-      count(signup, "Your 7-day Professional trial starts when you create your account — no credit card required. After it, choose a plan or keep searching on free Basic."),
+      count(signup, "Creating your account is free, with no credit card. When you want the daily bid email and every state and trade, Starter is $5 for your first 30 days, with no automatic renewal."),
     ).toBe(2);
-    expect(signup).toContain("🔒 7-day trial starts today • No credit card");
+    expect(signup).toContain("🔒 Free account • No credit card");
+    expect(signup).not.toContain("🔒 7-day trial starts today • No credit card");
   });
 
   test("the signed-out CTA line that sold drafting now points at Bid Scout", () => {

@@ -69,7 +69,7 @@ export function SignupContextPanel({ source, title, agency, closingLabel, radar,
             {radar?.sizeLabel ? ` · ${radar.sizeLabel}` : ""}
           </p>
           <p className="mt-3 text-xs text-amber-600">
-            Create your free account to continue searching and save bids. Your 7-day Professional trial needs no credit card.
+            Create your free account to continue searching and save bids. No credit card.
           </p>
           {/* Seen matches — the actual scanned bids (read-only). Absent/empty
               seen list = no block, criteria still shown. */}
@@ -129,7 +129,7 @@ export function SignupContextPanel({ source, title, agency, closingLabel, radar,
             <p className="mt-1 text-sm font-medium text-indigo-700 line-clamp-2">{agency}</p>
           )}
           <p className="mt-3 text-xs text-indigo-600">
-            Start your 7-day Professional trial below to see the incumbent&apos;s full contract history and past pricing.
+            Create your free account below, then add Contrax Professional to see the incumbent&apos;s full contract history and past pricing.
           </p>
         </div>
       </div>
@@ -164,8 +164,8 @@ export function SignupContextPanel({ source, title, agency, closingLabel, radar,
         </p>
         <p className="mt-3 text-xs text-amber-600">
           {closingLabel
-            ? "Start your 7-day Professional trial for full details and AI Executive Briefs. Verify the original notice before bidding."
-            : "Start your 7-day Professional trial below to unlock the full opportunity."}
+            ? "Create your free account below for the details. AI Executive Briefs are part of Contrax Professional. Verify the original notice before bidding."
+            : "Create your free account below, then open the full opportunity with Starter for $5 for your first 30 days."}
         </p>
       </div>
     </div>

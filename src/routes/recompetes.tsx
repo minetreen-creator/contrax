@@ -182,8 +182,7 @@ function RecompetesPage() {
                   {last ? ` after ${fmtEndDate(last.end_date)}` : ""}.
                 </p>
                 <p className="mt-1 text-sm text-slate-700">
-                  The full list, with every holder, agency, value and end date, is part of Contrax Professional. Every new account includes a 7-day
-                  Professional trial with no card required.
+                  The full list, with every holder, agency, value and end date, is part of Contrax Professional.
                 </p>
                 <a
                   href={d.signedIn ? RADAR_PRO_HREF : `/signup?source=recompetes&next=${encodeURIComponent(here)}`}

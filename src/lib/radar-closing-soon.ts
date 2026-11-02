@@ -22,3 +22,22 @@ export function closingSoonLast<T>(rows: readonly T[], due: (row: T) => string |
   for (const r of rows) (closesTooSoon(due(r), now) ? soon : open).push(r);
   return [...open, ...soon];
 }
+
+/** The free preview's bid should leave room to prepare one (owner 2026-11-02, design critique). */
+export const PREVIEW_MIN_DAYS = 7;
+
+/**
+ * Same rows, those due at least PREVIEW_MIN_DAYS out first (rows with no date
+ * count as having time); order otherwise kept. Used to pick the free preview,
+ * so a visitor's one free bid is one they could still realistically win. PURE.
+ */
+export function roomToBidFirst<T>(rows: readonly T[], due: (row: T) => string | Date | null | undefined, now: number = Date.now()): T[] {
+  const room: T[] = [];
+  const tight: T[] = [];
+  for (const r of rows) {
+    const d = due(r);
+    const t = d ? new Date(d).getTime() : NaN;
+    (Number.isNaN(t) || t - now >= PREVIEW_MIN_DAYS * 86_400_000 ? room : tight).push(r);
+  }
+  return [...room, ...tight];
+}

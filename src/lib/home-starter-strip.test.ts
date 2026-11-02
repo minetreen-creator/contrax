@@ -15,7 +15,7 @@ describe("homepage $5 Starter strip", () => {
     expect(page).toContain("{STARTER_PASS_NOTE}");
   });
   test("no 'free' wording in the strip and no duplicate town callout", () => {
-    const strip = page.slice(page.indexOf("function StarterPassStrip"), page.indexOf("// Free courses and tools"));
+    const strip = page.slice(page.indexOf("function StarterPassStrip"), page.indexOf("// ── Navbar"));
     expect(strip.toLowerCase()).not.toContain("free");
     expect(page).not.toContain("<TownBuyingCallout");
   });

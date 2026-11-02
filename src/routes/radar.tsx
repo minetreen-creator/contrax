@@ -71,7 +71,7 @@ import {
 } from "~/lib/radar-scan-runner";
 import { fetchStrictRadarRows, radarRowPasses } from "~/lib/radar-candidates";
 import { radarShareUrl } from "~/lib/radar-share";
-import { closingSoonLast } from "~/lib/radar-closing-soon";
+import { closingSoonLast, roomToBidFirst } from "~/lib/radar-closing-soon";
 import { cleanBidTitle } from "~/lib/bid-title";
 import { stateFromGeoHeaders, withTimeout } from "~/lib/radar-geo";
 import { SiteHeader } from "~/components/SiteHeader";
@@ -165,7 +165,7 @@ export function radarOpening({
     return {
       headline: `Your ${certLabel}matches${forTrade}${inState}`,
       intro: fromLearn ? "Your course selections are ready. Review the current matches, then save an opportunity with a free account. AI briefs and drafting are available with the relevant paid plans." :
-        "We've filled in what you picked on the homepage. See your matches now — your top match is free, with a real match score and full Incumbent Intelligence (previous winner & award price). Certification and contract size are optional; set them under Refine.",
+        "We've filled in what you picked on the homepage. See your matches now. Your top match is free, with the previous winner and price when the records have them. Certification and contract size are optional; set them under Refine.",
     };
   }
   // Ad visitors (owner 2026-10-06): most aren't SDVOSBs, so lead with every
@@ -182,7 +182,7 @@ export function radarOpening({
   return {
     headline: "Find government contracts your business can win. Your top match is free.",
     intro:
-      "Tell us your trade and state and we'll show your strongest live matches, with a real match score and full Incumbent Intelligence (previous winner & award price). Veteran-owned (SDVOSB), 8(a), WOSB and HUBZone set-asides included.",
+      "Tell us your trade and state and we'll show your best open bids, with the previous winner and price when the records have them. Veteran-owned (SDVOSB), 8(a), WOSB and HUBZone set-asides included.",
   };
 }
 
@@ -924,7 +924,10 @@ export const runRadarScan = createServerFn({ method: "POST" })
     // The free preview shows the searcher's own state first (owner 2026-11-01:
     // a Texas HVAC search previewed a Puerto Rico job while 24 Texas bids sat
     // below it). Each bucket keeps its ranking.
-    const previewPool = state && local.length ? [...local, ...nationwide] : matches;
+    // Owner 2026-11-02 (design critique): within each bucket, a bid with a
+    // week or more left leads, so the one free bid is one they could still win.
+    const byRoom = (rows: RadarMatch[]) => roomToBidFirst(rows, (m) => m.due_date);
+    const previewPool = state && local.length ? [...byRoom(local), ...byRoom(nationwide)] : byRoom(matches);
     const visibleMatches = subscribed || emailUnlocked ? matches : previewPool.slice(0, FREE_ANONYMOUS_RADAR_RESULTS);
     const visibleIds = new Set(visibleMatches.map((match) => match.id));
     // Claim only after results are assembled. Conditional writes close the
@@ -1120,14 +1123,16 @@ function buildReasons(
   c: { trade: string; isNaics: boolean; expansion: TradeExpansion; state: string; cert: RadarCert; sizePref: SizeId; score: number; scoreLabel: string; tradeProvenance: TradeMatchProvenance | null },
 ): string[] {
   const reasons: string[] = [];
-  reasons.push(setAsideEvidence(bid.set_aside));
+  // Owner 2026-11-02 (design critique): missing data is not a reason a bid
+  // fits. A blank set-aside or value is left out here (the card's meta line
+  // still says "Set-aside not specified").
+  if (String(bid.set_aside ?? "").trim()) reasons.push(setAsideEvidence(bid.set_aside));
   // Owner 2026-10-08: a source whose close-date time zone is not settled never
   // gets the derived "Closing in N days" bullet (see ~/lib/deadline-label).
   const days = suppressedDays(bid);
   if (days != null) reasons.push(days <= 30 ? `Closing in ${days} day${days === 1 ? "" : "s"}` : `Closing in ${days} days`);
   const ev = parseValue(bid.estimated_value);
   if (ev != null) reasons.push(`Estimated value ${money(ev)}${c.sizePref !== "any" ? " fits your size preference" : ""}`);
-  else reasons.push("Estimated value not listed — verify in the full solicitation");
   if (c.isNaics && bid.naics_code) reasons.push(`NAICS ${bid.naics_code} matches your code`);
   else if (!c.isNaics && c.trade) {
     const prov = c.tradeProvenance;
@@ -1164,7 +1169,7 @@ function buildQualifications(
   bid: RadarBidRow,
   c: { trade: string; isNaics: boolean; state: string; cert: RadarCert },
 ): string[] {
-  const q: string[] = [setAsideEvidence(bid.set_aside)];
+  const q: string[] = String(bid.set_aside ?? "").trim() ? [setAsideEvidence(bid.set_aside)] : [];
   if (c.isNaics && bid.naics_code) {
     const name = NAICS_NAMES[bid.naics_code];
     q.push(`Aligned with NAICS ${bid.naics_code}${name ? ` — ${name}` : ""}`);
@@ -1224,14 +1229,14 @@ export const Route = createFileRoute("/radar")({
       {
         name: "description",
         content:
-          "Not sure which set-asides your certification qualifies you for? Contract Radar shows your strongest live matches — the top match free, with full Incumbent Intelligence (previous winner and award price).",
+          "Tell Contrax your trade and state. Radar finds open city, county, school, state and federal bids that match, and shows your best one before you sign up.",
       },
       { name: "robots", content: "index, follow" },
       { property: "og:title", content: "Radar: Live Set-Aside Contract Matches | Contrax" },
       {
         property: "og:description",
         content:
-          "Tell us your trade and state. Contract Radar scans live federal, state and local solicitations and reveals your strongest matches one at a time — the top match is free, with full incumbent intel.",
+          "Tell us your trade and state. Contract Radar finds open city, county, school, state and federal bids that match, and shows your best one before you sign up.",
       },
       { property: "og:type", content: "website" },
       { property: "og:image", content: "https://www.contrax.company/logo-square.png" },
@@ -1837,7 +1842,7 @@ function RadarLanding() {
               {/* Trade / NAICS */}
               <div>
                 <label htmlFor="radar-trade" className="text-sm font-semibold text-slate-200">
-                  1. Your trade or NAICS code
+                  1. Your trade
                 </label>
                 {/* One-tap trades (owner 2026-10-05): typing is slow on a phone. */}
                 <div className="mt-2 flex flex-wrap gap-1.5 sm:gap-2" role="group" aria-label="Common trades">
@@ -2000,12 +2005,11 @@ function RadarLanding() {
                 <span aria-hidden="true">📡</span>
               </div>
               <p className="text-2xl font-extrabold tracking-tight text-amber-400 sm:text-3xl">
-                Contract Radar is scanning the market…
+                Finding open bids…
               </p>
               <p className="mt-3 text-sm text-slate-300">
-                Matching live solicitation data against your{" "}
-                {cert ? CERT_LABEL[cert] : ""} certification
-                {state ? ` in ${state}` : " nationwide"}.
+                Looking for {trade.trim() ? `${trade.trim().slice(0, 40)} ` : ""}bids
+                {state ? ` in ${STATE_NAMES[state] ?? state}` : " nationwide"}.
               </p>
             </div>
           </section>
@@ -2082,7 +2086,7 @@ function RadarLanding() {
                   </p>
                 )}
                 <p className="mt-1 text-sm text-slate-400">
-                  {scan.certLabel}{stateLabel} · {tradeLabel(track)} · real scores
+                  {scan.certLabel}{stateLabel} · {tradeLabel(track)}
                 </p>
                 {/* The search limit, shown with the results rather than above the
                     form (owner 2026-10-19: 87% of /radar visitors never searched;
@@ -2090,7 +2094,9 @@ function RadarLanding() {
                     server gate enforces, so the wall is still never a surprise. */}
                 {isAnonymous && (
                   <p className="mt-1 text-xs font-semibold text-amber-300">
-                    Without an account: {FREE_RADAR_PREVIEW_SCANS} search, {FREE_ANONYMOUS_RADAR_RESULTS === 1 ? "your top match" : `up to ${FREE_ANONYMOUS_RADAR_RESULTS} matches`}.
+                    {locked > 0
+                      ? `${totalMatches} open bids found. Your best one is free below.`
+                      : `Without an account: ${FREE_RADAR_PREVIEW_SCANS} search, ${FREE_ANONYMOUS_RADAR_RESULTS === 1 ? "your top match" : `up to ${FREE_ANONYMOUS_RADAR_RESULTS} matches`}.`}
                   </p>
                 )}
                 {!isAnonymous && scan.paidMember === false && (scan.localMatched ?? 0) > 0 && (
@@ -2104,7 +2110,7 @@ function RadarLanding() {
                   </a>
                 )}
               </div>
-              {state !== "" ? (
+              {state !== "" && !isAnonymous ? (
                 <span className="shrink-0 text-right text-xs font-semibold text-amber-400">
                   {(scan.sections?.local ?? []).length} local ·{" "}
                   {(scan.sections?.nationwide ?? []).length} nationwide · Related:{" "}
@@ -2121,7 +2127,10 @@ function RadarLanding() {
                 for every state by design and carry the per-card "Open
                 nationwide" label; related items are adjacent work and are NEVER
                 default janitorial/trucking matches. */}
-            {state !== "" && (
+            {/* Owner 2026-11-02 (design critique): anonymous visitors saw the free
+                card twice (here and in the anonymous block). Their card renders
+                once, below; this section stays only to say "nothing local". */}
+            {state !== "" && !(isAnonymous && (scan.sections?.local ?? []).length > 0) && (
               <section
                 aria-label={`${STATE_CODE_TO_NAME[state] ?? state}-local opportunities`}
                 className="mt-6 rounded-2xl border border-slate-700 bg-slate-900/50 px-5 py-4"
@@ -2163,7 +2172,7 @@ function RadarLanding() {
                 )}
               </section>
             )}
-            {state !== "" && (scan.sections?.nationwide ?? []).length > 0 && (
+            {state !== "" && !isAnonymous && (scan.sections?.nationwide ?? []).length > 0 && (
               <div className="mt-8 flex items-center justify-between gap-3">
                 <h3 className="text-sm font-bold uppercase tracking-wide text-slate-200">
                   🌎 Open nationwide
@@ -2182,8 +2191,8 @@ function RadarLanding() {
               <p className="mt-3 text-xs font-medium text-slate-500">
                 {isAnonymous
                   ? Math.min(scan.matches.length, FREE_ANONYMOUS_RADAR_RESULTS) === 1
-                    ? "Here's your strongest match, with full incumbent intel"
-                    : `Here are your strongest ${Math.min(scan.matches.length, FREE_ANONYMOUS_RADAR_RESULTS)} matches — every one with full incumbent intel`
+                    ? "Here's your best match"
+                    : `Here are your best ${Math.min(scan.matches.length, FREE_ANONYMOUS_RADAR_RESULTS)} matches`
                   : state !== ""
                     ? `${(scan.sections?.local ?? []).length} local · ${(scan.sections?.nationwide ?? []).length} nationwide opportunities`
                     : `${scan.matches.length} ${scan.matches.length === 1 ? "match" : "matches"} found for you`}
@@ -2262,7 +2271,7 @@ function RadarLanding() {
                     className="flex items-center justify-between gap-3 rounded-xl border border-amber-400/60 bg-amber-500/10 px-4 py-3 text-left text-sm font-semibold text-amber-200 hover:bg-amber-500/20"
                   >
                     <span>Showing {visibleCount} of {visibleCount + locked} matching bids</span>
-                    <span className="whitespace-nowrap text-amber-300">See all {visibleCount + locked} free →</span>
+                    <span className="whitespace-nowrap text-amber-300">See all {visibleCount + locked}: just your email →</span>
                   </button>
                 )}
                 {scan.matches.slice(0, visibleCount).map((m, i) => (
@@ -2272,7 +2281,7 @@ function RadarLanding() {
                     intel={matchIntel[m.id]}
                     certLabel={scan.certLabel}
                     index={i + 1}
-                    total={visibleCount}
+                    total={visibleCount + locked}
                     trade={trade}
                     state={state}
                     cert={cert}
@@ -2282,6 +2291,25 @@ function RadarLanding() {
                     bestMatch={m.id === bestMatchId}
                   />
                 ))}
+                {/* Owner 2026-11-02 (design critique): the visitor's moment of most
+                    interest is right after the free bid, and no price was shown. */}
+                {locked > 0 && (
+                  <a
+                    href={`/signup?plan=starter&next=${encodeURIComponent("/upgrade?plan=starter")}`}
+                    onClick={() => trackEvent("radar_anon_pass_offer_click", `${trade}|${state}`)}
+                    className="block rounded-xl border border-amber-400/60 bg-amber-500/15 px-4 py-4 text-amber-50 hover:bg-amber-500/25"
+                  >
+                    <span className="block text-base font-bold">
+                      {locked} more {tradeLabel(track).replace(/["“”]/g, "")} bids{state ? ` in ${STATE_NAMES[state] ?? state}` : ""} are waiting.
+                    </span>
+                    <span className="mt-1 block text-sm text-amber-100">
+                      Open every official notice, and get each new bid at 6 AM, for 30 days.
+                    </span>
+                    <span className="mt-3 inline-block rounded-lg bg-amber-400 px-4 py-2.5 text-sm font-bold text-slate-950">
+                      ${STARTER_FIRST_MONTH_PRICE} for 30 days, no auto-renew →
+                    </span>
+                  </a>
+                )}
                 {locked > 0 && <LockedMatchPreview locked={locked} />}
                 {/* Email unlock (owner 2026-10-23): of 28 visitors sent from
                     here to the full signup page in 30 days, 2 signed up. An
@@ -2349,7 +2377,7 @@ function RadarLanding() {
                 for ANONYMOUS visitors on a COMPLETED scan with matches (post-scan
                 results screen), is optional/dismissible, never a wall, and requires
                 no account. Converts the bounce dead-end into an opted-in contact. */}
-            {isAnonymous && scan.matches.length > 0 && (
+            {isAnonymous && scan.matches.length > 0 && locked === 0 && (
               <SaveMatchesCard
                 certLabel={scan.certLabel}
                 trade={trade}
@@ -2373,7 +2401,7 @@ function RadarLanding() {
                 landed on /radar?first_run=1 by definition already has an account,
                 so asking them to "Choose a plan" above the Save Opportunity
                 primary was both confusing and wrong. Signed-in users never see it. */}
-            {isAnonymous && scan.matches.length > 0 && revealed >= 0 && !nudgeDismissed && (
+            {isAnonymous && scan.matches.length > 0 && locked === 0 && revealed >= 0 && !nudgeDismissed && (
               <div className="mt-5 flex items-start justify-between gap-3 rounded-xl border border-amber-500/40 bg-slate-900 px-4 py-3">
                 <p className="text-sm leading-relaxed text-slate-200">
                   <span className="font-semibold text-amber-400">Keep these matches.</span>{" "}
@@ -2413,7 +2441,7 @@ function RadarLanding() {
                 requested state, explicitly labeled, NEVER default matches. An
                 empty section is an honest, documented outcome (current data/
                 cert filters may legitimately leave it empty). */}
-            {state !== "" && (
+            {state !== "" && (scan.sections?.related ?? []).length > 0 && (
               <section
                 aria-label="Related opportunities"
                 className="mt-8 rounded-2xl border border-dashed border-amber-500/40 bg-slate-900/40 px-5 py-5"

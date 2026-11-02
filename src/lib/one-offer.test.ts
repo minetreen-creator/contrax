@@ -19,7 +19,11 @@ describe("one offer", () => {
     expect(read("src/components/BasicUpgradeBar.tsx")).not.toContain("<FoundingSpotsLine");
   });
   test("the bid lock's main button names the exact deal", () => {
-    expect(read("src/routes/bid.$bidId.tsx")).toContain("Open this bid + every new one for 30 days: ${STARTER_FIRST_MONTH_PRICE}");
+    const bid = read("src/routes/bid.$bidId.tsx");
+    expect(bid).toContain("Open this bid + every new one for 30 days: ${STARTER_FIRST_MONTH_PRICE}");
+    // Owner 2026-11-02: one lock for new and members-only bids, carrying the bid to the plan.
+    expect(bid).toContain("href={bidStarterHref(bidId, signedIn)}");
+    expect(bid).not.toContain("<HeadStartLock");
   });
 });
 
@@ -82,7 +86,7 @@ describe("top-match spot check fixes (owner 2026-11-01)", () => {
   });
   test("the free preview shows the searcher's own state first", () => {
     const radar = read("src/routes/radar.tsx");
-    expect(radar).toContain("const previewPool = state && local.length ? [...local, ...nationwide] : matches;");
+    expect(radar).toContain("const previewPool = state && local.length ? [...byRoom(local), ...byRoom(nationwide)] : byRoom(matches);");
     expect(radar).toContain("previewPool.slice(0, FREE_ANONYMOUS_RADAR_RESULTS)");
   });
 });

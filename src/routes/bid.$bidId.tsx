@@ -21,7 +21,7 @@ import {
 import { getCurrentUser } from "~/lib/auth";
 import { applyHeadStart } from "~/lib/head-start";
 import { hasPaidBidAccess } from "~/lib/head-start.server";
-import { HeadStartLock } from "~/components/HeadStartLock";
+import { agencyDisplay, bidStarterHref, daysLeftLabel, jobSummary, valueLabel } from "~/lib/bid-job-summary";
 import { trackEvent } from "~/lib/track";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
@@ -421,39 +421,44 @@ function BidDetailPage() {
                 <h1 className="text-lg font-extrabold leading-snug text-white">
                   {bid.title || "Solicitation"}
                 </h1>
-                {bid.agency && (
-                  <p className="mt-1 text-sm text-slate-400">{bid.agency}</p>
+                {agencyDisplay(bid.agency) && (
+                  <p className="mt-1 text-sm text-slate-400">{agencyDisplay(bid.agency)}</p>
                 )}
-                <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium text-slate-300">
-                  <span>{bid.set_aside || "Open to small business"}</span>
+                <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-medium text-slate-300">
+                  {due && (
+                    <span className="font-semibold text-white">
+                      Due {due}
+                      {daysLeftLabel(bid.due_date) && <span className="font-normal text-amber-300"> · {daysLeftLabel(bid.due_date)}</span>}
+                    </span>
+                  )}
                   {bid.location && (
                     <>
                       <span aria-hidden="true">·</span>
                       <span>{bid.location}</span>
                     </>
                   )}
-                  {bid.estimated_value && (
+                  {valueLabel(bid.estimated_value) && (
                     <>
                       <span aria-hidden="true">·</span>
-                      <span>{bid.estimated_value} estimated</span>
+                      <span>{valueLabel(bid.estimated_value)} estimated</span>
                     </>
                   )}
-                  {due && (
-                    <>
-                      <span aria-hidden="true">·</span>
-                      <span>Due {due}</span>
-                    </>
-                  )}
+                  <span aria-hidden="true">·</span>
+                  <span>{bid.set_aside || "Open to small business"}</span>
                 </p>
               </div>
-              {locked && (
-                <div className="px-5 py-3">
-                  <HeadStartLock until={bid.head_start_until!} />
-                </div>
-              )}
-              {membersOnly && (
-                <div className="px-5 py-3">
-                  <NoticeLock bidId={bid.id} signedIn={signedIn} />
+              {/* Owner 2026-11-02 (design critique): the job is free to read; only
+                  the official notice and its documents are for members. */}
+              <section aria-label="What the job is" className="border-b border-slate-800 px-5 py-4">
+                <h2 className="text-sm font-semibold text-slate-200">What the job is</h2>
+                <p className="mt-1 text-sm leading-relaxed text-slate-300">
+                  {jobSummary(bid.description, bid.title) ??
+                    `${bid.title || "This bid"}${bid.agency ? `, for ${agencyDisplay(bid.agency)}` : ""}. The agency's official notice has the full scope of work, the documents and how to submit.`}
+                </p>
+              </section>
+              {(locked || membersOnly) && (
+                <div className="px-5 py-4">
+                  <NoticeLock bidId={bid.id} signedIn={signedIn} isNew={locked} />
                 </div>
               )}
               {sourceUrl && (
@@ -515,14 +520,18 @@ function BidDetailPage() {
 
             <BidAlertCapture naicsCode={bid.naics_code} stateCode={bid.state_code} />
 
-            <div className="mt-5">
-              <RfpSummaryCard
-                bidId={bid.id}
-                description={bid.description}
-                title={bid.title}
-                value={bid.estimated_value}
-              />
-            </div>
+            {/* The AI brief is a member feature; a visitor deciding on $5 does not
+                get a $79/mo pitch (owner 2026-11-02, design critique). */}
+            {checked && signedIn && (
+              <div className="mt-5">
+                <RfpSummaryCard
+                  bidId={bid.id}
+                  description={bid.description}
+                  title={bid.title}
+                  value={bid.estimated_value}
+                />
+              </div>
+            )}
           </>
         )}
       </div>
@@ -565,7 +574,7 @@ function SimilarBidsBox({
               {b.title}
             </a>
             <span className="text-xs text-slate-400">
-              {b.agency || "Government buyer"}
+              {agencyDisplay(b.agency) || "Government buyer"}
               {due(b.due_date) ? ` · due ${due(b.due_date)}` : ""}
             </span>
           </li>
@@ -657,24 +666,27 @@ export const Route = createFileRoute("/bid/$bidId")({
  * off the free tier"). Free accounts and visitors see what the job is; the $5
  * Starter pass is the one button to act on it (owner 2026-11-01).
  */
-function NoticeLock({ bidId, signedIn }: { bidId: number; signedIn: boolean }) {
-  const next = encodeURIComponent(`/bid/${bidId}`);
+function NoticeLock({ bidId, signedIn, isNew = false }: { bidId: number; signedIn: boolean; isNew?: boolean }) {
+  // Owner 2026-11-02 (design critique): one lock for every locked bid, the $5
+  // as the one clear button, and the bid carried through signup to the plan.
   return (
-    <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3">
-      <p className="text-sm font-semibold text-amber-200">🔒 The official notice and bid documents are for members</p>
-      <p className="mt-1 text-sm text-slate-300">
-        Starter opens this notice and every other one, and emails you new bids in your trade at 6 AM. No automatic renewal.
+    <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-4">
+      <p className="text-sm font-semibold text-amber-200">
+        {isNew && <span className="mr-2 rounded bg-amber-400 px-1.5 py-0.5 text-xs font-bold text-slate-950">New this week</span>}
+        The official notice and bid documents are for Starter members
       </p>
-      <div className="mt-3 flex flex-wrap gap-3">
-        <a href="/upgrade?plan=starter" className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-amber-400">
-          Open this bid + every new one for 30 days: ${STARTER_FIRST_MONTH_PRICE}
-        </a>
-        {signedIn ? null : (
-          <a href={`/signup?next=${next}`} className="rounded-lg border border-slate-600 px-4 py-2 text-sm font-semibold text-slate-200 hover:border-slate-400">
-            Create a free account
-          </a>
-        )}
-      </div>
+      <ul className="mt-2 space-y-1 text-sm text-slate-200">
+        <li>✓ Open this notice and its documents today</li>
+        <li>✓ Every new bid in your trade, emailed at 6 AM</li>
+        <li>✓ 30 days for ${STARTER_FIRST_MONTH_PRICE}, one time. No automatic renewal.</li>
+      </ul>
+      <a
+        href={bidStarterHref(bidId, signedIn)}
+        onClick={() => trackEvent("bid_lock_starter_click", isNew ? "new" : "members")}
+        className="mt-3 block w-full rounded-lg bg-amber-400 px-4 py-3 text-center text-base font-bold text-slate-950 hover:bg-amber-300 sm:inline-block sm:w-auto"
+      >
+        Open this bid + every new one for 30 days: ${STARTER_FIRST_MONTH_PRICE}
+      </a>
     </div>
   );
 }

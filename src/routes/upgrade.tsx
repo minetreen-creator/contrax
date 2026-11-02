@@ -6,7 +6,6 @@ import { checkTrial } from "~/routes/dashboard";
 import { redirectToCheckout } from "~/lib/checkout";
 import { PLAN_COPY, upgradeFeatures } from "~/lib/plan-features";
 import { formatDollars, shortDate, tradePlace, type UpgradePitch } from "~/lib/upgrade-pitch";
-import { HEAD_START_DAYS, headStartOpensLabel } from "~/lib/head-start";
 import { STARTER_FIRST_MONTH_NOTE, STARTER_FIRST_MONTH_PRICE } from "~/lib/starter-offer";
 
 const getStatus = createServerFn({ method: "GET" }).handler(async () => {
@@ -240,9 +239,8 @@ function YourMatches({ pitch }: { pitch: UpgradePitch }) {
       )}
       {pitch.headStart.count > 0 && (
         <p className="mt-4 text-sm font-semibold text-slate-800">
-          🔒 {pitch.headStart.count} of {pitch.headStart.count === 1 ? "them is" : "them are"} still members-only. Paid plans
-          open the official posting now; free accounts wait {HEAD_START_DAYS} days
-          {pitch.headStart.nextOpens ? ` (the next one opens to them ${headStartOpensLabel(pitch.headStart.nextOpens)})` : ""}.
+          🔒 {pitch.headStart.count} of {pitch.headStart.count === 1 ? "them is" : "them are"} brand new. Paid plans open the
+          official posting today.
         </p>
       )}
       {pitch.typicalAward && (

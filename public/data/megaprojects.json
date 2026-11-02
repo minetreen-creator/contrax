@@ -1696,5 +1696,26 @@
       "url": "https://www.fox5vegas.com/2026/10/28/sphere-national-harbor-gets-final-approval-funding-construction/"
     },
     "checked": "2026-10-30"
+  },
+  {
+    "slug": "valero-houston-refinery-restart-tx",
+    "company": "Valero",
+    "project": "Houston refinery restart (former LyondellBasell)",
+    "city": "Houston",
+    "state": "TX",
+    "sector": "energy",
+    "amount": 320500000,
+    "amountNote": "purchase price; restart cost not disclosed",
+    "jobs": null,
+    "jobsNote": null,
+    "status": "Purchase expected to close in late 2026; restart of 165,000 barrels a day targeted by the end of 2027",
+    "summary": "Valero is buying LyondellBasell's idled refinery on the Houston Ship Channel, about 700 acres with 13.5 million barrels of storage, docks, rail and truck racks, and plans to bring it back online.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "Oil & Gas Journal, Oct 2026",
+      "url": "https://www.ogj.com/general-interest/companies/news/55415528/valero-to-acquire-former-lyondellbasell-houston-oil-refinery-restart-165000-b-d-by-end-2027"
+    },
+    "checked": "2026-11-02"
   }
 ]

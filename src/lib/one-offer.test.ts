@@ -96,3 +96,22 @@ describe("head start: no promise of a free date (owner 2026-11-01)", () => {
     expect(read("src/routes/upgrade.tsx")).not.toContain("free accounts wait");
   });
 });
+
+describe("welding is a first-class trade (owner 2026-11-02)", () => {
+  test("Welding expands to welding words and matches real welding work, not data 'fabrication'", async () => {
+    const { expandTrade, isStrongTradeMatch } = await import("./trade-registry");
+    const w = expandTrade("Welding");
+    expect(w.terms).toContain("metal fabrication");
+    expect(w.terms).not.toContain("fabrication");
+    expect(w.naicsCodes).toContain("238120");
+    expect(isStrongTradeMatch("Welding and Fabrication Services for Water Plant", null, null, null, w)).toBe(true);
+    expect(isStrongTradeMatch("Structural Steel Repairs at Pump Station", null, null, null, w)).toBe(true);
+    expect(isStrongTradeMatch("Data Fabrication Detection Software", null, null, null, w)).toBe(false);
+  });
+  test("Welding is a one-tap trade on the homepage (with Spanish) and Radar", async () => {
+    const { QUICK_TRADES, HERO_COPY } = await import("../components/HomeContractFinder");
+    expect(QUICK_TRADES).toContain("Welding");
+    expect(HERO_COPY.es.trades.Welding).toBe("Soldadura");
+    expect(read("src/routes/radar.tsx")).toContain('{ label: "Welding", q: "welding" },');
+  });
+});

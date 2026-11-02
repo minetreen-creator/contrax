@@ -47,8 +47,8 @@ export const Route = createRootRoute({
       { property: "og:image", content: `${PROD_URL}/logo-square.png` },
       { property: "og:image:type", content: "image/png" },
       { property: "og:image:alt", content: "Contrax — Radar Finds Government Opportunities That Match Your Business" },
-      { property: "og:image:width", content: "1200" },
-      { property: "og:image:height", content: "630" },
+      { property: "og:image:width", content: "1254" },
+      { property: "og:image:height", content: "1254" },
 
       // Twitter Card
       { name: "twitter:card", content: "summary_large_image" },

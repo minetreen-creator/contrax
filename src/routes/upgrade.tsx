@@ -27,6 +27,8 @@ export const Route = createFileRoute("/upgrade")({
   validateSearch: (search: Record<string, unknown>) => ({
     checkout: search.checkout === "cancelled" ? ("cancelled" as const) : undefined,
     plan: ["starter", "professional", "agency"].includes(String(search.plan)) ? String(search.plan) : undefined,
+    // Owner 2026-11-02: the bid a $5 click came from, so the page can link back to it.
+    bid: /^\d{1,10}$/.test(String(search.bid ?? "")) ? String(search.bid) : undefined,
   }),
   loader: () => getStatus(),
   component: Upgrade,
@@ -41,7 +43,7 @@ const plans = [
 
 function Upgrade() {
   const { status, pitch, signedIn } = Route.useLoaderData();
-  const { checkout, plan } = Route.useSearch();
+  const { checkout, plan, bid } = Route.useSearch();
   const [pendingPlan, setPendingPlan] = useState<string | null>(null);
   const [interval, setInterval] = useState<"month" | "year">("month");
   const endsLabel =
@@ -56,9 +58,14 @@ function Upgrade() {
   return (
     <div className="min-h-screen bg-slate-50 px-4 py-16">
       <div className="mx-auto max-w-6xl">
-        <a href={signedIn ? "/dashboard" : "/radar"} className="text-sm text-slate-500">
-          {signedIn ? "← Dashboard" : "← Back to Radar"}
+        <a href={bid ? `/bid/${bid}` : signedIn ? "/dashboard" : "/radar"} className="text-sm text-slate-500">
+          {bid ? "← Back to the bid" : signedIn ? "← Dashboard" : "← Back to Radar"}
         </a>
+        {bid && plan === "starter" && (
+          <p className="mx-auto mt-6 max-w-2xl rounded-xl border border-amber-200 bg-amber-50 px-5 py-3 text-center text-sm text-amber-900">
+            Starter opens the official notice for the bid you were looking at, and every other one, for 30 days. $5, no automatic renewal.
+          </p>
+        )}
         <h1 className="mt-8 text-center text-3xl font-bold text-slate-900">
           {signedIn ? "Keep going with Contrax" : "Get every new bid in your trade"}
         </h1>

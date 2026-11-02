@@ -4,11 +4,9 @@ import { readFile } from "node:fs/promises";
 import { Radar, KanbanSquare, ArrowRight, FileSearch } from "lucide-react";
 import { HomeContractFinder } from "~/components/HomeContractFinder";
 import { FoundingWall } from "~/components/FoundingWall";
-import { EndingNearYou } from "~/components/EndingNearYou";
 import { HomeStateMap } from "~/components/HomeStateMap";
 import { SubLeads } from "~/components/SubLeads";
 import { MaxAssistant } from "~/components/MaxAssistant";
-import { MoneyCounter } from "~/components/MoneyCounter";
 import { ExampleBrief } from "~/components/ExampleBrief";
 
 import { trackEvent } from "~/lib/track";
@@ -103,7 +101,7 @@ const getBidStats = async (): Promise<{ activeCount: number; agencyCount: number
 // browser (SiteHeader without a `user` prop), so this render is identical for
 // every visitor and can be served from the edge cache.
 const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
-  const [businessName, bidStats, contractMap, endingSoon, endingByState, subLeads] = await Promise.all([
+  const [businessName, bidStats, contractMap, subLeads] = await Promise.all([
     (async () => {
       try {
         const cfg = JSON.parse(await readFile("site.json", "utf8")) as {
@@ -116,27 +114,6 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
     })(),
     getBidStats(),
     getContractMapAggregate(),
-    // Contracts Ending Soon (owner 2026-10-13): a live count from the USAspending
-    // sync; null hides the section, never a made-up number.
-    (async () => {
-      try {
-        const { recompeteTotals } = await import("~/lib/federal-trade-data.server");
-        const t = await recompeteTotals(12);
-        return t.count > 0 ? t : null;
-      } catch {
-        return null;
-      }
-    })(),
-    // Money counter (owner 2026-10-17): per-state split of the same USAspending
-    // window; {} hides the counter's state picker.
-    (async () => {
-      try {
-        const { recompeteTotalsByState } = await import("~/lib/federal-trade-data.server");
-        return await recompeteTotalsByState(12);
-      } catch {
-        return {};
-      }
-    })(),
     // Subcontracting leads (owner 2026-10-30); [] hides the section.
     (async () => {
       try {
@@ -147,14 +124,14 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
       }
     })(),
   ]);
-  return { businessName, bidStats, contractMap, endingSoon, endingByState, subLeads };
+  return { businessName, bidStats, contractMap, subLeads };
 });
 
 // ── Route ─────────────────────────────────────────────────────────────────────
 
 const PAGE_TITLE = "Contrax | Your next government customer starts here";
 const PAGE_DESCRIPTION =
-  "Describe your business and preview real government contract matches with clear reasons, requirements to verify, and next steps. Create a free account to keep your shortlist.";
+  "Open government bids for your trade in your state: cities, counties, school districts, state and federal. See your best match before you sign up. Starter is $5 for 30 days, no automatic renewal.";
 
 export const Route = createFileRoute("/")({
   loader: async () => {
@@ -175,8 +152,8 @@ export const Route = createFileRoute("/")({
       { property: "og:image", content: "https://www.contrax.company/logo-square.png" },
       { property: "og:image:type", content: "image/png" },
       { property: "og:image:alt", content: PAGE_TITLE },
-      { property: "og:image:width", content: "1200" },
-      { property: "og:image:height", content: "630" },
+      { property: "og:image:width", content: "1254" },
+      { property: "og:image:height", content: "1254" },
       { property: "og:site_name", content: "Contrax" },
       // Twitter Card
       { name: "twitter:card", content: "summary_large_image" },
@@ -196,7 +173,7 @@ const SERIF = "[font-family:Charter,'Iowan_Old_Style',Georgia,serif]";
 
 function Home() {
 
-  const { bidStats, contractMap, endingSoon, endingByState, subLeads } = Route.useLoaderData();
+  const { contractMap, subLeads } = Route.useLoaderData();
   const { sample } = Route.useLoaderData();
 
   const jsonLd = {
@@ -205,7 +182,7 @@ function Home() {
     name: "Contrax",
     legalName: "Contrax LLC",
     description:
-      "Tell Contrax what your business does. Radar finds government opportunities that match — live set-asides for 8(a), SDVOSB, WOSB, and HUBZone-certified businesses, with each opportunity explained and proposals drafted so certified firms can compete and win.",
+      "Contrax finds open government bids for small trade businesses (landscaping, janitorial, HVAC, plumbing, welding, construction and more) from cities, counties, school districts, state and federal agencies, matched to your trade and state.",
     url: "https://www.contrax.company",
     logo: "https://www.contrax.company/logo-square.png",
     email: "contrax.companyllc@gmail.com",
@@ -222,26 +199,21 @@ function Home() {
       {/* The $5 Starter pass, right under the search (owner 2026-10-31 funnel
           check: the homepage never mentioned the offer). */}
       <StarterPassStrip />
+      {/* Owner 2026-11-02 (design critique, "fix all"): one path down the page,
+          sized for a small trade business: search, the $5 pass, how it works,
+          the state map, Max, sub leads, and the $5 pass again to close. The
+          federal money counter, contracts ending soon and the tools strip
+          moved off the homepage (they told a lawn crew "not for you"). */}
+      <HowItWorks />
       {/* "Spin the map" (owner 2026-10-29: "Do 3"): tap a state, then a trade. */}
       <HomeStateMap contractMap={contractMap} />
       {/* Max, the public AI assistant (owner 2026-10-25: "something high tech"). */}
       <MaxAssistant />
-      {/* Owner 2026-10-26 ("all of it"): one clear path down the page: search,
-          Max, the proof, how it works, Bid Scout. The other ways in ("Open near
-          you", the ZIP box, free tools) follow instead of competing up top. */}
       {/* Subcontracting leads (owner 2026-10-30: "for the subs, can we make a list on the homepage?"). */}
       <SubLeads leads={subLeads} />
-      <MoneyCounter contractMap={contractMap} ending={endingSoon} endingByState={endingByState} agencyCount={bidStats.agencyCount} />
-      {/* Contracts ending near you (owner 2026-10-29); holder locked. */}
-      <EndingNearYou />
-      <HowItWorks />
       {/* Founding Businesses wall (owner 2026-10-29); hidden until one is published. */}
       <FoundingWall />
-      {/* Bid Scout ($99) is listed under "Other plans" on /pricing; the homepage
-          pushes one offer, the $5 Starter pass (owner 2026-11-01). */}
-      {/* "What's Your Town Buying?" (owner 2026-10-23) lives in the Free from
-          Contrax strip below; its separate callout was a duplicate (2026-10-31). */}
-      <FreeToolsStrip />
+      <StarterPassStrip where="closing" />
       <Footer />
     </div>
   );
@@ -302,9 +274,9 @@ function HowItWorks() {
 }
 
 // The $5 Starter pass offer (src/lib/starter-pass.ts), one compact strip.
-function StarterPassStrip() {
+function StarterPassStrip({ where = "strip" }: { where?: "strip" | "closing" }) {
   return (
-    <section aria-label="Contrax Starter for $5" className="mx-auto mt-8 max-w-[1120px] px-4 sm:px-6">
+    <section aria-label={where === "closing" ? "Start Contrax Starter for $5" : "Contrax Starter for $5"} className={`mx-auto max-w-[1120px] px-4 sm:px-6 ${where === "closing" ? "mt-12 mb-12" : "mt-8"}`}>
       <div className="flex flex-col gap-4 rounded-2xl border border-blue-200 bg-blue-50 p-5 sm:flex-row sm:items-center sm:justify-between dark:border-blue-900 dark:bg-blue-950/40">
         <div>
           <p className="text-lg font-bold text-slate-900 dark:text-white">📬 New bids in your trade, in your inbox every morning at 6 AM</p>
@@ -312,44 +284,11 @@ function StarterPassStrip() {
         </div>
         <a
           href="/pricing?source=home_strip"
-          onClick={() => trackEvent("home_starter_pass_click", "strip")}
+          onClick={() => trackEvent("home_starter_pass_click", where)}
           className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 font-bold text-white transition hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600"
         >
           Start for $5 <ArrowRight aria-hidden="true" className="h-4 w-4" />
         </a>
-      </div>
-    </section>
-  );
-}
-
-// Free courses and tools, one strip (owner 2026-10-23: shorter homepage).
-const FREE_TOOLS = [
-  { label: "Free courses", body: "Three self-paced courses with certificates", href: "/learn" },
-  { label: "Contrax Launchpad", body: "Capability statement builder, checklists, bid plan", href: "/launchpad" },
-  { label: "What's your town buying?", body: "Open contracts near any ZIP code", href: "/town" },
-  // Owner 2026-10-25: a small homepage card for the industry day calendar.
-  { label: "📅 Industry days", body: "Meet the buyers and primes before the bid drops", href: "/industry-days" },
-  // Owner 2026-10-25: private megaprojects hiring local subs.
-  { label: "🏗️ Megaprojects", body: "Billion-dollar plants near you that need local subs", href: "/megaprojects" },
-  { label: "Contrax Grants", body: "Federal grants, free for verified nonprofits", href: "/grants" },
-];
-
-function FreeToolsStrip() {
-  return (
-    <section aria-label="Free courses and tools" className="mx-auto mt-12 mb-12 max-w-[1120px] px-4 sm:px-6">
-      <p className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Free from Contrax</p>
-      <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {FREE_TOOLS.map((t) => (
-          <a
-            key={t.href}
-            href={t.href}
-            onClick={() => trackEvent("home_free_tool_click", t.href)}
-            className="rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-blue-400 dark:border-slate-700 dark:bg-slate-900"
-          >
-            <p className="font-bold text-slate-900 dark:text-white">{t.label} →</p>
-            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{t.body}</p>
-          </a>
-        ))}
       </div>
     </section>
   );

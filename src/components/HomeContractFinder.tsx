@@ -13,6 +13,7 @@ import { publishedDateOnlyFor } from "~/lib/deadline-label";
 import { raceRadarScan } from "~/lib/radar-scan-runner";
 import { getTrackingUser } from "~/lib/identity";
 import { trackEvent } from "~/lib/track";
+import { STARTER_FIRST_MONTH_PRICE } from "~/lib/starter-offer";
 
 const STATES = [...US_PLACES].sort((a, b) =>
   (STATE_NAMES[a] ?? a).localeCompare(STATE_NAMES[b] ?? b),
@@ -66,11 +67,11 @@ export const HERO_COPY = {
     local: "Explore city & county bids →",
     cardKicker: "Find my first contract",
     cardTitle: "What does your business do?",
-    tradePlaceholder: "Or type your trade or NAICS",
+    tradePlaceholder: "Or type your trade",
     everyState: "Every state",
     cta: "Find my matches",
     busy: "Searching live opportunities…",
-    note: "Free to search. No card, no signup to see your top matches.",
+    note: "Free to search. No card, no signup to see your best match.",
     needTrade: "Enter the service or six-digit NAICS code you want to search.",
     trades: {} as Record<string, string>,
   },
@@ -86,11 +87,11 @@ export const HERO_COPY = {
     local: "Ver licitaciones de ciudades y condados →",
     cardKicker: "Encuentre su primer contrato",
     cardTitle: "¿A qué se dedica su negocio?",
-    tradePlaceholder: "O escriba su oficio o código NAICS",
+    tradePlaceholder: "O escriba su oficio",
     everyState: "Todos los estados",
     cta: "Ver mis oportunidades",
     busy: "Buscando licitaciones…",
-    note: "Buscar es gratis. Sin tarjeta ni registro para ver sus mejores resultados.",
+    note: "Buscar es gratis. Sin tarjeta ni registro para ver su mejor resultado.",
     needTrade: "Escriba el servicio o el código NAICS de seis dígitos que quiere buscar.",
     trades: {
       Janitorial: "Limpieza",
@@ -437,9 +438,9 @@ export function HomeContractFinder({ sample, openTotal = 0 }: { sample: Everyday
             ) : result.matches.length ? (
               <>
                 <p className="mt-2 text-sm text-slate-300">
-                  Showing {result.matches.length} of {result.total} matched
-                  opportunities. Reasons reflect your search; qualifications
-                  still need checking.
+                  {result.total > result.matches.length
+                    ? `${result.total} open bids found. Here ${result.matches.length === 1 ? "is your best one" : `are your best ${result.matches.length}`}.`
+                    : `${result.total} open ${result.total === 1 ? "bid" : "bids"} found.`}
                 </p>
                 <div className="mt-6 grid items-start gap-5 lg:grid-cols-3">
                   {result.matches.map((match, index) => (
@@ -478,18 +479,20 @@ export function HomeContractFinder({ sample, openTotal = 0 }: { sample: Everyday
                           <li key={i}>{reason}</li>
                         ))}
                       </ul>
-                      <h4 className="mt-5 text-sm font-bold">What to verify</h4>
-                      <p className="mt-2 text-sm text-slate-300">
-                        {match.set_aside_label ||
-                          "Set-aside not specified — verify solicitation"}
-                      </p>
-                      <ul className="mt-2 list-disc space-y-1 pl-4 text-sm text-slate-300">
-                        {[...match.qualifications, ...match.requirements]
-                          .slice(0, 3)
-                          .map((requirement, i) => (
-                            <li key={i}>{requirement}</li>
-                          ))}
-                      </ul>
+                      {/* Owner 2026-11-02 (design critique): no "not specified"
+                          line repeated as something to verify. */}
+                      {[...match.qualifications, ...match.requirements].length > 0 && (
+                        <>
+                          <h4 className="mt-5 text-sm font-bold">What to check</h4>
+                          <ul className="mt-2 list-disc space-y-1 pl-4 text-sm text-slate-300">
+                            {[...new Set([...match.qualifications, ...match.requirements])]
+                              .slice(0, 3)
+                              .map((requirement, i) => (
+                                <li key={i}>{requirement}</li>
+                              ))}
+                          </ul>
+                        </>
+                      )}
                       <p className="mt-2 text-xs text-slate-400">
                         Your licensing, certification and capacity have not been
                         verified.
@@ -508,6 +511,37 @@ export function HomeContractFinder({ sample, openTotal = 0 }: { sample: Everyday
                     </article>
                   ))}
                 </div>
+                {/* Owner 2026-11-02 (design critique): right after "1 of 25" is
+                    the moment of most interest; it names the $5 pass first and
+                    keeps the free account as a quiet second choice. */}
+                {!result.signedIn && result.total > result.matches.length ? (
+                  <div className="mt-7 rounded-2xl border border-amber-300/50 bg-amber-400/10 p-6">
+                    <h3 className="text-xl font-bold">
+                      {result.total - result.matches.length} more {result.answers.trade ? `${result.answers.trade.slice(0, 40)} ` : ""}bids
+                      {result.answers.state ? ` in ${STATE_NAMES[result.answers.state] ?? result.answers.state}` : ""} are waiting.
+                    </h3>
+                    <p className="mt-2 text-sm text-slate-200">
+                      Open every official notice, and get each new bid in your trade at 6 AM, for 30 days. One time, no automatic renewal.
+                    </p>
+                    <a
+                      href={`/signup?plan=starter&next=${encodeURIComponent("/upgrade?plan=starter")}`}
+                      onClick={() => trackEvent("home_results_pass_click", String(result.total))}
+                      className="mt-4 inline-block rounded-xl bg-amber-400 px-6 py-4 text-center text-base font-bold text-slate-950 hover:bg-amber-300"
+                    >
+                      See all {result.total} for ${STARTER_FIRST_MONTH_PRICE} →
+                    </a>
+                    <p className="mt-3 text-sm text-slate-300">
+                      Not ready?{" "}
+                      <a
+                        href={result.signupHref}
+                        onClick={() => trackEvent("radar_save_signup_clicked", "homepage_shortlist")}
+                        className="font-semibold text-blue-200 underline underline-offset-4"
+                      >
+                        Save these matches with a free account
+                      </a>
+                    </p>
+                  </div>
+                ) : (
                 <div className="mt-7 flex flex-wrap items-center justify-between gap-5 rounded-2xl border border-blue-400/30 bg-blue-500/10 p-6">
                   <div>
                     <h3 className="text-xl font-bold">
@@ -537,6 +571,7 @@ export function HomeContractFinder({ sample, openTotal = 0 }: { sample: Everyday
                     →
                   </a>
                 </div>
+                )}
               </>
             ) : (
               <div className="mt-5 rounded-2xl border border-white/20 bg-white/5 p-6">

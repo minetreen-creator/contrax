@@ -558,8 +558,10 @@ describe("F2: the signed-in first-run results screen never asks for a new accoun
   // Copy updated by the owner 2026-10-19 (choice A: anonymous CTAs go to
   // signup); the anonymous-only guard below is unchanged.
   const NUDGE_COPY = "Create your account to save opportunities and get deadline alerts.";
+  // Owner 2026-11-02 (design critique): also hidden while bids are locked, so
+  // the email unlock is the one ask; still anonymous-only.
   const GUARDED_NUDGE =
-    "{isAnonymous && scan.matches.length > 0 && revealed >= 0 && !nudgeDismissed && (";
+    "{isAnonymous && scan.matches.length > 0 && locked === 0 && revealed >= 0 && !nudgeDismissed && (";
 
   test("the create-account nudge is rendered ONLY for anonymous visitors", () => {
     // Still there for anonymous visitors (the anon path is unchanged)…
@@ -579,7 +581,7 @@ describe("F2: the signed-in first-run results screen never asks for a new accoun
     // The signal is the file's own anonymous detector — the same one used by the
     // other anonymous-only results sections.
     expect(radar).toContain("const isAnonymous = !getTrackingUser();");
-    expect(count(radar, "{isAnonymous && scan.matches.length > 0 && (")).toBeGreaterThan(1);
+    expect(count(radar, "{isAnonymous && scan.matches.length > 0 && (")).toBeGreaterThanOrEqual(1);
   });
 
   test("a signed-in user cannot even fire the anonymous nudge's tracking events", () => {

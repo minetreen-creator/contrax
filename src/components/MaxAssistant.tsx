@@ -172,7 +172,8 @@ export function MaxAssistant({ bid }: { bid?: { id: number; title: string } } = 
   const [email, setEmail] = useState("");
   const [capability, setCapability] = useState<MaxCapability | null>(null);
   const [typed, setTyped] = useState("");
-  const [voiceOn, setVoiceOn] = useState(true);
+  // Owner 2026-11-02 (design critique): Max stays quiet until the visitor turns voice on.
+  const [voiceOn, setVoiceOn] = useState(false);
   const [hasMic, setHasMic] = useState(false);
   const [effect, setEffect] = useState<MaxEffect>(null);
   const [note, setNote] = useState("");

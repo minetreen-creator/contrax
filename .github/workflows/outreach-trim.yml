@@ -1,0 +1,38 @@
+name: Outreach Trim
+
+# Owner 2026-11-02: "always keep outreach to less than 100 due to resend daily
+# limits". Re-checks the waiting drafts against today's rules and cuts them to
+# DAILY_OUTREACH_CAP (src/jobs/outreach-trim.ts). SENDS NOTHING. The weekday
+# Outreach Prepare run ends with the same step; this one is for on-demand use.
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: outreach-prepare
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  trim:
+    name: Trim outreach drafts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Trim drafts
+        run: bun run outreach-trim

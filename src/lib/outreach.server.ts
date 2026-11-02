@@ -13,14 +13,21 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { Resend } from "resend";
 import { sql } from "~/db";
 import {
+  bidFitsTrade,
+  bidIsServiceJob,
   CONTACTED_BY_HAND,
+  DAILY_OUTREACH_CAP,
+  emailFitsSite,
   FOLLOWUP_AFTER_DAYS,
   FOLLOWUP_MIN_DAYS_TO_DUE,
   MAX_SEND_PER_BATCH,
+  NOT_A_FIT,
   outreachEmail,
+  outreachRoomToday,
   validPostalAddress,
   type OutreachKind,
 } from "./outreach";
+import { siteHost } from "./prospect-finder";
 
 export const OUTREACH_FROM = "Nathaniel Minetree (Contrax) <hello@contrax.company>";
 export const OUTREACH_REPLY_TO = "minetreen@gmail.com";
@@ -60,6 +67,10 @@ export async function ensureOutreach(): Promise<void> {
   await db.query(
     `INSERT INTO outreach_suppressions (email, reason) SELECT UNNEST($1::text[]), 'contacted_by_hand' ON CONFLICT DO NOTHING`,
     [[...CONTACTED_BY_HAND]],
+  );
+  await db.query(
+    `INSERT INTO outreach_suppressions (email, reason) SELECT UNNEST($1::text[]), 'not_a_fit' ON CONFLICT DO NOTHING`,
+    [[...NOT_A_FIT]],
   );
 }
 
@@ -302,6 +313,64 @@ export async function skipDraft(id: number): Promise<void> {
   await sql()`UPDATE outreach_contacts SET status = 'skipped' WHERE id = ${id} AND status = 'draft'`;
 }
 
+/** Outreach emails sent so far today (UTC day, the day Resend counts). */
+export async function sentToday(): Promise<number> {
+  const [r] = (await sql()`SELECT COUNT(*)::int AS n FROM outreach_contacts WHERE status = 'sent' AND sent_at >= CURRENT_DATE`) as { n: number }[];
+  return r?.n ?? 0;
+}
+
+/**
+ * Check waiting drafts against today's rules (owner 2026-10-29), so a draft
+ * queued before a rule existed never reaches the send list: first emails must
+ * still be hands-on work in their trade with an address from the business's own
+ * site, and no draft may go to a suppressed address. Returns how many were skipped.
+ */
+export async function recheckWaitingDrafts(log: (line: string) => void = () => {}): Promise<number> {
+  await ensureOutreach();
+  const suppressed = (await sql()`
+    UPDATE outreach_contacts c SET status = 'skipped', error = 'suppressed'
+    WHERE c.status = 'draft' AND EXISTS (SELECT 1 FROM outreach_suppressions s WHERE s.email = LOWER(c.email))
+    RETURNING id, business, email`) as { id: number; business: string; email: string }[];
+  for (const d of suppressed) log(`Skipped waiting draft #${d.id}: ${d.business} <${d.email}> (suppressed)`);
+  const waiting = (await sql()`
+    SELECT id, email, website, business, bid_title, trade_label FROM outreach_contacts
+    WHERE status = 'draft' AND kind = 'first'
+  `) as { id: number; email: string; website: string | null; business: string; bid_title: string; trade_label: string }[];
+  let dropped = suppressed.length;
+  for (const d of waiting) {
+    const host = d.website ? siteHost(d.website) : null;
+    if (bidIsServiceJob(d.bid_title) && bidFitsTrade(d.trade_label, d.bid_title) && emailFitsSite(d.email, host, d.business)) continue;
+    await skipDraft(d.id);
+    dropped++;
+    log(`Skipped waiting draft #${d.id}: ${d.business} <${d.email}> — ${d.bid_title}`);
+  }
+  return dropped;
+}
+
+/**
+ * Keep the waiting drafts under today's outreach room (owner 2026-11-02, Resend
+ * sends 100 a day): first emails, then Award Leads, then prime, then
+ * follow-ups, soonest deadline first. The rest are deleted, not skipped, so the
+ * same business or follow-up can be queued again on a later day. Returns how
+ * many were removed.
+ */
+export async function trimDraftsToCap(cap: number = DAILY_OUTREACH_CAP): Promise<number> {
+  await ensureOutreach();
+  const room = outreachRoomToday(await sentToday(), cap);
+  const rows = (await sql()`
+    WITH ranked AS (
+      SELECT id, ROW_NUMBER() OVER (ORDER BY
+        (due_date < CURRENT_DATE + 2) ASC,
+        CASE kind WHEN 'first' THEN 0 WHEN 'leads' THEN 1 WHEN 'prime' THEN 2 ELSE 3 END,
+        due_date ASC, id ASC) AS rn
+      FROM outreach_contacts WHERE status = 'draft'
+    )
+    DELETE FROM outreach_contacts c USING ranked r
+    WHERE c.id = r.id AND r.rn > ${room}
+    RETURNING c.id`) as unknown[];
+  return rows.length;
+}
+
 /** The email a draft row would send (for the admin preview and for sending). */
 export function renderContact(row: ContactRow, postalAddress: string, sourceUrl: string | null = null) {
   return outreachEmail({
@@ -334,7 +403,8 @@ export async function postingUrls(bidIds: number[]): Promise<Map<number, string>
 }
 
 /**
- * Send the given drafts (at most MAX_SEND_PER_BATCH). Refuses to send without
+ * Send the given drafts (at most MAX_SEND_PER_BATCH, and never past today's
+ * DAILY_OUTREACH_CAP). Refuses to send without
  * a postal address. Each row is claimed (draft → sending) before it is sent,
  * so a double click cannot send twice.
  */
@@ -345,7 +415,10 @@ export async function sendDrafts(ids: number[]): Promise<{ sent: number; failed:
   const key = process.env.RESEND_API_KEY;
   if (!key) throw new Error("RESEND_API_KEY is not set");
   const resend = new Resend(key);
-  const want = [...new Set(ids.filter((n) => Number.isSafeInteger(n) && n > 0))].slice(0, MAX_SEND_PER_BATCH);
+  // Owner 2026-11-02: never past the daily outreach cap (Resend's 100 a day).
+  const room = outreachRoomToday(await sentToday());
+  if (room === 0) throw new Error(`Today's outreach limit (${DAILY_OUTREACH_CAP}) is reached. The rest can go tomorrow.`);
+  const want = [...new Set(ids.filter((n) => Number.isSafeInteger(n) && n > 0))].slice(0, Math.min(MAX_SEND_PER_BATCH, room));
   let sent = 0;
   let failed = 0;
   let skipped = 0;

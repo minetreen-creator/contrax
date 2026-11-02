@@ -98,7 +98,7 @@ export type EverydaySampleBid = SampleBid & { trade: string };
  * engineering ordering agreement showed as the HVAC example). PURE.
  */
 export function isHandsOnWork(title: string): boolean {
-  return bidIsServiceJob(title) && !/\b(engineering|architect\w*|professional services)\b/i.test(title);
+  return bidIsServiceJob(title);
 }
 
 /**

@@ -28,7 +28,7 @@ export function HeadStartLock({ compact = false }: { until?: string; compact?: b
       </p>
       <a
         href="/pricing?source=head_start"
-        className="mt-2 inline-block rounded-md bg-amber-600 px-3 py-1.5 font-semibold text-white hover:bg-amber-500"
+        className="mt-2 inline-block rounded-lg bg-amber-400 px-4 py-2.5 font-bold text-slate-950 hover:bg-amber-300"
       >
         Open it today with Starter, $5 for 30 days
       </a>

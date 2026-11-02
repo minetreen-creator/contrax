@@ -174,8 +174,8 @@ function Upgrade() {
                     try { await redirectToCheckout(p.id, { interval }); }
                     finally { setPendingPlan(null); }
                   }}
-                  className={`mt-8 w-full rounded-xl px-4 py-3 font-semibold text-white transition hover:opacity-90 ${
-                    isCurrent ? "bg-amber-500" : "bg-slate-900 hover:bg-slate-800"
+                  className={`mt-8 w-full rounded-xl px-4 py-3 font-semibold transition hover:opacity-90 ${
+                    p.id === "starter" || isCurrent ? "bg-amber-400 text-slate-950 hover:bg-amber-300" : "bg-slate-900 text-white hover:bg-slate-800"
                   }`}
                 >
                   {pendingPlan === p.id

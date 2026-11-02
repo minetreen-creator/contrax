@@ -285,7 +285,7 @@ function StarterPassStrip({ where = "strip" }: { where?: "strip" | "closing" }) 
         <a
           href="/pricing?source=home_strip"
           onClick={() => trackEvent("home_starter_pass_click", where)}
-          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 font-bold text-white transition hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600"
+          className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-amber-400 px-5 py-3 font-bold text-slate-950 transition hover:bg-amber-300 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber-500"
         >
           Start for $5 <ArrowRight aria-hidden="true" className="h-4 w-4" />
         </a>

@@ -26,7 +26,7 @@ import {
   OUTREACH_TRADES,
   placeIsLocal,
 } from "~/lib/outreach";
-import { ensureOutreach, isNewAddress, queueFirst, queueFollowups, skipAllDrafts, skipDraft } from "~/lib/outreach.server";
+import { ensureOutreach, isNewAddress, queueFirst, queueFollowups, recheckWaitingDrafts, skipAllDrafts } from "~/lib/outreach.server";
 import { bidPlace, placesQuery, siteHost } from "~/lib/prospect-finder";
 import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
 import { searchPlaces, siteEmails } from "./prospect-finder";
@@ -85,21 +85,8 @@ async function main() {
     const n = await skipAllDrafts("reset by owner run");
     console.log(`Reset: ${n} waiting draft(s) skipped.`);
   }
-  // Waiting first emails are checked again against today's rules, so a draft
-  // queued before a rule existed (owner 2026-10-29: a placeholder address, an
-  // invitational bid) never reaches the send list.
-  const waiting = (await sql()`
-    SELECT id, email, website, business, bid_title, trade_label FROM outreach_contacts
-    WHERE status = 'draft' AND kind = 'first'
-  `) as { id: number; email: string; website: string | null; business: string; bid_title: string; trade_label: string }[];
-  let dropped = 0;
-  for (const d of waiting) {
-    const host = d.website ? siteHost(d.website) : null;
-    if (bidIsServiceJob(d.bid_title) && bidFitsTrade(d.trade_label, d.bid_title) && emailFitsSite(d.email, host, d.business)) continue;
-    await skipDraft(d.id);
-    dropped++;
-    console.log(`Skipped waiting draft #${d.id}: ${d.business} <${d.email}> — ${d.bid_title}`);
-  }
+  // Waiting drafts are checked again against today's rules (owner 2026-10-29).
+  const dropped = await recheckWaitingDrafts(console.log);
   if (dropped) console.log(`Waiting drafts skipped by today's rules: ${dropped}`);
 
   const followups = await queueFollowups();

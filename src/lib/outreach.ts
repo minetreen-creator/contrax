@@ -110,7 +110,10 @@ export function bidIsServiceJob(title: string): boolean {
   // roofers; neither can bid it). Nor part orders (NSN), "furnishing" supply
   // buys, ready-mix concrete by PSI, machining systems or feasibility /
   // business-feedback market research (all queued for contractors that day).
-  return !/\b(suppl(y|ies)|materials?|parts|products|equipment|filters?|pool only|pre-?qualif\w*|invitational|rfi|request for information|sources? sought|design services|consult(ant|ants|ing)|project management|engineering services|a\s?&\s?e services|nsn|furnish(ing)?|feasibility|business feedback|market research|machining|\d+\s?psi)\b/i.test(title);
+  // Owner 2026-11-02: nor engineering, architecture or "professional services"
+  // contracts (Fairfax County's MEP Engineering ordering agreement went to two
+  // plumbers). An "Engineering Building" job is still work.
+  return !/\b(suppl(y|ies)|materials?|parts|products|equipment|filters?|pool only|pre-?qualif\w*|invitational|rfi|request for information|sources? sought|design services|consult(ant|ants|ing)|project management|engineering services|a\s?&\s?e services|nsn|furnish(ing)?|feasibility|business feedback|market research|machining|\d+\s?psi|engineering(?!\s+(?:building|hall|center|complex|lab))|architect\w*|professional services)\b/i.test(title);
 }
 
 /**
@@ -159,6 +162,18 @@ export const FOLLOWUP_AFTER_DAYS = 4;
 export const FOLLOWUP_MIN_DAYS_TO_DUE = 2;
 /** Most emails one "send" click may send. */
 export const MAX_SEND_PER_BATCH = 50;
+/**
+ * Owner 2026-11-02: "always keep outreach to less than 100 due to resend daily
+ * limits". Resend sends 100 emails a day for the whole account, so outreach
+ * stops at 90 and leaves 10 for signup, password and receipt emails. Each
+ * morning the waiting drafts are trimmed to this, and sending stops here for
+ * the (UTC) day.
+ */
+export const DAILY_OUTREACH_CAP = 90;
+/** How many outreach emails may still go out today, given how many already did. PURE. */
+export function outreachRoomToday(sentToday: number, cap: number = DAILY_OUTREACH_CAP): number {
+  return Math.max(0, cap - Math.max(0, Math.floor(sentToday || 0)));
+}
 
 export type OutreachKind = "first" | "followup" | "prime" | "leads";
 
@@ -425,3 +440,10 @@ export const CONTACTED_BY_HAND: readonly string[] = [
   "galvanhousekeeper@gmail.com",
   "jamesljordanjr@aol.com",
 ];
+
+/**
+ * Addresses the owner ruled out by hand (owner 2026-11-02: "delete those ones
+ * you said skip"). Never emailed. Insurance Claims Specialist is a claims
+ * adjuster, not an insurance seller, so Award Leads is no fit.
+ */
+export const NOT_A_FIT: readonly string[] = ["icsclaims@comcast.net"];

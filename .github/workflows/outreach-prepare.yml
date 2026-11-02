@@ -63,3 +63,8 @@ jobs:
       # the paid product is /leads).
       - name: Queue Award Leads drafts
         run: bun run leads-outreach-prepare
+
+      # Owner 2026-11-02: "always keep outreach to less than 100 due to resend
+      # daily limits". Cuts the waiting drafts to DAILY_OUTREACH_CAP (90).
+      - name: Keep drafts under the daily cap
+        run: bun run outreach-trim

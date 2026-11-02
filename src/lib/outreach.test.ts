@@ -116,6 +116,10 @@ describe("daily bid outreach (owner 2026-10-23)", () => {
     expect(bidIsServiceJob("Paper Products and Janitorial Supplies")).toBe(false);
     expect(bidIsServiceJob("Landscape Materials (Annual Contract)")).toBe(false);
     expect(bidIsServiceJob("Plumbing Parts for Scott Unit")).toBe(false);
+    // Owner 2026-11-02: engineering / professional-services contracts are not trade work.
+    expect(bidIsServiceJob("Request for Qualifications (RFQ) – Mechanical, Electrical and Plumbing (MEP) Engineering Basic Ordering Agreement Professional Services (Re-advertisement)")).toBe(false);
+    expect(bidIsServiceJob("Architectural Services for Fire Station 4")).toBe(false);
+    expect(bidIsServiceJob("HVAC Replacement at the Engineering Building")).toBe(true);
     expect(bidIsServiceJob("Steinmetz HS - Hallway & Stairwell Painting Project - Prequalified Various Trades POOL ONLY")).toBe(false);
     expect(bidIsServiceJob("A26-1115 - Janitorial Services for DOM")).toBe(true);
     expect(bidIsServiceJob("Invitation for Bids for On-Call Plumbing Services")).toBe(true);

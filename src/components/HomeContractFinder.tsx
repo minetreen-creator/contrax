@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { ArrowRight, Radar, CheckCircle2, LoaderCircle } from "lucide-react";
+import { ArrowRight, CheckCircle2, LoaderCircle } from "lucide-react";
 import type { EverydaySampleBid } from "~/lib/sample-bids";
 import type { RadarMatch } from "~/routes/radar";
 import { STATE_NAMES } from "~/lib/contract-map";
@@ -43,7 +43,9 @@ function deadline(bid: Pick<RadarMatch, "due_date" | "source">): string {
 // Owner 2026-10-26: one-tap trades instead of a "describe your business" box,
 // the same picks as the Radar first screen.
 // Welding added 2026-11-02 (owner: a Waco welder searched it from Facebook).
-export const QUICK_TRADES = ["Janitorial", "Landscaping", "Construction", "HVAC", "Trucking", "Welding", "Security guards", "IT services"];
+// Owner 2026-11-02 (design critique, "do all but 4"): the trades the people
+// who visit actually run. IT, security and trucking still work by typing.
+export const QUICK_TRADES = ["Landscaping", "Janitorial", "HVAC", "Plumbing", "Roofing", "Electrical", "Welding", "Construction"];
 
 /**
  * English/Español hero (owner 2026-10-29). Spanish-speaking contractors are a
@@ -56,52 +58,46 @@ export type HeroLang = "en" | "es";
 export const HERO_LANG_KEY = "contrax_lang";
 export const HERO_COPY = {
   en: {
-    badge: "Built for small business ambition",
     titleCount: (n: string) => `${n} government bids open right now.`,
     titleCountTail: "See the ones for your business.",
     titleFallback: "Your next government customer",
     titleFallbackTail: "starts here.",
     sub: "Federal, state, city, county and school bids in all 50 states, matched to your trade.",
-    checks: ["Real solicitations", "Clear match reasons", "No card to preview"],
+    checks: ["Real government bids", "No card to search", "No automatic renewal"],
     veteran: "Built with veteran-owned businesses in mind. Open to every small business.",
     local: "Explore city & county bids →",
-    cardKicker: "Find my first contract",
     cardTitle: "What does your business do?",
-    tradePlaceholder: "Or type your trade",
+    tradePlaceholder: "Other trade",
     everyState: "Every state",
     cta: "Find my matches",
     busy: "Searching live opportunities…",
-    note: "Free to search. No card, no signup to see your best match.",
     needTrade: "Enter the service or six-digit NAICS code you want to search.",
     trades: {} as Record<string, string>,
   },
   es: {
-    badge: "Hecho para pequeños negocios con ambición",
     titleCount: (n: string) => `${n} licitaciones del gobierno abiertas ahora.`,
     titleCountTail: "Vea las que son para su negocio.",
     titleFallback: "Su próximo cliente del gobierno",
     titleFallbackTail: "empieza aquí.",
     sub: "Licitaciones federales, estatales, municipales, de condados y escuelas en los 50 estados y Puerto Rico, según su oficio.",
-    checks: ["Licitaciones reales", "Razones claras", "Sin tarjeta para ver"],
+    checks: ["Licitaciones reales del gobierno", "Sin tarjeta para buscar", "Sin renovación automática"],
     veteran: "Pensado para negocios de veteranos. Abierto a todo pequeño negocio.",
     local: "Ver licitaciones de ciudades y condados →",
-    cardKicker: "Encuentre su primer contrato",
     cardTitle: "¿A qué se dedica su negocio?",
-    tradePlaceholder: "O escriba su oficio",
+    tradePlaceholder: "Otro oficio",
     everyState: "Todos los estados",
     cta: "Ver mis oportunidades",
     busy: "Buscando licitaciones…",
-    note: "Buscar es gratis. Sin tarjeta ni registro para ver su mejor resultado.",
     needTrade: "Escriba el servicio o el código NAICS de seis dígitos que quiere buscar.",
     trades: {
       Janitorial: "Limpieza",
       Landscaping: "Jardinería",
       Construction: "Construcción",
       HVAC: "Aire acondicionado",
-      Trucking: "Acarreo",
+      Plumbing: "Plomería",
+      Roofing: "Techos",
+      Electrical: "Electricidad",
       Welding: "Soldadura",
-      "Security guards": "Guardias de seguridad",
-      "IT services": "Servicios de IT",
     } as Record<string, string>,
   },
 } as const;
@@ -237,58 +233,32 @@ export function HomeContractFinder({ sample, openTotal = 0 }: { sample: Everyday
       aria-labelledby="first-contract-title"
       className="relative overflow-hidden bg-[#07162e] text-white"
     >
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -right-40 -top-40 h-[650px] w-[650px] rounded-full bg-blue-600/20 blur-3xl"
-      />
-      <div className="relative mx-auto grid max-w-7xl items-center gap-8 px-5 pb-20 pt-8 sm:gap-12 sm:px-8 sm:pt-20 lg:grid-cols-[1.1fr_1fr] lg:gap-16 lg:pb-24">
+      <div className="relative mx-auto grid max-w-7xl items-center gap-5 px-4 pb-14 pt-4 sm:gap-12 sm:px-8 sm:pb-20 sm:pt-16 lg:grid-cols-[1.1fr_1fr] lg:gap-16 lg:pb-24">
         <div>
-          <div className="mb-4 inline-flex rounded-full border border-white/20 bg-white/5 p-1 text-xs font-bold" role="group" aria-label="Language / Idioma">
+          <div className="mb-3 inline-flex rounded-full border border-white/20 bg-white/5 p-1 text-xs font-bold sm:mb-4" role="group" aria-label="Language / Idioma">
             {(["en", "es"] as const).map((l) => (
               <button
                 key={l}
                 type="button"
                 aria-pressed={lang === l}
                 onClick={() => chooseLang(l)}
-                className={`rounded-full px-3 py-1 transition ${lang === l ? "bg-white text-slate-900" : "text-blue-100 hover:text-white"}`}
+                className={`min-h-9 rounded-full px-3 py-1.5 transition ${lang === l ? "bg-white text-slate-900" : "text-blue-100 hover:text-white"}`}
               >
                 {l === "en" ? "English" : "Español"}
               </button>
             ))}
           </div>
-          <p className="inline-flex items-center gap-2 rounded-full border border-blue-400/30 bg-blue-400/10 px-3 py-2 text-xs font-bold uppercase tracking-widest text-blue-200">
-            <Radar className="h-4 w-4" aria-hidden="true" /> {c.badge}
-          </p>
           <h1
             id="first-contract-title"
-            className="mt-6 max-w-2xl text-4xl font-extrabold leading-[1.08] tracking-tight sm:text-5xl lg:text-6xl"
+            className="max-w-2xl text-[1.75rem] font-extrabold leading-[1.12] tracking-tight [text-wrap:balance] sm:text-5xl lg:text-6xl"
           >
-            {openTotal > 0 ? (
-              <>
-                {c.titleCount(openTotal.toLocaleString("en-US"))}{" "}
-                <span className="text-blue-400">{c.titleCountTail}</span>
-              </>
-            ) : (
-              <>
-                {c.titleFallback}{" "}
-                <span className="text-blue-400">{c.titleFallbackTail}</span>
-              </>
-            )}
+            {openTotal > 0
+              ? `${c.titleCount(openTotal.toLocaleString("en-US"))} ${c.titleCountTail}`
+              : `${c.titleFallback} ${c.titleFallbackTail}`}
           </h1>
-          <p className="mt-5 max-w-xl text-base leading-relaxed text-slate-300 sm:mt-6 sm:text-lg">
+          <p className="mt-5 hidden max-w-xl text-lg leading-relaxed text-slate-300 sm:mt-6 sm:block">
             {c.sub}
           </p>
-          <div className="mt-7 hidden flex-wrap gap-x-5 gap-y-3 text-sm text-blue-100 sm:flex">
-            {c.checks.map((text) => (
-              <span key={text} className="inline-flex items-center gap-2">
-                <CheckCircle2
-                  aria-hidden="true"
-                  className="h-4 w-4 text-blue-400"
-                />
-                {text}
-              </span>
-            ))}
-          </div>
           <p className="mt-6 hidden text-sm leading-relaxed text-slate-400 sm:block">
             {c.veteran}
           </p>
@@ -299,20 +269,17 @@ export function HomeContractFinder({ sample, openTotal = 0 }: { sample: Everyday
             {c.local}
           </a>
         </div>
-        <div className="rounded-3xl border border-white/20 bg-white p-6 text-slate-950 shadow-2xl shadow-blue-950/60 sm:p-8">
-          <p className="text-xs font-bold uppercase tracking-widest text-blue-700">
-            {c.cardKicker}
-          </p>
-          <h2 className="mt-2 text-2xl font-bold tracking-tight">
+        <div className="rounded-2xl bg-white p-4 text-slate-950 shadow-xl shadow-black/30 sm:rounded-3xl sm:p-8">
+          <h2 className="text-xl font-bold tracking-tight sm:text-2xl">
             {c.cardTitle}
           </h2>
           <form
             onSubmit={search}
-            className="mt-5 space-y-4"
+            className="mt-3 space-y-3 sm:mt-5 sm:space-y-4"
             aria-label="Find my first contract"
             aria-busy={busy}
           >
-            <div className="flex flex-wrap gap-2" role="group" aria-label="Popular trades">
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap" role="group" aria-label="Popular trades">
               {QUICK_TRADES.map((t) => (
                 <button
                   key={t}
@@ -320,7 +287,7 @@ export function HomeContractFinder({ sample, openTotal = 0 }: { sample: Everyday
                   disabled={busy}
                   aria-pressed={trade === t}
                   onClick={() => { setTrade(t); setError(""); }}
-                  className={`rounded-full border px-3 py-1.5 text-sm font-medium transition ${
+                  className={`min-h-11 rounded-xl border px-3 py-2 text-sm font-semibold transition sm:rounded-full ${
                     trade === t ? "border-blue-600 bg-blue-600 text-white" : "border-slate-300 bg-white text-slate-700 hover:border-blue-400"
                   }`}
                 >
@@ -328,7 +295,7 @@ export function HomeContractFinder({ sample, openTotal = 0 }: { sample: Everyday
                 </button>
               ))}
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-2 gap-2 sm:gap-4">
               <div>
                 <label htmlFor="home-trade" className="sr-only">
                   Trade or NAICS code
@@ -383,9 +350,14 @@ export function HomeContractFinder({ sample, openTotal = 0 }: { sample: Everyday
                 </>
               )}
             </button>
-            <p className="text-center text-xs leading-relaxed text-slate-500">
-              {c.note}
-            </p>
+            <ul className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs font-medium text-slate-600" aria-label="Good to know">
+              {c.checks.map((text) => (
+                <li key={text} className="inline-flex items-center gap-1.5">
+                  <CheckCircle2 aria-hidden="true" className="h-3.5 w-3.5 text-emerald-600" />
+                  {text}
+                </li>
+              ))}
+            </ul>
             {error && (
               <p role="alert" className="text-sm text-red-700">
                 {error}{" "}

@@ -97,10 +97,16 @@ describe("homepage", () => {
     expect(page.indexOf("<HowItWorks />")).toBeLessThan(page.indexOf("<HomeStateMap"));
     expect(page).toContain('<StarterPassStrip where="closing" />');
   });
-  test("search results name the $5 pass before the free account", () => {
+  test("search results name the $5 pass before the free account", async () => {
     const finder = read("src/components/HomeContractFinder.tsx");
     expect(finder).toContain('trackEvent("home_results_pass_click"');
-    expect(finder).toContain('note: "Free to search. No card, no signup to see your best match."');
+    // Design pass (owner 2026-11-02, "do all but 4"): the trust line sits under
+    // the search button on every screen size, and the badge and glow are gone.
+    expect(finder).toContain('checks: ["Real government bids", "No card to search", "No automatic renewal"],');
+    expect(finder).not.toContain("blur-3xl");
+    expect(finder).not.toContain("c.badge");
+    const { QUICK_TRADES } = await import("../components/HomeContractFinder");
+    expect(QUICK_TRADES).toEqual(["Landscaping", "Janitorial", "HVAC", "Plumbing", "Roofing", "Electrical", "Welding", "Construction"]);
     expect(finder).not.toContain("Or type your trade or NAICS");
   });
 });

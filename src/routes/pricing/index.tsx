@@ -265,7 +265,7 @@ function PricingPage() {
               <a
                 href={starterHref}
                 onClick={startStarter("hero")}
-                className="inline-block w-full max-w-sm rounded-xl bg-amber-500 px-6 py-4 text-center text-base font-bold text-white shadow-md transition hover:bg-amber-400 active:scale-[0.98]"
+                className="inline-block w-full max-w-sm rounded-xl bg-amber-400 px-6 py-4 text-center text-base font-bold text-slate-950 shadow-md transition hover:bg-amber-300 active:scale-[0.98]"
               >
                 {starterLabel} →
               </a>
@@ -393,7 +393,7 @@ function PricingPage() {
                   }}
                   className={`block w-full rounded-xl px-6 py-3 text-center text-sm font-semibold transition-all active:scale-[0.98] ${
                     plan.featured
-                      ? "bg-amber-500 text-white"
+                      ? "bg-amber-400 text-slate-950 hover:bg-amber-300"
                       : "border-2 border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white"
                   }`}
                 >

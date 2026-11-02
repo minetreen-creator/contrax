@@ -78,6 +78,8 @@ describe("radar results", () => {
     expect(radar).toContain("{isAnonymous && scan.matches.length > 0 && locked === 0 && (\n              <SaveMatchesCard");
     expect(radar).toContain("(scan.sections?.related ?? []).length > 0 && (");
     expect(radar).not.toContain("full incumbent intel");
+    expect(radar).toContain("🔒 Official notice + bid documents: ${STARTER_FIRST_MONTH_PRICE} for 30 days");
+    expect(radar).not.toContain("Official notice for members: details");
     expect(radar).not.toContain('reasons.push("Estimated value not listed');
   });
 });

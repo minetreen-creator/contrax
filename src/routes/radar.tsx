@@ -2901,7 +2901,9 @@ export function RadarCard({
               href={`/bid/${match.id}`}
               className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-amber-400 hover:text-amber-300"
             >
-              🔒 Official notice for members: details <span aria-hidden="true">→</span>
+              {/* Owner 2026-11-02: the lock names its price. The bid page shows
+                  the job and the $5 button that carries this bid to checkout. */}
+              🔒 Official notice + bid documents: ${STARTER_FIRST_MONTH_PRICE} for 30 days <span aria-hidden="true">→</span>
             </a>
           )}
         </div>

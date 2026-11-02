@@ -13,6 +13,7 @@ import { publishedDateOnlyFor } from "~/lib/deadline-label";
 import { raceRadarScan } from "~/lib/radar-scan-runner";
 import { getTrackingUser } from "~/lib/identity";
 import { trackEvent } from "~/lib/track";
+import { redirectToCheckout } from "~/lib/checkout";
 import { STARTER_FIRST_MONTH_PRICE } from "~/lib/starter-offer";
 
 const STATES = [...US_PLACES].sort((a, b) =>
@@ -497,7 +498,12 @@ export function HomeContractFinder({ sample, openTotal = 0 }: { sample: Everyday
                     </p>
                     <a
                       href={`/signup?plan=starter&next=${encodeURIComponent("/upgrade?plan=starter")}`}
-                      onClick={() => trackEvent("home_results_pass_click", String(result.total))}
+                      onClick={(e) => {
+                        // Pay first, account after (CEO 2026-10-22): straight to Stripe.
+                        e.preventDefault();
+                        trackEvent("home_results_pass_click", String(result.total));
+                        void redirectToCheckout("starter");
+                      }}
                       className="mt-4 inline-block rounded-xl bg-amber-400 px-6 py-4 text-center text-base font-bold text-slate-950 hover:bg-amber-300"
                     >
                       See all {result.total} for ${STARTER_FIRST_MONTH_PRICE} →

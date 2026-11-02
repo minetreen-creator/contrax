@@ -86,3 +86,13 @@ describe("top-match spot check fixes (owner 2026-11-01)", () => {
     expect(radar).toContain("previewPool.slice(0, FREE_ANONYMOUS_RADAR_RESULTS)");
   });
 });
+
+describe("head start: no promise of a free date (owner 2026-11-01)", () => {
+  test("the lock and upgrade page no longer say when a bid opens for free accounts", () => {
+    const lock = read("src/components/HeadStartLock.tsx");
+    expect(lock).not.toContain("opens for free accounts on {opens}");
+    expect(lock).not.toContain("free on {opens}");
+    expect(lock).toContain("Open it today with Starter, $5 for 30 days");
+    expect(read("src/routes/upgrade.tsx")).not.toContain("free accounts wait");
+  });
+});

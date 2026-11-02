@@ -107,6 +107,11 @@ describe("welding is a first-class trade (owner 2026-11-02)", () => {
     expect(isStrongTradeMatch("Welding and Fabrication Services for Water Plant", null, null, null, w)).toBe(true);
     expect(isStrongTradeMatch("Structural Steel Repairs at Pump Station", null, null, null, w)).toBe(true);
     expect(isStrongTradeMatch("Data Fabrication Detection Software", null, null, null, w)).toBe(false);
+    expect(isStrongTradeMatch("Welders and Guns for Livingston", null, null, null, w)).toBe(false);
+    expect(isStrongTradeMatch("WELDING SUPPLIES & EQUIPMENT", null, null, null, w)).toBe(false);
+    expect(isStrongTradeMatch("WELDING & METAL TRADE SUPPLIES", null, null, null, w)).toBe(false);
+    expect(isStrongTradeMatch("YTC - Welding Expansion - Building D", null, null, null, w)).toBe(true);
+    expect(isStrongTradeMatch("Aberdeen Test Center Welding, Machining, Painting, and Fabrication Services", null, null, null, w)).toBe(true);
   });
   test("Welding is a one-tap trade on the homepage (with Spanish) and Radar", async () => {
     const { QUICK_TRADES, HERO_COPY } = await import("../components/HomeContractFinder");

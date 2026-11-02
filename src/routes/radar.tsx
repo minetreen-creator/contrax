@@ -71,6 +71,7 @@ import {
 } from "~/lib/radar-scan-runner";
 import { fetchStrictRadarRows, radarRowPasses } from "~/lib/radar-candidates";
 import { radarShareUrl } from "~/lib/radar-share";
+import { closingSoonLast } from "~/lib/radar-closing-soon";
 import { cleanBidTitle } from "~/lib/bid-title";
 import { stateFromGeoHeaders, withTimeout } from "~/lib/radar-geo";
 import { SiteHeader } from "~/components/SiteHeader";
@@ -693,7 +694,9 @@ export const runRadarScan = createServerFn({ method: "POST" })
     // excluded from the default result set and handled under Related
     // opportunities below (state-local rows only). NAICS-input queries are
     // exact-code matches and are strong by construction.
-    const ranked = scored.filter((m) => m.strong).slice(0, RADAR_MATCH_CAP);
+    // Owner 2026-11-02: bids closing within 2 days go after the ones there is
+    // still time to win (~/lib/radar-closing-soon).
+    const ranked = closingSoonLast(scored.filter((m) => m.strong), (m) => m.bid.due_date).slice(0, RADAR_MATCH_CAP);
     const weakRowCandidates = scored.filter((m) => !m.strong);
 
     // OWNER 09-16 (Radar scan-latency fix, order #1): this handler performs NO
@@ -890,6 +893,7 @@ export const runRadarScan = createServerFn({ method: "POST" })
         ? new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
         : a.due_date ? -1 : b.due_date ? 1 : 0,
     );
+    related.splice(0, related.length, ...closingSoonLast(related, (m) => m.due_date));
     // Paid head start (src/lib/head-start.ts): for a viewer without paid
     // access, every returned card whose bid is in its head start loses its
     // source link here, on the server. `local`/`nationwide` hold the same

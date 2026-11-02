@@ -53,6 +53,10 @@ describe("bid page: the job is free to read", () => {
     expect(bidStarterHref(42, false)).toBe(`/signup?plan=starter&bid=42&next=${encodeURIComponent("/upgrade?plan=starter&bid=42")}`);
     expect(paidPlanReturn("/upgrade?plan=starter&bid=42")).toBe("/upgrade?plan=starter&bid=42");
     expect(paidPlanReturn("/upgrade?plan=starter&bid=4x2")).toBe("/upgrade?plan=starter");
+    // Checkout check 2026-11-02: signup rebuilt the plan return and dropped the bid.
+    const signup = read("src/routes/signup.tsx");
+    expect(signup).toContain("purchaseReturn.replace(/^\\/upgrade\\?plan=[a-z]+/, `/upgrade?plan=${selectedPlan}`)");
+    expect(signup).toContain('"Create my account, then pay $5 →"');
     const upgrade = read("src/routes/upgrade.tsx");
     expect(upgrade).toContain('{bid ? "← Back to the bid"');
   });
@@ -78,6 +82,8 @@ describe("radar results", () => {
     expect(radar).toContain("{isAnonymous && scan.matches.length > 0 && locked === 0 && (\n              <SaveMatchesCard");
     expect(radar).toContain("(scan.sections?.related ?? []).length > 0 && (");
     expect(radar).not.toContain("full incumbent intel");
+    expect(radar).toContain("🔒 Official notice + bid documents: ${STARTER_FIRST_MONTH_PRICE} for 30 days");
+    expect(radar).not.toContain("Official notice for members: details");
     expect(radar).not.toContain('reasons.push("Estimated value not listed');
   });
 });

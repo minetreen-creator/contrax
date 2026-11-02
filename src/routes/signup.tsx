@@ -492,8 +492,12 @@ function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<Plan>(plan as Plan);
-  const next = paidPlanReturn(requestedNext)
-    ? selectedPlan === "basic" ? undefined : `/upgrade?plan=${selectedPlan}`
+  // Owner 2026-11-02 (checkout check): the plan return keeps the bid the $5
+  // click came from (paidPlanReturn keeps a numeric `bid`), so the plan page
+  // can link back to it.
+  const purchaseReturn = paidPlanReturn(requestedNext);
+  const next = purchaseReturn
+    ? selectedPlan === "basic" ? undefined : purchaseReturn.replace(/^\/upgrade\?plan=[a-z]+/, `/upgrade?plan=${selectedPlan}`)
     : requestedNext;
   // Browser-tab title matches the selected plan (P2): Basic is genuinely free
   // forever (no card), paid tiers carry the 7-day trial. Kept in sync client-
@@ -1506,7 +1510,9 @@ function SignupPage() {
                 </span>
               ) : (
                 // Honest CTA: no draft promise until the draft flow (part B) lands.
-                save_bid ? "Create account & save bid →" : "Create my free account →"
+                // Owner 2026-11-02 (checkout check): a $5 buyer is not told the
+                // account is "free"; the next step is the Starter checkout.
+                save_bid ? "Create account & save bid →" : purchaseReturn && selectedPlan === "starter" ? "Create my account, then pay $5 →" : purchaseReturn && selectedPlan !== "basic" ? "Create my account →" : "Create my free account →"
               )}
             </button>
 

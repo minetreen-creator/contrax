@@ -41,7 +41,8 @@ function deadline(bid: Pick<RadarMatch, "due_date" | "source">): string {
 
 // Owner 2026-10-26: one-tap trades instead of a "describe your business" box,
 // the same picks as the Radar first screen.
-export const QUICK_TRADES = ["Janitorial", "Landscaping", "Construction", "HVAC", "Trucking", "Security guards", "IT services"];
+// Welding added 2026-11-02 (owner: a Waco welder searched it from Facebook).
+export const QUICK_TRADES = ["Janitorial", "Landscaping", "Construction", "HVAC", "Trucking", "Welding", "Security guards", "IT services"];
 
 /**
  * English/Español hero (owner 2026-10-29). Spanish-speaking contractors are a
@@ -97,6 +98,7 @@ export const HERO_COPY = {
       Construction: "Construcción",
       HVAC: "Aire acondicionado",
       Trucking: "Acarreo",
+      Welding: "Soldadura",
       "Security guards": "Guardias de seguridad",
       "IT services": "Servicios de IT",
     } as Record<string, string>,

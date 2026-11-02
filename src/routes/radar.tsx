@@ -117,6 +117,7 @@ const QUICK_TRADES: { label: string; q: string }[] = [
   { label: "Construction", q: "construction" },
   { label: "HVAC", q: "HVAC" },
   { label: "Trucking", q: "trucking" },
+  { label: "Welding", q: "welding" },
   { label: "Security guards", q: "security guard" },
   { label: "IT services", q: "IT services" },
 ];

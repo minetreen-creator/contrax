@@ -320,6 +320,29 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
    * "Building Automation System Upgrade", "Geothermal Heat Pump". Same NAICS;
    * the 238220 keywords still ride along (recall can only grow).
    */
+  /**
+   * OWNER 2026-11-02 ("lets stick to just welding"): a Waco welder searched
+   * "Welding" from Facebook. Welding bids are titled "Welding Services",
+   * "Welding and Fabrication", "Metal Fabrication", "Welding Repair". NAICS
+   * 238120 (structural steel contractors) is the closest trade code. No bare
+   * "fabrication" (it is also data, document and claims fabrication).
+   */
+  "welding-fabrication": {
+    label: "Welding",
+    synonyms: [
+      "welding",
+      "welder",
+      "welders",
+      "welding services",
+      "welding repair",
+      "metal fabrication",
+      "steel fabrication",
+      "welding and fabrication",
+      "fabrication and welding",
+      "structural steel",
+    ],
+    naics: ["238120"],
+  },
   "hvac-mechanical": {
     label: "HVAC",
     synonyms: [

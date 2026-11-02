@@ -72,6 +72,7 @@ import {
 import { fetchStrictRadarRows, radarRowPasses } from "~/lib/radar-candidates";
 import { radarShareUrl } from "~/lib/radar-share";
 import { closingSoonLast, roomToBidFirst } from "~/lib/radar-closing-soon";
+import { redirectToCheckout } from "~/lib/checkout";
 import { cleanBidTitle } from "~/lib/bid-title";
 import { stateFromGeoHeaders, withTimeout } from "~/lib/radar-geo";
 import { SiteHeader } from "~/components/SiteHeader";
@@ -2296,7 +2297,12 @@ function RadarLanding() {
                 {locked > 0 && (
                   <a
                     href={`/signup?plan=starter&next=${encodeURIComponent("/upgrade?plan=starter")}`}
-                    onClick={() => trackEvent("radar_anon_pass_offer_click", `${trade}|${state}`)}
+                    onClick={(e) => {
+                      // Pay first, account after (CEO 2026-10-22): straight to Stripe.
+                      e.preventDefault();
+                      trackEvent("radar_anon_pass_offer_click", `${trade}|${state}`);
+                      void redirectToCheckout("starter");
+                    }}
                     className="block rounded-xl border border-amber-400/60 bg-amber-500/15 px-4 py-4 text-amber-50 hover:bg-amber-500/25"
                   >
                     <span className="block text-base font-bold">

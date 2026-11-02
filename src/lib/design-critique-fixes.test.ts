@@ -68,6 +68,15 @@ describe("bid page: the job is free to read", () => {
   });
 });
 
+describe("pay first, account after (CEO 2026-10-22)", () => {
+  test("the new $5 buttons open Stripe directly instead of signup first", () => {
+    for (const f of ["src/routes/bid.$bidId.tsx", "src/routes/radar.tsx", "src/components/HomeContractFinder.tsx"]) {
+      expect(read(f)).toContain('void redirectToCheckout("starter");');
+    }
+    expect(read("src/lib/path-checks.ts")).toContain('mustContain: "Get every new bid in your trade"');
+  });
+});
+
 describe("radar results", () => {
   test("the free preview prefers a bid with a week or more left", () => {
     expect(PREVIEW_MIN_DAYS).toBe(7);

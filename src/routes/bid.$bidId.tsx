@@ -23,6 +23,7 @@ import { applyHeadStart } from "~/lib/head-start";
 import { hasPaidBidAccess } from "~/lib/head-start.server";
 import { agencyDisplay, bidStarterHref, daysLeftLabel, jobSummary, valueLabel } from "~/lib/bid-job-summary";
 import { trackEvent } from "~/lib/track";
+import { redirectToCheckout } from "~/lib/checkout";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
 import { SIMILAR_BIDS_LIMIT, similarNaicsPrefixes, similarRadarHref } from "~/lib/similar-bids";
@@ -682,7 +683,13 @@ function NoticeLock({ bidId, signedIn, isNew = false }: { bidId: number; signedI
       </ul>
       <a
         href={bidStarterHref(bidId, signedIn)}
-        onClick={() => trackEvent("bid_lock_starter_click", isNew ? "new" : "members")}
+        onClick={(e) => {
+          // Pay first, account after (CEO 2026-10-22): the $5 opens Stripe
+          // directly, signed in or not. The href is the no-JS fallback.
+          e.preventDefault();
+          trackEvent("bid_lock_starter_click", isNew ? "new" : "members");
+          void redirectToCheckout("starter");
+        }}
         className="mt-3 block w-full rounded-lg bg-amber-400 px-4 py-3 text-center text-base font-bold text-slate-950 hover:bg-amber-300 sm:inline-block sm:w-auto"
       >
         Open this bid + every new one for 30 days: ${STARTER_FIRST_MONTH_PRICE}

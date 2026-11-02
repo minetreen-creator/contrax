@@ -18,6 +18,20 @@ describe("bid page: the job is free to read", () => {
     expect(jobSummary("<p>Mowing &amp; trimming of 14 city parks, twice a month from April to October.</p>", "Park Mowing")).toBe(
       "Mowing & trimming of 14 city parks, twice a month from April to October.",
     );
+    // Source and process notes are not the job (live check 2026-11-02: a BidNet
+    // bid showed "Listed by BidNet Direct… Contrax stores the deadline…").
+    expect(
+      jobSummary(
+        "Listed by BidNet Direct (bidnetdirect.com), a private third-party bid service — not the State of Washington's procurement portal — in its Washington Purchasing Group. Published 10/30/2026; closing 12/01/2026. BidNet's public list prints the closing DATE only, so Contrax stores the deadline at 11:59 PM Eastern on that date.",
+        "Pre-Approved ADU Design Services",
+      ),
+    ).toBeNull();
+    expect(
+      jobSummary(
+        "State of Oklahoma bidding event 123 posted by DOT. Mowing and litter pickup on 40 miles of state highway right-of-way in Tulsa County. Event documents and responses through the Oklahoma supplier portal (see source link).",
+        "Highway Mowing",
+      ),
+    ).toBe("Mowing and litter pickup on 40 miles of state highway right-of-way in Tulsa County.");
     const long = "Contractor shall provide grounds maintenance services ".repeat(20);
     const out = jobSummary(long, "Grounds")!;
     expect(out.length).toBeLessThanOrEqual(421);

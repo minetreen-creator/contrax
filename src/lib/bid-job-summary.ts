@@ -15,6 +15,10 @@ const ENTITIES: Record<string, string> = {
   "&nbsp;": " ",
 };
 
+/** A sentence that is a source or process note, not a description of the work. */
+const PROCESS_NOTE =
+  /\b(contrax|listed by|posted (by|on)|advertised on|source link|source page|portal|bid service|third-party|public list|prints?|printed|published|closing|opening|opened|bids? open|time zone|eastern time|central time|mountain time|pacific time|registration|register|documents?|responses?|respond|emailed|sold through|notice to contractors|q&a|login|log in|sign in|subscription|in spanish|not stated|not published|see the bid advertisement|bidnet|questcdn|demandstar|bonfire|periscope|bidsync|opengov)\b/i;
+
 /** Longest summary shown on the page, in characters. */
 export const JOB_SUMMARY_MAX = 420;
 
@@ -27,6 +31,15 @@ export function jobSummary(description: string | null | undefined, title: string
     .replace(/<[^>]*>/g, " ")
     .replace(/&[a-z#0-9]+;/gi, (m) => ENTITIES[m.toLowerCase()] ?? " ")
     .replace(/\s+/g, " ")
+    .trim();
+  // Many sources store our own provenance and "how to respond" notes in the
+  // description ("Listed by BidNet Direct…", "Respond through the portal (see
+  // source link)"). Those are not the job, and they name where the free notice
+  // is; keep only sentences that describe the work.
+  text = text
+    .split(/(?<=[.!?])\s+/)
+    .filter((sentence) => !PROCESS_NOTE.test(sentence))
+    .join(" ")
     .trim();
   if (text.length < 40) return null;
   const t = String(title ?? "").trim().toLowerCase();

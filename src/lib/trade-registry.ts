@@ -328,7 +328,7 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
    * "fabrication" (it is also data, document and claims fabrication).
    */
   "welding-fabrication": {
-    label: "Welding",
+    label: "Welding & Metal Work",
     synonyms: [
       "welding",
       "welder",
@@ -340,6 +340,38 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
       "welding and fabrication",
       "fabrication and welding",
       "structural steel",
+      // Owner 2026-11-02 ("so how do we get more welding jobs"): governments
+      // post the job, not the word "welding". Specific metal-work phrases only;
+      // no bare "metal", "steel", "gate" or "guardrail" (steel purchases and
+      // highway guardrail installs are not welding-shop work).
+      "handrail",
+      "handrails",
+      "hand rail",
+      "railing",
+      "railings",
+      "steel stair",
+      "steel stairs",
+      "metal stair",
+      "metal stairs",
+      "ornamental iron",
+      "wrought iron",
+      "iron fence",
+      "iron fencing",
+      "metal gate",
+      "metal gates",
+      "steel gate",
+      "steel gates",
+      "miscellaneous metals",
+      "misc metals",
+      "steel repair",
+      "steel repairs",
+      "tank repair",
+      "container repair",
+      "dumpster repair",
+      "trailer repair",
+      "steel grating",
+      "metal grating",
+      "catwalk",
     ],
     naics: ["238120"],
   },
@@ -1431,6 +1463,7 @@ export function serviceTradeMismatch(titleText: string, expansion: TradeExpansio
   // Welding machines, guns, wire and gear are an equipment buy, not welding work
   // (owner 2026-11-02: "Welders and Guns for Livingston", "Welding Supplies &
   // Equipment" were the top welding matches).
+  if (codes.includes("238120") && /\b(?:purchase|procurement|materials?)\b/.test(titleText) && !/\b(?:services?|repairs?|install(?:ation)?|replacement|fabricat\w*|retrofit)\b/.test(titleText)) return true;
   if (codes.includes("238120") && /\b(?:welders and guns|welding (?:machines?|guns?|wire|rods?|helmets?|gas|equipment|supplies)|welding (?:&|and) metal trade supplies)\b/.test(titleText) && !/\b(?:services?|repairs?)\b/.test(titleText)) return true;
   // "Mechanical Muck Management" is lake dredging, not mechanical (HVAC) work.
   if (codes.includes("238220") && /\bmuck\b/.test(titleText)) return true;

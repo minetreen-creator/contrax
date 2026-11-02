@@ -1717,5 +1717,26 @@
       "url": "https://www.ogj.com/general-interest/companies/news/55415528/valero-to-acquire-former-lyondellbasell-houston-oil-refinery-restart-165000-b-d-by-end-2027"
     },
     "checked": "2026-11-02"
+  },
+  {
+    "slug": "kyec-chip-testing-fort-worth-tx",
+    "company": "King Yuan Electronics (KYEC)",
+    "project": "Nvidia chip testing plant (Aeternz Semiconductor Testing)",
+    "city": "Fort Worth",
+    "state": "TX",
+    "sector": "semiconductors",
+    "amount": 1300000000,
+    "amountNote": null,
+    "jobs": 630,
+    "jobsNote": "full-time by the end of 2031, averaging at least $80,000 a year; at least 30% (about 180) to be Fort Worth residents",
+    "status": "Fort Worth City Council approved a 10-year tax abatement; plant planned on 27 acres at 273 W. Everman Parkway",
+    "summary": "A manufacturing and research plant in south Fort Worth where KYEC's U.S. subsidiary, Aeternz Semiconductor Testing, will test chips for Nvidia.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "CoStar, Oct 2026",
+      "url": "https://www.costar.com/article/1753462655/nvidia-manufacturer-offered-tax-breaks-for-major-project-in-fort-worth"
+    },
+    "checked": "2026-11-02"
   }
 ]

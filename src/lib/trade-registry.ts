@@ -328,7 +328,7 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
    * "fabrication" (it is also data, document and claims fabrication).
    */
   "welding-fabrication": {
-    label: "Welding",
+    label: "Welding & Metal Work",
     synonyms: [
       "welding",
       "welder",
@@ -340,6 +340,38 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
       "welding and fabrication",
       "fabrication and welding",
       "structural steel",
+      // Owner 2026-11-02 ("so how do we get more welding jobs"): governments
+      // post the job, not the word "welding". Specific metal-work phrases only;
+      // no bare "metal", "steel", "gate" or "guardrail" (steel purchases and
+      // highway guardrail installs are not welding-shop work).
+      "handrail",
+      "handrails",
+      "hand rail",
+      "railing",
+      "railings",
+      "steel stair",
+      "steel stairs",
+      "metal stair",
+      "metal stairs",
+      "ornamental iron",
+      "wrought iron",
+      "iron fence",
+      "iron fencing",
+      "metal gate",
+      "metal gates",
+      "steel gate",
+      "steel gates",
+      "miscellaneous metals",
+      "misc metals",
+      "steel repair",
+      "steel repairs",
+      "tank repair",
+      "container repair",
+      "dumpster repair",
+      "trailer repair",
+      "steel grating",
+      "metal grating",
+      "catwalk",
     ],
     naics: ["238120"],
   },
@@ -1421,13 +1453,18 @@ function isNonCarrierFreightWork(titleText: string, expansion: TradeExpansion): 
  */
 export function serviceTradeMismatch(titleText: string, expansion: TradeExpansion): boolean {
   const codes = expansion.naicsCodes;
-  const serviceTrade = codes.some((c) => c === "561730" || c === "238220" || c === "561612" || c.startsWith("484"));
+  const serviceTrade = codes.some((c) => c === "561730" || c === "238220" || c === "561612" || c === "238120" || c.startsWith("484"));
   if (!serviceTrade) return false;
   if (codes.some((c) => c.startsWith("484")) && /\b(?:lift trucks?|forklifts?|pallet jacks?)\b/.test(titleText)) return true;
   if (codes.includes("561612") && /\bkitchen patrol\b/.test(titleText)) return true;
   // A truck for sale or a chassis upfit is a vehicle buy, not hauling work
   // ("2011 Freightliner Coronado", "Upfit of two (2) 2026 Freightliner Chassis").
   if (codes.some((c) => c.startsWith("484")) && /\b(?:upfit|chassis|(?:19|20)\d{2}\s+(?:freightliner|peterbilt|kenworth|mack|volvo|international|western star))\b/.test(titleText)) return true;
+  // Welding machines, guns, wire and gear are an equipment buy, not welding work
+  // (owner 2026-11-02: "Welders and Guns for Livingston", "Welding Supplies &
+  // Equipment" were the top welding matches).
+  if (codes.includes("238120") && /\b(?:purchase|procurement|materials?)\b/.test(titleText) && !/\b(?:services?|repairs?|install(?:ation)?|replacement|fabricat\w*|retrofit)\b/.test(titleText)) return true;
+  if (codes.includes("238120") && /\b(?:welders and guns|welding (?:machines?|guns?|wire|rods?|helmets?|gas|equipment|supplies)|welding (?:&|and) metal trade supplies)\b/.test(titleText) && !/\b(?:services?|repairs?)\b/.test(titleText)) return true;
   // "Mechanical Muck Management" is lake dredging, not mechanical (HVAC) work.
   if (codes.includes("238220") && /\bmuck\b/.test(titleText)) return true;
   const namesService = /\b(?:services?|maintenance|repairs?|install(?:ation)?|replacement|replace|removal|mowing|hauling|transport(?:ation)?|guards?)\b/.test(titleText);

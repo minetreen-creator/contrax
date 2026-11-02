@@ -107,11 +107,32 @@ describe("welding is a first-class trade (owner 2026-11-02)", () => {
     expect(isStrongTradeMatch("Welding and Fabrication Services for Water Plant", null, null, null, w)).toBe(true);
     expect(isStrongTradeMatch("Structural Steel Repairs at Pump Station", null, null, null, w)).toBe(true);
     expect(isStrongTradeMatch("Data Fabrication Detection Software", null, null, null, w)).toBe(false);
+    expect(isStrongTradeMatch("Welders and Guns for Livingston", null, null, null, w)).toBe(false);
+    expect(isStrongTradeMatch("WELDING SUPPLIES & EQUIPMENT", null, null, null, w)).toBe(false);
+    expect(isStrongTradeMatch("WELDING & METAL TRADE SUPPLIES", null, null, null, w)).toBe(false);
+    expect(isStrongTradeMatch("YTC - Welding Expansion - Building D", null, null, null, w)).toBe(true);
+    expect(isStrongTradeMatch("Aberdeen Test Center Welding, Machining, Painting, and Fabrication Services", null, null, null, w)).toBe(true);
   });
   test("Welding is a one-tap trade on the homepage (with Spanish) and Radar", async () => {
     const { QUICK_TRADES, HERO_COPY } = await import("../components/HomeContractFinder");
     expect(QUICK_TRADES).toContain("Welding");
     expect(HERO_COPY.es.trades.Welding).toBe("Soldadura");
     expect(read("src/routes/radar.tsx")).toContain('{ label: "Welding", q: "welding" },');
+  });
+});
+
+describe("welding & metal work finds the jobs welders bid (owner 2026-11-02)", () => {
+  test("metal-work job titles match; purchases and highway guardrail do not", async () => {
+    const { expandTrade, isStrongTradeMatch } = await import("./trade-registry");
+    const w = expandTrade("Welding");
+    const strong = (t: string) => isStrongTradeMatch(t, null, null, null, w);
+    for (const t of ["Handrail Replacement at City Hall", "Steel Stair Replacement, Water Plant", "Ornamental Iron Fence and Gates", "Dumpster Repair Services", "Tank Repair and Recoating", "Catwalk Repairs at WWTP", "Purchase and Installation of Handrails"]) {
+      expect({ t, strong: strong(t) }).toEqual({ t, strong: true });
+    }
+    for (const t of ["Structural Steel Purchase", "Purchase of Steel Gates", "Highway Guardrail Installation"]) {
+      expect({ t, strong: strong(t) }).toEqual({ t, strong: false });
+    }
+    expect(w.terms).not.toContain("metal");
+    expect(w.terms).not.toContain("guardrail");
   });
 });

@@ -34,6 +34,7 @@ import {
   type SignupSource,
 } from "~/lib/signup-source";
 import { FREE_ANONYMOUS_RADAR_RESULTS } from "~/lib/radar-config";
+import { embeddedAppName, IN_APP_GOOGLE_NOTE, isEmbeddedBrowser } from "~/lib/in-app-browser";
 import { getOrCreateVisitorId, getOrCreateVisitId } from "~/lib/visitor";
 import { setTrackingUser, getTrackingUser } from "~/lib/identity";
 import { persistPendingDraft } from "~/lib/pending-draft";
@@ -987,6 +988,14 @@ function SignupPage() {
   // link when the handshake can genuinely complete. When arriving from the
   // Save-to-Pipeline signup wall, the intent (save_bid / next / plan) is carried
   // through OAuth `state` so the callback can complete the save after creation.
+  // Owner 2026-11-03: Google refuses sign-in inside Facebook's (and other apps')
+  // in-app browsers, so there the Google button becomes a note (~/lib/in-app-browser).
+  const [inAppBrowser, setInAppBrowser] = useState<string | null>(null);
+  useEffect(() => {
+    if (typeof navigator !== "undefined" && isEmbeddedBrowser(navigator.userAgent)) {
+      setInAppBrowser(embeddedAppName(navigator.userAgent));
+    }
+  }, []);
   const googleAuthUrl = useMemo(() => {
     if (!baseGoogleAuthUrl) return null;
     const url = new URL(baseGoogleAuthUrl);
@@ -1301,7 +1310,11 @@ function SignupPage() {
               GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET present). Otherwise it
               renders disabled with an honest reason — never a live-looking link
               to a handshake that would fail server-side. */}
-          {googleAuthUrl ? (
+          {googleAuthUrl && inAppBrowser ? (
+            <p className="mt-5 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">
+              {IN_APP_GOOGLE_NOTE(inAppBrowser)}
+            </p>
+          ) : googleAuthUrl ? (
             <a
               href={googleAuthUrl}
               // Owner 2026-10-19: a Google tap leaves the page, so without this it

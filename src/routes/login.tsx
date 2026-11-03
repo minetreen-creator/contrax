@@ -1,5 +1,6 @@
 import { createFileRoute, useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { embeddedAppName, IN_APP_GOOGLE_NOTE, isEmbeddedBrowser } from "~/lib/in-app-browser";
 import { getCurrentUser } from "~/lib/auth";
 import { getOrCreateVisitorId } from "~/lib/visitor";
 import { getLinkedInAuthUrl } from "~/lib/linkedin-oauth";
@@ -85,6 +86,13 @@ function LoginRoute() {
 // ── Page Component ────────────────────────────────────────────────────────────
 
 function LoginPage({ linkedInAuthUrl, googleAuthUrl }: { linkedInAuthUrl: string | null; googleAuthUrl: string | null }) {
+  // Owner 2026-11-03: no Google button inside in-app browsers (Google refuses there).
+  const [inAppBrowser, setInAppBrowser] = useState<string | null>(null);
+  useEffect(() => {
+    if (typeof navigator !== "undefined" && isEmbeddedBrowser(navigator.userAgent)) {
+      setInAppBrowser(embeddedAppName(navigator.userAgent));
+    }
+  }, []);
   const navigate = useNavigate();
   const { searchStr } = useLocation();
 
@@ -154,7 +162,11 @@ function LoginPage({ linkedInAuthUrl, googleAuthUrl }: { linkedInAuthUrl: string
               GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET present). Otherwise it
               renders disabled with an honest reason, never a live-looking link
               to a broken handshake. */}
-          {googleAuthUrl ? (
+          {googleAuthUrl && inAppBrowser ? (
+            <p className="mt-8 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">
+              {IN_APP_GOOGLE_NOTE(inAppBrowser)}
+            </p>
+          ) : googleAuthUrl ? (
             <a
               href={googleAuthUrl}
               className="mt-8 flex w-full items-center justify-center gap-3 rounded-xl border border-gray-300 bg-white px-6 py-3 text-sm font-semibold text-gray-700 shadow-sm transition-all hover:bg-gray-50 hover:shadow-md active:scale-[0.98]"

@@ -170,8 +170,8 @@ export function jarvisPrompt(snapshot: JarvisSnapshot, stats: JarvisServerStats)
         .map(([k, w]) => `${k}: ${w}`)
         .join("; ") +
       ") and days 1-90 (default 7). Then \"say\" is one short line introducing the display (\"Here is your funnel for the week, sir.\"); the display shows the numbers.",
-    "Your ONLY abilities are: reading this data, the lookup tools, opening a visitor chat, opening an admin page, and showing a display. You cannot save notes, remember anything after this conversation, send emails or messages, contact anyone, or change the site. Never say you will do, note, log, flag or pass along something you can't; if he asks for that, say plainly you can't and suggest what he can do instead (for example, write it down or ask Claude to build it).",
-    "Use a chat action only when he asks to message, greet or say hi to a visitor; pick the vid of a visitor in ONLINE NOW (hottest first if he doesn't say which). Use an open action only when he asks to open, show or go to one of these pages: " +
+    "Your ONLY abilities are: reading this data, the lookup tools, opening a visitor's trail (what they looked at), opening an admin page, and showing a display. You cannot save notes, remember anything after this conversation, send emails or messages, contact anyone, or change the site. Never say you will do, note, log, flag or pass along something you can't; if he asks for that, say plainly you can't and suggest what he can do instead (for example, write it down or ask Claude to build it).",
+    "Use a chat action only when he asks to see or follow a visitor (it opens their trail; there is no live chat, so never offer to message or greet anyone); pick the vid of a visitor in ONLINE NOW (hottest first if he doesn't say which). Use an open action only when he asks to open, show or go to one of these pages: " +
       Object.entries(JARVIS_PAGES)
         .map(([p, w]) => `${p} (${w})`)
         .join(", ") +

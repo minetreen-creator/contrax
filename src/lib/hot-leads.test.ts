@@ -44,7 +44,7 @@ describe("lines", () => {
     expect(feedLine({ kind: "signup", place: "Richmond, VA", title: "New signup", detail: null })).toBe("New signup from Richmond, VA!");
     expect(feedLine({ kind: "purchase", place: null, title: "Starter", detail: null })).toBe("Sale! Starter.");
     expect(visitorLine(null, "/town/23834")).toBe("New visitor, on What's Your Town Buying.");
-    expect(hotLine("Austin, TX", "/pricing")).toBe("Hot lead in Austin, TX, on the pricing page. Now's a good time to say hi.");
+    expect(hotLine("Austin, TX", "/pricing")).toBe("Someone in Austin, TX is looking at the pricing page right now.");
   });
 });
 
@@ -81,14 +81,14 @@ describe("announcements", () => {
     ];
     const next = announcements(first.state, [search, sale], online);
     expect(next.lines.map((l) => l.tone)).toEqual(["money", "hot", "blip", "blip"]);
-    expect(next.lines[1].text).toContain("Hot lead in Austin, TX");
+    expect(next.lines[1].text).toContain("Someone in Austin, TX is looking at");
     expect(next.lines.some((l) => l.text.includes("New visitor, on Contract Radar"))).toBe(true);
     expect(announcements(next.state, [search, sale], online).lines).toEqual([]);
   });
   test("a visitor already here who turns hot is announced once", () => {
     const first = announcements(null, [], [{ vid: "a", place: null, path: "/radar" }]);
     const turned = announcements(first.state, [], [{ vid: "a", place: null, path: "/pricing", lead: hotLead }]);
-    expect(turned.lines).toEqual([{ text: "Hot lead, on the pricing page. Now's a good time to say hi.", tone: "hot", vid: "a" }]);
+    expect(turned.lines).toEqual([{ text: "Someone is looking at the pricing page right now.", tone: "hot", vid: "a" }]);
     expect(isRedAlert(turned.lines[0])).toBe(true);
     expect(isRedAlert({ text: "New visitor, on the homepage.", tone: "blip" })).toBe(false);
   });

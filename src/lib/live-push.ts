@@ -71,11 +71,13 @@ export function hotPushPage(path: string): boolean {
 /** Lock-screen text for a hot lead. Never an IP or email. */
 export function hotAlertText(v: { city: string | null; region: string | null; device: string | null; path: string; visitId: string }): AlertText {
   const place = [v.city, v.region].filter(Boolean).join(", ") || "Unknown location";
-  const device = v.device ? v.device.charAt(0).toUpperCase() + v.device.slice(1).toLowerCase() : "Device unknown";
+  const d = String(v.device ?? "").toLowerCase();
+  const on = d === "mobile" ? " on their phone" : d === "tablet" ? " on a tablet" : d === "desktop" ? " on a computer" : "";
   const page = v.path.split("?")[0].slice(0, 60) || "/";
+  // Owner 2026-11-03: the "say hi" chat is gone; plain words, not a status line.
   return {
     title: "🔥 Hot lead on Contrax",
-    body: `${place} · ${device} · now on ${page}. Open Mission Control to say hi.`,
+    body: `Someone in ${place} is looking at ${page}${on} right now.`,
     tag: `hot-${v.visitId}`.slice(0, 64),
   };
 }

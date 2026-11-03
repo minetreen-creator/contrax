@@ -1,0 +1,10 @@
+https://purchasing.houstontx.gov/robots.txt | 200 | final=https://www.houstontx.gov/bizwithhou/ | 37956 | text/html; charset=UTF-8
+https://www.houstontx.gov/robots.txt | 200 | final=https://www.houstontx.gov/ | 51915 | text/html; charset=UTF-8
+https://purchasing.houstontx.gov/bids.html | 200 | final=https://www.houstontx.gov/bizwithhou/ | 37956 | text/html; charset=UTF-8
+https://purchasing.houstontx.gov/ | 200 | final=https://www.houstontx.gov/bizwithhou/ | 37956 | text/html; charset=UTF-8
+https://www.houstontx.gov/obo/current_contracting_opportunities.html | 200 | final=https://www.houstontx.gov/obo/current_contracting_opportunities.html | 36231 | text/html; charset=UTF-8
+https://webapp1.sanantonio.gov/robots.txt | 404 | final=https://webapp1.sanantonio.gov/robots.txt | 1245 | text/html
+https://www.sa.gov/robots.txt | 200 | final=https://www.sa.gov/robots.txt | 358650 | text/plain; charset=utf-8
+https://webapp1.sanantonio.gov/BidContractOpps/Default.aspx | 200 | final=https://webapp1.sanantonio.gov/BidContractOpps/Default.aspx | 73588 | text/html; charset=utf-8
+https://webapp1.sanantonio.gov/BidContractOpps/ | 200 | final=https://webapp1.sanantonio.gov/BidContractOpps/ | 73576 | text/html; charset=utf-8
+https://www.sa.gov/Directory/Departments/Finance/About/Divisions/Procurement/Bidding-Contracting | 200 | final=https://www.sa.gov/Directory/Departments/Finance/About/Divisions/Procurement/Bidding-Contracting | 114088 | text/html; charset=utf-8

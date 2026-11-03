@@ -1,0 +1,1012 @@
+<!DOCTYPE HTML>
+<!--[if lt IE 7]> <html class="ie6 oldie"> <![endif]-->
+<!--[if IE 7]>    <html class="ie7 oldie"> <![endif]-->
+<!--[if IE 8]>    <html class="ie8 oldie"> <![endif]-->
+<!--[if gt IE 8]><!--> <html lang="en">
+<head>
+	<script src="https://cdn.userway.org/widget.js" data-account="DeLFre8ZtR"></script>
+<title>City of Houston eGovernment Center</title>
+
+         <!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-5LKV4C');</script>
+         <!-- End Google Tag Manager -->
+	
+<meta name="keywords" content="egovernment, city government, mayor, mayor's office, communications, city council, media, municipal government, press, news releases, press releases">
+<meta name="description" content="The City of Houston eGovernment Center works to advance the priorities and accomplishments of the mayor's administration and promote transparent, timely, and accurate information to the media and public to help them better understand their municipal government.">
+<meta name="author" content="City of Houston Information Technology Services">
+	
+<meta name="google-translate-customization" content="4fd5623d4815ebed-85eb79efd904ef3b-g1d18c5a41208be6d-17">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<!--[if lte IE 8]><script src="https://houstontx.gov/_siteAssets/js/ie/html5shiv.js"></script><![endif]-->
+<link rel="stylesheet" href="_siteAssets/css/main.css" />
+<link rel="stylesheet" href="_siteAssets/css/styles.css" />
+<!--[if lte IE 8]><link rel="stylesheet" href="https://houstontx.gov/_siteAssets/css/ie8.css" /><![endif]-->
+<!--[if lte IE 9]><link rel="stylesheet" href="https://houstontx.gov/_siteAssets/css/ie9.css" /><![endif]-->
+	
+	
+	
+	<!--Bootstrap 4-->
+    <link rel="stylesheet" href="2023upgrade/assets/bootstrap/4.6.1/css/bootstrap.min.css" />
+
+		
+		<!-- BEGIN Light or Dark Theme-->
+    <link class="light" rel="stylesheet" href="2023upgrade/css/2023-light.css" media="(prefers-color-scheme: no-preference), (prefers-color-scheme: light)" />
+    <link class="dark" rel="stylesheet" href="2023upgrade/css/2023-dark.css" media="(prefers-color-scheme: dark)"/>
+	
+	<!-- END Light or Dark Theme-->
+	
+	
+<!-- Font Awesome Pro, December 2023)-->
+<script src="https://kit.fontawesome.com/ae714e4324.js" crossorigin="anonymous"></script>	
+<a href="#mainskip" class="skip" aria-label="Skip to main content">Skip to main content</a>
+
+	<link rel="stylesheet" href="carousel.css" />
+	
+	<style>
+
+  /* Make the image fully responsive */
+  .carousel-inner img {
+    width: 100%;
+    height: 100%;
+  }
+		
+		 /* General focus style for all focusable elements */
+        :focus {
+            outline: 3px solid #005fcc; /* High contrast color for visibility */
+            outline-offset: 2px; /* Space between the element and the outline */
+        }
+
+        /* Specific focus style for carousel controls */
+        .carousel-control-next:focus {
+            outline: 3px solid #ffcc00; /* Different color for carousel controls */
+            outline-offset: 2px;
+        }
+	
+		
+		 /* Style for focus outline */
+        .carousel-control-prev:focus {
+            outline: 3px solid #005fcc; /* High contrast color for better visibility */
+            outline-offset: 2px; /* Space between the outline and the element */
+        }
+
+        /* Additional styling for carousel control */
+        .carousel-control-prev {
+            display: inline-block;
+            padding: 10px;
+            background-color: rgba(0, 0, 0, 0.5);
+            border-radius: 50%;
+            text-decoration: none;
+        }
+
+        .carousel-control-prev-icon {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            background-color: white;
+            mask: url('prev-icon.svg') no-repeat center;
+            mask-size: contain;
+        }
+
+		
+		
+	    hr.gradient {
+    border: 0;
+    height: 1px;
+    background-image: linear-gradient(to right, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0));
+}
+		
+		.skip {
+  position: absolute;
+  left: -10000px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+		
+		.skip:focus {
+  position: static;
+  width: auto;
+  height: auto;
+}
+	</style>
+	
+	
+<script>NS_CSM_td=457570137;NS_CSM_pd=275116666;NS_CSM_u="/clm10";NS_CSM_col="AAAAAAUZbUZOiGYQKkvkf4E3GkPCAGD+vN3nDvWDNc1RdoxB6XbDJtVrPNc7LF+Dfw1WWXowxoK1a8x6GBT31IoYmbbQ";</script><script type="text/javascript">function sendTimingInfoInit(){setTimeout(sendTimingInfo,0)}function sendTimingInfo(){var wp=window.performance;if(wp){var c1,c2,t;c1=wp.timing;if(c1){var cm={};cm.ns=c1.navigationStart;if((t=c1.unloadEventStart)>0)cm.us=t;if((t=c1.unloadEventEnd)>0)cm.ue=t;if((t=c1.redirectStart)>0)cm.rs=t;if((t=c1.redirectEnd)>0)cm.re=t;cm.fs=c1.fetchStart;cm.dls=c1.domainLookupStart;cm.dle=c1.domainLookupEnd;cm.cs=c1.connectStart;cm.ce=c1.connectEnd;if((t=c1.secureConnectionStart)>0)cm.scs=t;cm.rqs=c1.requestStart;cm.rss=c1.responseStart;cm.rse=c1.responseEnd;cm.dl=c1.domLoading;cm.di=c1.domInteractive;cm.dcls=c1.domContentLoadedEventStart;cm.dcle=c1.domContentLoadedEventEnd;cm.dc=c1.domComplete;if((t=c1.loadEventStart)>0)cm.ls=t;if((t=c1.loadEventEnd)>0)cm.le=t;cm.tid=NS_CSM_td;cm.pid=NS_CSM_pd;cm.ac=NS_CSM_col;var xhttp=new XMLHttpRequest();if(xhttp){var JSON=JSON||{};JSON.stringify=JSON.stringify||function(ob){var t=typeof(ob);if(t!="object"||ob===null){if(t=="string")ob='"'+ob+'"';return String(ob);}else{var n,v,json=[],arr=(ob&&ob.constructor==Array);for(n in ob){v=ob[n];t=typeof(v);if(t=="string")v='"'+v+'"';else if(t=="object"&&v!==null)v=JSON.stringify(v);json.push((arr?"":'"'+n+'":')+String(v));}return(arr?"[":"{")+String(json)+(arr?"]":"}");}};xhttp.open("POST",NS_CSM_u,true);xhttp.send(JSON.stringify(cm));}}}}if(window.addEventListener)window.addEventListener("load",sendTimingInfoInit,false);else if(window.attachEvent)window.attachEvent("onload",sendTimingInfoInit);else window.onload=sendTimingInfoInit;</script><script>NS_CSM_td=275013090;NS_CSM_pd=275116666;NS_CSM_u="/clm10";NS_CSM_col="AAAAAAVeqq1lHukk1KSvcy2lXLVfoB6p1V9XSxMRwhnz2TBVXkPC251/3HIo0mbHZvpVBvIgqQ0qpD+Ty+CFGzhR1Bdx";</script><script type="text/javascript">function sendTimingInfoInit(){setTimeout(sendTimingInfo,0)}function sendTimingInfo(){var wp=window.performance;if(wp){var c1,c2,t;c1=wp.timing;if(c1){var cm={};cm.ns=c1.navigationStart;if((t=c1.unloadEventStart)>0)cm.us=t;if((t=c1.unloadEventEnd)>0)cm.ue=t;if((t=c1.redirectStart)>0)cm.rs=t;if((t=c1.redirectEnd)>0)cm.re=t;cm.fs=c1.fetchStart;cm.dls=c1.domainLookupStart;cm.dle=c1.domainLookupEnd;cm.cs=c1.connectStart;cm.ce=c1.connectEnd;if((t=c1.secureConnectionStart)>0)cm.scs=t;cm.rqs=c1.requestStart;cm.rss=c1.responseStart;cm.rse=c1.responseEnd;cm.dl=c1.domLoading;cm.di=c1.domInteractive;cm.dcls=c1.domContentLoadedEventStart;cm.dcle=c1.domContentLoadedEventEnd;cm.dc=c1.domComplete;if((t=c1.loadEventStart)>0)cm.ls=t;if((t=c1.loadEventEnd)>0)cm.le=t;cm.tid=NS_CSM_td;cm.pid=NS_CSM_pd;cm.ac=NS_CSM_col;var xhttp=new XMLHttpRequest();if(xhttp){var JSON=JSON||{};JSON.stringify=JSON.stringify||function(ob){var t=typeof(ob);if(t!="object"||ob===null){if(t=="string")ob='"'+ob+'"';return String(ob);}else{var n,v,json=[],arr=(ob&&ob.constructor==Array);for(n in ob){v=ob[n];t=typeof(v);if(t=="string")v='"'+v+'"';else if(t=="object"&&v!==null)v=JSON.stringify(v);json.push((arr?"":'"'+n+'":')+String(v));}return(arr?"[":"{")+String(json)+(arr?"]":"}");}};xhttp.open("POST",NS_CSM_u,true);xhttp.send(JSON.stringify(cm));}}}}if(window.addEventListener)window.addEventListener("load",sendTimingInfoInit,false);else if(window.attachEvent)window.attachEvent("onload",sendTimingInfoInit);else window.onload=sendTimingInfoInit;</script><script>NS_CSM_td=308289619;NS_CSM_pd=275116664;NS_CSM_u="/clm10";NS_CSM_col="AAAAAAVrHGMjcww9oR1Qs+8XLYG0innIxL2PFGkjWoBuAOBUqNAY92OBB/64KdR6joxMRyJbD2gLuFJl1qQmXxduEpBR";</script><script type="text/javascript">function sendTimingInfoInit(){setTimeout(sendTimingInfo,0)}function sendTimingInfo(){var wp=window.performance;if(wp){var c1,c2,t;c1=wp.timing;if(c1){var cm={};cm.ns=c1.navigationStart;if((t=c1.unloadEventStart)>0)cm.us=t;if((t=c1.unloadEventEnd)>0)cm.ue=t;if((t=c1.redirectStart)>0)cm.rs=t;if((t=c1.redirectEnd)>0)cm.re=t;cm.fs=c1.fetchStart;cm.dls=c1.domainLookupStart;cm.dle=c1.domainLookupEnd;cm.cs=c1.connectStart;cm.ce=c1.connectEnd;if((t=c1.secureConnectionStart)>0)cm.scs=t;cm.rqs=c1.requestStart;cm.rss=c1.responseStart;cm.rse=c1.responseEnd;cm.dl=c1.domLoading;cm.di=c1.domInteractive;cm.dcls=c1.domContentLoadedEventStart;cm.dcle=c1.domContentLoadedEventEnd;cm.dc=c1.domComplete;if((t=c1.loadEventStart)>0)cm.ls=t;if((t=c1.loadEventEnd)>0)cm.le=t;cm.tid=NS_CSM_td;cm.pid=NS_CSM_pd;cm.ac=NS_CSM_col;var xhttp=new XMLHttpRequest();if(xhttp){var JSON=JSON||{};JSON.stringify=JSON.stringify||function(ob){var t=typeof(ob);if(t!="object"||ob===null){if(t=="string")ob='"'+ob+'"';return String(ob);}else{var n,v,json=[],arr=(ob&&ob.constructor==Array);for(n in ob){v=ob[n];t=typeof(v);if(t=="string")v='"'+v+'"';else if(t=="object"&&v!==null)v=JSON.stringify(v);json.push((arr?"":'"'+n+'":')+String(v));}return(arr?"[":"{")+String(json)+(arr?"]":"}");}};xhttp.open("POST",NS_CSM_u,true);xhttp.send(JSON.stringify(cm));}}}}if(window.addEventListener)window.addEventListener("load",sendTimingInfoInit,false);else if(window.attachEvent)window.attachEvent("onload",sendTimingInfoInit);else window.onload=sendTimingInfoInit;</script></head>
+<body class="">
+<!-- Default Statcounter code for Houstontx.gov
+http://houstontx.gov -->
+<script type="text/javascript">
+var sc_project=10815403;
+var sc_invisible=1;
+var sc_security="248838d7";
+</script>
+<script type="text/javascript"
+src="https://www.statcounter.com/counter/counter.js"
+async></script>
+<noscript><div class="statcounter"><a title="Statcounter Web Analytics"
+href="https://statcounter.com/" target="_blank"><img
+class="statcounter"
+src="https://c.statcounter.com/10815403/0/248838d7/1/"
+alt="Web Analytics"
+referrerPolicy="no-referrer-when-downgrade"></a></div></noscript>
+<!-- End of Statcounter Code -->
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-5LKV4C" title="Google Analytics" 
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
+
+  <!-- BEGIN Google Translate Bar -->
+		<div class="topBar">
+			<div class="container"> 
+				<div class="googleTranslate">
+					<div id="google_translate_element"></div>
+					<script type="text/javascript">
+						function googleTranslateElementInit() {
+							new google.translate.TranslateElement({pageLanguage: 'en', layout: google.translate.TranslateElement.InlineLayout.SIMPLE}, 'google_translate_element');
+						}
+					</script>
+					<script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+				</div>
+			</div>
+			<br class="clear" />
+		</div>
+		<!-- END Google Translate Bar -->
+  
+ <!-- BEGIN Desktop Dropdown Info -->
+
+<div id="header">
+			<div class="container"> 
+
+				<nav id="mainNav" class="navbar navbar-expand-sm navbar-fixed-top">
+					<div class="container-fluid">
+						<div class="leftMain navbar-collapse collapse nav-content order-2 justify-content-center border-top border-bottom border-secondary w-50">
+							<ul class="nav navbar-nav">
+								<li class="nav-item dropdown">
+									<a class="nav-link dropdown-toggle" href="#" role="button" id="dropResident" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">RESIDENTS</a>
+									<div class="dropdown-menu" aria-labelledby="dropResident">
+										<a class="dropdown-item" href="https://houstontx.gov/311" aria-label="3-1-1">311</a>
+										<a class="dropdown-item" href="https://www.houstontx.gov/barc" aria-label="Animal Adoptions">Animal Adoptions</a>
+										<a class="dropdown-item" href="https://www.houstontx.gov/solidwaste/service_schedules.html" aria-label="Trash and Recycling Service Schedules">Trash / Recycling</a>
+										<a class="dropdown-item" href="https://www.houstontx.gov/health" aria-label="Health Department">Health Department</a>
+										<a class="dropdown-item" href="https://www.houstontx.gov/housing" aria-label="Housing Department">Housing</a>
+										<a class="dropdown-item" href="https://www.houstontx.gov/parks" aria-label="Parks and Recreation Department">Parks and Recreation</a>
+										<a class="dropdown-item" href="https://data.houstontx.gov/" aria-label="Open Data">Open Data</a>
+										<a class="dropdown-item" href="https://www.houstontx.gov/controller/audit/fraud.html" aria-label="Report Fraud and Waste">Report Fraud / Waste</a>
+										<a class="dropdown-item" href="https://www.houstontx.gov/residents/" aria-label="Residents">View More Residents ...</a>
+									</div>
+								</li>
+								<li class="nav-item dropdown">
+									<a class="nav-link dropdown-toggle" href="#" role="button" id="dropBusiness" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">BUSINESS</a>
+									<div class="dropdown-menu" aria-labelledby="dropBusiness">
+										<a class="dropdown-item" href="https://www.houstontx.gov/ecodev/" aria-label="Economic Development Division">Economic Development</a>
+										<a class="dropdown-item" href="https://www.houstonpermittingcenter.org/" aria-label="Houston Permitting Center">Permits / Building Codes</a>
+										<a class="dropdown-item" href="https://www.houstontx.gov/bizwithhou/" aria-label="Purchasing Division">Purchasing Division</a>
+										<a class="dropdown-item" href="https://www.houstontx.gov/obo" aria-label="Office of Business Opportunity">Business Opportunity</a>
+										<a class="dropdown-item" href="https://www.houstontx.gov/business/" aria-label="Business">View More Business ...</a>
+									</div>
+								</li>
+								<li class="nav-item dropdown">
+									<a class="nav-link dropdown-toggle" href="#" role="button" id="dropVisitor" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">VISITORS</a>
+									<div class="dropdown-menu" aria-labelledby="dropVisitor">
+										<a class="dropdown-item" href="https://www.houstontx.gov/abouthouston" aria-label="About Houston">About Houston</a>
+										<a class="dropdown-item" href="https://www.houstontx.gov/events" aria-label="Calendar of Events">Calendar of Events</a>
+										<a class="dropdown-item" href="https://www.houstontx.gov/culturalaffairs" aria-label="Cultural Affairs">Cultural Affairs</a>
+										<a class="dropdown-item" href="https://www.houstontx.gov/specialevents" aria-label="Mayor's Office of Special Events">Special Events Office</a>
+										<a class="dropdown-item" href="https://www.visithoustontexas.com" aria-label="Visitors and Tourism Website">Visitors / Tourism</a>
+										<a class="dropdown-item" href="https://www.houstontx.gov/visitors" aria-label="Visitors">View More Visitors ...</a>
+									</div>
+								</li>
+							</ul>
+						</div>
+						<ul class="nav navbar-light text-nowrap mx-auto order-2 order-xs-2">
+							<li class="navbar-brand">
+								<a href="https://houstontx.gov/index.html" aria-label="City of Houston">
+									<img src="./_siteAssets/images/citySeal125x125.png" width="125" height="125" alt="City of Houston Seal"/>
+								</a>
+							</li>
+							<button class="navbar-toggler ml-2" type="button" data-toggle="collapse" data-target="#navMobile" aria-controls="navMobile" aria-expanded="false" aria-label="Toggle navigation">
+								<span class="navbar-toggler-icon"></span>
+							</button>
+						</ul>
+						<div class="rightMain navbar-collapse collapse nav-content order-3 justify-content-center border-top border-bottom border-secondary w-50">
+							<ul class="nav navbar-nav">
+								<li class="nav-item dropdown">
+									<a class="nav-link dropdown-toggle" href="#" role="button" id="dropGovernmet" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">GOVERNMENT</a>
+									<div class="dropdown-menu" aria-labelledby="dropGovernmet">
+										<a class="dropdown-item" href="https://www.houstontx.gov/mayor/" aria-label="Mayor's Office">Office of the Mayor</a>
+										<div class="dropdown-divider"></div>
+										<a class="dropdown-item" href="https://www.houstontx.gov/mayor/divisionsanddirectors.html" aria-label="Mayor's Divisions and Directors">- Mayor's Divisions</a>
+										<div class="dropdown-divider"></div>
+										<a class="dropdown-item" href="https://www.houstontx.gov/controller" aria-label="City Controller">City Controller</a>
+										<a class="dropdown-item" href="https://www.houstontx.gov/council" aria-label="City Council">City Council</a>
+										<a class="dropdown-item" href="https://www.houstontx.gov/departments.html" aria-label="Departments and Directors">Departments</a>
+										<a class="dropdown-item" href="https://www.houstontx.gov/citysec/agenda.html" aria-label="City Council Agenda">Agenda of City Council</a>
+										<a class="dropdown-item" href="https://www.houstontx.gov/boards" aria-label="Boards and Commissions">Boards / Commissions</a>
+										<a class="dropdown-item" href="https://www.houstontx.gov/codes" aria-label="Code of Ordinances">Code of Ordinances</a>
+										<a class="dropdown-item" href="https://www.houstontx.gov/govt" aria-label="Government">View More Govt ...</a>
+									</div>
+								</li>
+								<li class="nav-item dropdown">
+									<a class="nav-link dropdown-toggle" href="#" role="button" id="dropServices" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">SERVICES</a>
+									<div class="dropdown-menu" aria-labelledby="dropServices">
+										<a class="dropdown-item" href="https://houstontx.gov/311" aria-label="3-1-1">311</a>
+									<div class="dropdown-divider"></div>
+										<a class="dropdown-item" href="https://houston311.powerappsportals.us/en-US/" target="_blank" aria-label="Submit a 3-1-1 Request (opens in a new window)">- Submit a 311 Request</a>
+										<a class="dropdown-item" href="https://houston311.powerappsportals.us/en-US/checkcasestatus/" target="_blank" aria-label="Check 3-1-1 Case Status (opens in a new window)">- Check 311 Case Status</a>
+										<div class="dropdown-divider"></div>
+										<a class="dropdown-item" href="https://www.houstontx.gov/parking/paycitation.html" aria-label="Pay a Parking Citation">Parking Citation</a>
+										<a class="dropdown-item" href="https://www.houstontx.gov/redirect/ticketpay.html" aria-label="Pay a Traffic Ticket">Pay a Traffic Ticket</a>
+										<a class="dropdown-item" href="https://www.houstontx.gov/redirect/waterbills.html" aria-label="Water Bills">Water Bills</a>
+										<a class="dropdown-item" href="https://www.houstontx.gov/services" aria-label="Services">View More Services ...</a>
+									</div>
+								</li>
+								<li class="nav-item dropdown">
+									<a class="nav-link" href="https://www.houstontx.gov/contactus/index.html" aria-label="CONTACT / SEARCH">CONTACT / SEARCH</a>
+								</li>
+							</ul>
+						</div>
+					</div>
+				</nav>
+
+<!-- END Desktop Dropdown Info -->
+			<!-- BEGIN Mobile Navigation -->
+				<div class="container-fluid">
+					<div id="navMobile" class="collapse navbar-collapse border-top border-bottom border-secondary">
+						<nav class="nav flex-column d-sm-flex align-items-center navbar-light">
+						
+							<ul>
+							<li class="nav-item">
+								<a href="https://houstontx.gov" aria-label="City of Houston">Home</a>
+							</li>
+							<li class="navbar-text">
+								<p>RESIDENTS</p>
+							</li>
+							<li class="nav-item">
+								<a href="https://houstontx.gov/311" aria-label="3-1-1">311</a>
+							</li>
+							<li class="nav-item">
+								<a href="https://www.houstontx.gov/barc" aria-label="Animal Adoptions">Animal Adoptions</a>
+							</li>
+							<li class="nav-item">
+								<a href="https://www.houstontx.gov/solidwaste/service_schedules.html" aria-label="Trash and Recycling Service Schedules">Trash / Recycling</a>
+							</li>
+							<li class="nav-item">
+								<a href="https://www.houstontx.gov/health" aria-label="Health Department">Health Department</a>
+							</li>
+							<li class="nav-item">
+								<a href="https://www.houstontx.gov/housing" aria-label="Housing Department">Housing</a>
+							</li>
+							<li class="nav-item">
+								<a href="https://www.houstontx.gov/parks" aria-label="Parks and Recreation Department">Parks and Recreation</a>
+							</li>
+							<li class="nav-item">
+								<a href="https://data.houstontx.gov/" aria-label="Open Data">Open Data</a>
+							</li>
+							<li class="nav-item">
+								<a href="https://www.houstontx.gov/controller/audit/fraud.html" aria-label="Report Fraud and Waste">Report Fraud / Waste</a>
+							</li>
+							<li class="nav-item">
+								<a href="https://www.houstontx.gov/residents/" aria-label="Residents">View More Residents ...</a>
+							</li>
+							<li class="navbar-text">
+								<p><strong>BUSINESS</strong></p>
+							</li>
+							<li class="nav-item">
+								<a href="https://www.houstontx.gov/ecodev/" aria-label="Economic Development Division">Economic Development</a>
+							</li>
+							<li class="nav-item">
+								<a href="https://www.houstonpermittingcenter.org/" aria-label="Houston Permitting Center">Permits / Building Codes</a>
+							</li>
+							<li class="nav-item">
+								<a href="https://www.houstontx.gov/bizwithhou" aria-label="Purchasing Division">Purchasing Division</a>
+							</li>
+							<li class="nav-item">
+								<a href="https://www.houstontx.gov/obo" aria-label="Office of Business Opportunity">Business Opportunity</a>
+							</li>
+							<li class="nav-item">
+								<a href="https://www.houstontx.gov/business/" aria-label="Business">View More Business ...</a>
+							</li>
+							<li class="navbar-text">
+								<p><strong>VISITORS</strong></p>
+							</li>
+							<li class="nav-item">
+								<a href="https://www.houstontx.gov/abouthouston" aria-label="About Houston">About Houston</a>
+							</li>
+							<li class="nav-item">
+								<a href="https://www.houstontx.gov/events" aria-label="Calendar of Events">Calendar of Events</a>
+							</li>
+							<li class="nav-item">
+								<a href="https://www.houstontx.gov/arts" aria-label="Office of the Arts">Office of the Arts</a>
+							</li>
+							<li class="nav-item">
+								<a href="https://www.houstontx.gov/specialevents" aria-label="Mayor's Office of Special Events">Special Events Office</a>
+							</li>
+							<li class="nav-item">
+								<a href="https://www.visithoustontexas.com" aria-label="Visitors and Tourism Website">Visitors / Tourism</a>
+							</li>
+							<li class="nav-item">
+								<a href="https://www.houstontx.gov/visitors" aria-label="Visitors">View More Visitors ...</a>
+							</li>
+							<li class="navbar-text">
+								<p><strong>GOVERNMENT</strong></p>
+							</li>
+							<li class="nav-item">
+								<a href="https://www.houstontx.gov/mayor/" aria-label="Mayor's Office">Office of the Mayor</a>
+							</li>
+							<li class="nav-item">
+								<a href="https://www.houstontx.gov/mayor/divisionsanddirectors.html" aria-label="Mayor's Divisions and Directors"> Mayor's Divisions</a>
+							</li>
+							<li class="nav-item">
+								<a href="https://www.houstontx.gov/myrscheduling/index.html" aria-label="Schedule a Meeting with the Mayor"> Scheduling</a>
+							</li>
+							<li class="nav-item">
+								<a href="https://www.houstontx.gov/controller" aria-label="City Controller">City Controller</a>
+							</li>
+							<li class="nav-item">
+								<a href="https://www.houstontx.gov/council" aria-label="City Council">City Council</a>
+							</li>
+							<li class="nav-item">
+								<a href="https://www.houstontx.gov/departments.html" aria-label="Departments and Directors">Departments</a>
+							</li>
+							<li class="nav-item">
+								<a href="https://www.houstontx.gov/citysec/agenda.html" aria-label="City Council Agenda">Agenda of City Council</a>
+							</li>
+							<li class="nav-item">
+								<a href="https://www.houstontx.gov/boards" aria-label="Boards and Commissions">Boards / Commissions</a>
+							</li>
+							<li class="nav-item">
+								<a href="https://www.houstontx.gov/codes" aria-label="Code of Ordinances">Code of Ordinances</a>
+							</li>  
+							<li class="nav-item">
+								<a href="https://www.houstontx.gov/obo/title-vi.html" aria-label="Title VI Information">Title VI Information</a>
+							</li>
+							<li class="nav-item">
+								<a href="https://www.houstontx.gov/govt" aria-label="Government">View More Govt ...</a>
+							</li>
+							<li class="navbar-text">
+								<p><strong>SERVICES</strong></p>
+							</li>
+							<li class="nav-item">
+								<a href="https://houstontx.gov/311" aria-label="3-1-1">311</a>
+							</li>
+						<!--	<li class="nav-item">
+								<a href="https://houston311.powerappsportals.us/en-US/" target="_blank" aria-label="Submit a 3-1-1 Request (opens in a new window)">Submit a 311 Request</a>
+							</li>
+							<li class="nav-item">
+								<a href="https://houston311.powerappsportals.us/en-US/checkcasestatus/" target="_blank" aria-label="Check 3-1-1 Case Status (opens in a new window)">- Check 311 Case Status</a>
+							</li> -->
+							<li class="nav-item">
+								<a href="https://www.houstontx.gov/parking/paycitation.html" aria-label="Pay a Parking Citation">Parking Citation</a>
+							</li>
+							<li class="nav-item">
+								<a href="https://www.houstontx.gov/redirect/ticketpay.html" aria-label="Pay a Traffic Ticket">Pay a Traffic Ticket</a>
+							</li>
+							<li class="nav-item">
+								<a href="https://www.houstontx.gov/redirect/waterbills.html" aria-label="Water Bills">Water Bills</a>
+							</li>
+							<li class="nav-item">
+								<a href="https://www.houstontx.gov/services" aria-label="Services">View More Services ...</a>
+							</li>
+							<li class="nav-item">
+								<a href="https://www.houstontx.gov/contactus/index.html" aria-label="CONTACT / SEARCH">CONTACT / SEARCH</a>
+							</li>
+							</ul>
+						</nav>
+					</div>
+					<!-- END Mobile Navigation -->
+				</div>
+
+			</div><!-- end container --> 
+		</div>
+		<!-- end header --> 
+	
+	<!-- END Desktop and Mobile Dropdown info -->
+	
+	
+				
+	
+<!-- BEGIN 100% Across Section  -->
+				<section>
+					<div class="row mt-5">
+						<div class="col-12">
+						<!--	<p align="center" style="background-color: #B30000" overflow:="overflow:" auto="auto"><font color="#FFFFFF">For cold weather and warming center updates, go to <a href="https://houstonoem.org/" target="_blank"><font color="white"><u><em>houstonoem.org</em></u></font></a> and <a href="https://houstonoem.org/winterweather/" target="_blank"><font color="white"><u><em>houstonoem.org/winterweather</em></u></font></a>.</font></p>
+							
+							<p align="center"><em><a href="moc/2026/city-services-normal-tuesday.html" aria-label="City Services Return to Normal Hours on Tuesday">City Services Return to Normal Hours on Tuesday</a></em></p>
+							<p align="center"><a href="solidwaste/press-01262026.html" aria-label="Solid Waste Resumes Collection Services on TUE">Solid Waste Resumes Collection Services on TUE</a> &nbsp; | &nbsp; <a href="courts/20260123.html" aria-label="Municipal Courts Reopen Tuesday">Municipal Courts Reopen Tuesday</a> &nbsp; | &nbsp; <a href="pia.html" aria-label="TPIA Catastrophy Notice">TPIA Catastrophe Notice</a></p> -->
+		
+						
+						</div>
+					</div>
+					
+					
+				</section>
+				
+		<!-- 	 END 100% Across Section -->
+	
+
+  
+  <!-- BEGIN Banner --> 
+  <div id="banner" style="background-image: url(_siteAssets/images/rosemont-day.jpg);" alt="City of Houston Skyline during daytime">
+    <div class="container">
+      <header>
+        <h1>Welcome to Houston</h1>
+		 
+      </header>
+       <!-- begin SEARCH BAR -->
+      <div id="searchBar"  style="padding:0px"> 
+     <script>
+  (function() {
+    var cx = '007462047559130269396:kh5jk-orvlw';
+    var gcse = document.createElement('script');
+    gcse.type = 'text/javascript';
+    gcse.async = true;
+    gcse.src = 'https://cse.google.com/cse.js?cx=' + cx;
+    var s = document.getElementsByTagName('script')[0];
+    s.parentNode.insertBefore(gcse, s);
+  })();
+</script>
+<gcse:search></gcse:search> 
+      </div><!-- endsearchBar -->
+    </div><!-- end container --> 
+  </div><!-- END Banner  --> 
+  
+	
+	<!-- <div id="alertBar" class="bg-city-gray-red text-white"> -->
+		
+		
+
+		<div id="main">
+			
+			<div class="container mainContent">
+			<!-- BEGIN Main Content Area -->
+				
+
+				
+
+				
+				<!-- BEGIN 66/33 Section -->
+				<section>
+					<div class="row mt-5">
+						
+						
+						<div class="col-md-4">
+						
+							<section class="sidebarMainLinks">
+								<article id="mainskip"></article>
+<header>
+<h2>Popular City Pages</h2>
+</header>
+ <ul>
+	 
+	<li><a href="hr/careers.html" aria-label="Apply for a City Job">Apply for a City Job</a></li>
+	<li><a href="/redirect/waterbills.html" aria-label="Pay Your Water Bill">Pay Your Water Bill</a></li>
+	<li><a href="/barc/adopt_a_pet.html" aria-label="Adopt a Pet from BARC">Adopt a Pet from BARC</a></li>
+	<li><a href="/solidwaste/index.html" aria-label="Check Your Trash and Recycling Schedule">Check Your Trash and Recycling Schedule</a></li>
+	<li><a href="/courts/paying-your-fine-online.html" aria-label="Pay a Traffic Ticket">Pay a Traffic Ticket</a></li>
+    <li><a href="/council/whoismycm.html" aria-label="Find Your City Council Member">Find Your City Council Member</a></li>
+	<li><a href="/311" aria-label="Submit a 311 Service Request">Submit a 311 Service Request</a></li>
+	<li><a href="/2026-tax-rate-information.html" aria-label="2026 Tax Rate Information">2026 Tax Rate Information</a></li>
+	<li><a href="/2026-coh-charter-amendment-election.html" aria-label="2026 Charter Amendment Election Information">2026 Charter Amendment Election Information</a></li>
+	<li><a href="election/2027/general-info.html" aria-label="Nov. 2, 2027 General Election Candidate Information">Nov. 2, 2027 General Election Candidate Information</a></li>
+	 <!-- <li><a href="budgetproposal/index.html" aria-label="FY2027 Budget Proposal">FY2027 Budget Proposal</a></li> -->
+     <!-- <li><a href="solidwaste/press-04302026.html" aria-label="Memorial Day Holiday Week Trash Collection Schedule">Memorial Day Holiday Week Trash Collection Schedule</a></li> -->
+	 <!-- <li><a href="moc/index.html" aria-label="Mayor's Office of Communications">Mayor's Office of Communications</a></li> -->
+	 <!-- <li><a href="ara/str.html" aria-label="Short Term Rentals Info">Short Term Rentals Info</a></li> -->
+	 <!-- <li><a href="ara/vfh/pedicabs-ordinance.html" aria-label="Pedicabs Ordinance Comments and Survey">Pedicabs Ordinance Comments and Survey</a></li> -->
+				
+	              </ul>
+			</section>
+			
+										
+						</div>
+						
+						
+						<div class="col-md-8">
+						 <br>
+
+							
+							 <!-- begin CAROUSEL -->
+        
+ 
+
+        <!-- begin Carousel-->
+           <div id="demo" class="carousel slide" data-ride="carousel">
+  <ul class="carousel-indicators">
+    <li data-target="#demo" data-slide-to="0" class="active"></li>
+    <li data-target="#demo" data-slide-to="1"></li>
+    <li data-target="#demo" data-slide-to="2"></li>
+	  <li data-target="#demo" data-slide-to="3"></li>
+	  <li data-target="#demo" data-slide-to="4"></li>
+	  <li data-target="#demo" data-slide-to="5"></li>
+	  <li data-target="#demo" data-slide-to="6"></li>
+	  <li data-target="#demo" data-slide-to="7"></li>
+	 
+	  
+ </ul>
+ 
+			   <div class="carousel-inner">
+
+
+				   <!-- First Match On Us - Mayor / Dynamo / Dash ticket giveaway, added 2026-07-23 -->
+				   <div class="carousel-item active">
+            <a href="mayor/first-match-on-us.html" aria-label="First Match On Us - free tickets for first-time fans"><img src="700x350/first-match-on-us.jpg" alt="First Match On Us - free tickets for first-time fans"></a>
+            <div class="carousel-caption">
+               <a href="mayor/first-match-on-us.html" aria-label="First Match On Us - free tickets for first-time fans"> <p>First Match On Us</p>
+               </a>
+            </div>
+         </div>
+
+
+				   
+				   <div class="carousel-item">
+            <a href="moc/2026/state-of-the-city-is-strong.html" aria-label="The State of The City is Strong"><img src="700x350/sotc-2026.jpg" alt="The State of The City is Strong"></a>
+            <div class="carousel-caption">
+               <a href="moc/2026/state-of-the-city-is-strong.html" aria-label="The State of The City is Strong"> <p>The State of the City is Strong</p>
+               </a>
+            </div>
+         </div>
+	  
+	 
+				   
+	<!--			    <div class="carousel-item">
+            <a href="july4/index.html" aria-label="Freedom Over Texas"><img src="700x350/july4.jpg" alt="Freedom Over Texas"></a>
+            <div class="carousel-caption">
+              <h2>Freedom Over Texas</h2>
+	   <p>Celebrating July 4th music and fireworks along Buffalo Bayou</p>  
+            </div>
+         </div>
+	-->	  
+		  
+		  <div class="carousel-item">
+            <a href="hfd-reemployment.html" aria-label="HFD Recruiting"><img src="700x350/hfd-recruiting.jpg" alt="HFD Recruiting"></a>
+            <div class="carousel-caption">
+              
+            </div>
+         </div>
+				   
+	<!--			    <div class="carousel-item">
+            <a href="events/world-series-of-dog-shows.html" aria-label="World Series of Dog Shows, thru July 19"><img src="700x350/dogshow.jpg" alt="World Series of Dog Shows, thru July 19"></a>
+            <div class="carousel-caption">
+              <h2>World Series of Dog Shows</h2>
+	   <p>July 15 to 19 at NRG Center</p>  
+            </div>
+         </div>
+         -->
+		  
+         <div class="carousel-item">
+            <a href="https://bit.ly/HPWCareers" target="_blank" aria-label="Houston Public Works Recruiting (opens in a new window)"><img src="700x350/HPW-Recruitment.png" alt="Houston Public Works Recruiting"></a>
+            <div class="carousel-caption">
+              
+            </div>
+         </div>
+		  
+		  <div class="carousel-item">
+            <a href="https://www.houstontx.gov/mayor/bio.html" aria-label="About the Mayor"><img src="700x350/mayor-whitmire.jpg" alt="Mayor John Whitmire"></a>
+			  
+			 
+			  
+            <div class="carousel-caption">
+              
+            </div>
+         </div>
+       
+		  <div class="carousel-item">
+            <a href="courts/weddings.html" aria-label="Municipal Courts Weddings"><img src="700x350/weddings.jpg" alt="Municipal Courts Weddings"></a>
+            
+         </div>
+	  
+	 
+	  
+  </div>
+
+			   <!--		   
+  <a class="carousel-control-prev" href="#demo" data-slide="prev" aria-hidden="true">
+        <span class="carousel-control-prev-icon"></span>
+    </a> -->
+			   
+			   
+   <a class="carousel-control-next" href="#demo" data-slide="next" aria-hidden="true">
+        <span class="carousel-control-next-icon"></span>
+    </a>
+			   
+</div>
+   <!-- end Carousel--> 
+        <!-- end CAROUSEL -->
+					
+						
+						
+						
+						</div>
+						
+					</div>
+					
+					
+				</section>
+<!-- END 66/33 Section -->
+				 
+   
+       
+				
+				
+				
+				 <hr class="gradient">
+				
+				<!-- BEGIN 50/50 Section -->
+				<section>
+					<div class="row mt-5">
+						<div class="col-md-6">
+							
+						<!-- begin NEWS section -->	
+	<center>	 <header>
+              <h3 class="newsEvents">NEWS</h3>
+            </header></center>
+            <div class="newsArticles">
+			<div class="post">
+		    <div class="postDate">
+                  <p>JULY 14</p>
+                  
+                </div>
+                <p><a href="/moc/2026/addresses-ice-shooting.html" aria-label="Mayor Whitmire Addresses ICE Shooting">Mayor Whitmire Addresses ICE Shooting</a></p>
+              </div>	
+			<div class="post">
+		    <div class="postDate">
+                  <p>JULY 08</p>
+                  
+                </div>
+                <p><a href="https://mailchi.mp/houstontx/mayor-whitmires-statement-on-ice-shooting" aria-label="Mayor Whitmire's Statement on ICE Shooting">Mayor Whitmire's Statement on ICE Shooting</a></p>
+              </div>
+				<div class="post">
+                <div class="postDate">
+                  <p>JUNE 25</p>
+                  
+                </div>
+                <p><a href="moc/2026/outlook-improvement-reflects.html" aria-label="Mayor Whitmire: Outlook Improvement Reflects Houston's Fiscal Progress">Mayor Whitmire: Outlook Improvement Reflects Houston's Fiscal Progress</a></p>
+              </div>
+				<div class="post">
+                <div class="postDate">
+                  <p>JUNE 10</p>
+                  
+                </div>
+                <p><a href="moc/2026/pass-fy2027-budget.html" aria-label="Mayor Whitmire and City Council Pass FY 2027 Budget">Mayor Whitmire and City Council Pass FY 2027 Budget</a></p>
+              </div>
+				<div class="post">
+                <div class="postDate">
+                  <p>JUNE 9</p>
+                  
+                </div>
+                <p><a href="moc/2026/thanks-for-donation-to-power-protection-initiative.html" aria-label="Mayor Whitmire Thanks Public-Private Partners for Donation to Power Protection Initiative">Mayor Whitmire Thanks Public-Private Partners for Donation to Power Protection Initiative</a></p>
+				</div>
+				<div class="post">
+                <div class="postDate">
+                  <p>MAY 5</p>
+                  
+                </div>
+                <p><a href="https://houstontx.gov/moc/2026/proposed-fy27-budget.html" aria-label="Mayor John Whitmire Announces Proposed Fiscal Year 2027 Budget">Mayor John Whitmire Announces Proposed Fiscal Year 2027 Budget</a></p>
+              </div>
+								
+            </div>
+        <p align="center"><a href="moc/press-releases.html" class="button" aria-label="Mayor's Press Releases">Mayor's Press Releases</a></p> 
+				
+			
+		<!-- end NEWS section -->
+						</div>
+						
+						<div class="col-md-6">
+							
+						<!-- begin EVENTS section -->
+			<center> <header>
+              <h3 class="newsEvents">EVENTS</h3>
+            </header></center>
+            <div class="newsArticles">
+            
+				
+				<!-- Past event (expired; hidden 2026-07-28):
+				<div class="post">
+                <div class="postDate">
+                  <p>JUNE 14</p>
+                 
+                </div>
+                <p><a href="events/houston-soccer-matches.html" aria-label="Soccer Matches at Houston Stadium, thru July 4">Soccer Matches at Houston Stadium, thru July 4</a></p>
+              </div>
+				-->
+				
+				<!-- Past event (expired; hidden 2026-07-28):
+				<div class="post">
+                <div class="postDate">
+                  <p>JULY 4</p>
+                 
+                </div>
+                <p><a href="july4/index.html" aria-label="Freedom Over Texas">Freedom Over Texas</a></p>
+              </div>
+				-->
+				
+				<!-- Past event (expired; hidden 2026-07-28):
+				<div class="post">
+                <div class="postDate">
+                  <p>JULY 15</p>
+                 
+                </div>
+                <p><a href="events/world-series-of-dog-shows.html" aria-label="World Series of Dog Shows, thru July 19">World Series of Dog Shows, thru July 19</a></p>
+              </div>
+				-->
+				
+				<div class="post">
+                <div class="postDate">
+                  <p>JULY 30</p>
+                 
+                </div>
+                <p><a href="events/shakespeare-festival.html" aria-label="Houston Shakespeare Fetival, thru August 8">Houston Shakespeare Fetival, thru August 8</a></p>
+              </div>
+				
+				<div class="post">
+                <div class="postDate">
+                  <p>JULY 31</p>
+                 
+                </div>
+                <p><a href="events/abilities-expo.html" aria-label="Abilities Expo, thru August 2">Abilities Expo, thru August 2</a></p>
+              </div>
+				
+				<div class="post">
+                <div class="postDate">
+                  <p>AUG 01</p>
+                 
+                </div>
+                <p><a href="btsf/index.html" aria-label="Mayor's Back 2 School and Health Fair">Mayor's Back 2 School and Health Fair</a></p>
+              </div>
+				<div class="post">
+                <div class="postDate">
+                  <p>AUG 22</p>
+                 
+                </div>
+                <p><a href="https://bit.ly/recoveryexpo" target="_blank" aria-label="Houston Disaster and Recovery Expo, August 22">Houston Disaster and Recovery Expo, August 22</a></p>
+              </div>
+				
+				
+				
+				
+				
+            </div>
+			
+        <p align="center"><a href="events/index.html" class="button" aria-label="Calendar of Events">Calendar of Events</a></p> 
+			
+			
+			<!-- end EVENTS section -->
+							
+						</div>
+					</div>
+					
+					
+				</section>
+<!-- END 50/50 Section -->
+				
+				
+			<!-- BEGIN Six Column Graphic Section -->
+				<section>
+					
+    <hr class="gradient">
+      
+					<div class="row mt-5">
+						
+				
+						
+	<div class="col-md-2">
+						<p><img src="images/htx-collects-homepage.jpg" alt="HTX Collects" class="image full"></p>
+							<p align="center"><strong>HTX Collects</strong></p>
+							  <p align="left">Houston Solid Waste Management has launched HTX Collects, a mobile app that will allow residents to stay better connected with the City’s waste and recycling collection programs.</p>
+			<center><a href="solidwaste/htxcollects.html" class="button" aria-label="HTX Collects">HTX Collects</a></center>
+						</div>
+	<div class="col-md-2">
+						<p><img src="images/openfinance-homepage.jpg" alt="Open Data" class="image full"></p>
+							<p align="center"><strong>Open Finance Portal</strong></p>
+							  <p align="left">This portal provides detailed information about the City of Houston’s finances. You can visualize the allocation of these funds, or you can explore the raw data.</p>
+			<center><a href="https://data.houstontx.gov/pages/openfinance" class="button" aria-label="Open Finance">Open Finance</a></center>
+						</div>
+	<div class="col-md-2">
+						<p><img src="images/311-homepage.jpg" alt="Houston 311 Call Center" class="image full"></p>
+							<p align="center"><strong>311 Help and Info</strong></p>
+							 
+			<p align="left">311 Houston Help and Info puts your City government at your fingertips –- one contact, via the channel of your choice, phone or email -- and you get answers or have your service problem solved.</p>
+			<center><a style="display: inline-block;" href="https://houstontx.gov/311" class="button" aria-label="311">311</a>&nbsp;&nbsp;&nbsp;<a style="display: inline-block;" href="https://houstontx.gov/311/faq.html" class="button" aria-label="311 FAQ">311 FAQ</a></center>
+						</div>
+	<div class="col-md-2">
+						<p><img src="images/htvlogo-homepage.jpg" alt="HTV Houston Television Logo" class="image full"></p>
+							<p align="center"><strong>HTV</strong></p>
+							 
+			<p align="left">HTV Houston Television cablecasts 24/7 and provides live programming of City Council and council committee meetings. HTV Houston Television is headquartered in a multi-faceted production facility on the first floor of City Hall at 901 Bagby.</p>
+				<center><a href="htv/index.html" class="button" aria-label="HTV">HTV</a></center>
+						</div>
+	<div class="col-md-2">
+						<p><img src="images/mapsapps-homepage.jpg" alt="City Data Portal" class="image full"></p>
+							<p align="center"><strong>City Data Portal</strong></p>
+							 
+			<p align="left">The Open Data Portal is the platform to host City-wide open data. The Open Data Portal’s goal is to encourage civic engagement and collaboration, improve transparency, and facilitate access to public information.</p>
+				<center><a href="https://data.houstontx.gov" class="button" aria-label="Open Data">Open Data</a></center>
+						</div>
+	<div class="col-md-2">
+						<p><img src="images/espanol-homepage.jpg" alt="Ciudad de Houston" class="image full"></p>
+							<p align="center"><strong>En Espa&ntilde;ol</strong></p>
+							 
+			<p align="left">Usted puede utilizar este sitio para tener acceso a recursos, herramientas e información sobre los departamentos de la Ciudad las 24 horas del día, los 7 días de la semana.</p>
+				<center>
+				<a href="espanol/index.html" class="button" aria-label="Mas En Espanol">Mas En Espanol</a>
+				</center>
+						</div>
+						
+					</div>
+					
+				</section>
+<!-- END Six Column Graphic Section -->	
+				
+					
+				
+			
+			</div>
+			
+			 
+			<!-- END Main Content Area -->
+
+			<!-- BEGIN Extra Footer Container-->
+		<div class="footer mt-auto py-3">
+			<div id="aboveFooter" class="container-fluid pageBottomBorder border-top border-3 bg-hcdd-gray pt-3 mt-5">
+				<div class="container py-1">
+					<div class="row">
+
+<!-- BEGIN Contact Us Section -->
+						<div class="col-md-4 text-center">
+
+
+							<a href="https://www.houstontx.gov/council" aria-label="City Council">
+								<img src="2023upgrade/images/cityhall250.jpg" alt="City Hall" class="img-fluid w-75" />
+							</a>
+							<address class="text-center">
+								City Hall<br>
+901 Bagby, Second Floor<br/>
+								Houston, TX 77002<br>
+
+Go to <a href="https://www.houstontx.gov/contactus/index.html" aria-label="CONTACT / SEARCH">CONTACT / SEARCH</a>
+                            </address>
+						</div>
+						<!-- END Contact Us Section -->
+						
+						
+						<!-- BEGIN 311 Download Logo -->
+						<div class="col-md-4 text-center">
+						
+							<div class="row">
+								<div class="col">
+									<p align="center"><a href="https://houstontx.gov/311" aria-label="Houston 311"><img src="2023upgrade/images/311-new-logo-150.jpg" width="150" height="162" alt="Houston 311"/></a></p>
+									<p align="center"><strong>311 Smart Phone App Available for Download</strong></p>
+		  <p align="center"><a href="https://itunes.apple.com/us/app/houston-311/id572912099?mt=8" target="_blank" aria-label="Apple Store (opens in a new window)"><img src="images/applestore.jpg" alt="App Store" class="homeimagegraytwo"></a> &nbsp; <a href="https://play.google.com/store/apps/details?id=com.seeclickfix.houston311.app&feature=search_result#?t=W251bGwsMSwyLDEsImNvbS5zZWVjbGlja2ZpeC5ob3VzdG9uMzExLmFwcCJd" target="_blank" aria-label="Google Play (opens in a new window)"><img src="images/googleplay.jpg" alt="Google Play" class="homeimagegraytwo"></a></p>
+								</div>
+							</div>
+						</div>
+						<!-- END 311 Download Logo -->
+						
+						
+						<!-- BEGIN City of Houston Social Media -->
+						<div id="connect" class="col-md-4">
+							<h4 class="text-center">City Social Media, Etc.</h4>
+							<div class="row row-cols-3 justify-content-center socialIcons">
+								<div class="col mb-3">
+									<a href="mayor/facebook.html" aria-label="Mayor's Facebook">
+										<img alt="Facebook" src="2023upgrade/images/social/facebook50.png" class="img-fluid d-block mx-auto" />
+									</a>
+								</div>
+								<div class="col mb-3">
+									<a href="https://twitter.com/houstontx" aria-label="City of Houston Twitter / X">
+										<img alt="Twitter - X" src="2023upgrade/images/social/twitter-x-50.png" class="img-fluid d-block mx-auto" />
+									</a>
+								</div>
+								<div class="col mb-3">
+									<a href="https://www.instagram.com/houston/" aria-label="City of Houston Instagram">
+										<img alt="Instagram" src="2023upgrade/images/social/instagram50.png" class="img-fluid d-block mx-auto" />
+									</a>
+								</div>
+								<div class="col mb-3">
+									<a href="https://www.youtube.com/houstontxdotgov" aria-label="City of Houston You Tube">
+										<img alt="You Tube" src="2023upgrade/images/social/youtube50.png" class="img-fluid d-block mx-auto" />
+									</a>
+								</div>
+								
+
+
+
+								<div class="col mb-3">
+									<a href="https://www.linkedin.com/company/houstontx/about/" aria-label="City of Houston Linked In">
+										<img alt="Linked In" src="2023upgrade/images/social/linkedin50.png" class="img-fluid d-block mx-auto" />
+									</a>
+								</div>
+								<div class="col mb-3">
+									<a href="https://nextdoor.com/profile/42345424" aria-label="City of Houston Next Door">
+										<img alt="Next Door" src="2023upgrade/images/social/nextdoor50.png" class="img-fluid d-block mx-auto" />
+									</a>
+								</div>
+								
+								<div class="col mb-3">
+									<a href="mailto:houstontxdotgov@houstontx.gov" aria-label="City of Houston Email">
+										<img alt="Email Us" src="images/sm-icons/email50.png" class="img-fluid d-block mx-auto" />
+									</a>
+								</div>
+								
+								<div class="col mb-3">
+									<a href="https://houstontx.gov/faq/index.html" aria-label="FAQ">
+										<img alt="Frequently Asked Questions" src="images/sm-icons/faq50.png" class="img-fluid d-block mx-auto" />
+									</a>
+								</div>
+								
+								<div class="col mb-3">
+									<a href="https://houstontx.gov/311" aria-label="3-1-1">
+										<img alt="Houston 3-1-1" src="images/sm-icons/311-50.png" class="img-fluid d-block mx-auto"/>
+									</a>
+								</div>
+								
+								
+							</div>
+
+							<!-- Subscribe to Newsletter -->
+							<a class="button btn-sm btn-block text-center my-1" href="https://us14.list-manage.com/subscribe?u=bbc8dea1a49ed98f626812405&id=e27f791914">Subscribe to City of Houston Newsroom <i class="fa fa-clone fa-flip-horizontal"></i></a>	
+
+						</div>
+						<!-- END City of Houston Social Media -->
+					</div>
+					
+					    
+					
+				</div>
+			</div>
+			<!-- END Extra Footer Container-->
+
+			<!-- begin COH FOOTER -->
+			<div id="footer">
+				<div class="container"> 
+					<!-- begin COH FOOTER LINKS -->
+					<p> 
+						<a href="https://houstontx.gov" aria-label="City of Houston">Home</a> &#8226; <a href="https://houstontx.gov/311" aria-label="311">311</a> &#8226; <a href="https://houstontx.gov/contactus/index.html" aria-label="CONTACT / SEARCH">CONTACT / SEARCH</a> &#8226; <a href="https://houstontx.gov/faq/index.html" aria-label="FAQs">FAQ</a> &#8226; <a href="https://houstontx.gov/privacy.html" aria-label="Privacy Policy Page">Privacy Policy</a> &#8226; <a href="https://houstontx.gov/citizensnet/index.html" aria-label="CitizensNet">CitizensNet</a> 
+					</p>
+					<!-- end COH FOOTER LINKS -->
+
+					<!-- begin COPYRIGHT -->
+					<div id="copyright">Copyright © <span id="copyright-year">2022</span>. All rights reserved. City of Houston...</div>
+
+					<script type="text/javascript">
+							document.querySelector('#copyright-year').innerText = new Date().getFullYear();
+					</script>
+				<!-- end COPYRIGHT --> 
+				</div><!-- end container --> 
+			</div>
+			<!-- end FOOTER --> 
+			</div>
+		</div>
+			
+		<!--end Main Div -->
+	
+		<!--jQuery-->
+		<script type="text/javascript" src="2023upgrade/assets/jQuery/jquery-3.6.0.min.js"></script>
+		<!--Bootstrap-->
+		<script type="text/javascript" src="2023upgrade/assets/bootstrap/4.6.1/js/bootstrap.bundle.min.js"></script>
+		
+		<!--Luxon-->
+		<script type="text/javascript" src="2023upgrade/assets/luxon/luxon.min.js"></script>
+		<!--Datatables-->
+		<script type="text/javascript" src="2023upgrade/assets/datatables/4.6/js/datatables.min.js"></script>
+		<!-- Flickity -->
+		<script src="2023upgrade/assets/flickity/js/flickity.pkgd.min.js"></script>
+		<!-- Swiper -->
+		<script src="2023upgrade/assets/swiper/js/swiper-bundle.min.js"></script>
+		<!--2023 Script-->
+		<script src="2023upgrade/js/2023.js"></script>
+	
+	
+	<center><font size="-1" color="white">JC.59.RN<br>Updated: Thu Jul 23 09:20:01 AM CDT 2026</font></center>
+	<object data="./servername.txt" width="300" height="50">
+City of Houston...
+</object>
+	</body>
+<!-- InstanceEnd -->
+</html>

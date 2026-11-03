@@ -9,6 +9,7 @@
  * flag, they never block: a flagged visitor still gets the site.
  */
 import { blockedUserAgent } from "./blocked-user-agents";
+import { emailLinkSweep } from "./visitor-intel";
 
 export interface TrailInput {
   /** visitors.country (two-letter, from the IP geo). */
@@ -26,7 +27,7 @@ export interface TrailInput {
 }
 
 export interface ScraperSignal {
-  key: "abroad" | "automation" | "fast" | "bid-sweep" | "search-burst" | "ip-fanout";
+  key: "abroad" | "automation" | "fast" | "bid-sweep" | "search-burst" | "ip-fanout" | "email-scanner";
   label: string;
 }
 
@@ -96,6 +97,12 @@ export function scraperSignals(t: TrailInput): ScraperSignal[] {
       label: `${t.hitTimesHour.length} pages this hour${gap !== null ? `, ${gap < 10 ? gap.toFixed(1) : Math.round(gap)}s apart` : ""}`,
     });
   }
+  // Owner 2026-11-03: the outreach-email link scanner (Microsoft Safe Links).
+  if (t.hitTimesHour.length >= 2) {
+    const sorted = [...t.hitTimesHour].sort((a, b) => a - b);
+    const sweep = emailLinkSweep(sorted.length, (sorted[sorted.length - 1]! - sorted[0]!) / 1000);
+    if (sweep) out.push({ key: "email-scanner", label: `Email link scanner: ${sweep.replace(/ \(email link scanner.*\)$/, "")}, the way mail security checks the links in an outreach email` });
+  }
   if (t.bidPagesHour >= 15) out.push({ key: "bid-sweep", label: `${t.bidPagesHour} bid pages this hour` });
   if (t.searchesHour >= 10) out.push({ key: "search-burst", label: `${t.searchesHour} radar searches this hour` });
   if (t.sameIpVisitors >= 3) out.push({ key: "ip-fanout", label: `${t.sameIpVisitors} other visitor ids on the same IP today` });
@@ -104,7 +111,7 @@ export function scraperSignals(t: TrailInput): ScraperSignal[] {
 
 /** Likely bot: an automated browser alone, or any two other signals. */
 export function isLikelyScraper(signals: ScraperSignal[]): boolean {
-  return signals.some((s) => s.key === "automation") || signals.length >= 2;
+  return signals.some((s) => s.key === "automation" || s.key === "email-scanner") || signals.length >= 2;
 }
 
 export interface TrackedVisitor {

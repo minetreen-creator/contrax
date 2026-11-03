@@ -34,17 +34,18 @@ describe("Bid Fit Review link next to a bid", () => {
     expect(deadlineDateText("2026-11-09T14:00:00Z")).toBe("November 9, 2026");
   });
 
-  test("the form reads the pre-fill and the bid views show the link", () => {
+  test("the form reads the pre-fill; the bid views no longer show the link", () => {
     const form = readFileSync(new URL("../src/routes/bid-fit-review.tsx", import.meta.url), "utf8");
     expect(form).toContain("validateSearch");
     expect(form).toContain("defaultValue={prefill.url");
     expect(form).toContain("defaultValue={prefill.deadline");
+    // Owner 2026-11-03 ("do 2 and 3"): one product (the $5 pass) until there
+    // are paying customers, so bid cards and the bid page no longer upsell the
+    // $49 review. /bid-fit-review still works from its own link.
     const cards = readFileSync(new URL("../src/lib/seo-landing.tsx", import.meta.url), "utf8");
-    expect(cards).toContain("bidFitReviewHref(b)");
+    expect(cards).not.toContain("bidFitReviewHref(b)");
     expect(cards).not.toContain("Open original notice on SAM.gov");
     const detail = readFileSync(new URL("../src/routes/bid.$bidId.tsx", import.meta.url), "utf8");
-    // the detail page passes the link it shows (a head-start link is unlocked
-    // for paying members in the browser — src/lib/head-start.ts)
-    expect(detail).toContain("bidFitReviewHref({ ...bid, source_url: sourceUrl })");
+    expect(detail).not.toContain("bidFitReviewHref(");
   });
 });

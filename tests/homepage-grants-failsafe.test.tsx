@@ -182,43 +182,18 @@ describe("ContraxGrantsPromo — the Grants Plus tier row", () => {
 
 // ── 3. the loader contract ───────────────────────────────────────────────────
 
-describe("pricing loader — server-only, per-request, and unable to break the page", () => {
+describe("pricing page — no Grants section (owner 2026-11-03)", () => {
   const src = readFileSync(
     new URL("../src/routes/pricing/index.tsx", import.meta.url),
     "utf8",
   );
-
-  test("the env is read exactly once, inside the /pricing loader (never in JSX, never in the client)", () => {
-    expect(count(src, "process.env")).toBe(1);
-    const loaderAt = src.indexOf("const getGrantsPricingData = createServerFn");
-    const envAt = src.indexOf("process.env");
-    const routeAt = src.indexOf('export const Route = createFileRoute("/pricing/")');
-    expect(loaderAt).toBeGreaterThan(-1);
-    expect(routeAt).toBeGreaterThan(loaderAt);
-    // the single read sits inside the loader handler, before the Route export
-    expect(envAt).toBeGreaterThan(loaderAt);
-    expect(envAt).toBeLessThan(routeAt);
-    // nothing build-time / client-side is involved (no baked-in value)
+  // "do 2 and 3": one product (the $5 pass) until there are paying customers,
+  // so /pricing no longer shows the Grants block or reads its env flag. The
+  // component and its fail-safe stay tested above for /grants.
+  test("pricing renders no Grants section and reads no env", () => {
+    expect(src).not.toContain("<GrantsPricing");
+    expect(count(src, "process.env")).toBe(0);
     expect(src).not.toContain("import.meta.env");
-    expect(count(src, "VITE_")).toBe(0);
-  });
-
-  test("the flag flows loader payload → component props", () => {
-    // The loader returns the server-resolved flag to the pricing component.
-    expect(src).toContain("return { grantsUpgradeEnabled };");
-    expect(src).toContain(
-      "<GrantsPricing grantsUpgradeEnabled={grantsUpgradeEnabled} />",
-    );
-    expect(src).toContain(
-      "const { grantsUpgradeEnabled } = Route.useLoaderData();",
-    );
-  });
-
-  test("the loader's read is the fail-closed wrapper, so no env state can throw out of it", () => {
-    expect(src).toContain("resolveGrantsUpgradeEnabled(");
-    expect(src).toContain('typeof process !== "undefined" ? process.env : undefined');
-    // the wrapper itself is pinned above; here we only prove the loader uses it
-    // rather than calling the raw helper (which throws on an unreadable env).
-    expect(count(src, "isUpgradePromptEnabled(process")).toBe(0);
   });
 });
+

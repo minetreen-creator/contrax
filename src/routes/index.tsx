@@ -5,7 +5,6 @@ import { Radar, KanbanSquare, ArrowRight, FileSearch } from "lucide-react";
 import { HomeContractFinder } from "~/components/HomeContractFinder";
 import { FoundingWall } from "~/components/FoundingWall";
 import { HomeStateMap } from "~/components/HomeStateMap";
-import { SubLeads } from "~/components/SubLeads";
 import { MaxAssistant } from "~/components/MaxAssistant";
 import { ExampleBrief } from "~/components/ExampleBrief";
 
@@ -101,7 +100,7 @@ const getBidStats = async (): Promise<{ activeCount: number; agencyCount: number
 // browser (SiteHeader without a `user` prop), so this render is identical for
 // every visitor and can be served from the edge cache.
 const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
-  const [businessName, bidStats, contractMap, subLeads] = await Promise.all([
+  const [businessName, bidStats, contractMap] = await Promise.all([
     (async () => {
       try {
         const cfg = JSON.parse(await readFile("site.json", "utf8")) as {
@@ -114,17 +113,8 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
     })(),
     getBidStats(),
     getContractMapAggregate(),
-    // Subcontracting leads (owner 2026-10-30); [] hides the section.
-    (async () => {
-      try {
-        const { recentSubLeads } = await import("~/lib/award-leads.server");
-        return await recentSubLeads(40);
-      } catch {
-        return [];
-      }
-    })(),
   ]);
-  return { businessName, bidStats, contractMap, subLeads };
+  return { businessName, bidStats, contractMap };
 });
 
 // ── Route ─────────────────────────────────────────────────────────────────────
@@ -173,7 +163,7 @@ const SERIF = "[font-family:Charter,'Iowan_Old_Style',Georgia,serif]";
 
 function Home() {
 
-  const { contractMap, subLeads } = Route.useLoaderData();
+  const { contractMap } = Route.useLoaderData();
   const { sample } = Route.useLoaderData();
 
   const jsonLd = {
@@ -209,8 +199,6 @@ function Home() {
       <HomeStateMap contractMap={contractMap} />
       {/* Max, the public AI assistant (owner 2026-10-25: "something high tech"). */}
       <MaxAssistant />
-      {/* Subcontracting leads (owner 2026-10-30: "for the subs, can we make a list on the homepage?"). */}
-      <SubLeads leads={subLeads} />
       {/* Founding Businesses wall (owner 2026-10-29); hidden until one is published. */}
       <FoundingWall />
       <StarterPassStrip where="closing" />
@@ -309,18 +297,13 @@ const FOOTER_GROUPS = [
   {
     title: "Explore",
     links: [
+      // Owner 2026-11-03 ("do 2 and 3"): only the search and the $5 pass are
+      // offered until there are paying customers; the other products stay
+      // reachable by their own links.
+      { href: "/radar", label: "Search bids" },
       { href: "/local-bids", label: "City & County Bids" },
-      { href: "/grants", label: "Grants" },
-      { href: "/blog", label: "Blog" },
-    ],
-  },
-  {
-    title: "For Businesses",
-    links: [
       { href: "/pricing", label: "Pricing" },
-      { href: "/data", label: "Bid Data API" },
-      { href: "/leads", label: "Award Leads" },
-      { href: "/suppliers", label: "Supplier Directory" },
+      { href: "/blog", label: "Blog" },
     ],
   },
   {
@@ -329,7 +312,6 @@ const FOOTER_GROUPS = [
       { href: "/about", label: "About" },
       { href: "/our-story", label: "Our Story" },
       { href: "/from-the-ceo", label: "From the CEO" },
-      { href: "/vad", label: "Veterans Against Diabetes" },
       { href: "mailto:contrax.companyllc@gmail.com", label: "Contact" },
     ],
   },

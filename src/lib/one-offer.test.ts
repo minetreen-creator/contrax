@@ -6,11 +6,11 @@ import { passOfferCount } from "../routes/radar";
 const read = (f: string) => readFileSync(f, "utf8");
 
 describe("one offer", () => {
-  test("pricing shows one card (Starter) and tucks the rest under Other plans", () => {
+  test("pricing shows one card (Starter) and no other plans (owner 2026-11-03)", () => {
     const pricing = read("src/routes/pricing/index.tsx");
     expect(pricing).toContain('plans.filter((plan) => plan.slug === "starter").map((plan) => (');
-    expect(pricing).toContain('<summary className="cursor-pointer font-semibold text-slate-700 hover:text-slate-900">Other plans</summary>');
-    expect(pricing).toContain("Professional</a> ($79/month");
+    expect(pricing).not.toContain(">Other plans</summary>");
+    expect(pricing).not.toContain("<GrantsPricing");
   });
   test("homepage and bid lock push no competing offer", () => {
     expect(read("src/routes/index.tsx")).not.toContain("<BidScoutCallout");

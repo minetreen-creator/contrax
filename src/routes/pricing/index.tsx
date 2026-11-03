@@ -1,10 +1,7 @@
 import { useEffect, useState, type MouseEvent } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { createServerFn } from "@tanstack/react-start";
 import { BidValueCalculator } from "~/components/BidValueCalculator";
 import { EmailSample } from "~/components/EmailSample";
-import { GrantsPricing } from "~/components/GrantsPricing";
-import { resolveGrantsUpgradeEnabled } from "~/lib/grants-upgrade-signal";
 import { SiteHeader } from "~/components/SiteHeader";
 import { PLAN_COPY, upgradeFeatures } from "~/lib/plan-features";
 import { redirectToCheckout } from "~/lib/checkout";
@@ -12,13 +9,6 @@ import { STARTER_FIRST_MONTH_NOTE, STARTER_FIRST_MONTH_PRICE } from "~/lib/start
 import { STATE_NAMES } from "~/lib/contract-map";
 import { getNearYou, type NearYou } from "~/lib/near-you";
 import { trackEvent } from "~/lib/track";
-
-const getGrantsPricingData = createServerFn({ method: "GET" }).handler(async () => {
-  const grantsUpgradeEnabled = resolveGrantsUpgradeEnabled(
-    typeof process !== "undefined" ? process.env : undefined,
-  );
-  return { grantsUpgradeEnabled };
-});
 
 // Owner 2026-10-19 (item 6): descriptive title (prices in the title itself);
 // og:title / twitter:title read the same string. The meta descriptions are
@@ -28,7 +18,6 @@ const META_DESCRIPTION =
   "Contrax plans for every stage of growth. Start with Starter for $5 for your first 30 days, with no automatic renewal, or keep searching on free Basic.";
 
 export const Route = createFileRoute("/pricing/")({
-  loader: () => getGrantsPricingData(),
   component: PricingPage,
   head: () => ({
     meta: [
@@ -202,7 +191,6 @@ const pricingJsonLd = {
 };
 
 function PricingPage() {
-  const { grantsUpgradeEnabled } = Route.useLoaderData();
   // Owner 2026-10-19 (item 3): same Monthly/Yearly switch as /upgrade. The
   // displayed price swaps in place; monthly is the default.
   const [interval, setInterval] = useState<"month" | "year">("month");
@@ -413,16 +401,9 @@ function PricingPage() {
             <a href="/signup?plan=basic" className="font-medium text-amber-600 hover:text-amber-500">free Basic</a>: one state and
             one trade, 2 Radar searches, 1 saved bid, and new bids open to you after a 7-day head start for paying members.
           </p>
-          <details className="mx-auto mt-6 max-w-2xl text-center text-sm text-gray-500">
-            <summary className="cursor-pointer font-semibold text-slate-700 hover:text-slate-900">Other plans</summary>
-            <p className="mt-3">
-              <a href="/signup?plan=professional&next=%2Fupgrade%3Fplan%3Dprofessional" className="font-medium text-amber-600 hover:text-amber-500">Professional</a> ($79/month: Starter plus who won last time and for how much, AI briefs and bid scoring) ·{" "}
-              <a href="/signup?plan=agency" className="font-medium text-amber-600 hover:text-amber-500">Agency</a> ($199/month, for teams and consultants) ·{" "}
-              <a href="/bid-scout?source=pricing" className="font-medium text-amber-600 hover:text-amber-500">Bid Scout</a> ($99/month, five handpicked bids every Friday, done for you) ·{" "}
-              <a href="/bid-fit-review" className="font-medium text-amber-600 hover:text-amber-500">Bid Fit Review</a> ($49 once) ·{" "}
-              <a href="#grants" className="font-medium text-amber-600 hover:text-amber-500">Contrax Grants</a> (free for verified nonprofits)
-            </p>
-          </details>
+          {/* Owner 2026-11-03 ("do 2 and 3"): one product until there are
+              paying customers. The other plans and products stay reachable by
+              their own links but are no longer listed here. */}
           <p className="mt-3 text-center text-sm text-gray-500">
             Veterans Against Diabetes partner?{" "}
             <a href="/vad" className="font-medium text-amber-600 hover:text-amber-500 transition-colors">
@@ -431,8 +412,6 @@ function PricingPage() {
           </p>
         </div>
       </section>
-
-      <GrantsPricing grantsUpgradeEnabled={grantsUpgradeEnabled} />
 
       {/* FAQ */}
       <section className="bg-gray-50 py-16 sm:py-20">

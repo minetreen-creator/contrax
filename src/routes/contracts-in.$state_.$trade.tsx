@@ -46,11 +46,14 @@ function ContractsInStateTrade() {
   const name = data.name ?? "your state";
   const label = data.trade?.label ?? "Government";
   const radarHref = trade ? radarHrefFor(trade, data.code) : "/radar";
+  // Owner 2026-11-03 ("do 2 and 3"): speak the trade's own words (a lawn crew
+  // says mowing) and lead with what is open now and what comes next.
+  const spoken = data.trade?.slug === "landscaping" ? "mowing & landscaping" : label.toLowerCase();
   return (
     <SeoLanding
-      eyebrow={`Live government contracts · ${name}`}
-      headline={`${label} contracts in ${name}`}
-      subhead={`Open ${label.toLowerCase()} solicitations performed in ${name}, from federal, state and local sources. Real deadlines, each linked to its official notice, updated every 4 hours on weekdays.`}
+      eyebrow={`Live government bids · ${name}`}
+      headline={`${name} ${spoken} bids`}
+      subhead={`${data.count > 0 ? `${data.count.toLocaleString("en-US")} open now` : "New bids post every week"} from cities, counties, school districts, the state and federal agencies in ${name}. New ones every weekday morning.`}
       radarHref={radarHref}
       signupState={data.code}
       radarLabel={`Search ${label.toLowerCase()} contracts in ${name} with Contract Radar`}

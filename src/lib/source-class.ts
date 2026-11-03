@@ -2865,6 +2865,14 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
     searchScope: "city-open-data",
     recordType: "opportunity",
   },
+  // City of San Antonio's own bid list, added 2026-11-03.
+  tx_san_antonio: {
+    class: "local",
+    city: "San Antonio",
+    scopeState: "TX",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
   oh_worthington: {
     class: "local",
     city: "Worthington",

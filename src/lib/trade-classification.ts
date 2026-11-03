@@ -509,9 +509,16 @@ const EXTRA_CONSTRUCTION_TITLE_WORDS =
 
 /** True when a TITLE names construction work. Used by the Construction trade
  *  search as a match path that is not bounded by the 64-phrase term cap. */
+/** A road segment named in the title ("Vance Jackson (Loop 410 to Adrian
+ *  Drive)", "George Road … (Hunters Bow to NW Military Highway)"), a city bond
+ *  program tag ("(2022 Bond)"), or "area streets" (owner 2026-11-03, San Antonio). */
+const ROAD_SEGMENT_TITLE =
+  /\([^()]*\bto\b[^()]*\b(rd|road|st|street|ave|avenue|dr|drive|blvd|boulevard|hwy|highway|pkwy|parkway|ln|lane|loop|trail|fm \d+|ih[- ]?\d+|i-\d+|us \d+|sh \d+)\b[^()]*\)|\(\d{4} bond\)|\b\d{4} bond program\b|\barea streets\b/;
+
 export function isConstructionTitle(title: string): boolean {
   const t = (title || "").toLowerCase();
   if (!t) return false;
+  if (ROAD_SEGMENT_TITLE.test(t)) return true;
   if (t.includes("construction") || t.includes("renovation") || t.includes("demolition")) return true;
   if (CONSTRUCTION_WORDS.test(t) || CONSTRUCTION_TITLE_WORDS.test(t) || EXTRA_CONSTRUCTION_TITLE_WORDS.test(t)) return true;
   return MORE_CONSTRUCTION_TITLE_WORDS.test(t) && !ELECTRICAL_WORDS.test(t) && !ELECTRICAL_TITLE_WORDS.test(t) && !HVAC_TITLE_WORDS.test(t);

@@ -5,7 +5,7 @@ import { sql } from "~/db";
 import { BOT_EXCLUSION_SQL } from "~/lib/bot-exclusion";
 import { adminFunnelExclusionSQL, qaExternalUserSQL, qaFunnelExclusionSQL } from "~/lib/qa-exclusion";
 import { TRIAL_DAYS } from "~/lib/trial";
-import { dataCenterLocation, sameMinuteClusters } from "~/lib/visitor-intel";
+import { dataCenterLocation, emailLinkSweep, sameMinuteClusters } from "~/lib/visitor-intel";
 import { getStripe } from "~/lib/stripe";
 import { isAdminEmail } from "~/lib/admin";
 import { ensureTrackedVisitorsTable } from "~/lib/scraper-watch.server";
@@ -258,11 +258,12 @@ async function handler({ request }: { request: Request }) {
         SELECT DISTINCT ON (visitor_id) visitor_id, path AS landing,
                MIN(created_at) OVER (PARTITION BY visitor_id) AS first_at,
                MAX(created_at) OVER (PARTITION BY visitor_id) AS last_at,
-               BOOL_OR(user_id IS NOT NULL) OVER (PARTITION BY visitor_id) AS signed_in
+               BOOL_OR(user_id IS NOT NULL) OVER (PARTITION BY visitor_id) AS signed_in,
+               COUNT(*) OVER (PARTITION BY visitor_id)::int AS views
         FROM page_views
         WHERE visitor_id = ANY(${ids}) AND created_at > NOW() - INTERVAL '60 minutes'
         ORDER BY visitor_id, created_at ASC
-      `) as { visitor_id: string; landing: string | null; first_at: string; last_at: string; signed_in: boolean }[];
+      `) as { visitor_id: string; landing: string | null; first_at: string; last_at: string; signed_in: boolean; views: number }[];
       const clustered = sameMinuteClusters(
         spans.map((r) => {
           const first = Date.parse(r.first_at);
@@ -276,7 +277,12 @@ async function handler({ request }: { request: Request }) {
         }),
       );
       const signedIn = new Set(spans.filter((r) => r.signed_in).map((r) => r.visitor_id));
+      // Owner 2026-11-03: the outreach-email link sweep (3+ pages in seconds).
+      const swept = spans
+        .filter((r) => !r.signed_in && emailLinkSweep(Number(r.views), (Date.parse(r.last_at) - Date.parse(r.first_at)) / 1000))
+        .map((r) => r.visitor_id);
       scanners = new Set([
+        ...swept,
         ...clustered.keys(),
         ...onlineRows.filter((r) => !signedIn.has(r.visitor_id) && dataCenterLocation(r.city, r.region)).map((r) => r.visitor_id),
       ]);

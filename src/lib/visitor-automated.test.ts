@@ -65,9 +65,11 @@ describe("likely-automated visitors (owner 2026-10-02)", () => {
 
   test("self-referral alone is not enough: a longer visit or another referrer stays human", () => {
     expect(likelyAutomated({ sessions: 2, pageViews: 3, activeSpanSeconds: 300, firstReferrer: "https://www.contrax.company/", signedUp: false, savedBid: false })).toBeNull();
-    expect(likelyAutomated({ sessions: 2, pageViews: 3, activeSpanSeconds: 4, firstReferrer: "https://lm.facebook.com/", signedUp: false, savedBid: false })).toBeNull();
-    expect(likelyAutomated({ sessions: 2, pageViews: 3, activeSpanSeconds: 4, firstReferrer: "https://notcontrax.company.evil.com/", signedUp: false, savedBid: false })).toBeNull();
-    expect(likelyAutomated({ sessions: 2, pageViews: 3, activeSpanSeconds: 4, firstReferrer: null, signedUp: false, savedBid: false })).toBeNull();
+    // Two pages: below the email-link-sweep rule (owner 2026-11-03: 3+ pages
+    // within 12 seconds is now a scanner on its own, see email-link-sweep.test.ts).
+    expect(likelyAutomated({ sessions: 2, pageViews: 2, activeSpanSeconds: 4, firstReferrer: "https://lm.facebook.com/", signedUp: false, savedBid: false })).toBeNull();
+    expect(likelyAutomated({ sessions: 2, pageViews: 2, activeSpanSeconds: 4, firstReferrer: "https://notcontrax.company.evil.com/", signedUp: false, savedBid: false })).toBeNull();
+    expect(likelyAutomated({ sessions: 2, pageViews: 2, activeSpanSeconds: 4, firstReferrer: null, signedUp: false, savedBid: false })).toBeNull();
   });
 
   test("a paid ad click with a contrax.company referrer is not an email link scanner", () => {

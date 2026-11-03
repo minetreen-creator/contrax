@@ -40,7 +40,8 @@ describe("scraperSignals", () => {
   });
   test("fast clicking: many pages or tiny gaps", () => {
     expect(keys({ hitTimesHour: Array.from({ length: 30 }, (_, i) => i * 60_000) })).toEqual(["fast"]);
-    expect(keys({ hitTimesHour: [0, 1000, 2000, 3000] })).toEqual(["fast"]);
+    // Four pages in 3 seconds is also the email link scanner (owner 2026-11-03).
+    expect(keys({ hitTimesHour: [0, 1000, 2000, 3000] })).toEqual(["fast", "email-scanner"]);
   });
   test("bid sweeps, search bursts, one IP many ids", () => {
     expect(keys({ bidPagesHour: 15, searchesHour: 10, sameIpVisitors: 3 })).toEqual(["bid-sweep", "search-burst", "ip-fanout"]);

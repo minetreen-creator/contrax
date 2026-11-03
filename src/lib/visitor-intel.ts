@@ -202,6 +202,21 @@ export interface ScoreSignals {
 /** Pace thresholds for likelyAutomated (owner 2026-10-02). */
 export const AUTOMATED_SESSION_LIMIT = { sessions: 3, withinSeconds: 120 };
 export const AUTOMATED_PAGE_LIMIT = { pages: 6, withinSeconds: 60 };
+/**
+ * Email link sweep (owner 2026-11-03: "they all came up when I send the outreach
+ * emails"): Microsoft's mail security opens every link in an outreach email
+ * (the bid, /bid-scout, /pricing) from its data centers within seconds. No
+ * person opens this many separate pages this fast.
+ */
+export const EMAIL_SWEEP_LIMIT = { pages: 3, withinSeconds: 12 };
+
+/** "3 pages in 8 seconds…" when a visit has the email-link-sweep pace, else null. PURE. */
+export function emailLinkSweep(pageViews: number, spanSeconds: number | null | undefined): string | null {
+  if (spanSeconds == null || !Number.isFinite(spanSeconds) || spanSeconds < 0) return null;
+  if (pageViews < EMAIL_SWEEP_LIMIT.pages || spanSeconds > EMAIL_SWEEP_LIMIT.withinSeconds) return null;
+  return `${pageViews} pages in ${Math.round(spanSeconds)} seconds (email link scanner opening every link in an email at once)`;
+}
+
 /** Self-referred first visit (owner 2026-10-03): whole visit within this many seconds. */
 export const AUTOMATED_SELF_REFERRAL_SECONDS = 60;
 
@@ -235,6 +250,10 @@ export function likelyAutomated(
   const pages = s.pageViews ?? 0;
   if (pages >= AUTOMATED_PAGE_LIMIT.pages && span <= AUTOMATED_PAGE_LIMIT.withinSeconds) {
     return `${pages} pages within ${secs} seconds`;
+  }
+  if (!s.paidClick) {
+    const sweep = emailLinkSweep(pages, span);
+    if (sweep) return sweep;
   }
   // Email link scanners (owner 2026-10-03): a brand-new visitor cannot arrive
   // FROM Contrax on its very first page view. Mail security services that open

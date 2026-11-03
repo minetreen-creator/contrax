@@ -120,6 +120,10 @@ export const CIVICENGAGE_HEADERS = {
 } as const;
 
 /** One board, exactly as it must be described on a row. All literals, no inference. */
+/** Titles that are a placeholder or a pointer to another portal, not a bid. */
+export const CIVICENGAGE_PLACEHOLDER_TITLE =
+  /^\s*(?:bids?|bid summary|bid results?|bid tabulations?|current bids|open bids|[a-z ]*postings?|see [a-z ]+ portal)\s*$/i;
+
 export interface CivicEngageBoardConfig {
   /** Optional source-specific decoder for the literal published closing text. */
   parseDueDate?: (published: string) => string | null;
@@ -358,6 +362,12 @@ export function parseCivicEngageBoard(
     const title = titleMatch ? decodeText(titleMatch[1]) : "";
     if (!title) {
       recordSkip(skipped, skippedRows, rowId, "missing_title");
+      continue;
+    }
+    // A placeholder row that names no job (owner 2026-11-03, Texas boards:
+    // "bid", "Bid Summary", "PlanetBids Postings" — a pointer to another portal).
+    if (CIVICENGAGE_PLACEHOLDER_TITLE.test(title)) {
+      recordSkip(skipped, skippedRows, rowId, "placeholder_title");
       continue;
     }
 

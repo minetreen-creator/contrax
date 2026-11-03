@@ -94,7 +94,8 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // + 16 Tennessee CivicEngage boards, 2026-10-30 (372 → 388).
     // + 11 Bonfire and 8 CivicEngage Florida boards, 2026-10-30 (388 → 407).
     // + 2 Bonfire and 4 CivicEngage Indiana boards, 2026-10-30 (407 → 413).
-    expect(Object.keys(SOURCE_CLASSES).length).toBe(413);
+    // + 41 Bonfire and 83 CivicEngage Texas boards, 2026-11-03 (413 → 537).
+    expect(Object.keys(SOURCE_CLASSES).length).toBe(537);
   });
 
   test("every registry label is classified (no collector is unclassified)", () => {
@@ -181,7 +182,8 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // + 16 Tennessee CivicEngage boards, 2026-10-30 (290 → 306).
     // + 11 Bonfire and 8 CivicEngage Florida boards, 2026-10-30 (306 → 325).
     // + 2 Bonfire and 4 CivicEngage Indiana boards, 2026-10-30 (325 → 331).
-    expect(TAIL_SOURCES.length).toBe(331);
+    // + 41 Bonfire and 83 CivicEngage Texas boards, 2026-11-03 (331 → 455).
+    expect(TAIL_SOURCES.length).toBe(455);
   });
 
   test("every city registry entry the product fetches is LOCAL with a city name", () => {

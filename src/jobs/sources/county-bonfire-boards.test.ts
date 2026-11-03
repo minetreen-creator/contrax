@@ -67,6 +67,39 @@ const CAPTURED: Record<string, number> = {
   fl_ucf_bonfire: 2,
   fl_lee_schools_bonfire: 1,
   in_indygo_bonfire: 4,
+  // Texas, captured 2026-11-03.
+  tx_fort_worth_bonfire: 17,
+  tx_arlington_bonfire: 8,
+  tx_frisco_bonfire: 8,
+  tx_mckinney_bonfire: 1,
+  tx_richardson_bonfire: 6,
+  tx_round_rock_bonfire: 3,
+  tx_leander_bonfire: 14,
+  tx_temple_bonfire: 13,
+  tx_brownsville_bonfire: 4,
+  tx_amarillo_bonfire: 3,
+  tx_san_angelo_bonfire: 2,
+  tx_schertz_bonfire: 3,
+  tx_fort_bend_county_bonfire: 8,
+  tx_williamson_county_bonfire: 2,
+  tx_austin_isd_bonfire: 7,
+  tx_dallas_isd_bonfire: 4,
+  tx_northside_isd_bonfire: 8,
+  tx_san_antonio_isd_bonfire: 3,
+  tx_fort_bend_isd_bonfire: 4,
+  tx_richardson_isd_bonfire: 3,
+  tx_klein_isd_bonfire: 1,
+  tx_hays_cisd_bonfire: 4,
+  tx_dfw_airport_bonfire: 14,
+  tx_lcra_bonfire: 3,
+  tx_san_antonio_river_authority_bonfire: 2,
+  tx_ntmwd_bonfire: 5,
+  tx_dart_bonfire: 25,
+  tx_ut_austin_bonfire: 4,
+  tx_ut_dallas_bonfire: 2,
+  tx_ut_health_san_antonio_bonfire: 4,
+  tx_tarrant_county_college_bonfire: 2,
+  tx_houston_city_college_bonfire: 3,
 };
 // Real tenants with nothing open at capture (portal title confirmed), so no file.
 const NO_CAPTURE = new Set([
@@ -75,13 +108,14 @@ const NO_CAPTURE = new Set([
   "mi_muskegon_county_bonfire", "ca_solano_county_bonfire", "ga_paulding_schools_bonfire",
   "fl_sunrise_bonfire", "fl_plantation_bonfire", "fl_duval_schools_bonfire", "fl_fgcu_bonfire", "fl_jaxport_bonfire",
   "in_fort_wayne_schools_bonfire",
+  "tx_wylie_bonfire", "tx_southlake_bonfire", "tx_johnson_county_bonfire", "tx_cypress_fairbanks_isd_bonfire", "tx_garland_isd_bonfire", "tx_corpus_christi_isd_bonfire", "tx_ut_system_bonfire", "tx_utrgv_bonfire", "tx_del_mar_college_bonfire",
 ]);
 
 describe("county Bonfire boards", () => {
-  test("sixty-seven boards, unique sources and id prefixes", () => {
-    expect(COUNTY_BONFIRE_CONFIGS).toHaveLength(67);
-    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.source)).size).toBe(67);
-    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.idPrefix)).size).toBe(67);
+  test("108 boards, unique sources and id prefixes", () => {
+    expect(COUNTY_BONFIRE_CONFIGS).toHaveLength(108);
+    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.source)).size).toBe(108);
+    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.idPrefix)).size).toBe(108);
   });
 
   for (const cfg of COUNTY_BONFIRE_CONFIGS.filter((c) => !NO_CAPTURE.has(c.source))) {
@@ -100,8 +134,9 @@ describe("county Bonfire boards", () => {
         expect(r.agency.length).toBeGreaterThan(0);
         expect(Date.parse(r.due_date!)).toBeGreaterThan(now);
       }
-      // Nothing survives once every deadline has passed.
-      expect(parseCountyBonfire(cfg.source, capture(t, 1), Date.parse("2028-01-01T00:00:00Z")).rows).toHaveLength(0);
+      // Nothing survives once every deadline has passed (Temple posts continuous
+      // solicitations open until 2031).
+      expect(parseCountyBonfire(cfg.source, capture(t, 1), Date.parse("2040-01-01T00:00:00Z")).rows).toHaveLength(0);
     });
   }
 

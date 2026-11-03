@@ -497,6 +497,37 @@ const ELECTRICAL_TITLE_WORDS = /\b(led lighting|lighting (replacement|upgrades?|
 /** Owner 2026-10-08 (Georgia): boiler/chiller/ventilation equipment work, title only. */
 const HVAC_TITLE_WORDS = /\b(boilers?|chillers?|energy recovery (units?|ventilators?)|condensers?|central a\/?c)\b/;
 
+/**
+ * Owner 2026-11-03 ("we need more construction bids in TX", "max inputs"): job
+ * titles that are construction work but carry none of the words above —
+ * "ADA Improvements", "New Fire Station", "Concrete Repairs", "HMAC Overlay",
+ * "Street Rehabilitation", "Parking Garage Repairs", "Restroom Facility".
+ * Title only.
+ */
+const EXTRA_CONSTRUCTION_TITLE_WORDS =
+  /\b(ada (improvements?|upgrades?|compliance|accessibility|ramps?)|accessibility improvements?|(fire|police|ems|pump|lift|booster) stations?|(new|replacement) (building|facility|station|school|library|park|shelter|restroom)s?|restroom (facility|building)s?|concrete (repairs?|replacements?|improvements?|flatwork|sidewalks?|curbs?|pavement|paving|work)|curb (and|&) gutter|curbs?|hmac|hot mix|overlays?|seal ?coat(ing)?|micro ?surfacing|full depth reclamation|reconstruction|(street|road|roadway|alley|pavement|bridge|sewer|culvert|dam|spillway|tank|well|building|facility|parking) (repairs?|replacement|rehab(ilitation)?|reconstruction|upgrades?)|parking (garage|lot|structure)s?|(storm|sanitary) sewer|wastewater (treatment|plant|line|collection)|water (treatment|plant|well|tower|storage tank|line replacement)|elevated storage tank|ground storage tank|(water|wastewater|sewer) (system )?improvements?|utility (improvements?|relocations?|extensions?)|(water|sewer) extensions?|detention pond|retaining walls?|bridges?|low water crossings?|box culverts?|trails? (project|construction|improvements?|extension)|hike and bike|splash pad|playground (installation|replacement|improvements?)|athletic (fields?|complex)|sports (complex|fields?)|tennis courts?|pickleball courts?|basketball courts?|bleachers|fieldhouse|natatorium|buildout|build-out|tenant finish(-| )?out|finish(-| )?out|expansion project|building expansion|facility expansion|remodel(s|ing)?|renovations?|demolitions?|(asbestos|lead|mold) abatement|re-?roofs?|roof(ing)? (project|replacement|repairs?|restoration|recoat(ing)?)|waterproofing|foundation repairs?|masonry|stucco|brick (repairs?|work)|paint(ing)? (of|project)|fencing|fence|gates? (installation|replacement)|grading|excavation|site ?work|earthwork|drainage|flood control|channel improvements?|erosion|riprap|boat ramp|bulkhead|dock|pier|marina|levee|jail (improvements?|renovation)|courthouse (improvements?|renovation|restoration)|hangar|taxiway|runway|apron|airport improvements?|rail (improvements?|crossing)|sidewalks?|paving|asphalt|chip seal|crack seal|striping)\b/;
+
+/** True when a TITLE names construction work. Used by the Construction trade
+ *  search as a match path that is not bounded by the 64-phrase term cap. */
+export function isConstructionTitle(title: string): boolean {
+  const t = (title || "").toLowerCase();
+  if (!t) return false;
+  if (t.includes("construction") || t.includes("renovation") || t.includes("demolition")) return true;
+  if (CONSTRUCTION_WORDS.test(t) || CONSTRUCTION_TITLE_WORDS.test(t) || EXTRA_CONSTRUCTION_TITLE_WORDS.test(t)) return true;
+  return MORE_CONSTRUCTION_TITLE_WORDS.test(t) && !ELECTRICAL_WORDS.test(t) && !ELECTRICAL_TITLE_WORDS.test(t) && !HVAC_TITLE_WORDS.test(t);
+}
+
+/** A construction-word title that is really a goods buy or a service contract:
+ *  "Portable Asphalt Recycling Machine", "Asphalt Materials", "Concrete Supplies",
+ *  "Construction Inspection Services", "Construction Management Software". */
+export function isConstructionNonWork(title: string): boolean {
+  const t = (title || "").toLowerCase();
+  if (/\b(machines?|equipment|trucks?|trailers?|vehicles?|loaders?|rollers?|pavers? (machine|equipment)|parts|software|licen[cs]es?|subscriptions?|uniforms?|tools?|rental of)\b/.test(t) && !/\b(installation|install|repairs? (to|of) (the )?(building|facility|roof|street|bridge))\b/.test(t)) return true;
+  if (/\b(materials?|suppl(y|ies)|aggregates?|cold mix|emulsions?|rock|gravel|sand|limestone|base material|ready[- ]mix|rebar|lumber|pipe and fittings)\b/.test(t) && !/\b(and|&) (installation|install|labor|construction)\b|\b(construction|project|improvements?|repairs?|replacement|rehabilitation|overlay)\b/.test(t.replace(/\b(road|building|construction) materials?\b/g, ""))) return true;
+  if (/\b(inspection|testing|survey(ing)?|engineering|design services|architect(ural)?|consultant|consulting|management services|program management|construction management|cm services|materials testing|observation|staking|assessments?|study|studies|master plan|feasibility|appraisals?|sweeping|janitorial|custodial|mowing)\b/.test(t) && !/\b(design[- ]build|cmar|cm at risk|construction manager at risk|general contractor)\b/.test(t)) return true;
+  return false;
+}
+
 export function mapCategory(typeValue: string, title: string, description: string): string {
   const t = (typeValue || "").toLowerCase();
   const titleLc = (title || "").toLowerCase();

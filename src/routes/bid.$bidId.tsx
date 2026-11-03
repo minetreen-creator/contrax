@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { bidFitReviewHref } from "~/lib/bid-fit-review-link";
 import { createServerFn } from "@tanstack/react-start";
 import { WinnerPriceLine } from "~/components/WinnerPriceLine";
 import { deriveWinnerPrice } from "~/lib/winner-price";
@@ -472,14 +471,6 @@ function BidDetailPage() {
                   >
                     Open original notice ↗
                   </a>
-                  {bidFitReviewHref({ ...bid, source_url: sourceUrl }) && (
-                    <a
-                      href={bidFitReviewHref({ ...bid, source_url: sourceUrl })!}
-                      className="ml-4 text-sm font-semibold text-slate-200 hover:text-white"
-                    >
-                      Not sure it fits? Get a $49 Bid Fit Review →
-                    </a>
-                  )}
                 </div>
               )}
               {bid.has_contact && contact !== undefined && <BidContactPanel contact={contact} bidId={bid.id} />}

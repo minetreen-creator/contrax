@@ -12,7 +12,7 @@
  * /signup?plan=professional and fires `start_trial` (same event names as the
  * verified live homepage hero). No "unlimited" claims anywhere.
  */
-import { bidFitReviewHref } from "~/lib/bid-fit-review-link";
+import { jobSummary, valueLabel } from "~/lib/bid-job-summary";
 import { createServerFn } from "@tanstack/react-start";
 import type { ReactNode } from "react";
 import {
@@ -41,6 +41,8 @@ import {
   type StateAggregate,
 } from "~/lib/contract-map";
 import { trackEvent } from "~/lib/track";
+import { redirectToCheckout } from "~/lib/checkout";
+import { STARTER_FIRST_MONTH_PRICE } from "~/lib/starter-offer";
 import { expandTrade, isStrongTradeMatch, tradeKeywordPred } from "~/lib/trade-registry";
 import { resolveBidState } from "~/lib/location-state";
 import { RELATED_SEO_TRADES, SEO_TRADES, SEO_TRADE_BY_SLUG } from "~/lib/seo-trades";
@@ -301,9 +303,25 @@ export interface RegionTradeData {
 
 /** Keep only rows performed in (or bought by) `code`, soonest deadline first. */
 export function filterBidsToState(rows: SeoBid[], code: string): SeoBid[] {
+  // Owner 2026-11-03 ("do 2 and 3"): sort on the real date (the stored value
+  // can be a Date string like "Wed Jun 04 2027 …", which sorted by weekday
+  // name and put a June 2027 bid first), and show a job posted on two boards
+  // once (TxDOT Pampa appeared three times).
+  const when = (d: string | null) => {
+    const t = d ? Date.parse(d) : NaN;
+    return Number.isNaN(t) ? Number.POSITIVE_INFINITY : t;
+  };
+  const seen = new Set<string>();
   return rows
     .filter((b) => resolveBidState(b.location, b.agency) === code)
-    .sort((a, b) => String(a.due_date ?? "9999").localeCompare(String(b.due_date ?? "9999")));
+    .sort((a, b) => when(a.due_date) - when(b.due_date))
+    .filter((b) => {
+      const t = when(b.due_date);
+      const key = `${b.title.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim()}|${Number.isFinite(t) ? new Date(t).toISOString().slice(0, 10) : ""}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
 }
 
 export const getRegionTradeData = createServerFn({ method: "GET" })
@@ -614,9 +632,6 @@ export function SeoFooterLinks() {
       <a href="/radar" className="transition-colors hover:text-white">Contract Radar</a>
       <a href="/map" className="transition-colors hover:text-white">Contract Map</a>
       <a href="/pricing" className="transition-colors hover:text-white">Pricing</a>
-      <a href="/data" className="transition-colors hover:text-white">Bid Data API</a>
-      <a href="/leads" className="transition-colors hover:text-white">Award Leads</a>
-      <a href="/suppliers" className="transition-colors hover:text-white">Supplier Directory</a>
       <a href="/signup" className="transition-colors hover:text-white">Sign up</a>
     </>
   );
@@ -649,7 +664,11 @@ export function BidCard({ b }: { b: SeoBid }) {
   // UTC so a US browser cannot show the day before. Every other source keeps
   // `fmtDue`'s existing output, byte for byte.
   const due = publishedDateOnlyFor(b.due_date, b.source) ?? fmtDue(b.due_date);
-  const reviewHref = bidFitReviewHref(b);
+  // Owner 2026-11-03 ("do 2 and 3"): the card reads like a contractor would
+  // say it. A plain job summary (our own source notes dropped), no NAICS line,
+  // no "Not specified" value, and no $49 review upsell.
+  const summary = jobSummary(b.description, b.title);
+  const value = valueLabel(b.estimated_value);
   const title = (
     <span className="line-clamp-2 text-base font-semibold text-slate-900">
       {b.title || "Solicitation"}
@@ -688,18 +707,17 @@ export function BidCard({ b }: { b: SeoBid }) {
             Closes {due}
           </span>
         )}
-        {b.estimated_value && (
-          <span className="font-semibold text-emerald-700">{b.estimated_value}</span>
+        {value && (
+          <span className="font-semibold text-emerald-700">{value}</span>
         )}
         {b.set_aside && (
           <span className="rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-700">
             {b.set_aside}
           </span>
         )}
-        {b.naics_code && <span>NAICS {b.naics_code}</span>}
       </div>
-      {b.description && (
-        <p className="mt-3 line-clamp-3 text-sm text-slate-600">{b.description}</p>
+      {summary && (
+        <p className="mt-3 line-clamp-3 text-sm text-slate-600">{summary}</p>
       )}
       {b.source_url && (
         <span className="mt-2 inline-block text-xs font-medium text-blue-700">
@@ -714,11 +732,6 @@ export function BidCard({ b }: { b: SeoBid }) {
       <a href={`/bid/${b.id}`} className="mt-2 ml-4 inline-block text-xs font-medium text-slate-700 hover:text-slate-900">
         Details on Contrax →
       </a>
-      {reviewHref && (
-        <a href={reviewHref} className="mt-2 block text-xs font-medium text-amber-700 hover:text-amber-600">
-          Not sure it fits? Get a $49 Bid Fit Review →
-        </a>
-      )}
     </li>
   );
 }
@@ -1011,20 +1024,57 @@ export function RegionTradeView({ data, radarHref }: { data: RegionTradeData; ra
         {data.count.toLocaleString("en-US")} open {label.toLowerCase()} solicitation{data.count === 1 ? "" : "s"} in {name}
       </h2>
       <p className="mt-1 text-sm text-slate-500">
-        Soonest deadline first{data.count > data.bids.length ? ` · showing ${data.bids.length}` : ""}. Each links to its official notice.
+        Soonest deadline first{data.count > data.bids.length ? ` · showing ${data.bids.length}` : ""}. Tap one to see the job.
       </p>
       <RelatedTradeLink data={data} />
       <ul className="mt-5 grid gap-4 sm:grid-cols-2">
-        {data.bids.map((b) => (
+        {data.bids.slice(0, 4).map((b) => (
           <BidCard key={b.id} b={b} />
         ))}
       </ul>
+      {/* Owner 2026-11-03 ("do 2 and 3"): what the $5 buys, in the list where
+          the visitor is already reading this state's bids for their trade. */}
+      <DailyEmailOffer tradeLabel={label} stateName={name} count={data.count} />
+      {data.bids.length > 4 && (
+        <ul className="mt-5 grid gap-4 sm:grid-cols-2">
+          {data.bids.slice(4).map((b) => (
+            <BidCard key={b.id} b={b} />
+          ))}
+        </ul>
+      )}
       <p className="mt-6">
         <a href={radarHref} className="inline-block rounded-xl bg-blue-700 px-5 py-3 text-sm font-bold text-white hover:bg-blue-800">
           See your best matches in Radar →
         </a>
       </p>
     </section>
+  );
+}
+
+/** "New {trade} bids in {state}, emailed at 6 AM: $5 for 30 days", straight to checkout. */
+export function DailyEmailOffer({ tradeLabel, stateName, count }: { tradeLabel: string; stateName: string; count: number }) {
+  const trade = tradeLabel.toLowerCase();
+  return (
+    <div className="mt-6 rounded-2xl bg-slate-900 p-6 text-white shadow-lg">
+      <p className="text-lg font-bold">
+        📬 Get new {trade} bids in {stateName} in your inbox at 6 AM
+      </p>
+      <p className="mt-2 text-sm text-slate-300">
+        {count.toLocaleString("en-US")} are open today and more post every week. Starter emails you each new one in your
+        trade every weekday morning and opens every official notice, for 30 days.
+      </p>
+      <a
+        href={`/signup?plan=starter&next=${encodeURIComponent("/upgrade?plan=starter")}`}
+        onClick={(e) => {
+          e.preventDefault();
+          trackEvent("seo_daily_email_offer_click", `${trade}|${stateName}`);
+          void redirectToCheckout("starter");
+        }}
+        className="mt-4 inline-block rounded-xl bg-amber-400 px-6 py-3 text-base font-bold text-slate-950 hover:bg-amber-300"
+      >
+        Start for ${STARTER_FIRST_MONTH_PRICE} · 30 days, no auto-renew →
+      </a>
+    </div>
   );
 }
 

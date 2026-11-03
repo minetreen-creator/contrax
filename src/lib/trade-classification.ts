@@ -513,7 +513,7 @@ const EXTRA_CONSTRUCTION_TITLE_WORDS =
  *  Drive)", "George Road … (Hunters Bow to NW Military Highway)"), a city bond
  *  program tag ("(2022 Bond)"), or "area streets" (owner 2026-11-03, San Antonio). */
 const ROAD_SEGMENT_TITLE =
-  /\([^()]*\bto\b[^()]*\b(rd|road|st|street|ave|avenue|dr|drive|blvd|boulevard|hwy|highway|pkwy|parkway|ln|lane|loop|trail|fm \d+|ih[- ]?\d+|i-\d+|us \d+|sh \d+)\b[^()]*\)|\(\d{4} bond\)|\b\d{4} bond program\b|\barea streets\b/;
+  /\([^()]*\bto\b[^()]*\b(rd|road|st|street|ave|avenue|dr|drive|blvd|boulevard|hwy|highway|pkwy|parkway|ln|lane|loop|trail|fm \d+|ih[- ]?\d+|i-\d+|us \d+|sh \d+)\b[^()]*\)|\(\d{4} bond\)|\b\d{4} bond program\b|\barea streets\b|\bdetention (basin|pond)s?\b|\bditch (re-?establishment|improvements?|regrading)\b|\bintersection\b[^.]{0,60}\bimprovements?\b|\bcrossing improvements?\b/;
 
 export function isConstructionTitle(title: string): boolean {
   const t = (title || "").toLowerCase();
@@ -531,7 +531,7 @@ export function isConstructionNonWork(title: string): boolean {
   const t = (title || "").toLowerCase();
   if (/\b(machines?|equipment|trucks?|trailers?|vehicles?|loaders?|rollers?|pavers? (machine|equipment)|parts|software|licen[cs]es?|subscriptions?|uniforms?|tools?|rental of)\b/.test(t) && !/\b(installation|install|repairs? (to|of) (the )?(building|facility|roof|street|bridge))\b/.test(t)) return true;
   if (/\b(materials?|suppl(y|ies)|aggregates?|cold mix|emulsions?|rock|gravel|sand|limestone|base material|ready[- ]mix|rebar|lumber|pipe and fittings)\b/.test(t) && !/\b(and|&) (installation|install|labor|construction)\b|\b(construction|project|improvements?|repairs?|replacement|rehabilitation|overlay)\b/.test(t.replace(/\b(road|building|construction) materials?\b/g, ""))) return true;
-  if (/\b(inspection|testing|survey(ing)?|engineering|design services|architect(ural)?|consultant|consulting|management services|program management|construction management|cm services|materials testing|observation|staking|assessments?|study|studies|master plan|feasibility|appraisals?|sweeping|janitorial|custodial|mowing)\b/.test(t) && !/\b(design[- ]build|cmar|cm at risk|construction manager at risk|general contractor)\b/.test(t)) return true;
+  if (/\b(inspection|testing|survey(ing)?|engineering|design services|architect(ural)?|consultant|consulting|management services|program management|construction management|cm services|cmi|cm&i|cm ?& ?i|materials testing|observation|staking|assessments?|study|studies|master plan|feasibility|appraisals?|sweeping|janitorial|custodial|mowing)\b/.test(t) && !/\b(design[- ]build|cmar|cm at risk|construction manager at risk|general contractor)\b/.test(t)) return true;
   return false;
 }
 

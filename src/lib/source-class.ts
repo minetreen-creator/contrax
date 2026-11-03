@@ -2866,6 +2866,14 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
     recordType: "opportunity",
   },
   // City of San Antonio's own bid list, added 2026-11-03.
+  // City of Houston on Beacon, added 2026-11-03.
+  tx_houston_beacon: {
+    class: "local",
+    city: "Houston",
+    scopeState: "TX",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
   tx_san_antonio: {
     class: "local",
     city: "San Antonio",

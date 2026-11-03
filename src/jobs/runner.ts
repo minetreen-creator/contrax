@@ -57,6 +57,7 @@ import { fetchOhDaytonBids } from "./sources/oh-dayton";
 import { fetchVaColonialHeightsBids } from "./sources/va-colonial-heights";
 import { fetchOhWorthingtonBids } from "./sources/oh-worthington";
 import { fetchTxSanAntonioBids } from "./sources/tx-san-antonio";
+import { fetchTxHoustonBeaconBids } from "./sources/tx-houston-beacon";
 import { fetchOhFranklinCountyBids } from "./sources/oh-franklin-county";
 import { fetchNjHarrisonBids } from "./sources/nj-harrison";
 import { fetchVaLoudounBids } from "./sources/va-loudoun";
@@ -526,6 +527,8 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "oh_worthington", fetchFn: fetchOhWorthingtonBids },
   // City of San Antonio's own bid list (owner 2026-11-03).
   { name: "tx_san_antonio", fetchFn: () => fetchTxSanAntonioBids() },
+  // City of Houston's open solicitations on Beacon (owner 2026-11-03).
+  { name: "tx_houston_beacon", fetchFn: () => fetchTxHoustonBeaconBids() },
   { name: "oh_franklin_county", fetchFn: () => fetchOhFranklinCountyBids() },
   { name: "nj_harrison", fetchFn: () => fetchNjHarrisonBids() },
   { name: "va_loudoun", fetchFn: fetchVaLoudounBids },

@@ -375,6 +375,60 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
     ],
     naics: ["238120"],
   },
+  /**
+   * Excavation & Site Work (owner 2026-11-03: a Greenwood, SC visitor searched
+   * "Excavation" in SC and got 2 matches). With no entry, excavation fell back
+   * to a short NAICS 238910 word list and missed the way governments post the
+   * job: site work, clearing and grubbing, culverts, ditches, trenching,
+   * drainage, ponds, water and sewer mains. Phrases only; no bare "pipe",
+   * "drain" or "pond". Equipment buys and rentals are vetoed below.
+   */
+  "excavation-sitework": {
+    label: "Excavation & Site Work",
+    synonyms: [
+      "excavation",
+      "excavating",
+      "earthwork",
+      "earth work",
+      "site work",
+      "sitework",
+      "site preparation",
+      "site prep",
+      "site development",
+      "site improvements",
+      "grading",
+      "regrading",
+      "land clearing",
+      "clearing and grubbing",
+      "grubbing",
+      "dirt work",
+      "fill dirt",
+      "backfill",
+      "trenching",
+      "culvert",
+      "culverts",
+      "ditch cleaning",
+      "ditch maintenance",
+      "ditching",
+      "drainage improvement",
+      "drainage improvements",
+      "drainage repair",
+      "storm drain",
+      "storm sewer",
+      "stormwater pipe",
+      "detention pond",
+      "retention pond",
+      "pond construction",
+      "water main",
+      "sewer main",
+      "sewer line",
+      "water line installation",
+      "underground utility",
+      "underground utilities",
+      "erosion control",
+    ],
+    naics: ["238910"],
+  },
   "hvac-mechanical": {
     label: "HVAC",
     synonyms: [
@@ -1453,7 +1507,7 @@ function isNonCarrierFreightWork(titleText: string, expansion: TradeExpansion): 
  */
 export function serviceTradeMismatch(titleText: string, expansion: TradeExpansion): boolean {
   const codes = expansion.naicsCodes;
-  const serviceTrade = codes.some((c) => c === "561730" || c === "238220" || c === "561612" || c === "238120" || c.startsWith("484"));
+  const serviceTrade = codes.some((c) => c === "561730" || c === "238220" || c === "561612" || c === "238120" || c === "238910" || c.startsWith("484"));
   if (!serviceTrade) return false;
   if (codes.some((c) => c.startsWith("484")) && /\b(?:lift trucks?|forklifts?|pallet jacks?)\b/.test(titleText)) return true;
   if (codes.includes("561612") && /\bkitchen patrol\b/.test(titleText)) return true;
@@ -1465,6 +1519,11 @@ export function serviceTradeMismatch(titleText: string, expansion: TradeExpansio
   // Equipment" were the top welding matches).
   if (codes.includes("238120") && /\b(?:purchase|procurement|materials?)\b/.test(titleText) && !/\b(?:services?|repairs?|install(?:ation)?|replacement|fabricat\w*|retrofit)\b/.test(titleText)) return true;
   if (codes.includes("238120") && /\b(?:welders and guns|welding (?:machines?|guns?|wire|rods?|helmets?|gas|equipment|supplies)|welding (?:&|and) metal trade supplies)\b/.test(titleText) && !/\b(?:services?|repairs?)\b/.test(titleText)) return true;
+  // An excavator, backhoe or skid steer bought or rented is equipment, not
+  // excavation work (owner 2026-11-03).
+  if (codes.includes("238910") && /\b(?:excavators?|backhoes?|skid steers?|mini ex|track loaders?|dozers?|bulldozers?)\b/.test(titleText) && !/\b(?:services?|work|grading|excavation|clearing)\b/.test(titleText.replace(/\b(?:excavators?)\b/g, ""))) return true;
+  // Culvert pipe, fill or stone bought by the load is a material buy.
+  if (codes.includes("238910") && /\b(?:purchase|procurement|materials?|suppl(?:y|ies))\b/.test(titleText) && !/\b(?:services?|install(?:ation)?|replacement|repairs?|construction|cleaning|work)\b/.test(titleText)) return true;
   // "Mechanical Muck Management" is lake dredging, not mechanical (HVAC) work.
   if (codes.includes("238220") && /\bmuck\b/.test(titleText)) return true;
   const namesService = /\b(?:services?|maintenance|repairs?|install(?:ation)?|replacement|replace|removal|mowing|hauling|transport(?:ation)?|guards?)\b/.test(titleText);

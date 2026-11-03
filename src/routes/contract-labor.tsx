@@ -1,6 +1,6 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { getCurrentUser, type AuthUser } from "~/lib/auth";
+import type { AuthUser } from "~/lib/auth";
 import { ContractorOperationsAccess } from "~/components/ContractorOperationsAccess";
 
 type Entry = { id: number | null; worker_name: string; job_name: string; work_date: string;
@@ -11,7 +11,9 @@ const money = (cents: number) => (cents / 100).toLocaleString("en-US", { style: 
 const inputClass = "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900";
 
 export const Route = createFileRoute("/contract-labor")({
-  loader: async (): Promise<{ user: AuthUser | null }> => ({ user: await getCurrentUser() }),
+  // Owner 2026-11-03: "get rid of payments tracker on website". The page is
+  // off the site; the address sends everyone to the homepage.
+  loader: async (): Promise<{ user: AuthUser | null }> => { throw redirect({ to: "/" }); },
   component: Guard,
   head: () => ({ meta: [{ title: "Contrax Payments — Labor Review" }, { name: "robots", content: "noindex, nofollow" }] }),
 });

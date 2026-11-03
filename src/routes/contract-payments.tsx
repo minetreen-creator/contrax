@@ -1,6 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { getCurrentUser, type AuthUser } from "~/lib/auth";
+import type { AuthUser } from "~/lib/auth";
 import { PAYMENT_STATUSES, type PaymentInput } from "~/lib/contract-payments";
 import { ContractorOperationsAccess } from "~/components/ContractorOperationsAccess";
 import { SiteHeader } from "~/components/SiteHeader";
@@ -17,7 +17,9 @@ const field = "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text
 const label = "block text-sm font-medium text-slate-700";
 
 export const Route = createFileRoute("/contract-payments")({
-  loader: async (): Promise<{ user: AuthUser | null }> => ({ user: await getCurrentUser() }),
+  // Owner 2026-11-03: "get rid of payments tracker on website". The page is
+  // off the site; the address sends everyone to the homepage.
+  loader: async (): Promise<{ user: AuthUser | null }> => { throw redirect({ to: "/" }); },
   component: Guard,
   head: () => ({ meta: [{ title: "Contrax Payments — Payment Follow-up" }, { name: "robots", content: "noindex, nofollow" }] }),
 });

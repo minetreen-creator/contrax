@@ -1,20 +1,19 @@
-// Temporary diagnostic (owner 2026-11-03: "yes" to fixing the six dead sources).
-// Runs each dead reader once, no database, and prints its error.
-import { TAIL_SOURCES } from "../../src/jobs/runner";
-const names = ["or_oregonbuys", "tn_cpo", "ms_dfa", "il_chicago_dps", "nj_wall", "fl_pensacola"];
-for (const n of names) {
-  const s = TAIL_SOURCES.find((x) => x.name === n);
-  if (!s) { console.log(`== ${n}: not in TAIL_SOURCES`); continue; }
-  const t0 = Date.now();
+// Temporary diagnostic (owner 2026-11-03: fixing dead sources). One request per
+// refusing site with our honest bot name instead of a browser-style one. If a
+// site still refuses, that is a block we respect.
+const HONEST = "Mozilla/5.0 (compatible; ContraxBot/1.0; +https://www.contrax.company)";
+const urls = [
+  "https://www.ms.gov/dfa/contract_bid_search/Bid?autoloadGrid=False",
+  "https://www.chicago.gov/content/dam/city/depts/dps/WeeklyBidOpportunities/2026WeeklyBidOpportunities/102626.pdf",
+  "https://www.wallnj.gov/bids.aspx",
+  "https://www.cityofpensacola.com/bids.aspx",
+  "https://www.tn.gov/generalservices/procurement/central-procurement-office--cpo-/supplier-information/request-for-proposals--rfp--opportunities1.html",
+];
+for (const u of urls) {
   try {
-    const r: any = await s.fetchFn();
-    const rows = Array.isArray(r) ? r : r.rows;
-    console.log(`== ${n}: OK ${rows.length} rows in ${Date.now() - t0} ms; skipped ${JSON.stringify(r.skipped ?? {})}`);
-  } catch (e: any) {
-    console.log(`== ${n}: FAIL in ${Date.now() - t0} ms: ${String(e?.message ?? e).slice(0, 400)}`);
-    if (e?.details) console.log(`   details: ${JSON.stringify(e.details).slice(0, 800)}`);
-    if (e?.errors) console.log(`   errors: ${JSON.stringify(e.errors).slice(0, 800)}`);
-    if (e?.cause) console.log(`   cause: ${String(e.cause?.message ?? e.cause).slice(0, 400)}`);
-  }
+    const r = await fetch(u, { headers: { "User-Agent": HONEST, Accept: "text/html,application/pdf,*/*" }, signal: AbortSignal.timeout(25000) });
+    const b = await r.arrayBuffer();
+    console.log(`${r.status} ${b.byteLength}B server=${r.headers.get("server")} cf=${r.headers.get("cf-ray") ? "yes" : "no"} akamai=${r.headers.get("x-akamai-transformed") || r.headers.get("akamai-grn") ? "yes" : "no"} ${u}`);
+  } catch (e) { console.log(`ERR ${String(e).slice(0, 160)} ${u}`); }
+  await new Promise((r) => setTimeout(r, 2000));
 }
-process.exit(0);

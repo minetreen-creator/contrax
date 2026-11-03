@@ -112,10 +112,12 @@ const BLOCK_SPLIT = /(?=<div class="(?:bidsHeader listHeader|listItemsRow bid))/
  */
 export const CIVICENGAGE_MIN_BODY_BYTES = 5_000;
 
-/** Sent exactly like the probe that captured the fixtures (browser-like UA). */
+/** Our honest bot name (owner 2026-11-03, source dropoff): CivicEngage sites sit
+ *  behind Cloudflare, which answered 403 to a browser-style name sent from the
+ *  sync's datacenter (Wall NJ, Pensacola) and 200 to this one; the 2026-11-03
+ *  Texas capture used it on 86 boards with no refusal. */
 export const CIVICENGAGE_HEADERS = {
-  "User-Agent":
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+  "User-Agent": "Mozilla/5.0 (compatible; ContraxBot/1.0; +https://www.contrax.company)",
   Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
 } as const;
 

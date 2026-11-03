@@ -62,8 +62,9 @@ describe("tn_cpo — parse (captured page)", () => {
 });
 
 describe("tn_cpo — registration", () => {
-  test("registered as a tail sync source, Tennessee home jurisdiction, state badge", () => {
-    expect(TAIL_SOURCES.some((s) => s.name === "tn_cpo")).toBe(true);
+  test("Tennessee home jurisdiction and state badge; retired from the sync 2026-11-03", () => {
+    // tn.gov answers 403 to the sync with any name: a block we respect.
+    expect(TAIL_SOURCES.some((s) => s.name === "tn_cpo")).toBe(false);
     expect(SOURCE_HOME_JURISDICTIONS["tn_cpo"]).toBe("TN");
     expect(isStateLocalSource(["tn_cpo"])).toBe(true);
     expect(sourceBadgeLabel("tn_cpo")).toBe("State (TN)");

@@ -186,8 +186,9 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // + 2 Bonfire and 4 CivicEngage Indiana boards, 2026-10-30 (325 → 331).
     // + 41 Bonfire and 83 CivicEngage Texas boards, 2026-11-03 (331 → 455).
     // + City of San Antonio, 2026-11-03 (455 → 456).
-    // + City of Houston (Beacon), 2026-11-03 (456 → 457).
-    expect(TAIL_SOURCES.length).toBe(457);
+    // + City of Houston (Beacon), 2026-11-03 (456 → 457); − tn_cpo and
+    // il_chicago_dps, retired 2026-11-03 (their sites refuse the sync) → 455.
+    expect(TAIL_SOURCES.length).toBe(455);
   });
 
   test("every city registry entry the product fetches is LOCAL with a city name", () => {
@@ -276,7 +277,8 @@ describe("the owner's per-item rulings (exceptions a–e)", () => {
   test("nys_socrata is RETIRED (ruling c) — class retained, never displayed as merely empty", () => {
     expect(isRetiredSource("nys_socrata")).toBe(true);
     expect(SOURCE_CLASSES["nys_socrata"]!.class).toBe("state");
-    expect([...RETIRED_SOURCES].sort()).toEqual(["nyc_socrata", "nys_socrata"]);
+    // + tn_cpo and il_chicago_dps (2026-11-03: their sites answer 403 to the sync).
+    expect([...RETIRED_SOURCES].sort()).toEqual(["il_chicago_dps", "nyc_socrata", "nys_socrata", "tn_cpo"]);
   });
 
   test("the doors keep their 2-letter names — the class is recorded separately (ruling e)", () => {

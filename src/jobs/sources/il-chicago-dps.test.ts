@@ -116,8 +116,10 @@ describe("il_chicago_dps — helpers", () => {
 });
 
 describe("il_chicago_dps — registration", () => {
-  test("a Chicago, Illinois local OPEN-opportunity source (not an award feed)", () => {
-    expect(TAIL_SOURCES.some((s) => s.name === "il_chicago_dps")).toBe(true);
+  test("a Chicago, Illinois local OPEN-opportunity source (not an award feed), retired 2026-11-03", () => {
+    // chicago.gov answers 403 to the sync with any name: a block we respect.
+    expect(TAIL_SOURCES.some((s) => s.name === "il_chicago_dps")).toBe(false);
+    expect(SOURCE_CLASSES["il_chicago_dps"]?.retired).toBe(true);
     expect(SOURCE_CLASSES["il_chicago_dps"]).toMatchObject({ class: "local", city: "Chicago", scopeState: "IL", recordType: "opportunity" });
     expect(AWARD_TYPE_SOURCES.has("il_chicago_dps")).toBe(false);
     expect(SOURCE_HOME_JURISDICTIONS["il_chicago_dps"]).toBe("IL");

@@ -45,7 +45,7 @@ export const SHOW_FREE_INCUMBENT = true;
 // Owner 2026-11-03 ("yes"): back to 3. Today 17 searchers each saw 1 bid and none
 // reached pricing, signup or checkout; three real bids show the list is real
 // before the $5 ask.
-export const FREE_ANONYMOUS_RADAR_RESULTS = 3;
+export const FREE_ANONYMOUS_RADAR_RESULTS: number = 3;
 
 /** One anonymous Radar search across browser and network before signup. */
 export const FREE_RADAR_PREVIEW_SCANS = 1;

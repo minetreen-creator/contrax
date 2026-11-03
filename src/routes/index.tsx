@@ -311,7 +311,6 @@ const FOOTER_GROUPS = [
     links: [
       { href: "/local-bids", label: "City & County Bids" },
       { href: "/grants", label: "Grants" },
-      { href: "/contract-payments", label: "Payments Tracker" },
       { href: "/blog", label: "Blog" },
     ],
   },

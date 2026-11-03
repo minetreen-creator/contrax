@@ -11,6 +11,8 @@ import { isAdminEmail } from "~/lib/admin";
 import { ensureTrackedVisitorsTable } from "~/lib/scraper-watch.server";
 import type { TrackedVisitor } from "~/lib/scraper-watch";
 import {
+  etDayStartMs,
+  paidByEtDay,
   paidCheckoutCount,
   mapPoint,
   FEED_EVENTS,
@@ -26,6 +28,7 @@ import {
   type MoneyStats,
   type OnlineVisitor,
   type StateSearchStat,
+  type TodayStats,
   type TrialCard,
 } from "~/lib/live-console";
 
@@ -413,10 +416,12 @@ async function handler({ request }: { request: Request }) {
       console.error("[api/admin/live-console] money panel unavailable:", e);
     }
 
+    const stripe = await loadStripePaid(now);
     return Response.json({
       generatedAt: new Date(now).toISOString(),
       money,
-      paid48h: await loadPaid48h(now),
+      paid48h: stripe?.count48h ?? null,
+      today: await loadToday(db, stripe),
       map,
       onlineCount: people.length,
       scannersHidden: scanners.size,
@@ -458,10 +463,10 @@ async function loadStarterPassStats() {
 
 /** $5 first-month Starter subscriptions, read live from Stripe; null on any error. */
 /** Paid Stripe checkouts in the last 48 hours, or null when Stripe could not be read. */
-async function loadPaid48h(now: number): Promise<number | null> {
+async function loadStripePaid(now: number): Promise<{ count48h: number; day: ReturnType<typeof paidByEtDay> } | null> {
   try {
     const since = Math.floor(now / 1000) - 48 * 60 * 60;
-    const sessions: { payment_status?: string | null; customer_details?: { email?: string | null } | null }[] = [];
+    const sessions: { created: number; amount_total?: number | null; payment_status?: string | null; customer_details?: { email?: string | null } | null }[] = [];
     let after: string | undefined;
     for (let i = 0; i < 5; i++) {
       const res = await getStripe().checkout.sessions.list({
@@ -473,10 +478,89 @@ async function loadPaid48h(now: number): Promise<number | null> {
       if (!res.has_more || !res.data.length) break;
       after = res.data[res.data.length - 1].id;
     }
-    return paidCheckoutCount(sessions, isAdminEmail);
+    return { count48h: paidCheckoutCount(sessions, isAdminEmail), day: paidByEtDay(sessions, isAdminEmail, etDayStartMs(now)) };
   } catch (e) {
     console.error("[api/admin/live-console] paid checkouts unavailable:", e);
     return null;
   }
+}
+
+/**
+ * Mission Control's top strip (owner 2026-11-03 rework): people, searches and
+ * checkouts today vs yesterday (Eastern), with the same bot/QA/admin
+ * exclusions as the feed. People also drop email link scanners and
+ * data-center towns (src/lib/visitor-intel.ts); signed-in visitors always
+ * count. A failing piece reads 0 rather than failing the console.
+ */
+async function loadToday(db: ReturnType<typeof sql>, stripe: { day: ReturnType<typeof paidByEtDay> } | null): Promise<TodayStats> {
+  const human = `NOT ${BOT_EXCLUSION_SQL} AND ${qaFunnelExclusionSQL()} AND ${adminFunnelExclusionSQL()}`;
+  const since = "((NOW() AT TIME ZONE 'America/New_York')::date - 1)::timestamp AT TIME ZONE 'America/New_York'";
+  const isToday = "((created_at AT TIME ZONE 'America/New_York')::date = (NOW() AT TIME ZONE 'America/New_York')::date)";
+  const out: TodayStats = {
+    people: { today: 0, yesterday: 0 },
+    searches: { today: 0, yesterday: 0, zeroToday: 0 },
+    checkouts: { today: 0, yesterday: 0 },
+    paid: stripe ? stripe.day : null,
+  };
+  try {
+    const rows = (await db.query(
+      `SELECT visitor_id, ${isToday} AS is_today, COUNT(*)::int AS views,
+              MIN(created_at) AS first_at, MAX(created_at) AS last_at,
+              BOOL_OR(user_id IS NOT NULL) AS signed_in,
+              (ARRAY_AGG(city ORDER BY created_at DESC))[1] AS city,
+              (ARRAY_AGG(region ORDER BY created_at DESC))[1] AS region
+       FROM page_views
+       WHERE created_at >= ${since} AND visitor_id IS NOT NULL AND path NOT LIKE '/admin%' AND ${human}
+       GROUP BY visitor_id, 2`,
+    )) as { visitor_id: string; is_today: boolean; views: number; first_at: string; last_at: string; signed_in: boolean; city: string | null; region: string | null }[];
+    for (const r of rows) {
+      const span = (Date.parse(r.last_at) - Date.parse(r.first_at)) / 1000;
+      if (!r.signed_in && (emailLinkSweep(Number(r.views), span) || dataCenterLocation(r.city, r.region))) continue;
+      if (r.is_today) out.people.today++;
+      else out.people.yesterday++;
+    }
+  } catch (e) {
+    console.error("[api/admin/live-console] people today unavailable:", e);
+  }
+  try {
+    const rows = (await db.query(
+      `SELECT ${isToday.replace(/created_at/g, "s.created_at")} AS is_today, COUNT(*)::int AS n,
+              COUNT(*) FILTER (WHERE s.matched = 0)::int AS zero
+       FROM radar_search_log s
+       LEFT JOIN users u ON u.id = s.user_id
+       WHERE s.created_at >= ${since}
+         AND COALESCE(u.is_admin, FALSE) = FALSE
+         AND (s.visitor_id IS NULL OR s.visitor_id NOT IN (
+           SELECT DISTINCT visitor_id FROM funnel_events
+           WHERE visitor_id IS NOT NULL AND created_at > NOW() - INTERVAL '30 days'
+             AND NOT ${adminFunnelExclusionSQL()}
+         ))
+       GROUP BY 1`,
+    )) as { is_today: boolean; n: number; zero: number }[];
+    for (const r of rows) {
+      if (r.is_today) {
+        out.searches.today = Number(r.n);
+        out.searches.zeroToday = Number(r.zero);
+      } else out.searches.yesterday = Number(r.n);
+    }
+  } catch (e) {
+    console.error("[api/admin/live-console] searches today unavailable:", e);
+  }
+  try {
+    const rows = (await db.query(
+      `SELECT ${isToday} AS is_today, COUNT(DISTINCT visitor_id)::int AS n
+       FROM funnel_events
+       WHERE created_at >= ${since} AND visitor_id IS NOT NULL
+         AND event_name = 'plan_checkout_redirected' AND ${human}
+       GROUP BY 1`,
+    )) as { is_today: boolean; n: number }[];
+    for (const r of rows) {
+      if (r.is_today) out.checkouts.today = Number(r.n);
+      else out.checkouts.yesterday = Number(r.n);
+    }
+  } catch (e) {
+    console.error("[api/admin/live-console] checkouts today unavailable:", e);
+  }
+  return out;
 }
 

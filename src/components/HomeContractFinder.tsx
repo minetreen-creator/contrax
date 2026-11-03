@@ -14,6 +14,7 @@ import { raceRadarScan } from "~/lib/radar-scan-runner";
 import { getTrackingUser } from "~/lib/identity";
 import { trackEvent } from "~/lib/track";
 import { redirectToCheckout } from "~/lib/checkout";
+import { ADDRESS_TIP, ADDRESS_TIP_ES, isKnownTrade, looksLikeAddress, notATradeLine } from "~/lib/trade-input";
 import { STARTER_FIRST_MONTH_PRICE } from "~/lib/starter-offer";
 
 const STATES = [...US_PLACES].sort((a, b) =>
@@ -151,6 +152,12 @@ export function HomeContractFinder({ sample, openTotal = 0 }: { sample: Everyday
     };
     if (!answers.trade) {
       setError(c.needTrade);
+      return;
+    }
+    // Owner 2026-11-03: an address typed into the trade box got "0 matches".
+    if (looksLikeAddress(answers.trade)) {
+      trackEvent("home_address_in_trade", answers.trade.slice(0, 40));
+      setError(lang === "es" ? ADDRESS_TIP_ES : ADDRESS_TIP);
       return;
     }
     running.current = true;
@@ -359,14 +366,18 @@ export function HomeContractFinder({ sample, openTotal = 0 }: { sample: Everyday
                 </li>
               ))}
             </ul>
-            {error && (
+            {error && (error === ADDRESS_TIP || error === ADDRESS_TIP_ES) ? (
+              <p role="alert" className="rounded-lg bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900">
+                {error}
+              </p>
+            ) : error ? (
               <p role="alert" className="text-sm text-red-700">
                 {error}{" "}
                 <a href="/radar" className="font-semibold underline">
                   Open Radar →
                 </a>
               </p>
-            )}
+            ) : null}
           </form>
         </div>
       </div>
@@ -557,9 +568,10 @@ export function HomeContractFinder({ sample, openTotal = 0 }: { sample: Everyday
                   No direct matches found in this search.
                 </h3>
                 <p className="mt-2 text-slate-300">
-                  Try a different service or a wider area. We won’t fill your
-                  shortlist with unrelated jobs. Searches with no results don’t
-                  use your free preview.
+                  {isKnownTrade(result.answers.trade)
+                    ? "Try a different service or a wider area. We won’t fill your shortlist with unrelated jobs."
+                    : notATradeLine(result.answers.trade)}{" "}
+                  Searches with no results don’t use your free preview.
                 </p>
                 <a
                   href={result.radarHref}

@@ -72,6 +72,7 @@ import {
 import { fetchStrictRadarRows, radarRowPasses } from "~/lib/radar-candidates";
 import { radarShareUrl } from "~/lib/radar-share";
 import { closingSoonLast, roomToBidFirst } from "~/lib/radar-closing-soon";
+import { ADDRESS_TIP, isKnownTrade, looksLikeAddress, notATradeLine } from "~/lib/trade-input";
 import { redirectToCheckout } from "~/lib/checkout";
 import { cleanBidTitle } from "~/lib/bid-title";
 import { stateFromGeoHeaders, withTimeout } from "~/lib/radar-geo";
@@ -1356,6 +1357,7 @@ function RadarLanding() {
   // The niche trade a search fell back from (src/lib/radar-fallback.ts), for the notice.
   const [fallbackFrom, setFallbackFrom] = useState<string | null>(null);
   const [tradeHint, setTradeHint] = useState(false);
+  const [addressHint, setAddressHint] = useState(false);
   const [state, setState] = useState(urlState);
   const [cert, setCert] = useState<RadarCert | null>(urlCert ?? DEFAULT_RADAR_CERT);
   const [sizePref, setSizePref] = useState<SizeId | null>(urlSizePref ?? DEFAULT_RADAR_SIZE);
@@ -1750,6 +1752,14 @@ function RadarLanding() {
 
   const startScan = () => {
     if (!editing) return;
+    // Owner 2026-11-03: an address typed into the trade box ("6511East…")
+    // got "0 matches" three times; say what the box wants instead of searching.
+    if (looksLikeAddress(trade)) {
+      trackEvent("radar_address_in_trade", trade.trim().slice(0, 40));
+      setAddressHint(true);
+      document.getElementById("radar-trade")?.focus();
+      return;
+    }
     runScan({ trade: trade.trim(), state, cert: cert!, sizePref: sizePref! });
   };
 
@@ -1879,6 +1889,7 @@ function RadarLanding() {
                     didInteract.current = true;
                     setTrade(e.target.value);
                     setTradeHint(false);
+                    setAddressHint(false);
                   }}
                   placeholder='Or type: HVAC or NAICS 238220'
                   className="mt-2 w-full rounded-2xl border-2 border-slate-700 bg-slate-900 px-5 py-3 text-base text-white placeholder:text-slate-500 sm:py-4 focus:border-amber-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
@@ -1891,6 +1902,11 @@ function RadarLanding() {
                 {tradeHint && (
                   <p className="mt-2 text-sm font-medium text-amber-300" role="alert">
                     Pick a trade above or type one to see your matches.
+                  </p>
+                )}
+                {addressHint && (
+                  <p className="mt-2 text-sm font-medium text-amber-300" role="alert">
+                    {ADDRESS_TIP}
                   </p>
                 )}
               </div>
@@ -2204,9 +2220,11 @@ function RadarLanding() {
               <div className="mt-8 rounded-2xl border border-dashed border-slate-700 bg-slate-900/60 px-5 py-10 text-center text-sm text-slate-300">
                 <p className="text-base font-semibold text-white">No strong matches yet.</p>
                 <p className="mx-auto mt-2 max-w-md text-slate-300">
-                  {state
-                    ? `Nothing open for ${trade.trim() || "this search"} in ${STATE_NAMES[state] ?? state} right now. Try every state.`
-                    : "Try a different trade or a related one."}
+                  {trade.trim() && !isKnownTrade(trade)
+                    ? notATradeLine(trade)
+                    : state
+                      ? `Nothing open for ${trade.trim() || "this search"} in ${STATE_NAMES[state] ?? state} right now. Try every state.`
+                      : "Try a different trade or a related one."}
                 </p>
                 {/* Owner 2026-10-11: a zero result does not use the free search
                     (runRadarScan), so the visitor can still try again. */}

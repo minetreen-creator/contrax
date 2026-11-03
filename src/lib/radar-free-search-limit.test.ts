@@ -84,7 +84,7 @@ async function attemptTimes(
 
 describe("one anonymous preview", () => {
   test("one search, one match", () => {
-    expect(FREE_RADAR_SEARCH_LIMIT).toBe(1);
+    expect(FREE_RADAR_SEARCH_LIMIT).toBe(3);
     expect(FREE_RADAR_SEARCH_LIMIT).toBe(FREE_RADAR_PREVIEW_SCANS);
     expect(FREE_ANONYMOUS_RADAR_RESULTS).toBe(3);
   });
@@ -267,8 +267,8 @@ describe("(d) a missing dimension never denies", () => {
 
   test("the strictest dimension wins when they disagree", async () => {
     const store = memoryStore({
-      [`${RADAR_SEARCH_IP_PREFIX}${IP_A}`]: FREE_RADAR_SEARCH_LIMIT, // exhausted address
-      [`${RADAR_SEARCH_VISITOR_PREFIX}${BROWSER_2}`]: 1, // fresh browser
+      [`${RADAR_SEARCH_IP_PREFIX}${IP_A}`]: 1, // a busy-but-open address
+      [`${RADAR_SEARCH_VISITOR_PREFIX}${BROWSER_2}`]: FREE_RADAR_SEARCH_LIMIT, // exhausted browser
     });
     const gate = await checkAnonymousRadarSearch(IP_A, BROWSER_2, store);
     expect(gate.allowed).toBe(false);
@@ -380,9 +380,9 @@ describe("(f) a failed scan never consumes a free search", () => {
   test("a failure does not consume the one successful preview", async () => {
     const store = memoryStore();
     expect(await attemptRadarScan(store, IP_A, BROWSER_1, { fails: true })).toBe("failed");
-    expect(await attemptRadarScan(store, IP_A, BROWSER_1)).toBe("scanned");
-    // Two COMPLETED scans is the whole allowance → the next attempt is blocked,
-    // whether or not it would have failed.
+    for (let i = 0; i < FREE_RADAR_SEARCH_LIMIT; i++) expect(await attemptRadarScan(store, IP_A, BROWSER_1)).toBe("scanned");
+    // FREE_RADAR_SEARCH_LIMIT COMPLETED scans is the day's allowance → the next
+    // attempt is blocked, whether or not it would have failed.
     expect(await attemptRadarScan(store, IP_A, BROWSER_1, { fails: true })).toBe("blocked");
     expect(await attemptRadarScan(store, IP_A, BROWSER_1)).toBe("blocked");
     expect(await store.getUsed(`${RADAR_SEARCH_IP_PREFIX}${IP_A}`)).toBe(FREE_RADAR_SEARCH_LIMIT);
@@ -392,7 +392,7 @@ describe("(f) a failed scan never consumes a free search", () => {
 import { radarSearchBudget } from "./radar-free-search-limit.server";
 describe("authenticated Basic budget", () => {
   test("account identity survives IP and browser changes", () => {
-    expect(radarSearchBudget(IP_A, BROWSER_1, 12)).toEqual({ keys: ["account:12"], limit: 2 });
+    expect(radarSearchBudget(IP_A, BROWSER_1, 12)).toEqual({ keys: ["account:12"], limit: 5 });
     expect(radarSearchBudget(IP_B, BROWSER_2, 12)).toEqual(radarSearchBudget(IP_A, BROWSER_1, 12));
   });
   test("anonymous exhaustion does not consume a newly created account's allowance", async () => {
@@ -400,10 +400,9 @@ describe("authenticated Basic budget", () => {
     await attemptTimes(store, IP_A, BROWSER_1, FREE_RADAR_SEARCH_LIMIT);
     const budget = radarSearchBudget(IP_A, BROWSER_1, 12);
     expect((await evaluateRadarSearchGate(budget.keys, store, budget.limit)).allowed).toBe(true);
-    await consumeRadarSearchCredits(budget.keys, store);
-    await consumeRadarSearchCredits(budget.keys, store);
+    for (let i = 0; i < budget.limit; i++) await consumeRadarSearchCredits(budget.keys, store);
     expect((await evaluateRadarSearchGate(budget.keys, store, budget.limit)).allowed).toBe(false);
-    expect((await evaluateRadarSearchGate(["account:13"], store, 2)).allowed).toBe(true);
+    expect((await evaluateRadarSearchGate(["account:13"], store, budget.limit)).allowed).toBe(true);
   });
 });
 
@@ -419,10 +418,10 @@ describe("successful request reservation", () => {
     };
     const budget = radarSearchBudget(IP_A, BROWSER_1, 12);
     const results = await Promise.all(Array.from({length: 6}, () => claimRadarSearchBudget(budget.keys, budget.limit, claim)));
-    expect(results.filter(Boolean)).toHaveLength(2);
+    expect(results.filter(Boolean)).toHaveLength(5);
     const anon = radarSearchBudget(IP_A, BROWSER_1, null);
-    const previews = await Promise.all(Array.from({length: 4}, () => claimRadarSearchBudget(anon.keys, anon.limit, claim)));
-    expect(previews.filter(Boolean)).toHaveLength(1);
+    const previews = await Promise.all(Array.from({length: 6}, () => claimRadarSearchBudget(anon.keys, anon.limit, claim)));
+    expect(previews.filter(Boolean)).toHaveLength(3);
     const changedIp = radarSearchBudget(IP_B, BROWSER_1, null);
     expect(await claimRadarSearchBudget(changedIp.keys, changedIp.limit, claim)).toBe(false);
   });

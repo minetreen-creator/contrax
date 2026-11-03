@@ -47,11 +47,13 @@ export const SHOW_FREE_INCUMBENT = true;
 // before the $5 ask.
 export const FREE_ANONYMOUS_RADAR_RESULTS: number = 3;
 
-/** One anonymous Radar search across browser and network before signup. */
-export const FREE_RADAR_PREVIEW_SCANS = 1;
-/** Basic accounts get two successful Radar searches, counted against their
- * authenticated account across browsers and networks. Paid access is unchanged. */
-export const FREE_ACCOUNT_RADAR_SCANS = 2;
+/** Anonymous Radar searches per browser per day before signup (owner
+ * 2026-11-03 "yes": was 1 ever; a Charlotte, NC visitor searched, checked
+ * pricing, came back to search again and was sent to signup instead of bids). */
+export const FREE_RADAR_PREVIEW_SCANS: number = 3;
+/** Basic accounts: searches per account per day, across browsers and networks
+ * (was 2 ever; never fewer than an anonymous visitor gets). Paid is unlimited. */
+export const FREE_ACCOUNT_RADAR_SCANS = 5;
 
 /**
  * Most default (title/NAICS-corroborated) matches one Radar scan returns

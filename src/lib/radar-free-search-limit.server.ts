@@ -1,4 +1,5 @@
-/** Radar preview counters. Anonymous: one search per browser, and at most
+/** Radar preview counters (owner 2026-11-03: every count now starts over after
+ * RADAR_IP_WINDOW_HOURS). Anonymous: FREE_RADAR_PREVIEW_SCANS per browser, and at most
  * ANON_IP_DAILY_SEARCHES per network address per day (owner 2026-10-31: phone
  * carriers put many strangers on one address, and a lifetime one-per-address
  * cap blocked brand-new visitors before they saw a single bid).
@@ -9,7 +10,7 @@ import { createHash } from "node:crypto";
 import { FREE_RADAR_PREVIEW_SCANS, FREE_ACCOUNT_RADAR_SCANS } from "~/lib/radar-config";
 import { sql } from "~/db";
 
-/** Free anonymous Radar searches. Owner-set anonymous cap (1). */
+/** Free anonymous Radar searches per browser per day. Owner-set cap (3, 2026-11-03). */
 export const FREE_RADAR_SEARCH_LIMIT = FREE_RADAR_PREVIEW_SCANS;
 
 /**
@@ -18,7 +19,8 @@ export const FREE_RADAR_SEARCH_LIMIT = FREE_RADAR_PREVIEW_SCANS;
  * on one address without blocking strangers who share a carrier address.
  */
 export const ANON_IP_DAILY_SEARCHES = 10;
-/** The address window: a count older than this starts over. */
+/** The counting window for every key (address, browser, account): a count
+ *  older than this starts over. */
 export const RADAR_IP_WINDOW_HOURS = 24;
 
 /** Dimension prefixes (the same style as ~/lib/free-score-limit.server). */
@@ -134,9 +136,6 @@ export async function consumeRadarSearchCredits(
 }
 
 // ── Neon-backed store ────────────────────────────────────────────────────────
-function isIpKey(key: string): boolean {
-  return key.startsWith(RADAR_SEARCH_IP_PREFIX);
-}
 
 /** True when an address row's window (started at used_at) has run out. PURE. */
 export function ipWindowExpired(usedAt: Date | string | null | undefined, now: number = Date.now()): boolean {
@@ -178,7 +177,7 @@ export const neonRadarSearchStore: RadarSearchStore = {
         used_at: Date | string;
       }[];
       if (!rows.length) return 0;
-      if (isIpKey(key) && ipWindowExpired(rows[0].used_at)) return 0;
+      if (ipWindowExpired(rows[0].used_at)) return 0;
       return Number(rows[0].scans) || 0;
     } catch (err) {
       // DB failure must never block a scan — fail open (treat as 0 used).
@@ -190,18 +189,13 @@ export const neonRadarSearchStore: RadarSearchStore = {
     try {
       if (!(await ensureRadarPreviewUsageTable())) return;
       const hash = radarSearchKeyHash(key);
-      if (isIpKey(key)) {
-        // Address rows count within a window that starts at used_at.
-        await sql()`INSERT INTO radar_preview_usage (identity_hash, scans) VALUES (${hash}, 1)
-          ON CONFLICT (identity_hash) DO UPDATE SET
-            scans = CASE WHEN radar_preview_usage.used_at < NOW() - make_interval(hours => ${RADAR_IP_WINDOW_HOURS}::int)
-              THEN 1 ELSE radar_preview_usage.scans + 1 END,
-            used_at = CASE WHEN radar_preview_usage.used_at < NOW() - make_interval(hours => ${RADAR_IP_WINDOW_HOURS}::int)
-              THEN NOW() ELSE radar_preview_usage.used_at END`;
-        return;
-      }
+      // Every row counts within a window that starts at used_at (owner 2026-11-03).
       await sql()`INSERT INTO radar_preview_usage (identity_hash, scans) VALUES (${hash}, 1)
-        ON CONFLICT (identity_hash) DO UPDATE SET scans = radar_preview_usage.scans + 1, used_at = NOW()`;
+        ON CONFLICT (identity_hash) DO UPDATE SET
+          scans = CASE WHEN radar_preview_usage.used_at < NOW() - make_interval(hours => ${RADAR_IP_WINDOW_HOURS}::int)
+            THEN 1 ELSE radar_preview_usage.scans + 1 END,
+          used_at = CASE WHEN radar_preview_usage.used_at < NOW() - make_interval(hours => ${RADAR_IP_WINDOW_HOURS}::int)
+            THEN NOW() ELSE radar_preview_usage.used_at END`;
     } catch (err) {
       // A failed counter write must never fail a successful scan.
       console.error("[radar-free-search] search increment failed (non-fatal):", err);
@@ -257,24 +251,16 @@ export function radarSearchBudget(ip: string | null, visitorId: string | null, a
 async function claimRadarSearchKey(key: string, limit: number): Promise<boolean> {
   if (!(await ensureRadarPreviewUsageTable())) return true;
   const hash = radarSearchKeyHash(key);
-  if (isIpKey(key)) {
-    const rows = await sql()`INSERT INTO radar_preview_usage (identity_hash, scans)
-      VALUES (${hash}, 1)
-      ON CONFLICT (identity_hash) DO UPDATE SET
-        scans = CASE WHEN radar_preview_usage.used_at < NOW() - make_interval(hours => ${RADAR_IP_WINDOW_HOURS}::int)
-          THEN 1 ELSE radar_preview_usage.scans + 1 END,
-        used_at = CASE WHEN radar_preview_usage.used_at < NOW() - make_interval(hours => ${RADAR_IP_WINDOW_HOURS}::int)
-          THEN NOW() ELSE radar_preview_usage.used_at END
-      WHERE radar_preview_usage.used_at < NOW() - make_interval(hours => ${RADAR_IP_WINDOW_HOURS}::int)
-         OR radar_preview_usage.scans < ${limit}
-      RETURNING scans`;
-    return rows.length > 0;
-  }
+  // Every key (address, browser, account) counts within the daily window.
   const rows = await sql()`INSERT INTO radar_preview_usage (identity_hash, scans)
     VALUES (${hash}, 1)
-    ON CONFLICT (identity_hash) DO UPDATE
-    SET scans = radar_preview_usage.scans + 1, used_at = NOW()
-    WHERE radar_preview_usage.scans < ${limit}
+    ON CONFLICT (identity_hash) DO UPDATE SET
+      scans = CASE WHEN radar_preview_usage.used_at < NOW() - make_interval(hours => ${RADAR_IP_WINDOW_HOURS}::int)
+        THEN 1 ELSE radar_preview_usage.scans + 1 END,
+      used_at = CASE WHEN radar_preview_usage.used_at < NOW() - make_interval(hours => ${RADAR_IP_WINDOW_HOURS}::int)
+        THEN NOW() ELSE radar_preview_usage.used_at END
+    WHERE radar_preview_usage.used_at < NOW() - make_interval(hours => ${RADAR_IP_WINDOW_HOURS}::int)
+       OR radar_preview_usage.scans < ${limit}
     RETURNING scans`;
   return rows.length > 0;
 }

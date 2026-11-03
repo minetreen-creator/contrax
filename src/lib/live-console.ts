@@ -298,3 +298,72 @@ export function paidCheckoutCount(
     return true;
   }).length;
 }
+
+// ── Mission Control top strip (owner 2026-11-03 rework) ─────────────────────
+
+/** A count for today and for yesterday (Eastern time). */
+export interface DayPair {
+  today: number;
+  yesterday: number;
+}
+
+/** The four numbers across the top of Mission Control. */
+export interface TodayStats {
+  /** Real people (bots, QA, admin and email link scanners left out). */
+  people: DayPair;
+  searches: DayPair & { zeroToday: number };
+  /** Visitors who reached Stripe's payment page. */
+  checkouts: DayPair;
+  /** Dollars paid through Stripe; null when Stripe could not be read. */
+  paid: (DayPair & { salesToday: number }) | null;
+}
+
+/** Midnight today in New York, as ms since epoch. PURE. */
+export function etDayStartMs(nowMs: number): number {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date(nowMs));
+  const get = (t: string) => Number(parts.find((p) => p.type === t)?.value ?? 0);
+  const etWallAsUtc = Date.UTC(get("year"), get("month") - 1, get("day"), get("hour"), get("minute"), get("second"));
+  const offset = etWallAsUtc - Math.floor(nowMs / 1000) * 1000;
+  return Date.UTC(get("year"), get("month") - 1, get("day")) - offset;
+}
+
+/** Dollars paid today and yesterday (Eastern) from Stripe checkout sessions; admin and test buyers left out. PURE. */
+export function paidByEtDay(
+  sessions: readonly { created: number; amount_total?: number | null; payment_status?: string | null; customer_details?: { email?: string | null } | null }[],
+  isAdmin: (email: string) => boolean,
+  todayStartMs: number,
+): DayPair & { salesToday: number } {
+  const yesterdayStartMs = todayStartMs - 24 * 60 * 60 * 1000;
+  let today = 0;
+  let yesterday = 0;
+  let salesToday = 0;
+  for (const s of sessions) {
+    if (s.payment_status !== "paid") continue;
+    const email = String(s.customer_details?.email ?? "").trim().toLowerCase();
+    if (email && (isAdmin(email) || email.endsWith("@test.contrax"))) continue;
+    const at = s.created * 1000;
+    const dollars = Math.max(0, Number(s.amount_total ?? 0)) / 100;
+    if (at >= todayStartMs) {
+      today += dollars;
+      salesToday++;
+    } else if (at >= yesterdayStartMs) yesterday += dollars;
+  }
+  return { today, yesterday, salesToday };
+}
+
+/** "▲ 12 vs yesterday", "▼ 3 vs yesterday" or "same as yesterday". PURE. */
+export function dayChange(today: number, yesterday: number, money = false): { dir: "up" | "down" | "flat"; label: string } {
+  const diff = today - yesterday;
+  if (Math.abs(diff) < 0.005) return { dir: "flat", label: "same as yesterday" };
+  const n = money ? `$${Math.abs(diff).toLocaleString("en-US", { maximumFractionDigits: 2 })}` : Math.abs(diff).toLocaleString("en-US");
+  return { dir: diff > 0 ? "up" : "down", label: `${diff > 0 ? "▲" : "▼"} ${n} vs yesterday` };
+}

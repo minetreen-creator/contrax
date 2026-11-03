@@ -203,7 +203,8 @@ describe("paid vs checkout opens (owner 2026-10-31)", () => {
     const page = readFileSync("src/routes/admin/live.tsx", "utf8");
     expect(page).not.toContain("Money moments");
     expect(page).not.toContain("Checkout opens");
-    expect(page).toContain('{ label: "Paid", value: counts.paid ?? "—"');
-    expect(readFileSync("src/routes/api/admin/live-console.ts", "utf8")).toContain("paid48h: await loadPaid48h(now)");
+    // Rework 2026-11-03: the top strip shows dollars paid today vs yesterday.
+    expect(page).toContain('label: "Paid today"');
+    expect(readFileSync("src/routes/api/admin/live-console.ts", "utf8")).toContain("today: await loadToday(db, stripe)");
   });
 });

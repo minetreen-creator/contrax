@@ -1,8 +1,8 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { afterWakeWord, bootReport, isWakePhrase, JARVIS_VISUALS, type JarvisAction, type JarvisServerStats, type JarvisSnapshot, type JarvisVisual, type SimMonth, type SimResult } from "~/lib/jarvis";
-import { announcements, isRedAlert, HOT_SCORE, pageName, radarSpot, type Announcement, type AnnounceState, type LeadLevel } from "~/lib/hot-leads";
-import { Search, UserPlus, Timer, CreditCard, PartyPopper, Radio, Flame, Map as MapIcon, Users, DollarSign, X, Volume2, VolumeX, Crosshair, ScanEye } from "lucide-react";
+import { announcements, isRedAlert, pageName, type Announcement, type AnnounceState } from "~/lib/hot-leads";
+import { Search, UserPlus, Timer, CreditCard, PartyPopper, Radio, Flame, DollarSign, X, Volume2, VolumeX, ScanEye, Mic } from "lucide-react";
 import { getCurrentUser } from "~/lib/auth";
 import { TRIAL_DAYS } from "~/lib/trial";
 import { AdminHeader, AdminTabs, MrrScoreboard, SectionError, SectionLoading } from "~/components/AdminShared";
@@ -21,8 +21,10 @@ import {
   type MoneyStats,
   type OnlineVisitor,
   type StateSearchStat,
+  type TodayStats,
   type TrialCard,
   type TrialHeat,
+  dayChange,
 } from "~/lib/live-console";
 import type { TrackedVisitor, VisitorTrail } from "~/lib/scraper-watch";
 
@@ -44,6 +46,8 @@ interface LiveData {
   money?: MoneyStats | null;
   /** Paid Stripe checkouts in the last 48 hours; null when Stripe could not be read. */
   paid48h?: number | null;
+  /** The top strip: today vs yesterday (owner 2026-11-03 rework). */
+  today?: TodayStats | null;
 }
 
 const POLL_MS = 15_000;
@@ -211,7 +215,7 @@ function SearchMap({ stats, visitors, now, onChat }: { stats: StateSearchStat[];
               return (
                 <g
                   key={v.visitorKey}
-                  className="live-visitor-dot cursor-pointer"
+                  className={`live-visitor-dot cursor-pointer${v.lead?.level === "hot" ? " is-hot" : ""}`}
                   transform={`translate(${x + dx} ${y + dy})`}
                   onClick={() => onChat(v)}
                 >
@@ -231,6 +235,7 @@ function SearchMap({ stats, visitors, now, onChat }: { stats: StateSearchStat[];
         <span><i className="live-key" style={{ background: TONE_COLOR.mixed }} /> some empty</span>
         <span><i className="live-key" style={{ background: TONE_COLOR.empty }} /> all 0 matches</span>
         <span><i className="live-key" style={{ background: "#22d3ee", borderRadius: 999 }} /> on the site now</span>
+        <span><i className="live-key" style={{ background: "#f43f5e", borderRadius: 999 }} /> hot lead</span>
         <span>Number = searches · pulsing = last 15 min · hover for details</span>
       </p>
     </div>
@@ -242,7 +247,7 @@ function OnlineNow({ count, visitors, now, hidden, onTrack }: { count: number; v
     <div className="live-online">
       <div className="flex items-baseline gap-3">
         <span className="live-online-count">{count}</span>
-        <span className="text-sm text-slate-300">on the site now<br /><span className="text-xs text-slate-500">seen in the last 5 minutes</span></span>
+        <span className="text-sm text-slate-300">on the site right now<br /><span className="text-xs text-slate-500">tap one to see their trail</span></span>
       </div>
       {hidden > 0 ? (
         <p className="mt-2 text-xs text-slate-500">
@@ -720,81 +725,6 @@ function VoiceToggle({ on, onToggle, supported }: { on: boolean; onToggle: () =>
       {on ? "Voice on" : "Turn on voice"}
       {on ? <span className="live-voice-bars" aria-hidden="true"><i /><i /><i /></span> : null}
     </button>
-  );
-}
-
-const LEAD_COLOR: Record<LeadLevel, string> = { hot: "#f97316", warm: "#facc15", cold: "#38bdf8" };
-
-/** Hot Lead Radar: everyone on the site now, hottest at the center. */
-function HotLeadRadar({ visitors, onChat }: { visitors: OnlineVisitor[]; onChat: (v: OnlineVisitor) => void }) {
-  const scored = visitors.filter((v) => v.lead).sort((a, b) => b.lead!.score - a.lead!.score);
-  const hot = scored.filter((v) => v.lead!.level === "hot").length;
-  return (
-    <div className="live-radar">
-      <div className="live-radar-scope">
-        <svg viewBox="0 0 100 100" role="img" aria-label={`${scored.length} visitors on the radar, ${hot} hot`}>
-          <defs>
-            <radialGradient id="radar-bg" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#14532d" stopOpacity="0.55" />
-              <stop offset="100%" stopColor="#022c22" stopOpacity="0.15" />
-            </radialGradient>
-            <linearGradient id="radar-sweep" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#4ade80" stopOpacity="0" />
-              <stop offset="100%" stopColor="#4ade80" stopOpacity="0.45" />
-            </linearGradient>
-          </defs>
-          <circle cx="50" cy="50" r="48" fill="url(#radar-bg)" stroke="#22c55e" strokeOpacity="0.5" strokeWidth="0.6" />
-          {[36, 24, 12].map((r) => (
-            <circle key={r} cx="50" cy="50" r={r} fill="none" stroke="#22c55e" strokeOpacity="0.25" strokeWidth="0.4" />
-          ))}
-          <line x1="2" y1="50" x2="98" y2="50" stroke="#22c55e" strokeOpacity="0.2" strokeWidth="0.3" />
-          <line x1="50" y1="2" x2="50" y2="98" stroke="#22c55e" strokeOpacity="0.2" strokeWidth="0.3" />
-          <g className="live-radar-sweep">
-            <path d="M50 50 L98 50 A48 48 0 0 0 83.9 16.1 Z" fill="url(#radar-sweep)" />
-            <line x1="50" y1="50" x2="98" y2="50" stroke="#4ade80" strokeWidth="0.6" />
-          </g>
-          {scored.map((v) => {
-            const p = radarSpot(v.vid, v.lead!.score);
-            const c = LEAD_COLOR[v.lead!.level];
-            return (
-              <g key={v.visitorKey} className={`live-radar-blip live-radar-${v.lead!.level}`} onClick={() => onChat(v)} style={{ cursor: "pointer" }}>
-                <title>{`${v.place ?? "Unknown location"} · ${pageName(v.path)} · score ${v.lead!.score}`}</title>
-                {v.lead!.level === "hot" ? <circle cx={p.x} cy={p.y} r="4" fill={c} className="live-radar-ping" /> : null}
-                <circle cx={p.x} cy={p.y} r={v.lead!.level === "hot" ? 2.4 : 1.7} fill={c} />
-              </g>
-            );
-          })}
-        </svg>
-        <span className="live-radar-center" aria-hidden="true">BUY</span>
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-xs text-slate-400">
-          Closer to the center = closer to buying. <span style={{ color: LEAD_COLOR.hot }}>● hot</span> {HOT_SCORE}+ ·{" "}
-          <span style={{ color: LEAD_COLOR.warm }}>● warm</span> · <span style={{ color: LEAD_COLOR.cold }}>● just looking</span>
-        </p>
-        {scored.length ? (
-          <ul className="mt-2 space-y-1.5">
-            {scored.slice(0, 6).map((v) => (
-              <li key={v.visitorKey} className={`live-lead live-lead-${v.lead!.level}`}>
-                <span className="live-lead-score" style={{ color: LEAD_COLOR[v.lead!.level] }}>{v.lead!.score}</span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-xs text-slate-100">
-                    {v.lead!.level === "hot" ? "🔥 " : ""}
-                    {v.place ?? "Unknown location"} · <span className="text-sky-300">{pageName(v.path)}</span>
-                  </span>
-                  {v.lead!.reasons.length ? <span className="block truncate text-[11px] text-slate-400">{v.lead!.reasons.join(" · ")}</span> : null}
-                </span>
-                <button type="button" onClick={() => onChat(v)} className="live-track" title="See what this visitor is doing">
-                  <ScanEye size={12} aria-hidden="true" /> Trail
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="mt-2 text-xs text-slate-500">Nobody on the radar right now.</p>
-        )}
-      </div>
-    </div>
   );
 }
 
@@ -1474,6 +1404,7 @@ function LivePage() {
   const [fresh, setFresh] = useState<Set<string>>(new Set());
   const [track, setTrack] = useState<{ vid: string; label: string } | null>(null);
   const [reload, setReload] = useState(0);
+  const [panel, setPanel] = useState(false);
   const openTrack = (v: OnlineVisitor) => setTrack({ vid: v.vid, label: `${v.place ?? "Unknown location"} · ${v.path}` });
   // Owner 2026-11-01: the live chat with visitors is removed; every visitor click
   // (map dot, hot-lead list, red alert) opens the visitor trail instead.
@@ -1518,121 +1449,81 @@ function LivePage() {
     };
   }, [reload]);
 
-  const counts = data
-    ? {
-        searches: data.feed.filter((f) => f.kind === "search").length,
-        zero: data.feed.filter((f) => f.kind === "search" && f.detail === "0 matches").length,
-        signups: data.feed.filter((f) => f.kind === "signup").length,
-        paid: data.paid48h ?? null,
-      }
-    : null;
-
   return (
     <div className="admin-console min-h-screen bg-slate-50">
       <AdminHeader scoreboard={<MrrScoreboard />} />
       <main className="mx-auto max-w-6xl space-y-6 px-4 py-8">
         <AdminTabs active="live" />
-        <section className="live-shell">
+        {/* Owner 2026-11-03 rework ("doesn't look too lengthy and looks cool"):
+            one screen. Today's four numbers, the live map with who's on the
+            site, and one feed. Money, trials and tracked visitors slide out;
+            Jarvis is a button in the corner. */}
+        <section className="live-shell live-cockpit">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">
-                <span className="live-dot" aria-hidden="true" /> Live · last 48 hours
-              </p>
+            <div className="flex items-center gap-3">
+              <span className="live-dot" aria-hidden="true" />
               <h1 className="text-2xl font-bold text-white">Mission control</h1>
-              <div className="mt-2">
-                <VoiceToggle on={voice.on} onToggle={voice.toggle} supported={voice.supported} />
-              </div>
+              <VoiceToggle on={voice.on} onToggle={voice.toggle} supported={voice.supported} />
             </div>
-            {counts ? (
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                {[
-                  { label: "Searches", value: counts.searches, color: "#38bdf8" },
-                  { label: "Zero results", value: counts.zero, color: "#fb7185" },
-                  { label: "Signups", value: counts.signups, color: "#a78bfa" },
-                  { label: "Paid", value: counts.paid ?? "—", color: "#4ade80" },
-                ].map((s) => (
-                  <div key={s.label} className="live-stat" style={{ ["--kind" as string]: s.color }}>
-                    <span className="text-xl font-extrabold" style={{ color: s.color }}>{s.value}</span>
-                    <span className="text-[11px] uppercase tracking-wide text-slate-400">{s.label}</span>
-                  </div>
-                ))}
-              </div>
-            ) : null}
+            <button type="button" onClick={() => setPanel(true)} className="live-panel-btn">
+              <DollarSign size={14} aria-hidden="true" /> Money &amp; trials
+              {data?.trials.length ? <span className="live-panel-count">{data.trials.length}</span> : null}
+            </button>
           </div>
 
-          {data?.money ? (
-            <div className="mt-6">
+          {error ? <SectionError message={error} /> : !data ? <SectionLoading message="Tuning in…" /> : (
+            <>
+              <StatStrip today={data.today ?? null} />
+
+              <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
+                <SearchMap stats={data.map} visitors={data.online} now={now} onChat={openChat} />
+                <OnlineNow count={data.onlineCount} visitors={data.online.slice(0, 5)} now={now} hidden={data.scannersHidden ?? 0} onTrack={openTrack} />
+              </div>
+
+              <div className="mt-5">
+                <h2 className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  <Radio size={13} aria-hidden="true" /> What just happened
+                </h2>
+                {data.feed.length ? (
+                  <ul className="live-feed live-feed-short">
+                    {data.feed.slice(0, 10).map((f) => <FeedRow key={f.id} item={f} now={now} fresh={fresh.has(f.id)} />)}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-slate-400">Quiet for the last 48 hours.</p>
+                )}
+              </div>
+            </>
+          )}
+        </section>
+      </main>
+      {panel && data ? (
+        <SidePanel onClose={() => setPanel(false)}>
+          {data.money ? (
+            <div>
               <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-300">
                 <DollarSign size={15} aria-hidden="true" /> Money
               </h2>
               <MoneyPanel money={data.money} trials={data.trials} now={now} />
             </div>
           ) : null}
-
-          {data ? (
-            <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
-              <div>
-                <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-300">
-                  <MapIcon size={15} aria-hidden="true" /> Live search map · 48 hours
-                </h2>
-                <SearchMap stats={data.map} visitors={data.online} now={now} onChat={openChat} />
+          <div className="mt-6">
+            <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-300">
+              <Flame size={15} aria-hidden="true" /> Trials on the clock ({data.trials.length})
+            </h2>
+            {data.trials.length ? (
+              <div className="space-y-3">
+                {data.trials.map((t) => <TrialTile key={t.userId} t={t} now={now} />)}
               </div>
-              <div>
-                <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-300">
-                  <Users size={15} aria-hidden="true" /> On the site now
-                </h2>
-                <OnlineNow count={data.onlineCount} visitors={data.online.slice(0, 12)} now={now} hidden={data.scannersHidden ?? 0} onTrack={openTrack} />
-                <TrackedList tracked={data.tracked ?? []} now={now} onOpen={(vid, label) => setTrack({ vid, label })} />
-              </div>
-            </div>
-          ) : null}
-
-          {data ? (
-            <div className="mt-6">
-              <Jarvis data={data} now={now} onChat={openChat} />
-            </div>
-          ) : null}
-
-          {data ? (
-            <div className="mt-6">
-              <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-300">
-                <Crosshair size={15} aria-hidden="true" /> Hot lead radar
-              </h2>
-              <HotLeadRadar visitors={data.online} onChat={openChat} />
-            </div>
-          ) : null}
-
-          {error ? <SectionError message={error} /> : !data ? <SectionLoading message="Tuning in…" /> : (
-            <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
-              <div>
-                <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-300">
-                  <Radio size={15} aria-hidden="true" /> Activity feed
-                </h2>
-                {data.feed.length ? (
-                  <ul className="live-feed">
-                    {data.feed.map((f) => <FeedRow key={f.id} item={f} now={now} fresh={fresh.has(f.id)} />)}
-                  </ul>
-                ) : (
-                  <p className="text-sm text-slate-400">Quiet for the last 48 hours.</p>
-                )}
-              </div>
-              <div>
-                <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-300">
-                  <Flame size={15} aria-hidden="true" /> Trials on the clock ({data.trials.length})
-                </h2>
-                {data.trials.length ? (
-                  <div className="space-y-3">
-                    {data.trials.map((t) => <TrialTile key={t.userId} t={t} now={now} />)}
-                  </div>
-                ) : (
-                  <p className="text-sm text-slate-400">No trials running right now.</p>
-                )}
-              </div>
-            </div>
-          )}
-
-        </section>
-      </main>
+            ) : (
+              <p className="text-sm text-slate-400">No trials running right now.</p>
+            )}
+          </div>
+          <div className="mt-6">
+            <TrackedList tracked={data.tracked ?? []} now={now} onOpen={(vid, label) => { setPanel(false); setTrack({ vid, label }); }} />
+          </div>
+        </SidePanel>
+      ) : null}
+      {data ? <JarvisDock data={data} now={now} onChat={openChat} /> : null}
       {redAlert ? (
         <RedAlert
           alert={redAlert.alert}
@@ -1646,6 +1537,87 @@ function LivePage() {
         />
       ) : null}
       {track ? <TrackDrawer vid={track.vid} label={track.label} onClose={() => setTrack(null)} onChanged={() => setReload((n) => n + 1)} /> : null}
+    </div>
+  );
+}
+
+/** Today's four numbers vs yesterday (Eastern), across the top. */
+function StatStrip({ today }: { today: TodayStats | null }) {
+  if (!today) return null;
+  const money = (n: number) => `$${n.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
+  const cards: { label: string; value: string; change: ReturnType<typeof dayChange> | null; color: string; note?: string }[] = [
+    { label: "People today", value: today.people.today.toLocaleString("en-US"), change: dayChange(today.people.today, today.people.yesterday), color: "#22d3ee", note: "bots and email scanners left out" },
+    {
+      label: "Searches",
+      value: today.searches.today.toLocaleString("en-US"),
+      change: dayChange(today.searches.today, today.searches.yesterday),
+      color: "#38bdf8",
+      note: today.searches.zeroToday ? `${today.searches.zeroToday} found nothing` : undefined,
+    },
+    { label: "Checkouts", value: today.checkouts.today.toLocaleString("en-US"), change: dayChange(today.checkouts.today, today.checkouts.yesterday), color: "#fbbf24", note: "reached the payment page" },
+    {
+      label: "Paid today",
+      value: today.paid ? money(today.paid.today) : "—",
+      change: today.paid ? dayChange(today.paid.today, today.paid.yesterday, true) : null,
+      color: "#4ade80",
+      note: today.paid ? `${today.paid.salesToday} sale${today.paid.salesToday === 1 ? "" : "s"}` : "Stripe not reachable",
+    },
+  ];
+  return (
+    <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      {cards.map((c) => (
+        <div key={c.label} className="live-bigstat" style={{ ["--kind" as string]: c.color }}>
+          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">{c.label}</span>
+          <span className="live-bigstat-value" style={{ color: c.color }}>{c.value}</span>
+          {c.change ? <span className={`live-bigstat-change is-${c.change.dir}`}>{c.change.label}</span> : null}
+          {c.note ? <span className="text-[11px] text-slate-500">{c.note}</span> : null}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Slide-out panel from the right (money, trials, tracked visitors). */
+function SidePanel({ onClose, children }: { onClose: () => void; children: ReactNode }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  return (
+    <div className="admin-console live-panel-wrap" role="dialog" aria-modal="true" aria-label="Money and trials">
+      <button type="button" className="live-panel-scrim" aria-label="Close" onClick={onClose} />
+      <aside className="live-panel">
+        <div className="mb-4 flex items-center justify-between">
+          <p className="text-sm font-bold uppercase tracking-[0.18em] text-slate-300">Money &amp; trials</p>
+          <button type="button" onClick={onClose} className="rounded-full p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white" aria-label="Close">
+            <X size={16} aria-hidden="true" />
+          </button>
+        </div>
+        {children}
+      </aside>
+    </div>
+  );
+}
+
+/** Jarvis as a floating button in the corner; opens the full assistant. */
+function JarvisDock({ data, now, onChat }: { data: LiveData; now: number; onChat: (v: OnlineVisitor) => void }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="admin-console">
+      {open ? (
+        <div className="live-jarvis-dock" role="dialog" aria-label="Jarvis">
+          <div className="mb-2 flex justify-end">
+            <button type="button" onClick={() => setOpen(false)} className="rounded-full p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white" aria-label="Close Jarvis">
+              <X size={16} aria-hidden="true" />
+            </button>
+          </div>
+          <Jarvis data={data} now={now} onChat={onChat} />
+        </div>
+      ) : null}
+      <button type="button" onClick={() => setOpen((o) => !o)} className="live-jarvis-fab" aria-label={open ? "Close Jarvis" : "Open Jarvis"} title="Jarvis">
+        <Mic size={22} aria-hidden="true" />
+      </button>
     </div>
   );
 }

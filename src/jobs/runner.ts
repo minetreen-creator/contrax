@@ -110,7 +110,6 @@ import { fetchLaLapacBids } from "./sources/la-lapac";
 import { fetchInIdoaBids } from "./sources/in-idoa";
 import { fetchMtEmacsBids } from "./sources/mt-emacs";
 import { fetchVtVbrBids } from "./sources/vt-vbr";
-import { fetchTnCpoBids } from "./sources/tn-cpo";
 import { fetchMoMoversBids } from "./sources/mo-movers";
 import { fetchCtWebprocureBids } from "./sources/ct-webprocure";
 import { fetchAzAppBids } from "./sources/az-app";
@@ -185,7 +184,6 @@ import { fetchTxTxdotBonfireBids } from "./sources/tx-txdot-bonfire";
 import { fetchTxUttylerBonfireBids } from "./sources/tx-uttyler-bonfire";
 import { fetchWiMilwaukeeBonfireBids } from "./sources/wi-milwaukee-bonfire";
 import { fetchIlCookCountyBonfireBids, fetchIlCookCountyHealthBonfireBids, fetchIlCpsBonfireBids } from "./sources/il-chicago-bonfire";
-import { fetchIlChicagoDpsBids } from "./sources/il-chicago-dps";
 import { fetchCaSacramentoLibraryBonfireBids } from "./sources/ca-sacramento-library-bonfire";
 import { fetchWiMilwaukeeCountyBonfireBids } from "./sources/wi-milwaukee-county-bonfire";
 import { fetchWiMpsBonfireBids } from "./sources/wi-mps-bonfire";
@@ -416,7 +414,9 @@ export const TAIL_SOURCES: SyncSource[] = [
   // Vermont Business Registry and Bid System: open state and municipal bids.
   { name: "vt_vbr", fetchFn: () => fetchVtVbrBids() },
   // Tennessee Central Procurement Office: open RFPs, RFQs, RFIs and solicitation notices.
-  { name: "tn_cpo", fetchFn: () => fetchTnCpoBids() },
+  // tn_cpo RETIRED 2026-11-03: tn.gov answers 403 to the sync (browser-style and
+  // honest bot names alike), so it is a block we respect. Its reader stays in
+  // src/jobs/sources/tn-cpo.ts if the state ever allows it again.
   // Nebraska State Purchasing Bureau: current bid opportunities.
   { name: "ne_omaha_ionwave", fetchFn: fetchOmahaBids },
   { name: "ne_das", fetchFn: () => fetchNeDasBids() },
@@ -502,7 +502,9 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "il_cps_bonfire", fetchFn: fetchIlCpsBonfireBids },
   { name: "il_cook_county_health_bonfire", fetchFn: fetchIlCookCountyHealthBonfireBids },
   // City of Chicago DPS weekly Bid Opportunity List PDF (eProcurement itself needs a login).
-  { name: "il_chicago_dps", fetchFn: () => fetchIlChicagoDpsBids() },
+  // il_chicago_dps RETIRED 2026-11-03: chicago.gov (Akamai) answers 403 to the
+  // sync with any name; a block we respect. Chicago bids still come in through
+  // the Cook County, CPS and Cook County Health Bonfire boards.
   // Sacramento (owner 2026-10-09): the Public Library Authority's Bonfire portal
   // (the City/SacRT PlanetBids and County OpenGov portals are bot-protected).
   { name: "ca_san_diego_county", fetchFn: fetchCaSanDiegoCountyBids },
@@ -704,6 +706,8 @@ export const TAIL_SOURCES: SyncSource[] = [
 const PARALLEL_BATCH_SIZE = 5;
 /** Politeness delay between serial SAM.gov passes (was 500ms). */
 const INTER_SOURCE_DELAY_MS = 100;
+/** Pause before the one retry of a tail source that failed outright. */
+const RETRY_DELAY_MS = 3000;
 /** Rows per multi-row INSERT (17 cols × 250 rows = 4,250 params — well under Neon's limit). */
 const INSERT_BATCH_SIZE = 250;
 
@@ -1719,6 +1723,17 @@ export async function runSync(): Promise<SyncResult> {
     noteTailResult(source, results[source.name]);
     await sleep(INTER_SOURCE_DELAY_MS);
   }
+  // One retry for a tail source that failed outright (owner 2026-11-03, source
+  // dropoff: OregonBuys failed one sync and read 139 bids an hour later). BidNet
+  // is never retried (its refusals are rate limits). The retry's run record is
+  // the one health reads.
+  for (const source of tailSources) {
+    const r = results[source.name];
+    if (!r || r.fetched > 0 || r.errors.length === 0 || isBidnetSource(source.name)) continue;
+    await sleep(RETRY_DELAY_MS);
+    console.log(`   ↻ ${source.name}: retrying once after "${r.errors[0].slice(0, 120)}"`);
+    results[source.name] = await syncSource(sql, source, noticeGuard);
+  }
 
   const totalFetched = Object.values(results).reduce((s, r) => s + r.fetched, 0);
   const totalNew = Object.values(results).reduce((s, r) => s + r.new, 0);
@@ -1841,6 +1856,13 @@ export async function runSync(): Promise<SyncResult> {
   }
   for (const h of empty) {
     console.log(`   ⚪ [${h.source}] EMPTY — ${h.reason}`);
+  }
+  // Owner 2026-11-03: warn the owner the first time a source fails two syncs in
+  // a row (~/jobs/source-alerts). Never fails the sync.
+  {
+    const { alertNewlyDeadSources } = await import("./source-alerts");
+    const warned = await alertNewlyDeadSources(sql, dead.map((h) => h.source));
+    if (warned.length) console.error(`   📧 Owner warned about: ${warned.map((d) => d.source).join(", ")}`);
   }
 
   // ── D14 CORPUS-LABEL ALARM (post-PR-1 always-on; METRIC, LOG-ONLY) ─────────

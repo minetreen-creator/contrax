@@ -217,7 +217,8 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
   in_idoa: { class: "state", scopeState: "IN", searchScope: "state-portal", recordType: "opportunity" },
   mt_emacs: { class: "state", scopeState: "MT", searchScope: "state-portal", recordType: "opportunity" },
   vt_vbr: { class: "state", scopeState: "VT", searchScope: "state-portal", recordType: "opportunity" },
-  tn_cpo: { class: "state", scopeState: "TN", searchScope: "state-portal", recordType: "opportunity" },
+  // RETIRED 2026-11-03: tn.gov refuses the sync (403); a block we respect.
+  tn_cpo: { class: "state", scopeState: "TN", searchScope: "state-portal", recordType: "opportunity", retired: true },
   ne_omaha_ionwave: { class: "local", city: "Omaha", scopeState: "NE", searchScope: "city-open-data", recordType: "opportunity" },
   ne_das: { class: "state", scopeState: "NE", searchScope: "state-portal", recordType: "opportunity" },
   mo_movers: { class: "state", scopeState: "MO", searchScope: "state-portal", recordType: "opportunity" },
@@ -525,12 +526,14 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
   // City of Chicago DPS weekly Bid Opportunity List (owner 2026-10-09;
   // src/jobs/sources/il-chicago-dps.ts) — open City solicitations, unlike the
   // award-type chicago_open_data feed.
+  // RETIRED 2026-11-03: chicago.gov refuses the sync (403); a block we respect.
   il_chicago_dps: {
     class: "local",
     city: "Chicago",
     scopeState: "IL",
     searchScope: "city-open-data",
     recordType: "opportunity",
+    retired: true,
   },
   // Chicago area: Cook County, Chicago Public Schools and Cook County Health
   // Bonfire portals (owner 2026-10-09; src/jobs/sources/il-chicago-bonfire.ts).

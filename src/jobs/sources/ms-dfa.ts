@@ -49,8 +49,9 @@ export const MS_DFA_BASE = "https://www.ms.gov/dfa/contract_bid_search";
 export const MS_DFA_PAGE_URL = `${MS_DFA_BASE}/Bid?autoloadGrid=False`;
 export const MS_DFA_DATA_URL = `${MS_DFA_BASE}/Bid/BidData?AppId=1`;
 
-const UA =
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36";
+// Our honest bot name (owner 2026-11-03): ms.gov's Cloudflare answered 403 to a
+// browser-style name from the sync's datacenter and 200 to this one.
+const UA = "Mozilla/5.0 (compatible; ContraxBot/1.0; +https://www.contrax.company)";
 /** The page's own table columns, in order. */
 const COLUMNS = ["Agency", "BidNumber", "ObjectID", "VerNumber", "BidStatus", "AdvertiseDate", "SubmissionDate", "OpeningDate", "BidID"];
 const TITLE_MAX = 140;

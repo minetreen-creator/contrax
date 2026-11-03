@@ -20,7 +20,9 @@ describe("local agency registry", () => {
       .filter(([label, r]) => r.class === "local" && r.recordType === "opportunity" && !RETIRED_SOURCES.has(label) && !AWARD_TYPE_SOURCES.has(label))
       .map(([label]) => label)
       .sort();
-    expect(LOCAL_AGENCIES.filter((a) => !a.agencyName).map((a) => a.source).sort()).toEqual(local);
+    // A retired source may keep its page (owner 2026-11-03: the City of Chicago
+    // page still groups the city's schools and Cook County buyers).
+    expect(LOCAL_AGENCIES.filter((a) => !a.agencyName && !RETIRED_SOURCES.has(a.source)).map((a) => a.source).sort()).toEqual(local);
   });
 
   test("every entry resolves to a place and state", () => {

@@ -1,6 +1,0 @@
-https://www.beaconbid.com/robots.txt | 200 | final=https://www.beaconbid.com/robots.txt | 57 | text/plain; charset=utf-8
-https://www.beaconbid.com/solicitations/city-of-houston/open | 200 | final=https://www.beaconbid.com/solicitations/city-of-houston/open | 1657 | text/html; charset=utf-8
-https://bidsets.publicworks.houstontx.gov/robots.txt | ERR TypeError: getaddrinfo ENOTFOUND bidsets.publicworks.houstontx.gov
-https://bidsets.publicworks.houstontx.gov/ | ERR TypeError: getaddrinfo ENOTFOUND bidsets.publicworks.houstontx.gov
-https://webapp1.sanantonio.gov/BidContractOpps/Default.aspx | 200 | final=https://webapp1.sanantonio.gov/BidContractOpps/Default.aspx | 73588 | text/html; charset=utf-8
-https://webapp1.sanantonio.gov/BidContractOpps/Default.aspx | 200 | final=https://webapp1.sanantonio.gov/BidContractOpps/Default.aspx | 70334 | text/html; charset=utf-8

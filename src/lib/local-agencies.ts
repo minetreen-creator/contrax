@@ -373,6 +373,7 @@ export const LOCAL_AGENCIES: LocalAgency[] = [
   { source: "tx_wise_county", slug: "wise-county-tx", name: "Wise County, Texas" },
   { source: "tx_kendall_county", slug: "kendall-county-tx", name: "Kendall County, Texas" },
   { source: "oh_worthington", slug: "city-of-worthington", name: "City of Worthington" },
+  { source: "tx_san_antonio", slug: "city-of-san-antonio-tx", name: "City of San Antonio, Texas" },
   { source: "oh_franklin_county", slug: "franklin-county-oh", name: "Franklin County, Ohio" },
   { source: "nj_harrison", slug: "town-of-harrison-nj", name: "Town of Harrison, New Jersey" },
   { source: "oh_dayton", slug: "city-of-dayton", name: "City of Dayton" },

@@ -95,7 +95,8 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // + 11 Bonfire and 8 CivicEngage Florida boards, 2026-10-30 (388 → 407).
     // + 2 Bonfire and 4 CivicEngage Indiana boards, 2026-10-30 (407 → 413).
     // + 41 Bonfire and 83 CivicEngage Texas boards, 2026-11-03 (413 → 537).
-    expect(Object.keys(SOURCE_CLASSES).length).toBe(537);
+    // + City of San Antonio, 2026-11-03 (537 → 538).
+    expect(Object.keys(SOURCE_CLASSES).length).toBe(538);
   });
 
   test("every registry label is classified (no collector is unclassified)", () => {
@@ -183,7 +184,8 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // + 11 Bonfire and 8 CivicEngage Florida boards, 2026-10-30 (306 → 325).
     // + 2 Bonfire and 4 CivicEngage Indiana boards, 2026-10-30 (325 → 331).
     // + 41 Bonfire and 83 CivicEngage Texas boards, 2026-11-03 (331 → 455).
-    expect(TAIL_SOURCES.length).toBe(455);
+    // + City of San Antonio, 2026-11-03 (455 → 456).
+    expect(TAIL_SOURCES.length).toBe(456);
   });
 
   test("every city registry entry the product fetches is LOCAL with a city name", () => {

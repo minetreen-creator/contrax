@@ -1033,6 +1033,7 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   pennbid: "PA",
   va_evirginia: "VA",
   oh_worthington: "OH",
+  tx_san_antonio: "TX",
   oh_franklin_county: "OH", // Franklin County, OH Purchasing bid board (owner 2026-10-12)
   nj_harrison: "NJ", // Town of Harrison, NJ CivicEngage bid board (owner 2026-10-12)
   oh_dayton: "OH",

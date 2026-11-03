@@ -21,14 +21,16 @@ describe("Mission Control top strip", () => {
       [s(2, 500), s(3, 500), s(-5, 500), s(1, 500, "qa-funnel-1@test.contrax"), s(1, 500, "boss@contrax.company"), s(1, 500, null, "unpaid")],
       (e) => e === "boss@contrax.company",
       today,
+      today + 4 * 3_600_000,
     );
-    expect(out).toEqual({ today: 10, yesterday: 5, salesToday: 2 });
+    // It is 4 AM; yesterday's sale was at 7 PM, after 4 AM yesterday, so it is not in "so far".
+    expect(out).toEqual({ today: 10, yesterday: 5, yesterdaySoFar: 0, salesToday: 2 });
   });
-  test("up, down or same as yesterday", () => {
-    expect(dayChange(31, 24)).toEqual({ dir: "up", label: "▲ 7 vs yesterday" });
-    expect(dayChange(3, 5)).toEqual({ dir: "down", label: "▼ 2 vs yesterday" });
-    expect(dayChange(5, 5)).toEqual({ dir: "flat", label: "same as yesterday" });
-    expect(dayChange(5, 0, true).label).toBe("▲ $5 vs yesterday");
+  test("compares today so far with this time yesterday (owner 2026-11-03)", () => {
+    expect(dayChange(31, 24)).toEqual({ dir: "up", label: "▲ 7 vs this time yesterday" });
+    expect(dayChange(3, 5)).toEqual({ dir: "down", label: "▼ 2 vs this time yesterday" });
+    expect(dayChange(5, 5)).toEqual({ dir: "flat", label: "same as this time yesterday" });
+    expect(dayChange(5, 0, true).label).toBe("▲ $5 vs this time yesterday");
   });
 });
 
@@ -45,5 +47,8 @@ describe("Mission Control layout", () => {
     expect(page).toContain("<JarvisDock");
     expect(page).not.toContain("HotLeadRadar");
     expect(page).not.toContain("Live search map · 48 hours");
+    // The overlays sit inside the page's .admin-console; a second one added a
+    // full empty screen at the bottom (owner 2026-11-03).
+    expect(page.match(/className="admin-console/g)?.length).toBe(1);
   });
 });

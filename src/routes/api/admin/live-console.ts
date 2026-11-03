@@ -478,7 +478,7 @@ async function loadStripePaid(now: number): Promise<{ count48h: number; day: Ret
       if (!res.has_more || !res.data.length) break;
       after = res.data[res.data.length - 1].id;
     }
-    return { count48h: paidCheckoutCount(sessions, isAdminEmail), day: paidByEtDay(sessions, isAdminEmail, etDayStartMs(now)) };
+    return { count48h: paidCheckoutCount(sessions, isAdminEmail), day: paidByEtDay(sessions, isAdminEmail, etDayStartMs(now), now) };
   } catch (e) {
     console.error("[api/admin/live-console] paid checkouts unavailable:", e);
     return null;
@@ -497,9 +497,9 @@ async function loadToday(db: ReturnType<typeof sql>, stripe: { day: ReturnType<t
   const since = "((NOW() AT TIME ZONE 'America/New_York')::date - 1)::timestamp AT TIME ZONE 'America/New_York'";
   const isToday = "((created_at AT TIME ZONE 'America/New_York')::date = (NOW() AT TIME ZONE 'America/New_York')::date)";
   const out: TodayStats = {
-    people: { today: 0, yesterday: 0 },
-    searches: { today: 0, yesterday: 0, zeroToday: 0 },
-    checkouts: { today: 0, yesterday: 0 },
+    people: { today: 0, yesterday: 0, yesterdaySoFar: 0 },
+    searches: { today: 0, yesterday: 0, yesterdaySoFar: 0, zeroToday: 0 },
+    checkouts: { today: 0, yesterday: 0, yesterdaySoFar: 0 },
     paid: stripe ? stripe.day : null,
   };
   try {
@@ -517,7 +517,10 @@ async function loadToday(db: ReturnType<typeof sql>, stripe: { day: ReturnType<t
       const span = (Date.parse(r.last_at) - Date.parse(r.first_at)) / 1000;
       if (!r.signed_in && (emailLinkSweep(Number(r.views), span) || dataCenterLocation(r.city, r.region))) continue;
       if (r.is_today) out.people.today++;
-      else out.people.yesterday++;
+      else {
+        out.people.yesterday++;
+        if (Date.parse(r.first_at) <= Date.now() - 24 * 60 * 60 * 1000) out.people.yesterdaySoFar++;
+      }
     }
   } catch (e) {
     console.error("[api/admin/live-console] people today unavailable:", e);
@@ -525,7 +528,8 @@ async function loadToday(db: ReturnType<typeof sql>, stripe: { day: ReturnType<t
   try {
     const rows = (await db.query(
       `SELECT ${isToday.replace(/created_at/g, "s.created_at")} AS is_today, COUNT(*)::int AS n,
-              COUNT(*) FILTER (WHERE s.matched = 0)::int AS zero
+              COUNT(*) FILTER (WHERE s.matched = 0)::int AS zero,
+              COUNT(*) FILTER (WHERE s.created_at <= NOW() - INTERVAL '24 hours')::int AS so_far
        FROM radar_search_log s
        LEFT JOIN users u ON u.id = s.user_id
        WHERE s.created_at >= ${since}
@@ -536,27 +540,34 @@ async function loadToday(db: ReturnType<typeof sql>, stripe: { day: ReturnType<t
              AND NOT ${adminFunnelExclusionSQL()}
          ))
        GROUP BY 1`,
-    )) as { is_today: boolean; n: number; zero: number }[];
+    )) as { is_today: boolean; n: number; zero: number; so_far: number }[];
     for (const r of rows) {
       if (r.is_today) {
         out.searches.today = Number(r.n);
         out.searches.zeroToday = Number(r.zero);
-      } else out.searches.yesterday = Number(r.n);
+      } else {
+        out.searches.yesterday = Number(r.n);
+        out.searches.yesterdaySoFar = Number(r.so_far);
+      }
     }
   } catch (e) {
     console.error("[api/admin/live-console] searches today unavailable:", e);
   }
   try {
     const rows = (await db.query(
-      `SELECT ${isToday} AS is_today, COUNT(DISTINCT visitor_id)::int AS n
+      `SELECT ${isToday} AS is_today, COUNT(DISTINCT visitor_id)::int AS n,
+              COUNT(DISTINCT visitor_id) FILTER (WHERE created_at <= NOW() - INTERVAL '24 hours')::int AS so_far
        FROM funnel_events
        WHERE created_at >= ${since} AND visitor_id IS NOT NULL
          AND event_name = 'plan_checkout_redirected' AND ${human}
        GROUP BY 1`,
-    )) as { is_today: boolean; n: number }[];
+    )) as { is_today: boolean; n: number; so_far: number }[];
     for (const r of rows) {
       if (r.is_today) out.checkouts.today = Number(r.n);
-      else out.checkouts.yesterday = Number(r.n);
+      else {
+        out.checkouts.yesterday = Number(r.n);
+        out.checkouts.yesterdaySoFar = Number(r.so_far);
+      }
     }
   } catch (e) {
     console.error("[api/admin/live-console] checkouts today unavailable:", e);

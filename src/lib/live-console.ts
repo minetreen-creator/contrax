@@ -304,7 +304,10 @@ export function paidCheckoutCount(
 /** A count for today and for yesterday (Eastern time). */
 export interface DayPair {
   today: number;
+  /** All of yesterday. */
   yesterday: number;
+  /** Yesterday up to this time of day, the fair comparison for "today so far" (owner 2026-11-03). */
+  yesterdaySoFar: number;
 }
 
 /** The four numbers across the top of Mission Control. */
@@ -341,10 +344,13 @@ export function paidByEtDay(
   sessions: readonly { created: number; amount_total?: number | null; payment_status?: string | null; customer_details?: { email?: string | null } | null }[],
   isAdmin: (email: string) => boolean,
   todayStartMs: number,
+  nowMs: number = Date.now(),
 ): DayPair & { salesToday: number } {
   const yesterdayStartMs = todayStartMs - 24 * 60 * 60 * 1000;
+  const sameTimeYesterdayMs = nowMs - 24 * 60 * 60 * 1000;
   let today = 0;
   let yesterday = 0;
+  let yesterdaySoFar = 0;
   let salesToday = 0;
   for (const s of sessions) {
     if (s.payment_status !== "paid") continue;
@@ -355,15 +361,22 @@ export function paidByEtDay(
     if (at >= todayStartMs) {
       today += dollars;
       salesToday++;
-    } else if (at >= yesterdayStartMs) yesterday += dollars;
+    } else if (at >= yesterdayStartMs) {
+      yesterday += dollars;
+      if (at <= sameTimeYesterdayMs) yesterdaySoFar += dollars;
+    }
   }
-  return { today, yesterday, salesToday };
+  return { today, yesterday, yesterdaySoFar, salesToday };
 }
 
-/** "▲ 12 vs yesterday", "▼ 3 vs yesterday" or "same as yesterday". PURE. */
-export function dayChange(today: number, yesterday: number, money = false): { dir: "up" | "down" | "flat"; label: string } {
-  const diff = today - yesterday;
-  if (Math.abs(diff) < 0.005) return { dir: "flat", label: "same as yesterday" };
+/**
+ * "▲ 12 vs this time yesterday", "▼ 3 vs this time yesterday" or "same as
+ * this time yesterday": today so far against yesterday up to the same time
+ * (owner 2026-11-03: all of yesterday made every morning read red). PURE.
+ */
+export function dayChange(today: number, yesterdaySoFar: number, money = false): { dir: "up" | "down" | "flat"; label: string } {
+  const diff = today - yesterdaySoFar;
+  if (Math.abs(diff) < 0.005) return { dir: "flat", label: "same as this time yesterday" };
   const n = money ? `$${Math.abs(diff).toLocaleString("en-US", { maximumFractionDigits: 2 })}` : Math.abs(diff).toLocaleString("en-US");
-  return { dir: diff > 0 ? "up" : "down", label: `${diff > 0 ? "▲" : "▼"} ${n} vs yesterday` };
+  return { dir: diff > 0 ? "up" : "down", label: `${diff > 0 ? "▲" : "▼"} ${n} vs this time yesterday` };
 }

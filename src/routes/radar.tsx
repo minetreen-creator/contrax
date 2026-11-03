@@ -2112,7 +2112,7 @@ function RadarLanding() {
                 {isAnonymous && (
                   <p className="mt-1 text-xs font-semibold text-amber-300">
                     {locked > 0
-                      ? `${totalMatches} open bids found. Your best one is free below.`
+                      ? `${totalMatches} open bids found. ${FREE_ANONYMOUS_RADAR_RESULTS === 1 ? "Your best one is" : `Your best ${FREE_ANONYMOUS_RADAR_RESULTS} are`} free below.`
                       : `Without an account: ${FREE_RADAR_PREVIEW_SCANS} search, ${FREE_ANONYMOUS_RADAR_RESULTS === 1 ? "your top match" : `up to ${FREE_ANONYMOUS_RADAR_RESULTS} matches`}.`}
                   </p>
                 )}

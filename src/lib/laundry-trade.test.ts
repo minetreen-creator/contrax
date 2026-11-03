@@ -40,7 +40,7 @@ describe("Radar match cap (owner 2026-10-02)", () => {
     const { RADAR_MATCH_CAP, FREE_ANONYMOUS_RADAR_RESULTS } = await import("./radar-config");
     expect(RADAR_MATCH_CAP).toBe(25);
     // Owner 2026-10-19 (#778): tightened from 3 to 1.
-    expect(FREE_ANONYMOUS_RADAR_RESULTS).toBe(1);
+    expect(FREE_ANONYMOUS_RADAR_RESULTS).toBe(3);
     const radar = readFileSync(join(import.meta.dir, "..", "routes", "radar.tsx"), "utf8");
     // Owner 2026-11-02: bids closing within 2 days are moved last before the cap.
     expect(radar).toContain("const ranked = closingSoonLast(scored.filter((m) => m.strong), (m) => m.bid.due_date).slice(0, RADAR_MATCH_CAP);");

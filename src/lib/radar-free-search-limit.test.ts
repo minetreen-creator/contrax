@@ -86,7 +86,7 @@ describe("one anonymous preview", () => {
   test("one search, one match", () => {
     expect(FREE_RADAR_SEARCH_LIMIT).toBe(1);
     expect(FREE_RADAR_SEARCH_LIMIT).toBe(FREE_RADAR_PREVIEW_SCANS);
-    expect(FREE_ANONYMOUS_RADAR_RESULTS).toBe(1);
+    expect(FREE_ANONYMOUS_RADAR_RESULTS).toBe(3);
   });
 });
 

@@ -2113,7 +2113,7 @@ function RadarLanding() {
                   <p className="mt-1 text-xs font-semibold text-amber-300">
                     {locked > 0
                       ? `${totalMatches} open bids found. ${FREE_ANONYMOUS_RADAR_RESULTS === 1 ? "Your best one is" : `Your best ${FREE_ANONYMOUS_RADAR_RESULTS} are`} free below.`
-                      : `Without an account: ${FREE_RADAR_PREVIEW_SCANS} search, ${FREE_ANONYMOUS_RADAR_RESULTS === 1 ? "your top match" : `up to ${FREE_ANONYMOUS_RADAR_RESULTS} matches`}.`}
+                      : `Without an account: ${FREE_RADAR_PREVIEW_SCANS === 1 ? "1 search" : `${FREE_RADAR_PREVIEW_SCANS} searches a day`}, ${FREE_ANONYMOUS_RADAR_RESULTS === 1 ? "your top match" : `up to ${FREE_ANONYMOUS_RADAR_RESULTS} matches`}.`}
                   </p>
                 )}
                 {!isAnonymous && scan.paidMember === false && (scan.localMatched ?? 0) > 0 && (

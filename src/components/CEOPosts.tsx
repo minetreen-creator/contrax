@@ -134,7 +134,7 @@ export function CEOPosts() {
                 <p>📧 Questions? <a href="mailto:contrax.companyllc@gmail.com" className="text-blue-700 underline dark:text-blue-300">contrax.companyllc@gmail.com</a></p>
               </div>
             </details>
-            <a href="/signup" className="mt-5 inline-block rounded-xl bg-blue-700 px-5 py-3 text-sm font-bold text-white hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600">Start my 7-day trial →</a>
+            <a href="/radar" className="mt-5 inline-block rounded-xl bg-blue-700 px-5 py-3 text-sm font-bold text-white hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600">See open bids in your trade →</a>
           </article>
           <article className="mt-6 border-b border-slate-200 pb-8 dark:border-slate-700" aria-labelledby="ceo-crm-title">
             <h3 id="ceo-crm-title" className="text-xl font-bold text-slate-900 dark:text-white">Big upgrade. Same price.</h3>

@@ -547,26 +547,19 @@ export function SeoLanding(props: {
             {props.subhead}
           </p>
 
-          {/* PRIMARY free-trial CTA (verified live-homepage pattern) */}
+          {/* PRIMARY CTA: the search (owner 2026-11-03: the 7-day trial ended
+              on 2026-11-01, so the old trial button was a dead promise). */}
           <div className="mt-8">
             <a
-              href={seoSignupHref(props.signupSource, props.signupState)}
-              onClick={() => trackEvent("hero_cta_click", "start_trial")}
+              href={props.radarHref}
+              onClick={() => trackEvent("hero_cta_click", "radar_primary")}
               className="inline-block rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 px-8 py-4 text-center text-base font-extrabold text-slate-950 shadow-xl shadow-amber-500/25 transition-all hover:from-amber-300 hover:to-amber-400 active:scale-[0.99] sm:text-lg"
             >
-              🚀 Start my 7-day trial →
+              🔍 See open bids now →
             </a>
             <p className="mt-2 text-xs font-medium text-blue-200/60">
-              No credit card · Cancel anytime
+              No card to search · $5 for 30 days to open every notice · No automatic renewal
             </p>
-            {/* SECONDARY Radar CTA */}
-            <a
-              href={props.radarHref}
-              onClick={() => trackEvent("hero_cta_click", "radar_activate")}
-              className="mt-3 inline-block text-sm font-medium text-blue-200/80 underline-offset-4 transition-colors hover:text-white hover:underline"
-            >
-              📡 {props.radarLabel}
-            </a>
           </div>
         </div>
         <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-slate-50 to-transparent" />
@@ -897,14 +890,14 @@ export function RegionView({ data }: { data: RegionData }) {
           See every {name} bid and know if you qualify in seconds
         </h3>
         <a
-          href={seoSignupHref("seo_page", data.code)}
-          onClick={() => trackEvent("hero_cta_click", "start_trial")}
-          className="mt-4 inline-block rounded-xl bg-amber-500 px-7 py-3.5 text-base font-extrabold text-slate-950 shadow-lg transition-all hover:bg-amber-400 active:scale-[0.99]"
+          href={`/radar?state=${data.code}`}
+          onClick={() => trackEvent("hero_cta_click", "radar_primary")}
+          className="mt-4 inline-block rounded-xl bg-amber-400 px-7 py-3.5 text-base font-extrabold text-slate-950 shadow-lg transition-all hover:bg-amber-300 active:scale-[0.99]"
         >
-          🚀 Start my 7-day trial →
+          🔍 See open {name} bids →
         </a>
         <p className="mt-2 text-xs text-blue-200/60">
-          No credit card · Cancel anytime
+          No card to search · $5 for 30 days to open every notice · No automatic renewal
         </p>
       </div>
     </div>

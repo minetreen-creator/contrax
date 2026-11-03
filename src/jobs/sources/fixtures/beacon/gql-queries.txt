@@ -1,0 +1,904 @@
+// https://assets.beaconbid.com/assets/app-gYPUuBVR.js
+query supplierAgencies($id: ID, $start: Int!, $pageSize: Int!) {
+    supplier(id: $id) {
+      id
+      agencyRegistrations(start: $start, pageSize: $pageSize) {
+        total
+        data {
+          createdAt
+          confirmedAt
+          optoutAt
+          agency {
+            id
+            tag
+            name
+            location {
+              id
+              region {
+                id
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+
+// https://assets.beaconbid.com/assets/app-gYPUuBVR.js
+query supplierSolicitations(
+    $id: ID
+    $start: Int!
+    $pageSize: Int!
+    $ebidStatus: String
+    $filter: String
+    $dueDateFromISO: String
+    $dueDateToISO: String
+    $registeredFromISO: String
+    $registeredToISO: String
+    $agencyId: ID
+    $interest: String
+    $sort: String
+  ) {
+    supplier(id: $id) {
+      id
+      solicitationRegistrations(
+        start: $start
+        pageSize: $pageSize
+        ebidStatus: $ebidStatus
+        filter: $filter
+        dueDateFromISO: $dueDateFromISO
+        dueDateToISO: $dueDateToISO
+        registeredFromISO: $registeredFromISO
+        registeredToISO: $registeredToISO
+        agencyId: $agencyId
+        interest: $interest
+        sort: $sort
+      ) {
+        total
+        data {
+          interest
+          interestDate
+          verifiedAt
+          optoutAt
+          removedAt
+          ebid {
+            status
+            confirmation
+            updatedAt
+            withdrawnAt
+            hasDraft
+          }
+          solicitation {
+            id
+            title
+            dueDate
+            canceledAt
+            canceledDetails
+            agency {
+              id
+              tag
+              name
+              location {
+                id
+                region {
+                  id
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+
+// https://assets.beaconbid.com/assets/app-gYPUuBVR.js
+query supplierActions($start: Int!, $pageSize: Int!, $supplierId: ID!, $solicitationId: ID, $sort: String) {
+    supplierActions(
+      start: $start
+      pageSize: $pageSize
+      supplierId: $supplierId
+      solicitationId: $solicitationId
+      sort: $sort
+    ) {
+      total
+      data {
+        id
+        createdAt
+        action
+        message
+        context
+        supplier {
+          contact {
+            id
+            name
+          }
+          company {
+            id
+            name
+          }
+        }
+        planholder {
+          interest
+        }
+        solicitation {
+          id
+          title
+        }
+        email {
+          complained
+          bounced
+          bouncedAt
+          viewedAt
+        }
+      }
+    }
+  }
+
+
+// https://assets.beaconbid.com/assets/app-gYPUuBVR.js
+query alerts($start: Int!, $pageSize: Int!, $since: String) {
+    alerts(start: $start, pageSize: $pageSize, since: $since) {
+      id
+      createdAt
+      isRead
+      action {
+        action
+        message
+        actor
+        solicitation {
+          id
+          title
+        }
+      }
+    }
+  }
+
+
+// https://assets.beaconbid.com/assets/app-gYPUuBVR.js
+query awards(
+    $start: Int!,
+    $pageSize: Int!,
+    $filter: String,
+    $status: String!,
+    $sort: String,
+    $watcherId: String,
+    $creators: JSON,
+    $owners: JSON,
+    $departments: JSON,
+    $categories: JSON,
+    $hasSolicitation: Boolean,
+    $hasTermContract: Boolean,
+    $customFieldFilters: JSON) {
+    awards(
+      start: $start,
+      pageSize: $pageSize,
+      filter: $filter,
+      status: $status,
+      sort: $sort,
+      watcherId: $watcherId,
+      creators: $creators,
+      owners: $owners,
+      departments: $departments,
+      categories: $categories,
+      hasSolicitation: $hasSolicitation,
+      hasTermContract: $hasTermContract,
+      customFieldFilters: $customFieldFilters) {
+      total
+      data {
+        ${At}
+      }
+    }
+  }
+
+
+// https://assets.beaconbid.com/assets/app-gYPUuBVR.js
+query helpContent($section: String!, $keywords: String!, $agencyTag: String, $start: Int, $limit: Int) {
+    helpContent(section: $section, keywords: $keywords, agencyTag: $agencyTag, start: $start, limit: $limit) {
+      total
+      data { ${pf} }
+    }
+  }
+
+
+// https://assets.beaconbid.com/assets/app-gYPUuBVR.js
+query bids(
+    $documents: Boolean
+    $awarded: Boolean
+    $fields: [String!]
+    $keywords: String!
+    $excludeKeywords: String!
+    $vendorName: String
+    $issueDate: JSON
+    $awardDate: JSON
+    $contractExpireDate: JSON
+    $categories: [JSON!]
+    $agencyTypeCodes: [String!]!
+    $coopTypeCodes: [String!]!
+    $regionIds: [String!]!
+    $start: Int
+    $pageSize: Int
+  ) {
+    bids(
+      documents: $documents
+      awarded: $awarded
+      fields: $fields
+      keywords: $keywords
+      excludeKeywords: $excludeKeywords
+      vendorName: $vendorName
+      issueDate: $issueDate
+      awardDate: $awardDate
+      contractExpireDate: $contractExpireDate
+      categories: $categories
+      agencyTypeCodes: $agencyTypeCodes
+      coopTypeCodes: $coopTypeCodes
+      regionIds: $regionIds
+      start: $start
+      pageSize: $pageSize
+    ) {
+      total
+      data {
+        ${$f}
+      }
+    }
+  }
+
+
+// https://assets.beaconbid.com/assets/app-gYPUuBVR.js
+query widgetOptions($agencyTag: String!) {
+    widgetOptions(agencyTag: $agencyTag) {
+      showClosed
+      showColumns
+      maxSolicitations
+      customCssProperties
+    }
+  }
+
+
+// https://assets.beaconbid.com/assets/app-gYPUuBVR.js
+query agencyRoles($agencyId: String) {
+    agencyRoles(agencyId: $agencyId)
+  }
+
+
+// https://assets.beaconbid.com/assets/app-gYPUuBVR.js
+query ebids($solicitationId: ID!, $start: Int!, $pageSize: Int!, $filter: String, $sort: String, $status: String) {
+    ebids(
+      solicitationId: $solicitationId
+      start: $start
+      pageSize: $pageSize
+      filter: $filter
+      sort: $sort
+      status: $status
+    ) {
+      total
+      data {
+        id
+        revisionId
+        evaluations
+        confirmation
+        status
+        updatedAt
+        withdrawnAt
+        withdrawalReason
+        hasDraft
+        documents
+        forms
+        supplier {
+          id
+        }
+        contact {
+          id
+          name
+          email
+          phone
+          position
+          verified
+        }
+        company {
+          name
+          specialDesignations
+          location {
+            id
+            address1
+            address2
+            city
+            postalCode
+            regionId
+          }
+        }
+      }
+    }
+  }
+
+
+// https://assets.beaconbid.com/assets/app-gYPUuBVR.js
+query ListSolicitationEvaluators($solicitationId: ID!) {
+    solicitation(id: $solicitationId) {
+      id
+      evaluators {
+        id
+        contact {
+          id
+          name
+          email
+        }
+      }
+    }
+  }
+
+
+// https://assets.beaconbid.com/assets/app-gYPUuBVR.js
+query planholderEmails($solicitationId: ID!, $preRelease: Boolean, $start: Int, $pageSize: Int) {
+    solicitation(id: $solicitationId) {
+      id
+      planholders(preRelease: $preRelease, start: $start, pageSize: $pageSize) {
+        total
+        data {
+          supplier {
+            id
+            contact {
+              id
+              email
+            }
+          }
+        }
+      }
+    }
+  }
+
+
+// https://assets.beaconbid.com/assets/app-gYPUuBVR.js
+query solicitation($id: ID!) {
+    solicitation(id: $id) {
+      id
+      metrics
+    }
+  }
+
+
+// https://assets.beaconbid.com/assets/app-gYPUuBVR.js
+query ListSolicitationWatchers($solicitationId: ID!) {
+    solicitation(id: $solicitationId) {
+      id
+      watchers {
+        id
+        contact {
+          id
+          name
+          email
+        }
+      }
+    }
+  }
+
+
+// https://assets.beaconbid.com/assets/app-gYPUuBVR.js
+query listSolicitationHistory($id: ID!, $afterRevisionId: ID) {
+        listSolicitationHistory(id: $id, afterRevisionId: $afterRevisionId) {
+          createdAt
+          field
+          value
+          modifier
+        }
+      }
+    
+
+// https://assets.beaconbid.com/assets/app-gYPUuBVR.js
+query questions($solicitationId: ID!, $start: Int, $pageSize: Int, $filter: String) {
+    questions(solicitationId: $solicitationId, start: $start, pageSize: $pageSize, filter: $filter) {
+      total
+      data {
+        id
+        question
+        createdAt
+        supplier {
+          id
+          contact {
+            id
+            name
+          }
+          company {
+            id
+            name
+          }
+        }
+      }
+    }
+  }
+
+
+// https://assets.beaconbid.com/assets/app-gYPUuBVR.js
+query ListAgencies($filter: String, $status: String, $sort: String, $start: Int, $pageSize: Int) {
+    agencies(filter: $filter, status: $status, sort: $sort, start: $start, pageSize: $pageSize) {
+      total
+      data {
+        ${tC}
+        openSolicitationsTotal
+      }
+    }
+  }
+
+
+// https://assets.beaconbid.com/assets/app-gYPUuBVR.js
+query agencyContacts($agencyId: ID!, $filter: String, $sort: String, $start: Int, $pageSize: Int) {
+  agencyContacts(agencyId: $agencyId, filter: $filter, sort: $sort, start: $start, pageSize: $pageSize) {
+    total
+    data {
+      ${iC}
+    }
+  }
+}
+
+// https://assets.beaconbid.com/assets/app-gYPUuBVR.js
+query actions(
+    $agencyId: ID
+    $solicitationId: ID
+    $userId: ID
+    $createdSince: String
+    $filter: String
+    $sort: String
+    $start: Int
+    $pageSize: Int
+  ) {
+    actions(
+      userId: $userId
+      agencyId: $agencyId
+      solicitationId: $solicitationId
+      createdSince: $createdSince
+      filter: $filter
+      sort: $sort
+      start: $start
+      pageSize: $pageSize
+    ) {
+      total
+      data {
+        id
+        createdAt
+        action
+        message
+        context
+        solicitation {
+          id
+          title
+        }
+        user {
+          contact {
+            id
+            name
+          }
+          agency {
+            id
+            name
+          }
+        }
+        supplier {
+          contact {
+            id
+            name
+          }
+          company {
+            id
+            name
+          }
+        }
+        spoofer {
+          contact {
+            id
+            name
+          }
+        }
+      }
+    }
+  }
+
+
+// https://assets.beaconbid.com/assets/app-gYPUuBVR.js
+query ListNotes($agencyId: ID, $filter: String, $start: Int, $pageSize: Int) {
+    notes(agencyId: $agencyId, filter: $filter, start: $start, pageSize: $pageSize) {
+      total
+      data {
+        ${kC}
+      }
+    }
+  }
+
+
+// https://assets.beaconbid.com/assets/app-gYPUuBVR.js
+query actions(
+    $userId: ID
+    $agencyId: ID
+    $solicitationId: ID
+    $createdSince: String
+    $filter: String
+    $sort: String
+    $start: Int
+    $pageSize: Int
+  ) {
+    actions(
+      userId: $userId
+      agencyId: $agencyId
+      solicitationId: $solicitationId
+      createdSince: $createdSince
+      filter: $filter
+      sort: $sort
+      start: $start
+      pageSize: $pageSize
+    ) {
+      total
+      data {
+        id
+        createdAt
+        action
+        message
+        context
+        solicitation {
+          id
+          title
+        }
+        user {
+          contact {
+            id
+            name
+          }
+          agency {
+            id
+            name
+          }
+        }
+        supplier {
+          contact {
+            id
+            name
+          }
+          company {
+            id
+            name
+          }
+        }
+        spoofer {
+          contact {
+            id
+            name
+          }
+        }
+      }
+    }
+  }
+
+
+// https://assets.beaconbid.com/assets/app-gYPUuBVR.js
+query listEmails($eid: String, $toEmail: String, $agencyName: String) {
+        listEmails(eid: $eid, toEmail: $toEmail, agencyName: $agencyName) {
+          id
+          subject
+          from
+          to
+          createdAt
+          sentAt
+          contact {
+            id
+            user {
+              agency {
+                id
+                name
+              }
+            }
+          }
+        }
+      }
+    
+
+// https://assets.beaconbid.com/assets/app-gYPUuBVR.js
+query renderTemplate($templateName: String!, $solicitationId: String) {
+        renderTemplate(templateName: $templateName, solicitationId: $solicitationId)
+      }
+    
+
+// https://assets.beaconbid.com/assets/app-gYPUuBVR.js
+query supplierQuestions($solicitationId: ID!) {
+    supplierQuestions(solicitationId: $solicitationId) {
+      total
+      data {
+        id
+        question
+        createdAt
+      }
+    }
+  }
+
+
+// https://assets.beaconbid.com/assets/app-gYPUuBVR.js
+query agency($id: String!) {
+      agency(id: $id) {
+        id
+        name
+        tag
+      }
+    }
+  
+
+// route `/solicitations/${r.agency.tag}/${r.id}?spuid=${e.supplier.id}`
+
+// route `/solicitations/*`
+
+// route `/solicitations/${t}/open`
+
+// route `/solicitations/${t}/open`
+
+// route `/solicitations/${t}/closed`
+
+// route `/solicitations/${t}/register`
+
+// route `/solicitations/${t}/register`
+
+// route `/solicitations/${t}/register`
+
+// route `/solicitations/${e.tag}/open`
+
+// route `/solicitations/${t.agency.tag}/${t.id}`
+
+// route `/solicitations/${e.tag}/register`
+
+// route `/solicitations/${e.tag}/register`
+
+// route `/solicitations/${e.agency.tag}/register`
+
+// route `/solicitations/${encodeURIComponent(n.agencyTag)}/`
+
+// route `/solicitations/${encodeURIComponent(o.agency.tag)}/`
+
+// route `/solicitations/${h.data?.agency.tag}`
+
+// route `/solicitations/:agencyTag/*`
+
+// route `/solicitations/${e.agency.tag}/open`
+
+// route `/solicitations/pending`
+
+// route `/solicitations/in-progress`
+
+// route `/solicitations/submitted`
+
+// route `/solicitations/withdrawn`
+
+// route `/solicitations/canceled`
+
+// https://assets.beaconbid.com/assets/context-BPZS2PDz.js
+query Solicitation($id: ID!, $revisionId: ID, $public: Boolean) {
+  solicitation(id: $id, revisionId: $revisionId, public: $public) {
+    ${lp}
+    supplierRegistration {
+      interest
+      interestDate
+      removedAt
+    }
+  }
+}
+
+
+// https://assets.beaconbid.com/assets/context-BPZS2PDz.js
+query Solicitation($id: ID!, $revisionId: ID, $public: Boolean) {
+  solicitation(id: $id, revisionId: $revisionId, public: $public) {
+    ${dp}
+  }
+  listSolicitationHistory(id: $id) {
+    field
+  }
+  ebids(solicitationId: $id, status: "submitted"){
+    total
+  }
+  questions(solicitationId: $id, start: 0, pageSize:0){
+    total
+  }
+}
+
+
+// https://assets.beaconbid.com/assets/context-BPZS2PDz.js
+query agency(
+        $agencyTag: String!,
+        $pageSize: Int,
+        ${E?hp:
+
+// https://assets.beaconbid.com/assets/context-BPZS2PDz.js
+query ListCategories($keywords: String!, $agencyId: String, $similarResults: Int) {
+    categories(keywords: $keywords, agencyId: $agencyId, similarResults: $similarResults)
+  }
+
+
+// https://assets.beaconbid.com/assets/context-BPZS2PDz.js
+query Users($agencyId: ID, $start: Int, $pageSize: Int, $filter: String) {
+    users(agencyId: $agencyId, start: $start, pageSize: $pageSize, filter: $filter) {
+      total
+      data {
+        ${Bx}
+      }
+    }
+  }
+
+
+// https://assets.beaconbid.com/assets/context-BPZS2PDz.js
+query Agency($id: String!) {
+    agency(id: $id) {
+      customizationSettings
+    }
+  }
+
+
+// https://assets.beaconbid.com/assets/context-BPZS2PDz.js
+query ListSolicitationTemplates {
+    solicitationTemplates {
+      id
+      name
+      isDefault
+      template
+      modifiedAt
+      modifier {
+        name
+      }
+    }
+  }
+
+
+// https://assets.beaconbid.com/assets/context-BPZS2PDz.js
+query GenerateRefnum($solicitationType: String) {
+    generateRefnum(solicitationType: $solicitationType)
+  }
+
+
+// https://assets.beaconbid.com/assets/context-BPZS2PDz.js
+query ValidateRefNum($refnum: String!, $solicitationId: String) {
+    validateRefnum(refnum: $refnum, solicitationId: $solicitationId)
+  }
+
+
+// https://assets.beaconbid.com/assets/context-BPZS2PDz.js
+query planholders($solicitationId: ID!, $preRelease: Boolean, $filter: String, $start: Int, $pageSize: Int, $sort: String) {
+    solicitation(id: $solicitationId) {
+      id
+      planholders(preRelease: $preRelease, filter: $filter, start: $start, pageSize: $pageSize, sort: $sort) {
+        total
+        data {
+          ${NE}
+        }
+      }
+    }
+  }
+
+
+// https://assets.beaconbid.com/assets/context-BPZS2PDz.js
+query ListSolicitations(
+    $agencyId: ID,
+    $agencyTag: String,
+    $status: String,
+    $filter: String,
+    $start: Int,
+    $pageSize: Int,
+    $sort: String,
+    $watcherId: String,
+    $regionId: String,
+    $demo: Boolean,
+    $issueDateFromISO: String,
+    $issueDateToISO: String,
+    $dueDateFromISO: String,
+    $dueDateToISO: String,
+    $creators: JSON,
+    $departments: JSON,
+    $types: JSON,
+    $categories: JSON
+    ) {
+    solicitations(
+      agencyId: $agencyId
+      agencyTag: $agencyTag
+      status: $status
+      filter: $filter
+      start: $start
+      pageSize: $pageSize
+      sort: $sort
+      watcherId: $watcherId
+      regionId: $regionId
+      demo: $demo
+      issueDateFromISO: $issueDateFromISO
+      issueDateToISO: $issueDateToISO
+      dueDateFromISO: $dueDateFromISO
+      dueDateToISO: $dueDateToISO
+      creators: $creators
+      departments: $departments
+      types: $types
+      categories: $categories
+    ) {
+      total
+      data {
+        ${lp}
+        totalAwards
+      }
+    }
+  }
+
+
+// https://assets.beaconbid.com/assets/context-BPZS2PDz.js
+query SolicitationsByIds($ids: JSON, $agencyId: ID, $start: Int, $pageSize: Int, $sort: String) {
+    solicitations(ids: $ids, agencyId: $agencyId, start: $start, pageSize: $pageSize, sort: $sort) {
+      total
+      data {
+        ${lp}
+        totalAwards
+      }
+    }
+  }
+
+
+// https://assets.beaconbid.com/assets/context-BPZS2PDz.js
+query solicitationEbidSummaries($solicitationId: ID!) {
+    ebids(solicitationId: $solicitationId, status: "submitted", pageSize: 9999) {
+      data {
+        confirmation
+        updatedAt
+        supplierId
+      }
+    }
+  }
+
+
+// https://assets.beaconbid.com/assets/context-BPZS2PDz.js
+query CustomFields($filter: ListCustomFieldsInput!) {
+    customAgencyFields(filter: $filter) {
+      id
+      properties
+      context
+      type
+      fieldName
+      rank
+      filterable
+    }
+  }
+
+
+// https://assets.beaconbid.com/assets/context-BPZS2PDz.js
+query planholderRecipients($solicitationId: ID!, $filter: String, $start: Int, $pageSize: Int) {
+    solicitation(id: $solicitationId) {
+      id
+      planholders(filter: $filter, start: $start, pageSize: $pageSize) {
+        total
+        data {
+          id
+          supplier {
+            id
+            contact {
+              id
+              name
+              email
+            }
+          }
+        }
+      }
+    }
+  }
+
+
+// https://assets.beaconbid.com/assets/context-BPZS2PDz.js
+query sendPlanholderEmail(
+        $solicitationId: ID!
+        $supplierIds: [String!]
+        $subject: String!
+        $content: String!
+        $html: String!
+      ) {
+        sendPlanholderEmail(
+          solicitationId: $solicitationId
+          supplierIds: $supplierIds
+          subject: $subject
+          content: $content
+          html: $html
+        )
+      }
+    
+
+// https://assets.beaconbid.com/assets/context-BPZS2PDz.js
+query previewPlanholderEmail($solicitationId: ID!, $content: String!) {
+        previewPlanholderEmail(solicitationId: $solicitationId, content: $content)
+      }
+    
+
+// route `/solicitations/${t.agency.tag}/${e.solicitation.id}`

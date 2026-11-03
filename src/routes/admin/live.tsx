@@ -1546,19 +1546,19 @@ function StatStrip({ today }: { today: TodayStats | null }) {
   if (!today) return null;
   const money = (n: number) => `$${n.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
   const cards: { label: string; value: string; change: ReturnType<typeof dayChange> | null; color: string; note?: string }[] = [
-    { label: "People today", value: today.people.today.toLocaleString("en-US"), change: dayChange(today.people.today, today.people.yesterday), color: "#22d3ee", note: "bots and email scanners left out" },
+    { label: "People today", value: today.people.today.toLocaleString("en-US"), change: dayChange(today.people.today, today.people.yesterdaySoFar), color: "#22d3ee", note: `${today.people.yesterday.toLocaleString("en-US")} all day yesterday · bots and scanners left out` },
     {
       label: "Searches",
       value: today.searches.today.toLocaleString("en-US"),
-      change: dayChange(today.searches.today, today.searches.yesterday),
+      change: dayChange(today.searches.today, today.searches.yesterdaySoFar),
       color: "#38bdf8",
-      note: today.searches.zeroToday ? `${today.searches.zeroToday} found nothing` : undefined,
+      note: `${today.searches.yesterday.toLocaleString("en-US")} all day yesterday${today.searches.zeroToday ? ` · ${today.searches.zeroToday} found nothing today` : ""}`,
     },
-    { label: "Checkouts", value: today.checkouts.today.toLocaleString("en-US"), change: dayChange(today.checkouts.today, today.checkouts.yesterday), color: "#fbbf24", note: "reached the payment page" },
+    { label: "Checkouts", value: today.checkouts.today.toLocaleString("en-US"), change: dayChange(today.checkouts.today, today.checkouts.yesterdaySoFar), color: "#fbbf24", note: `reached the payment page · ${today.checkouts.yesterday} all day yesterday` },
     {
       label: "Paid today",
       value: today.paid ? money(today.paid.today) : "—",
-      change: today.paid ? dayChange(today.paid.today, today.paid.yesterday, true) : null,
+      change: today.paid ? dayChange(today.paid.today, today.paid.yesterdaySoFar, true) : null,
       color: "#4ade80",
       note: today.paid ? `${today.paid.salesToday} sale${today.paid.salesToday === 1 ? "" : "s"}` : "Stripe not reachable",
     },
@@ -1585,7 +1585,10 @@ function SidePanel({ onClose, children }: { onClose: () => void; children: React
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
   return (
-    <div className="admin-console live-panel-wrap" role="dialog" aria-modal="true" aria-label="Money and trials">
+    // No .admin-console class here: that class carries min-height: 100vh and
+    // the page background (owner 2026-11-03: "a lot of empty space at the
+    // bottom"). This sits inside the page's own .admin-console already.
+    <div className="live-panel-wrap" role="dialog" aria-modal="true" aria-label="Money and trials">
       <button type="button" className="live-panel-scrim" aria-label="Close" onClick={onClose} />
       <aside className="live-panel">
         <div className="mb-4 flex items-center justify-between">
@@ -1604,7 +1607,7 @@ function SidePanel({ onClose, children }: { onClose: () => void; children: React
 function JarvisDock({ data, now, onChat }: { data: LiveData; now: number; onChat: (v: OnlineVisitor) => void }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="admin-console">
+    <>
       {open ? (
         <div className="live-jarvis-dock" role="dialog" aria-label="Jarvis">
           <div className="mb-2 flex justify-end">
@@ -1618,7 +1621,7 @@ function JarvisDock({ data, now, onChat }: { data: LiveData; now: number; onChat
       <button type="button" onClick={() => setOpen((o) => !o)} className="live-jarvis-fab" aria-label={open ? "Close Jarvis" : "Open Jarvis"} title="Jarvis">
         <Mic size={22} aria-hidden="true" />
       </button>
-    </div>
+    </>
   );
 }
 

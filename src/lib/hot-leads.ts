@@ -144,9 +144,12 @@ export function visitorLine(place: string | null, path: string): string {
   return `New visitor${place ? ` from ${place}` : ""}, on ${pageName(path)}.`;
 }
 
-/** What the announcer says when a visitor turns hot. */
+/**
+ * What the announcer says when a visitor turns hot. Owner 2026-11-03: the
+ * "say hi" chat is gone and the old line sounded robotic; plain words now.
+ */
 export function hotLine(place: string | null, path: string): string {
-  return `Hot lead${place ? ` in ${place}` : ""}, on ${pageName(path)}. Now's a good time to say hi.`;
+  return `Someone${place ? ` in ${place}` : ""} is looking at ${pageName(path)} right now.`;
 }
 
 /** Spot on the radar: angle from the visitor id (stable), distance from score (hotter = closer). */

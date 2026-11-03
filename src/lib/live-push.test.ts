@@ -92,7 +92,7 @@ describe("hot-lead push (owner 2026-10-27)", () => {
   test("lock-screen text names place, device and page, never an IP", () => {
     const t = hotAlertText({ city: "Miami", region: "FL", device: "mobile", path: "/pricing?x=1", visitId: "v1" });
     expect(t.title).toBe("🔥 Hot lead on Contrax");
-    expect(t.body).toBe("Miami, FL · Mobile · now on /pricing. Open Mission Control to say hi.");
+    expect(t.body).toBe("Someone in Miami, FL is looking at /pricing on their phone right now.");
     expect(t.tag).toBe("hot-v1");
   });
 });

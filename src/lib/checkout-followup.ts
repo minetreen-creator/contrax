@@ -24,6 +24,8 @@ export interface CheckoutSessionLite {
 /** An unpaid plan checkout old enough to follow up and not too old to matter. */
 export function followupCandidate(s: CheckoutSessionLite, nowMs: number): boolean {
   if (!s.metadata?.plan_tier) return false;
+  // The daily money-path check's own session is never a buyer (owner 2026-11-03).
+  if (s.metadata?.probe === "path_check") return false;
   if (s.status === "complete" || s.paymentStatus === "paid") return false;
   const ageMin = (nowMs - s.created * 1000) / 60_000;
   return ageMin >= FOLLOWUP_AFTER_MINUTES && ageMin <= FOLLOWUP_WINDOW_HOURS * 60;

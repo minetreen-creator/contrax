@@ -450,7 +450,16 @@ export interface CreateCheckoutSessionOptions {
   starterPass?: boolean;
   /** A monthly Starter subscription without the $5 first-month coupon (a returning pass buyer). */
   fullPrice?: boolean;
+  /**
+   * The daily money-path check (src/lib/path-checks.ts), owner 2026-11-03: the
+   * session is labeled ("Contrax path check" / metadata probe=path_check) and
+   * expires in about 30 minutes, so it doesn't look like a buyer in Stripe.
+   */
+  probe?: boolean;
 }
+
+/** Stripe's shortest allowed checkout lifetime is 30 minutes; one more for clock skew. */
+export const PROBE_SESSION_SECONDS = 31 * 60;
 
 /**
  * Create a Stripe Checkout Session for a given plan tier.
@@ -612,6 +621,7 @@ export async function createCheckoutSession(
     if (isVad) {
       metadata.promo_code = "VAD26";
     }
+    if (opts.probe) metadata.probe = "path_check";
 
     const firstMonth = !starterPass && opts.fullPrice !== true && starterFirstMonthApplies({ planTier, interval, mode, vad: isVad });
     if (firstMonth) {
@@ -628,6 +638,9 @@ export async function createCheckoutSession(
       ...(starterPass ? { customer_creation: "always" as const } : {}),
       ...(firstMonth ? { discounts: [{ coupon: STARTER_FIRST_MONTH_COUPON }] } : {}),
       metadata,
+      ...(opts.probe
+        ? { client_reference_id: "contrax-path-check", expires_at: Math.floor(Date.now() / 1000) + PROBE_SESSION_SECONDS }
+        : {}),
       // Carry the SAME attribution metadata on the SUBSCRIPTION (not just the
       // checkout session) so the lifecycle webhook can attribute
       // customer.subscription.* / invoice.* events even if it never saw the

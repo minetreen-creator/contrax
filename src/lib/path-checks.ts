@@ -42,7 +42,9 @@ export const PATH_CHECKS: readonly PathCheck[] = [
     name: "Checkout opens ($5 Starter, signed out)",
     path: "/api/stripe/create-checkout-session",
     method: "POST",
-    body: JSON.stringify({ planTier: "starter", interval: "month" }),
+    // Labeled and short-lived in Stripe (owner 2026-11-03), so the daily check
+    // is easy to tell apart from a real buyer under Review sessions.
+    body: JSON.stringify({ planTier: "starter", interval: "month", probe: "path-check" }),
     expectStatus: 200,
     mustContain: "checkout.stripe.com",
   },

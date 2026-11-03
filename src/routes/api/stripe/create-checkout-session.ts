@@ -54,6 +54,8 @@ async function handler({ request }: { request: Request }) {
       promoCode?: string;
       interval?: string;
       founding?: boolean;
+      /** "path-check": the daily money-path check (labeled, short-lived session). */
+      probe?: string;
     };
     // SIGN-IN REQUIRED except for the monthly Starter checkout (pay first,
     // account after — CEO 2026-10-22, starter-offer.ts guestCheckoutAllowed).
@@ -94,6 +96,7 @@ async function handler({ request }: { request: Request }) {
       interval: body.interval === "year" ? "year" : "month",
       ...(promoCode ? { promoCode } : {}),
       ...(body.founding === true ? { founding: true } : {}),
+      ...(body.probe === "path-check" ? { probe: true } : {}),
     });
 
     if (!result.success) {

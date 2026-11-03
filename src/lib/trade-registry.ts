@@ -47,9 +47,17 @@ import { NAICS_INFER_MAP, isFigurativeLandscapeOnly } from "~/lib/naics-infer";
 import {
   hasExplicitJanitorialServicePhrase,
   isHvacNonWork,
+  isConstructionNonWork,
+  isConstructionTitle,
   isProductBuy,
   isSpecialtyCleaningOnly,
 } from "~/lib/trade-classification";
+
+/** The Construction trade's search (its general-building NAICS code is the
+ *  marker; no other registry entry carries 236220). */
+export function isConstructionExpansion(expansion: TradeExpansion): boolean {
+  return !expansion.isNaics && expansion.naicsCodes.includes("236220");
+}
 
 /** How long a radar `trade` input may be — ONE definition everywhere (owner
  *  09-07: the 64-vs-120 mismatch is fixed by this single constant; every
@@ -75,8 +83,14 @@ export const MAX_TRADE_LENGTH = 120;
  *
  *  RAISED 28 → 64 (owner 2026-10-30, "IT services, FL" returned 5 matches):
  *  the IT entry grew to 58 phrases; at 28 its new ones were dropped the same
- *  silent way. trade-term-cap.test.ts now fails if any entry outgrows the cap. */
-export const MAX_EXPANDED_TERMS = 64;
+ *  silent way. trade-term-cap.test.ts now fails if any entry outgrows the cap.
+ *
+ *  RAISED 64 → 128 (owner 2026-11-03, "we need more construction bids in TX",
+ *  "increase the limit"): the construction entry grew by the job titles Texas
+ *  buyers post (sidewalk, lift station, HMAC overlay, fire station, …). */
+export const MAX_EXPANDED_TERMS = 128;
+/** The old cap, still applied to the NAICS infer-map keywords (see expandTradeSingle). */
+const INFER_TERMS_CAP = 64;
 
 /**
  * Spanish trade terms (owner 2026-10-28: Puerto Rico's ASG portal posts every
@@ -957,6 +971,77 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
       "manhole",
       "roof repair",
       "restroom upgrade",
+      // Owner 2026-11-03 ("we need more construction bids in TX", "max inputs",
+      // "increase the limit"): the job titles Texas cities, counties, ISDs and
+      // TxDOT post that carried none of the phrases above.
+      "sidewalk",
+      "lift station",
+      "ada improvement",
+      "fire station",
+      "park improvement",
+      "concrete repair",
+      "concrete replacement",
+      "concrete paving",
+      "building addition",
+      "remodel",
+      "parking garage",
+      "parking lot",
+      "hmac",
+      "hot mix",
+      "overlay",
+      "seal coat",
+      "sealcoat",
+      "micro surfacing",
+      "street rehabilitation",
+      "street improvement",
+      "street reconstruction",
+      "road improvement",
+      "reconstruction",
+      "culvert",
+      "low water crossing",
+      "curb and gutter",
+      "restroom facility",
+      "water main",
+      "waterline",
+      "water line replacement",
+      "sewer line",
+      "sanitary sewer",
+      "storm sewer",
+      "wastewater treatment plant",
+      "water treatment plant",
+      "elevated storage tank",
+      "ground storage tank",
+      "pump station",
+      "force main",
+      "utility relocation",
+      "retaining wall",
+      "bridge rehabilitation",
+      "detention pond",
+      "drainage",
+      "channel improvement",
+      "hike and bike",
+      "splash pad",
+      "athletic field",
+      "finish out",
+      "finish-out",
+      "buildout",
+      "build-out",
+      "tenant improvement",
+      "asbestos abatement",
+      "waterproofing",
+      "foundation repair",
+      "masonry",
+      "paving",
+      "asphalt",
+      "site improvement",
+      "facility improvement",
+      "capital improvement",
+      "taxiway",
+      "runway",
+      "hangar",
+      "boat ramp",
+      "bulkhead",
+      "dredging",
     ],
     naics: ["236210", "236220", "237110", "237310", "237990", "238990"],
     exactOnly: true,
@@ -1176,6 +1261,11 @@ function expandTradeSingle(original: string): TradeExpansion {
     addSpanish(entry);
   }
 
+  // Owner 2026-11-03: the cap rose 64 → 128 for CURATED registry phrases only.
+  // The infer-map keywords below stay within the old 64 so no other trade's
+  // matching widens ("hosting" would make "Hosting the Annual Festival" IT).
+  const curatedCount = terms.length;
+
   // 2) Infer-map fallback: when the query equals one of the curated keywords
   //    for a code (e.g. "truckload" → 484121), adopt that code's keyword set +
   //    code. Keeps the generic registry working for every representable code
@@ -1203,12 +1293,15 @@ function expandTradeSingle(original: string): TradeExpansion {
   // today's precision/behavior; only ADDED synonyms are subject to the block.
   // Implied NAICS codes are untouched (the evidence path stays open).
   const [verbatim, ...added] = terms;
-  const filtered = added.filter((t) => !GENERIC_TRADE_TERMS.has(t));
+  const keep = (t: string) => !GENERIC_TRADE_TERMS.has(t);
+  const curated = [verbatim, ...added.slice(0, Math.max(0, curatedCount - 1)).filter(keep)].slice(0, MAX_EXPANDED_TERMS);
+  const inferred = added.slice(Math.max(0, curatedCount - 1)).filter(keep).slice(0, Math.max(0, INFER_TERMS_CAP - curated.length));
   return {
     original: raw,
     isNaics: false,
     terms: [
-      ...[verbatim, ...filtered].slice(0, MAX_EXPANDED_TERMS),
+      ...curated,
+      ...inferred,
       ...spanish.filter((t) => t !== verbatim).slice(0, MAX_SPANISH_TERMS),
     ],
     naicsCodes,
@@ -1550,6 +1643,13 @@ export function isStrongTradeMatch(
   // Service notices use letter codes ("J041--", "Z1DA--"), so they are untouched.
   if (/^\s*\d{2,4}\s*--/.test(titleText)) return false;
   if (serviceTradeMismatch(titleText, expansion)) return false;
+  // Construction (owner 2026-11-03, "we need more construction bids in TX"):
+  // goods buys and inspection/design services are not construction jobs, and a
+  // title the map's own classifier calls construction ("ADA Improvements",
+  // "HMAC Overlay", "New Fire Station") is a match without spending a phrase slot.
+  const construction = isConstructionExpansion(expansion);
+  if (construction && isConstructionNonWork(titleText)) return false;
+  if (construction && isConstructionTitle(titleText)) return true;
   const terms = expansion.terms.filter((t) => t && t.length >= 2);
   // QA re-verification N1/F8 (PR #414): a TITLE-TERM hit on the janitorial
   // expansion must survive the purchased-service guards before it counts as a
@@ -1611,6 +1711,9 @@ export function tradeKeywordPred(sql: any, expansion: TradeExpansion): any {
   if (expansion.naicsCodes.length > 0) {
     clauses.push(s`naics_code = ANY(${expansion.naicsCodes})`);
   }
+  // Rows our classifier stamped Construction (the map's count) are candidates;
+  // isStrongTradeMatch decides which are shown.
+  if (isConstructionExpansion(expansion)) clauses.push(s`category = 'Construction'`);
   if (clauses.length === 0) return s``;
   let acc = clauses[0] as any;
   for (let i = 1; i < clauses.length; i++) {

@@ -337,6 +337,13 @@ export const getRegionTradeData = createServerFn({ method: "GET" })
     if (valid) {
       const { sql } = await import("~/db");
       const expansion = expandTrade(trade!.radarTerm);
+      // Owner 2026-11-03 ("we need more construction bids in TX"): the 5,000
+      // row limit applied NATIONWIDE before the state filter, so a big trade's
+      // in-state rows could be cut. Narrow to rows that mention the state (its
+      // name or its code as a word, in the location or the buyer) first — a
+      // superset of resolveBidState, which still decides below.
+      const stateRe = `(^|[[:space:],/()])${code}($|[[:space:],.)/])`;
+      const stateLike = `%${String(STATE_NAMES[code!] ?? code).toLowerCase()}%`;
       try {
         const rows = await sql()`
           SELECT id, title, agency, description, due_date, estimated_value,
@@ -349,6 +356,8 @@ export const getRegionTradeData = createServerFn({ method: "GET" })
             WHERE due_date > NOW() AND ${sql().unsafe(LOW_CONTENT_SQL)}
               AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
               ${tradeKeywordPred(sql, expansion)}
+              AND (COALESCE(location,'') ~* ${stateRe} OR LOWER(COALESCE(location,'')) LIKE ${stateLike}
+                   OR COALESCE(agency,'') ~* ${stateRe} OR LOWER(COALESCE(agency,'')) LIKE ${stateLike})
             ORDER BY ${sql().unsafe(noticeKeySql("bids"))}, created_at DESC NULLS LAST
           ) t
           LIMIT 5000

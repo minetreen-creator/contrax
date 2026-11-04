@@ -540,8 +540,7 @@ export function isConstructionNonWork(title: string): boolean {
   return false;
 }
 
-export function mapCategory(typeValue: string, title: string, description: string): string {
-  const t = (typeValue || "").toLowerCase();
+export function mapCategory(_typeValue: string, title: string, description: string): string {
   const titleLc = (title || "").toLowerCase();
   const full = (titleLc + " " + (description || "").toLowerCase()).trim();
 
@@ -572,12 +571,16 @@ export function mapCategory(typeValue: string, title: string, description: strin
   if (full.includes("hvac") || full.includes("heating") || full.includes("cooling") || HVAC_TITLE_WORDS.test(titleLc)) return "HVAC";
   if (full.includes("electrical") || full.includes("plumbing") || ELECTRICAL_WORDS.test(full) || ELECTRICAL_TITLE_WORDS.test(titleLc)) return "Plumbing & Electrical";
 
+  // Federal construction (Y…) and real-property repair (Z…) codes in the title
+  // ("Y1DA--Replace Pneumatic Tube System", "Z2AA--Roof Repairs").
+  if (/^\s*[yz][0-9a-z]{2,3}\s*--/.test(titleLc) && !isConstructionNonWork(titleLc)) return "Construction";
   // Owner 2026-11-04: the Construction trade search's own title rules, so a
   // listing with no category of its own (BidNet) is filed the way Radar finds it.
   if (isConstructionTitle(titleLc) && !isConstructionNonWork(titleLc)) return "Construction";
-  if (t.includes("solicitation") || t.includes("combined")) return "Construction";
-  // S5/D4: `award` / `justification` / `special` deliberately fall through to the
-  // honest "Other" (never "Construction").
+  // Owner 2026-11-04 ("dl all 3"): a notice TYPE of "Solicitation" or "Combined
+  // Synopsis/Solicitation" says nothing about the work, so it no longer files
+  // canned fruit, aircraft parts or laptops as Construction. Only the title and
+  // description decide; `award` / `justification` / `special` stay "Other" too.
   return "Other";
 }
 

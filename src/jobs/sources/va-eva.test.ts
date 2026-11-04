@@ -24,6 +24,7 @@ import { evaRetryDeps,
   evaSetAside,
   fetchVaEvaBids,
   fixMojibake,
+  isVdotCabbCopy,
   parseEvaDocs,
   vaEvaCountLine,
   type EvaDoc,
@@ -496,5 +497,21 @@ describe("va_eva — registration", () => {
   test("treated as a state/local source with a Virginia badge", () => {
     expect(isStateLocalSource(["va_eva"])).toBe(true);
     expect(sourceBadgeLabel("va_eva")).toBe("State (VA)");
+  });
+});
+
+describe("eVA copies of VDOT CABB ads (owner 2026-11-04: va_vdot_cabb reads CABB itself)", () => {
+  const vdot = "Virginia Department of Transportation";
+  const cabb = "Location: Various (Prequalification Required)All questions must be submitted to VDOT using CABB.(Contractors Advertisement Bulletin Board)";
+  test("the order-numbered copies are recognized", () => {
+    for (const t of ["293_2027 PLANT MIX - SECONDARY", "757_801_2027 LATEX MODIFIED - SECONDARY", "B12 CII_2026 SS - HIGH RISE BRIDGE BASCULE REPAIR", "A98_2026 BRIDGE REPLACEMENT"]) {
+      expect(isVdotCabbCopy({ shortdesc: t, longdesc: `${t}${cabb}`, agencyname: vdot })).toBe(true);
+    }
+  });
+  test("other VDOT buys and other agencies are kept", () => {
+    expect(isVdotCabbCopy({ shortdesc: "IFB 161206 Equipment with operator - Bridge", longdesc: "Equipment with operator for the Bridge Division", agencyname: vdot })).toBe(false);
+    expect(isVdotCabbCopy({ shortdesc: "Coleman Bridge HPU Integration", longdesc: "To modify the existing HPU", agencyname: vdot })).toBe(false);
+    expect(isVdotCabbCopy({ shortdesc: "293_2027 PLANT MIX - SECONDARY", longdesc: cabb, agencyname: "Henrico County Government" })).toBe(false);
+    expect(isVdotCabbCopy({ shortdesc: "293_2027 PLANT MIX - SECONDARY", longdesc: "no pointer", agencyname: vdot })).toBe(false);
   });
 });

@@ -185,6 +185,8 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
   co_vss: { class: "state", scopeState: "CO", searchScope: "state-portal", recordType: "opportunity" },
   // Ohio DOT construction lettings (src/jobs/sources/oh-odot.ts).
   oh_odot: { class: "state", scopeState: "OH", searchScope: "state-portal", recordType: "opportunity" },
+  // VDOT highway construction advertisements (src/jobs/sources/va-vdot-cabb.ts).
+  va_vdot_cabb: { class: "state", scopeState: "VA", searchScope: "state-portal", recordType: "opportunity" },
   // New York State Contract Reporter (src/jobs/sources/ny-nyscr.ts).
   ny_nyscr: { class: "state", scopeState: "NY", searchScope: "state-portal", recordType: "opportunity" },
   // Michigan SIGMA Vendor Self Service (src/jobs/sources/mi-sigma.ts).

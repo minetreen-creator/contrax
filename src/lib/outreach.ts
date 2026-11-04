@@ -50,6 +50,35 @@ export const OUTREACH_TRADES: readonly OutreachTrade[] = [
   { match: "tree trimming", places: "tree service", label: "tree service" },
 ];
 
+/**
+ * Construction outreach for one state (owner 2026-11-04: "draft outreach emails
+ * for tomorrow" → "and concentrate on VA construction"). A construction bid is
+ * sent to the kind of contractor its title names; anything else goes to general
+ * contractors. First match wins. PURE.
+ */
+const CONSTRUCTION_SUBTRADES: readonly [RegExp, string, string][] = [
+  [/\b(roof|reroof)/i, "roofing contractor", "roofing"],
+  [/\b(hvac|heat pump|chiller|boiler|air handl)/i, "HVAC contractor", "HVAC"],
+  [/\b(electrical|lighting|generator)\b/i, "electrical contractor", "electrical"],
+  [/\bplumb/i, "plumbing contractor", "plumbing"],
+  [/\b(paving|asphalt|resurfac|overlay|plant mix|latex modified|chip seal|crack seal|parking lot)/i, "paving contractor", "paving"],
+  [/\b(concrete|sidewalk|curb|ada (?:ramp|improvement))/i, "concrete contractor", "concrete"],
+  [/\bfenc/i, "fence contractor", "fencing"],
+  [/\bpaint/i, "commercial painting", "painting"],
+  [/\b(sewer|water ?line|water improvement|utility|culvert|drainage|storm ?water|lift station|pump station)/i, "utility contractor", "water and sewer"],
+  [/\b(grading|site work|sitework|site development|excavat|demolition)/i, "excavation contractor", "site work"],
+];
+
+export function constructionOutreachTrade(title: string): OutreachTrade {
+  const hit = CONSTRUCTION_SUBTRADES.find(([re]) => re.test(title));
+  return hit ? { match: "", places: hit[1], label: hit[2] } : { match: "", places: "general contractor", label: "construction" };
+}
+
+/** VDOT's highway lettings require VDOT prequalification: not a cold-email job for a local firm. */
+export function bidNeedsPrequalification(agency: string | null | undefined, description: string | null | undefined): boolean {
+  return /department of transportation|\bvdot\b/i.test(String(agency ?? "")) || /\bprequalification required\b/i.test(String(description ?? ""));
+}
+
 /** Drafts the daily job may queue (first emails), across all trades. */
 export const DAILY_FIRST_EMAILS = 30;
 /** Businesses emailed per bid. */

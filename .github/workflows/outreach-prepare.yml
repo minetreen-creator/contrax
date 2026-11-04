@@ -20,6 +20,14 @@ on:
         description: "A second batch: look at more bids per trade, saved in the last 10 days"
         type: boolean
         default: false
+      state:
+        description: "Focus on one state's bids (two letters, e.g. VA); needs trade"
+        type: string
+        default: ""
+      trade:
+        description: "Focus trade (only: construction)"
+        type: string
+        default: ""
 
 concurrency:
   group: outreach-prepare
@@ -38,6 +46,9 @@ jobs:
       GOOGLE_PLACES_API_KEY: ${{ secrets.GOOGLE_PLACES_API_KEY }}
       RESET_DRAFTS: ${{ inputs.reset && 'true' || 'false' }}
       MORE_DRAFTS: ${{ inputs.more && 'true' || 'false' }}
+      # Owner 2026-11-04 ("concentrate on VA construction"): a focus run.
+      FOCUS_STATE: ${{ inputs.state }}
+      FOCUS_TRADE: ${{ inputs.trade }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -56,12 +67,14 @@ jobs:
       # Owner 2026-10-30: companies that just won out-of-state service
       # contracts get a "free local subcontractor list" offer (drafts only).
       - name: Queue prime-contractor drafts
+        if: ${{ !inputs.state }}
         run: bun run prime-outreach-prepare
 
       # Owner 2026-10-30: bond, insurance, equipment and staffing businesses
       # get a free state list of new federal contract winners (drafts only;
       # the paid product is /leads).
       - name: Queue Award Leads drafts
+        if: ${{ !inputs.state }}
         run: bun run leads-outreach-prepare
 
       # Owner 2026-11-02: "always keep outreach to less than 100 due to resend

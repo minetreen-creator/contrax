@@ -6,7 +6,8 @@ import { BOT_EXCLUSION_SQL } from "~/lib/bot-exclusion";
 import { adminFunnelExclusionSQL, qaExternalUserSQL, qaFunnelExclusionSQL } from "~/lib/qa-exclusion";
 import { TRIAL_DAYS } from "~/lib/trial";
 import { dataCenterLocation, emailLinkSweep, sameMinuteClusters } from "~/lib/visitor-intel";
-import { getStripe } from "~/lib/stripe";
+import { getStripe, MONTHLY_PRICE_USD } from "~/lib/stripe";
+import { monthlyRecurring, renewalRate, revenueWindows, type InvestorNumbers, type PaidSession } from "~/lib/investor-numbers";
 import { isAdminEmail } from "~/lib/admin";
 import { ensureTrackedVisitorsTable } from "~/lib/scraper-watch.server";
 import type { TrackedVisitor } from "~/lib/scraper-watch";
@@ -422,6 +423,7 @@ async function handler({ request }: { request: Request }) {
       money,
       paid48h: stripe?.count48h ?? null,
       today: await loadToday(db, stripe),
+      investor: await loadInvestorNumbers(now, money?.starterPass ?? null),
       map,
       onlineCount: people.length,
       scannersHidden: scanners.size,
@@ -439,6 +441,55 @@ async function handler({ request }: { request: Request }) {
 export const Route = createFileRoute("/api/admin/live-console")({
   server: { handlers: { GET: handler } },
 });
+
+/**
+ * Investor numbers (owner 2026-11-04, src/lib/investor-numbers.ts): paying
+ * customers and recurring revenue from the accounts table, revenue and weekly
+ * sales from the last 30 days of Stripe checkouts. Null on any error.
+ */
+async function loadInvestorNumbers(
+  now: number,
+  pass: { continued: number; ended: number } | null,
+): Promise<InvestorNumbers | null> {
+  try {
+    const db = sql();
+    const human = db.unsafe(qaExternalUserSQL());
+    const [paying] = (await db`
+      SELECT COUNT(*)::int AS n FROM users
+      WHERE ((starter_pass_ends_at IS NOT NULL AND starter_pass_ends_at > NOW())
+             OR (subscription_status = 'active' AND stripe_subscription_id IS NOT NULL))
+        AND ${human}
+    `) as { n: number }[];
+    const byTier = (await db`
+      SELECT plan_tier, COUNT(*)::int AS n FROM users
+      WHERE subscription_status = 'active' AND stripe_subscription_id IS NOT NULL AND ${human}
+      GROUP BY plan_tier
+    `) as { plan_tier: string | null; n: number }[];
+    const [ever] = (await db`
+      SELECT COUNT(*)::int AS n FROM users
+      WHERE (starter_pass_bought_at IS NOT NULL OR stripe_subscription_id IS NOT NULL) AND ${human}
+    `) as { n: number }[];
+    const sessions: PaidSession[] = [];
+    const since = Math.floor(now / 1000) - 30 * 24 * 60 * 60;
+    let after: string | undefined;
+    for (let i = 0; i < 10; i++) {
+      const res = await getStripe().checkout.sessions.list({ created: { gte: since }, limit: 100, ...(after ? { starting_after: after } : {}) });
+      sessions.push(...(res.data as unknown as PaidSession[]));
+      if (!res.has_more || !res.data.length) break;
+      after = res.data[res.data.length - 1].id;
+    }
+    return {
+      payingCustomers: Number(paying?.n ?? 0),
+      mrr: monthlyRecurring(byTier, MONTHLY_PRICE_USD),
+      ...revenueWindows(sessions, isAdminEmail, now),
+      renewal: renewalRate(pass?.continued ?? 0, pass?.ended ?? 0),
+      customersEver: Number(ever?.n ?? 0),
+    };
+  } catch (e) {
+    console.error("[api/admin/live-console] investor numbers unavailable:", e);
+    return null;
+  }
+}
 
 /** $5 30-day Starter passes, from the accounts table (owner and test accounts left out); null on any error. */
 async function loadStarterPassStats() {

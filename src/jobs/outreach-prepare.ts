@@ -20,12 +20,16 @@ import {
   DAILY_FIRST_EMAILS,
   bidFitsTrade,
   bidIsServiceJob,
+  bidNeedsPrequalification,
+  constructionOutreachTrade,
   emailFitsSite,
   MAX_DAYS_TO_DUE,
   MIN_DAYS_TO_DUE,
   OUTREACH_TRADES,
   placeIsLocal,
+  type OutreachTrade,
 } from "~/lib/outreach";
+import { isConstructionNonWork } from "~/lib/trade-classification";
 import { ensureOutreach, isNewAddress, queueFirst, queueFollowups, recheckWaitingDrafts, skipAllDrafts } from "~/lib/outreach.server";
 import { bidPlace, placesQuery, siteHost } from "~/lib/prospect-finder";
 import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
@@ -39,6 +43,15 @@ const BIDS_PER_TRADE = process.env.MORE_DRAFTS === "true" ? 6 : 3;
 const FRESH_DAYS = process.env.MORE_DRAFTS === "true" ? 10 : 3;
 /** Candidates read per trade before the "is this local?" filter. */
 const CANDIDATES_PER_TRADE = 25;
+/**
+ * Focus run (owner 2026-11-04: "draft outreach emails for tomorrow" → "and
+ * concentrate on VA construction"): FOCUS_STATE=VA FOCUS_TRADE=construction
+ * queues the day's first emails for that state's open construction bids only.
+ */
+const FOCUS_STATE = (process.env.FOCUS_STATE ?? "").trim().toUpperCase();
+const FOCUS_TRADE = (process.env.FOCUS_TRADE ?? "").trim().toLowerCase();
+/** A focus run reaches back further: one state's fresh construction bids are fewer. */
+const FOCUS_FRESH_DAYS = 10;
 
 interface BidRow {
   id: number;
@@ -47,6 +60,7 @@ interface BidRow {
   location: string | null;
   normalized_state: string;
   due_date: Date | string;
+  description?: string | null;
 }
 
 /**
@@ -79,6 +93,88 @@ async function freshBids(match: string, limit: number): Promise<BidRow[]> {
   `) as BidRow[];
 }
 
+/** One state's fresh open construction bids, newest first. */
+async function freshConstructionBids(state: string, limit: number): Promise<BidRow[]> {
+  const s = sql();
+  return (await s`
+    SELECT id, title, agency, location, normalized_state, due_date, description FROM bids
+    WHERE normalized_state = ${state}
+      AND category = 'Construction'
+      AND due_date >= NOW() + ${`${MIN_DAYS_TO_DUE} days`}::interval
+      AND due_date <= NOW() + ${`${MAX_DAYS_TO_DUE} days`}::interval
+      AND created_at >= NOW() - ${`${FOCUS_FRESH_DAYS} days`}::interval
+      AND ${s.unsafe(LOW_CONTENT_SQL)} AND ${s.unsafe(AWARD_EXCLUSION_SQL)}
+      AND NOT EXISTS (SELECT 1 FROM outreach_contacts c WHERE c.bid_id = bids.id)
+    ORDER BY created_at DESC
+    LIMIT ${limit}
+  `) as BidRow[];
+}
+
+/** Find up to BUSINESSES_PER_BID local businesses for one bid and queue a draft to each. */
+async function queueForBid(key: string, b: BidRow, trade: OutreachTrade, seenHosts: Set<string>, room: number): Promise<number> {
+  const due = new Date(b.due_date).toISOString().slice(0, 10);
+  const query = placesQuery(trade.places, outreachPlace(b)!);
+  console.log(`  #${b.id} ${b.title} (${b.agency ?? "-"}, due ${due}) → ${query}`);
+  let places;
+  try {
+    places = await searchPlaces(key, query);
+  } catch (e) {
+    console.log(`    Places error: ${e instanceof Error ? e.message : String(e)}`);
+    return 0;
+  }
+  let forBid = 0;
+  for (const p of places) {
+    if (forBid >= BUSINESSES_PER_BID || forBid >= room) break;
+    const host = p.website ? siteHost(p.website) : null;
+    if (!p.website || !host || seenHosts.has(host)) continue;
+    // A business in another state is not "near" the job (owner 2026-10-30:
+    // a Nashville HVAC firm matched to a Warner Robins, GA job).
+    const placeState = addressState(p.address);
+    if (placeState && placeState !== b.normalized_state) {
+      console.log(`    skipped ${p.name}: in ${placeState}, job in ${b.normalized_state}`);
+      continue;
+    }
+    seenHosts.add(host);
+    const { emails } = await siteEmails(p.website);
+    const email = emails.find((e) => emailFitsSite(e, host, p.name));
+    if (!email || !(await isNewAddress(email))) continue;
+    const ok = await queueFirst({
+      email,
+      business: p.name,
+      website: p.website,
+      bidId: b.id,
+      bidTitle: b.title,
+      buyer: b.agency,
+      due,
+      tradeLabel: trade.label,
+    });
+    if (ok) {
+      forBid++;
+      console.log(`    ✉️ ${p.name} — ${email}`);
+    }
+  }
+  return forBid;
+}
+
+/** The focus run: one state's construction bids, each to the contractors its title names. */
+async function queueConstructionFocus(key: string, state: string): Promise<number> {
+  const bids = (await freshConstructionBids(state, 200)).filter(
+    (b) =>
+      bidIsServiceJob(b.title) &&
+      !isConstructionNonWork(b.title) &&
+      !bidNeedsPrequalification(b.agency, b.description) &&
+      outreachPlace(b) !== null,
+  );
+  console.log(`\n${state} construction: ${bids.length} fresh local bid(s)`);
+  let queued = 0;
+  const seenHosts = new Set<string>();
+  for (const b of bids) {
+    if (queued >= DAILY_FIRST_EMAILS) break;
+    queued += await queueForBid(key, b, constructionOutreachTrade(b.title), seenHosts, DAILY_FIRST_EMAILS - queued);
+  }
+  return queued;
+}
+
 async function main() {
   await ensureOutreach();
   if (process.env.RESET_DRAFTS === "true") {
@@ -98,6 +194,15 @@ async function main() {
     return;
   }
 
+  if (FOCUS_STATE && FOCUS_TRADE) {
+    if (FOCUS_TRADE !== "construction" || !/^[A-Z]{2}$/.test(FOCUS_STATE)) {
+      throw new Error(`Unknown focus ${FOCUS_STATE} ${FOCUS_TRADE}: use a two-letter state and "construction"`);
+    }
+    const queued = await queueConstructionFocus(key, FOCUS_STATE);
+    console.log(`\nFirst emails queued (${FOCUS_STATE} construction): ${queued}. Approve them at https://www.contrax.company/admin/outreach`);
+    return;
+  }
+
   let queued = 0;
   const seenHosts = new Set<string>();
   for (const trade of OUTREACH_TRADES) {
@@ -110,48 +215,7 @@ async function main() {
     console.log(`\n${trade.label}: ${bids.length} fresh local bid(s)`);
     for (const b of bids) {
       if (queued >= DAILY_FIRST_EMAILS) break;
-      const due = new Date(b.due_date).toISOString().slice(0, 10);
-      const query = placesQuery(trade.places, outreachPlace(b)!);
-      console.log(`  #${b.id} ${b.title} (${b.agency ?? "-"}, due ${due}) → ${query}`);
-      let places;
-      try {
-        places = await searchPlaces(key, query);
-      } catch (e) {
-        console.log(`    Places error: ${e instanceof Error ? e.message : String(e)}`);
-        continue;
-      }
-      let forBid = 0;
-      for (const p of places) {
-        if (forBid >= BUSINESSES_PER_BID || queued >= DAILY_FIRST_EMAILS) break;
-        const host = p.website ? siteHost(p.website) : null;
-        if (!p.website || !host || seenHosts.has(host)) continue;
-        // A business in another state is not "near" the job (owner 2026-10-30:
-        // a Nashville HVAC firm matched to a Warner Robins, GA job).
-        const placeState = addressState(p.address);
-        if (placeState && placeState !== b.normalized_state) {
-          console.log(`    skipped ${p.name}: in ${placeState}, job in ${b.normalized_state}`);
-          continue;
-        }
-        seenHosts.add(host);
-        const { emails } = await siteEmails(p.website);
-        const email = emails.find((e) => emailFitsSite(e, host, p.name));
-        if (!email || !(await isNewAddress(email))) continue;
-        const ok = await queueFirst({
-          email,
-          business: p.name,
-          website: p.website,
-          bidId: b.id,
-          bidTitle: b.title,
-          buyer: b.agency,
-          due,
-          tradeLabel: trade.label,
-        });
-        if (ok) {
-          forBid++;
-          queued++;
-          console.log(`    ✉️ ${p.name} — ${email}`);
-        }
-      }
+      queued += await queueForBid(key, b, trade, seenHosts, DAILY_FIRST_EMAILS - queued);
     }
   }
   console.log(`\nFirst emails queued: ${queued}. Approve them at https://www.contrax.company/admin/outreach`);

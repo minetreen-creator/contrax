@@ -278,3 +278,31 @@ describe("outreach review fixes (owner 2026-10-25)", () => {
     expect(mail.text).not.toContain("$");
   });
 });
+
+describe("construction focus (owner 2026-11-04: \"concentrate on VA construction\")", () => {
+  test("each construction bid goes to the contractor its title names", async () => {
+    const { constructionOutreachTrade } = await import("./outreach");
+    expect(constructionOutreachTrade("BID 3136 PARTIAL ROOF REPLACEMENT PHILPOTT WATER PLANT").label).toBe("roofing");
+    expect(constructionOutreachTrade("Greene County Administration HVAC Project").label).toBe("HVAC");
+    expect(constructionOutreachTrade("Asphalt Paving Services RFP")).toMatchObject({ label: "paving", places: "paving contractor" });
+    expect(constructionOutreachTrade("RFB: Dunford Road Water Improvements - Division 1").label).toBe("water and sewer");
+    expect(constructionOutreachTrade("RFB: Progress Park Lot 10 - Mass Grading").label).toBe("site work");
+    expect(constructionOutreachTrade("RFQ fencing for Schools").label).toBe("fencing");
+    expect(constructionOutreachTrade("Greene County Community Park Improvements")).toMatchObject({ label: "construction", places: "general contractor" });
+  });
+
+  test("VDOT prequalified lettings are not cold-emailed to local firms", async () => {
+    const { bidNeedsPrequalification } = await import("./outreach");
+    expect(bidNeedsPrequalification("Virginia Department of Transportation", "")).toBe(true);
+    expect(bidNeedsPrequalification("Henry County", "(Prequalification Required) All questions...")).toBe(true);
+    expect(bidNeedsPrequalification("Henry County", "Partial roof replacement at the water plant")).toBe(false);
+  });
+
+  test("the workflow takes a state and trade, and a focus run skips the prime and leads steps", async () => {
+    const { readFileSync } = await import("node:fs");
+    const wf = readFileSync(".github/workflows/outreach-prepare.yml", "utf8");
+    expect(wf).toContain("FOCUS_STATE: ${{ inputs.state }}");
+    expect(wf).toContain("FOCUS_TRADE: ${{ inputs.trade }}");
+    expect(wf.match(/if: \$\{\{ !inputs\.state \}\}/g)?.length).toBe(2);
+  });
+});

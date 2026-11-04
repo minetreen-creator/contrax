@@ -1431,6 +1431,7 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   pa_dgs_emarketplace: "PA",
   co_vss: "CO",
   oh_odot: "OH",
+  va_vdot_cabb: "VA",
   ny_nyscr: "NY",
   mi_sigma: "MI",
   ma_boston: "MA",

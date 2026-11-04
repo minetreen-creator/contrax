@@ -82,6 +82,7 @@ import { fetchCaEprocureBids } from "./sources/ca-eprocure";
 import { fetchPaEmarketplaceBids } from "./sources/pa-emarketplace";
 import { fetchCoVssBids } from "./sources/co-vss";
 import { fetchOhOdotBids } from "./sources/oh-odot";
+import { fetchVaVdotCabbBids } from "./sources/va-vdot-cabb";
 import { fetchNyNyscrBids } from "./sources/ny-nyscr";
 import { fetchMiSigmaBids } from "./sources/mi-sigma";
 import { PERISCOPE_TAIL_SOURCES } from "./sources/periscope-states";
@@ -365,6 +366,8 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "co_vss", fetchFn: () => fetchCoVssBids() },
   // Ohio DOT construction lettings (planholders summary; OhioBuys is CAPTCHA-gated).
   { name: "oh_odot", fetchFn: () => fetchOhOdotBids() },
+  // VDOT highway construction advertisements (CABB), owner 2026-11-04.
+  { name: "va_vdot_cabb", fetchFn: () => fetchVaVdotCabbBids() },
   // New York State Contract Reporter: open state and local ads.
   { name: "ny_nyscr", fetchFn: () => fetchNyNyscrBids() },
   // Michigan SIGMA Vendor Self Service: open state and local solicitations.

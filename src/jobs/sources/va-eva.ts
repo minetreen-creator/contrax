@@ -331,6 +331,14 @@ function recordSkip(result: EvaParseResult, id: string, reason: string) {
  * PURE page parse — no network, no DB. `now` is injected so the `closed`
  * guard never depends on the wall clock in tests.
  */
+/** An eVA copy of a VDOT CABB advertisement ("293_2027 PLANT MIX - SECONDARY", "B12 CII_2026 …"). PURE. */
+export function isVdotCabbCopy(doc: Pick<EvaDoc, "shortdesc" | "longdesc" | "agencyname">): boolean {
+  const agency = clean(doc.agencyname);
+  if (!/department of transportation|\bvdot\b/i.test(agency)) return false;
+  if (!/^[A-Z0-9]{3}(?:\s+CII)?_\S/.test(clean(doc.shortdesc))) return false;
+  return /\bCABB\b/.test(clean(doc.longdesc));
+}
+
 export function parseEvaDocs(docs: readonly EvaDoc[], now: number = Date.now()): EvaParseResult {
   const result: EvaParseResult = { rows: [], skipped: {}, skippedRows: [] };
   for (const doc of docs) {
@@ -363,6 +371,14 @@ export function parseEvaDocs(docs: readonly EvaDoc[], now: number = Date.now()):
     }
     if (NON_PROCUREMENT_CATEGORIES.has(clean(doc.category).toLowerCase())) {
       recordSkip(result, rowId, "non_procurement");
+      continue;
+    }
+    // VDOT's highway construction ads are mirrored here as "<order>_<description>"
+    // with "Location: Various" and a pointer to CABB. `va_vdot_cabb` reads CABB
+    // itself, with the county, value and letting date (owner 2026-11-04), so the
+    // eVA copy is skipped rather than listing the same job twice.
+    if (isVdotCabbCopy(doc)) {
+      recordSkip(result, rowId, "on_vdot_cabb");
       continue;
     }
     const due = toIsoDueDate(doc.closedate ?? null);

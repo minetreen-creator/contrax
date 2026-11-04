@@ -1028,6 +1028,12 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
       "parking garage",
       "parking lot",
       "hmac",
+      // Owner 2026-11-04 ("we need more construction bids in VA"): VDOT's
+      // paving schedules name the mix, not the word "paving".
+      "plant mix",
+      "latex modified",
+      "cape seal",
+      "slurry seal",
       "hot mix",
       "overlay",
       "seal coat",

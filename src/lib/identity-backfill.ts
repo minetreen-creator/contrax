@@ -62,6 +62,10 @@ export async function backfillVisitorIdentity(
 
   const funnel = Number((f as unknown as { rowCount?: number }).rowCount ?? 0);
   const page_views = Number((p as unknown as { rowCount?: number }).rowCount ?? 0);
+  // Owner 2026-11-04 ("people aren't filling out their trades"): an account
+  // with no profile gets its trade and state from its latest real search.
+  const { seedProfileFromSearches } = await import("./profile-seed.server");
+  await seedProfileFromSearches(db, userId, visitorId);
   return { funnel, page_views };
 }
 

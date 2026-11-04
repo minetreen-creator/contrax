@@ -881,6 +881,10 @@ export async function handleStripeWebhook(
     if (session.metadata?.visitor_id) {
       const { linkVisitorToUser } = await import("~/lib/checkout-attribution.server");
       await linkVisitorToUser(session.metadata.visitor_id, Number(userId));
+      // Their trade and state from their latest search (owner 2026-11-04).
+      const { seedProfileFromSearches } = await import("~/lib/profile-seed.server");
+      const { sql: dbFactory } = await import("~/db");
+      await seedProfileFromSearches(dbFactory, Number(userId), session.metadata.visitor_id);
     }
 
     // Create session token

@@ -12,7 +12,7 @@ import { deriveInsertLocationColumns, SOURCE_HOME_JURISDICTIONS } from "~/lib/lo
 import { isStateLocalSource, sourceBadgeLabel } from "~/lib/cert-matching";
 import { TAIL_SOURCES } from "../runner";
 import { SourceUnreachableError } from "../fetch-failure";
-import {
+import { evaRetryDeps,
   EVA_MIN_BODY_BYTES,
   EVA_OPEN_QUERY,
   EVA_PAGE_SIZE,
@@ -312,11 +312,35 @@ describe("va_eva — read gates (fail closed, never a plausible-but-partial open
     }
   });
 
-  test("GATE ③: an open set that MOVES mid-read is REFUSED", async () => {
-    const s = stubFetch([page(574, [openDoc("IV1"), openDoc("IV2")], "c1"), page(575, [])]);
+  test("GATE ③: an open set that KEEPS moving mid-read is REFUSED after 3 fresh reads", async () => {
+    const moving = [page(574, [openDoc("IV1"), openDoc("IV2")], "c1"), page(575, [])];
+    const s = stubFetch([...moving, ...moving, ...moving]);
+    const savedPause = evaRetryDeps.pause;
+    evaRetryDeps.pause = async () => {};
     try {
-      await expect(fetchVaEvaBids(CAPTURED_1008)).rejects.toThrow(/page 2 reports numFound=575 but page 1 reported 574/);
+      await expect(fetchVaEvaBids(CAPTURED_1008)).rejects.toThrow(/page 2 reports numFound=575 but page 1 reported 574 — the open set moved mid-read \(3 reads\)/);
+      expect(s.urls.length).toBe(6); // three reads of two pages each
     } finally {
+      evaRetryDeps.pause = savedPause;
+      s.restore();
+    }
+  });
+
+  test("an open set that moved once is read again from page 1 and accepted (owner 2026-11-04)", async () => {
+    const s = stubFetch([
+      page(574, [openDoc("IV1"), openDoc("IV2")], "c1"),
+      page(575, []), // new bids posted mid-read
+      page(2, [openDoc("IV1"), openDoc("IV2")], "c2"),
+      page(2, []),
+    ]);
+    const savedPause = evaRetryDeps.pause;
+    evaRetryDeps.pause = async () => {};
+    try {
+      const res = await fetchVaEvaBids(CAPTURED_1008);
+      expect(res.rows.length + Object.values(res.skipped).reduce((a, b) => a + b, 0)).toBe(2);
+      expect(s.urls[2]).toBe(s.urls[0]); // the second read starts from page 1 again
+    } finally {
+      evaRetryDeps.pause = savedPause;
       s.restore();
     }
   });

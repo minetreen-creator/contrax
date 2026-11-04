@@ -34,7 +34,8 @@ export function likelyCause(error: string): string {
   if (/\b403\b|forbidden/.test(e)) return "the site is refusing our reader (blocked or a firewall change)";
   if (/\b404\b|not found/.test(e)) return "the page moved or was removed";
   if (/\b429\b|too many requests|rate limit/.test(e)) return "the site is rate-limiting us";
-  if (/\b5\d\d\b/.test(e)) return "the site is having trouble on its end";
+  if (/moved mid-read|open set moved/.test(e)) return "the site's list kept changing while we read it (new bids posting)";
+  if (/\b(http|status)\s*5\d\d\b/.test(e)) return "the site is having trouble on its end";
   if (/timeout|timed out|abort/.test(e)) return "the site is too slow to answer";
   if (/socket|econnreset|connection|enotfound|getaddrinfo/.test(e)) return "the connection failed (site down or blocking)";
   if (/shape|changed|unexpected|parse|selector|missing/.test(e)) return "the page layout changed";

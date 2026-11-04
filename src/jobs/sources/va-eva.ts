@@ -491,7 +491,17 @@ async function fetchPage(url: string): Promise<EvaSolrResponse> {
  *      corpus. `numFound` is taken from the FIRST page and re-checked on later
  *      pages; a later page disagreeing with it is itself a shape failure.
  */
-export async function fetchVaEvaBids(now: number = Date.now()): Promise<FetchResult> {
+/** Thrown when eVA's open-set total changes between pages (new bids posted mid-read). */
+export class EvaSetMovedError extends Error {}
+
+/** How many times one sync re-reads eVA from page 1 when the open set moves
+ *  mid-read (owner 2026-11-04: two syncs in a row failed with 509 → 513 while
+ *  Virginia agencies were posting; the read itself was sound). */
+export const EVA_MOVED_SET_ATTEMPTS = 3;
+/** Pause before a fresh read; a deps object so tests need not wait. */
+export const evaRetryDeps = { pause: (ms: number) => sleep(ms), pauseMs: 5000 };
+
+async function readEvaOpenSet(): Promise<{ docs: EvaDoc[]; numFound: number | null }> {
   const docs: EvaDoc[] = [];
   let cursor = "*";
   let numFound: number | null = null;
@@ -501,15 +511,33 @@ export async function fetchVaEvaBids(now: number = Date.now()): Promise<FetchRes
     const pageTotal = body.response?.numFound;
     if (numFound === null && typeof pageTotal === "number") numFound = pageTotal;
     if (typeof pageTotal === "number" && numFound !== null && pageTotal !== numFound) {
-      const detail = `count gate: page ${page + 1} reports numFound=${pageTotal} but page 1 reported ${numFound} — the open set moved mid-read`;
-      console.error(`  va_eva: ${detail}`);
-      throw new SourceUnreachableError("va_eva", [detail]);
+      throw new EvaSetMovedError(`count gate: page ${page + 1} reports numFound=${pageTotal} but page 1 reported ${numFound} — the open set moved mid-read`);
     }
     docs.push(...pageDocs);
     const next = body.nextCursorMark;
     if (!next || next === cursor || pageDocs.length === 0) break;
     cursor = next;
     await sleep(EVA_PAGE_DELAY_MS);
+  }
+  return { docs, numFound };
+}
+
+export async function fetchVaEvaBids(now: number = Date.now()): Promise<FetchResult> {
+  let docs: EvaDoc[] = [];
+  let numFound: number | null = null;
+  for (let attempt = 1; ; attempt++) {
+    try {
+      ({ docs, numFound } = await readEvaOpenSet());
+      break;
+    } catch (e) {
+      if (!(e instanceof EvaSetMovedError)) throw e;
+      if (attempt >= EVA_MOVED_SET_ATTEMPTS) {
+        console.error(`  va_eva: ${e.message} (${attempt} reads)`);
+        throw new SourceUnreachableError("va_eva", [`${e.message} (${attempt} reads)`]);
+      }
+      console.log(`  va_eva: ${e.message}; reading again from page 1 (${attempt}/${EVA_MOVED_SET_ATTEMPTS})`);
+      await evaRetryDeps.pause(evaRetryDeps.pauseMs);
+    }
   }
   if (!numFound) {
     const detail = `count gate: the open-set query reported numFound=${numFound ?? "absent"} — expected a positive total`;

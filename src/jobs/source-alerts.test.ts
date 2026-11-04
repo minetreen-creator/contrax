@@ -24,6 +24,9 @@ describe("dead-source warning", () => {
     expect(likelyCause("HTTP 404")).toContain("moved");
     expect(likelyCause("request failed: The socket connection was closed unexpectedly")).toContain("connection");
     expect(likelyCause("bid list shape changed")).toContain("layout");
+    // Owner 2026-11-04: "513" in a count is not an HTTP 5xx.
+    expect(likelyCause("count gate: page 2 reports numFound=513 but page 1 reported 509 — the open set moved mid-read")).toContain("kept changing");
+    expect(likelyCause("HTTP 503 Service Unavailable")).toContain("trouble on its end");
     const one = deadSourceEmail([{ source: "nj_wall", error: dead.errors }]);
     expect(one.subject).toBe("Contrax: nj_wall has stopped working");
     expect(one.text).toContain("nj_wall: the site is refusing our reader");

@@ -158,6 +158,17 @@ const BOARDS: Board[] = [
   { tenant: "chesterfield", source: "va_chesterfield_county_bonfire", stateName: "Virginia", place: "Chesterfield County", buyer: "Chesterfield County, Virginia", idPrefix: "chesterfieldbonfire" },
   { tenant: "loudounwater", source: "va_loudoun_water_bonfire", stateName: "Virginia", place: "Loudoun Water", buyer: "Loudoun Water", idPrefix: "loudounwaterbonfire", location: "Loudoun County, VA" },
   { tenant: "apsva", source: "va_arlington_schools_bonfire", stateName: "Virginia", place: "Arlington Public Schools", buyer: "Arlington Public Schools", idPrefix: "apsvabonfire", location: "Arlington, VA" },
+  // California, captured 2026-11-04 (owner: "I can branch out" → "dl all 3").
+  { tenant: "lawa", source: "ca_lawa_bonfire", stateName: "California", place: "Los Angeles World Airports", buyer: "Los Angeles World Airports (LAWA)", idPrefix: "lawabonfire", location: "Los Angeles, CA" },
+  { tenant: "actransit", source: "ca_ac_transit_bonfire", stateName: "California", place: "AC Transit", buyer: "AC Transit (Alameda-Contra Costa Transit District)", idPrefix: "actransitbonfire", location: "Oakland, CA" },
+  { tenant: "sutter", source: "ca_sutter_county_bonfire", stateName: "California", place: "Sutter County", buyer: "Sutter County, California", idPrefix: "sutterbonfire" },
+  { tenant: "ventura", source: "ca_ventura_county_bonfire", stateName: "California", place: "County of Ventura", buyer: "County of Ventura, California", idPrefix: "venturabonfire", location: "Ventura County, CA" },
+  { tenant: "egusd", source: "ca_elk_grove_schools_bonfire", stateName: "California", place: "Elk Grove Unified School District", buyer: "Elk Grove Unified School District", idPrefix: "egusdbonfire", location: "Elk Grove, CA" },
+  { tenant: "alamedacounty", source: "ca_alameda_county_bonfire", stateName: "California", place: "Alameda County", buyer: "Alameda County, California", idPrefix: "alamedacountybonfire" },
+  { tenant: "yolocounty", source: "ca_yolo_county_bonfire", stateName: "California", place: "Yolo County", buyer: "Yolo County, California", idPrefix: "yolocountybonfire" },
+  { tenant: "cityofirvine", source: "ca_irvine_bonfire", stateName: "California", place: "Irvine", buyer: "City of Irvine, California", idPrefix: "cityofirvinebonfire" },
+  { tenant: "oaklandca", source: "ca_oakland_capital_bonfire", stateName: "California", place: "Oakland", buyer: "City of Oakland, Capital Contracts Division", idPrefix: "oaklandcabonfire", location: "Oakland, CA" },
+  { tenant: "cityofwestminster", source: "ca_westminster_bonfire", stateName: "California", place: "Westminster", buyer: "City of Westminster, California", idPrefix: "cityofwestminsterbonfire", location: "Westminster, CA" },
 ];
 
 export const COUNTY_BONFIRE_CONFIGS: readonly BonfireConfig[] = BOARDS.map(boardConfig);

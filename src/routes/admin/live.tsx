@@ -2,7 +2,8 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { afterWakeWord, bootReport, isWakePhrase, JARVIS_VISUALS, type JarvisAction, type JarvisServerStats, type JarvisSnapshot, type JarvisVisual, type SimMonth, type SimResult } from "~/lib/jarvis";
 import { announcements, isRedAlert, pageName, type Announcement, type AnnounceState } from "~/lib/hot-leads";
-import { Search, UserPlus, Timer, CreditCard, PartyPopper, Radio, Flame, DollarSign, X, Volume2, VolumeX, ScanEye, Mic } from "lucide-react";
+import { Search, UserPlus, Timer, CreditCard, PartyPopper, Radio, Flame, DollarSign, X, Volume2, VolumeX, ScanEye, Mic, TrendingUp } from "lucide-react";
+import { dollars, weekGrowthLabel, type InvestorNumbers } from "~/lib/investor-numbers";
 import { getCurrentUser } from "~/lib/auth";
 import { TRIAL_DAYS } from "~/lib/trial";
 import { AdminHeader, AdminTabs, MrrScoreboard, SectionError, SectionLoading } from "~/components/AdminShared";
@@ -48,6 +49,8 @@ interface LiveData {
   paid48h?: number | null;
   /** The top strip: today vs yesterday (owner 2026-11-03 rework). */
   today?: TodayStats | null;
+  /** Investor numbers (owner 2026-11-04). */
+  investor?: InvestorNumbers | null;
 }
 
 const POLL_MS = 15_000;
@@ -526,6 +529,34 @@ function MoneyPanel({ money, trials, now }: { money: MoneyStats; trials: TrialCa
           <p className="mt-1 text-sm text-slate-500">None.</p>
         )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * Investor numbers (owner 2026-11-04: "yes add the investor numbers panel"):
+ * the figures an early-stage valuation rests on, in plain words.
+ */
+function InvestorPanel({ n }: { n: InvestorNumbers }) {
+  const growth = weekGrowthLabel(n.sales7d, n.salesPrev7d);
+  const renewal = n.renewal.rate == null ? "No passes ended yet" : Math.round(n.renewal.rate * 100) + "% renew";
+  const tiles: { label: string; value: string; note: string }[] = [
+    { label: "Paying customers", value: String(n.payingCustomers), note: "running $5 passes + subscriptions" },
+    { label: "Monthly recurring", value: dollars(n.mrr), note: "active subscriptions x monthly price" },
+    { label: "Revenue, 30 days", value: dollars(n.revenue30d), note: "real paid checkouts" },
+    { label: "Sales this week", value: String(n.sales7d), note: growth === "new" ? "first sales vs last week" : growth + " vs last week (" + n.salesPrev7d + ")" },
+    { label: "Renewal", value: renewal, note: n.renewal.continued + " went on to $19 · " + n.renewal.ended + " ended" },
+    { label: "Customers ever", value: String(n.customersEver), note: "everyone who has paid" },
+  ];
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      {tiles.map((t) => (
+        <div key={t.label} className="rounded-xl border border-slate-700/60 bg-slate-900/70 p-3">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{t.label}</p>
+          <p className="mt-1 text-xl font-extrabold text-emerald-300">{t.value}</p>
+          <p className="mt-0.5 text-[11px] leading-snug text-slate-500">{t.note}</p>
+        </div>
+      ))}
     </div>
   );
 }
@@ -1498,6 +1529,14 @@ function LivePage() {
       </main>
       {panel && data ? (
         <SidePanel onClose={() => setPanel(false)}>
+          {data.investor ? (
+            <div className="mb-6">
+              <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-300">
+                <TrendingUp size={15} aria-hidden="true" /> Investor numbers
+              </h2>
+              <InvestorPanel n={data.investor} />
+            </div>
+          ) : null}
           {data.money ? (
             <div>
               <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-300">

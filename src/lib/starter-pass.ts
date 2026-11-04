@@ -81,6 +81,8 @@ export function passEndDateLabel(endsAt: Date): string {
 }
 
 export const PASS_RENEW_URL = "https://www.contrax.company/upgrade?plan=starter&source=pass_reminder";
+/** Owner 2026-11-04: the renewal reminder asks for a success story. */
+export const SHARE_STORY_URL = "https://www.contrax.company/share-your-story";
 
 function esc(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -96,6 +98,8 @@ export function passReminderEmail(endsAt: Date): { subject: string; text: string
     `Keep my bid emails: ${PASS_RENEW_URL}`,
     "If you do nothing, you won't be charged. Your account simply goes back to free Basic.",
     "Questions? Just reply to this email.",
+    // Owner 2026-11-04: Share Your Success.
+    `Did Contrax help you find work? I'd love to hear about it: ${SHARE_STORY_URL}`,
     "Nathaniel Minetree, Contrax",
   ];
   const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.5;color:#0f172a;max-width:560px">
@@ -104,6 +108,7 @@ export function passReminderEmail(endsAt: Date): { subject: string; text: string
 <p><a href="${PASS_RENEW_URL}" style="display:inline-block;background:#f59e0b;color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 20px;border-radius:10px">Keep my bid emails</a></p>
 <p>If you do nothing, you won't be charged. Your account simply goes back to free Basic.</p>
 <p>Questions? Just reply to this email.</p>
+<p>Did Contrax help you find work? <a href="${SHARE_STORY_URL}">I'd love to hear about it.</a></p>
 <p>Nathaniel Minetree, Contrax</p>
 </div>`;
   return { subject, text: lines.join("\n\n"), html };

@@ -209,11 +209,21 @@ export const AUTOMATED_PAGE_LIMIT = { pages: 6, withinSeconds: 60 };
  * person opens this many separate pages this fast.
  */
 export const EMAIL_SWEEP_LIMIT = { pages: 3, withinSeconds: 12 };
+/**
+ * A first outreach email links only two Contrax pages (the bid and /pricing),
+ * so a scanner that opens both slipped under the 3-page rule (owner 2026-11-04:
+ * Moses Lake WA and San Jose CA opened /bid/1135512 and /pricing together:
+ * "both are bots"). No person opens a link, returns to the email and opens the
+ * next one within a few seconds.
+ */
+export const EMAIL_SWEEP_PAIR_LIMIT = { pages: 2, withinSeconds: 2 };
 
 /** "3 pages in 8 seconds…" when a visit has the email-link-sweep pace, else null. PURE. */
 export function emailLinkSweep(pageViews: number, spanSeconds: number | null | undefined): string | null {
   if (spanSeconds == null || !Number.isFinite(spanSeconds) || spanSeconds < 0) return null;
-  if (pageViews < EMAIL_SWEEP_LIMIT.pages || spanSeconds > EMAIL_SWEEP_LIMIT.withinSeconds) return null;
+  const sweep = pageViews >= EMAIL_SWEEP_LIMIT.pages && spanSeconds <= EMAIL_SWEEP_LIMIT.withinSeconds;
+  const pair = pageViews >= EMAIL_SWEEP_PAIR_LIMIT.pages && spanSeconds <= EMAIL_SWEEP_PAIR_LIMIT.withinSeconds;
+  if (!sweep && !pair) return null;
   return `${pageViews} pages in ${Math.round(spanSeconds)} seconds (email link scanner opening every link in an email at once)`;
 }
 
@@ -335,6 +345,11 @@ export const DATA_CENTER_LOCATIONS: ReadonlySet<string> = new Set([
   // Boydton, VA (owner 2026-10-27, "bots"): Microsoft's Azure East US 2 campus;
   // the repeat /bid-scout "visitors" there are Safe Links scanning our emails.
   "boydton|va",
+  // Moses Lake, WA (owner 2026-11-03 and 2026-11-04, "both are bots"): a data-
+  // center town whose "visitors" open outreach-email links the moment they're
+  // sent. (San Jose, CA is a city of a million people, so it is not listed; the
+  // pair rule above catches its scanners by pace.)
+  "moses lake|wa",
 ]);
 
 const REGION_CODES: Record<string, string> = { oregon: "OR", virginia: "VA" };

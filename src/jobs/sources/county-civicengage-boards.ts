@@ -281,6 +281,18 @@ export const COUNTY_CIVICENGAGE_CONFIGS: readonly CivicEngageBoardConfig[] = [
   board("ca_inglewood", "www.cityofinglewood.org", "City of Inglewood", "Inglewood, CA", "inglewoodcivic"),
   board("ca_san_mateo", "www.cityofsanmateo.org", "City of San Mateo", "San Mateo, CA", "sanmateocivic"),
   board("ca_moorpark", "www.moorparkca.gov", "City of Moorpark", "Moorpark, CA", "moorparkcivic"),
+  // Louisiana, captured 2026-11-04 (a New Llano, LA visitor found 25 construction bids → "yes").
+  board("la_kenner", "www.kenner.la.us", "City of Kenner", "Kenner, LA", "kennercivic"),
+  board("la_assumption_parish", "www.assumptionla.com", "Assumption Parish", "Assumption Parish, LA", "assumptioncivic"),
+  board("la_bossier_city", "www.bossiercity.org", "City of Bossier City", "Bossier City, LA", "bossiercitycivic"),
+  board("la_lake_charles", "www.cityoflakecharles.com", "City of Lake Charles", "Lake Charles, LA", "lakecharlescivic"),
+  board("la_baton_rouge", "www.brla.gov", "City of Baton Rouge / Parish of East Baton Rouge", "Baton Rouge, LA", "batonrougecivic"),
+  board("la_leesville", "www.leesvillela.gov", "City of Leesville", "Leesville, LA", "leesvillecivic"),
+  board("la_sulphur", "www.sulphurla.gov", "City of Sulphur", "Sulphur, LA", "sulphurcivic"),
+  board("la_st_james_parish", "www.stjamesla.com", "St. James Parish", "St. James Parish, LA", "stjamescivic"),
+  board("la_plaquemines_parish", "www.plaqueminesparish.gov", "Plaquemines Parish", "Plaquemines Parish, LA", "plaqueminescivic"),
+  board("la_st_bernard_parish", "www.sbpg.net", "St. Bernard Parish", "St. Bernard Parish, LA", "stbernardcivic"),
+  board("la_west_baton_rouge_parish", "www.wbrcouncil.org", "West Baton Rouge Parish", "West Baton Rouge Parish, LA", "westbatonrougecivic"),
 ];
 
 export function countyCivicEngageConfig(source: string): CivicEngageBoardConfig {

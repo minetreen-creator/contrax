@@ -13,6 +13,29 @@
 export interface SyncLogRow {
   fetched: number;
   errors: string | null;
+  /** When the run was logged; rows close together are one sync and its retry. */
+  created_at?: string | Date | null;
+}
+
+/** A sync's retry is logged as its own row minutes later; rows this close are one sync. */
+export const SAME_SYNC_MINUTES = 30;
+
+/**
+ * Newest-first run rows → one row per sync (owner 2026-11-04: nyc_open_data
+ * failed once at 12:31 and its retry failed at 12:33, and the email said "two
+ * syncs in a row"). Within a sync the newest row (the retry's) is the result.
+ * Rows without a time are kept as their own sync. PURE.
+ */
+export function onePerSync(history: readonly SyncLogRow[]): SyncLogRow[] {
+  const out: SyncLogRow[] = [];
+  let lastKept: number | null = null;
+  for (const r of history) {
+    const t = r.created_at ? new Date(r.created_at).getTime() : NaN;
+    if (Number.isFinite(t) && lastKept !== null && lastKept - t < SAME_SYNC_MINUTES * 60_000) continue;
+    out.push(r);
+    lastKept = Number.isFinite(t) ? t : null;
+  }
+  return out;
 }
 
 export const isDeadRun = (r: SyncLogRow | undefined): boolean =>
@@ -74,20 +97,21 @@ export async function alertNewlyDeadSources(sql: any, failedThisRun: readonly st
   let dead: DeadSource[] = [];
   try {
     const rows = (await sql`
-      SELECT source, fetched, errors FROM (
-        SELECT source, fetched, errors,
+      SELECT source, fetched, errors, created_at FROM (
+        SELECT source, fetched, errors, created_at,
                ROW_NUMBER() OVER (PARTITION BY source ORDER BY created_at DESC, id DESC) AS rn
         FROM sync_logs
         WHERE source = ANY(${[...failedThisRun]}) AND created_at > NOW() - INTERVAL '10 days'
-      ) t WHERE rn <= 3 ORDER BY source, rn
-    `) as { source: string; fetched: number; errors: string | null }[];
+      ) t WHERE rn <= 8 ORDER BY source, rn
+    `) as { source: string; fetched: number; errors: string | null; created_at: string }[];
     const bySource = new Map<string, SyncLogRow[]>();
     for (const r of rows) {
       const list = bySource.get(r.source) ?? [];
-      list.push({ fetched: Number(r.fetched), errors: r.errors });
+      list.push({ fetched: Number(r.fetched), errors: r.errors, created_at: r.created_at });
       bySource.set(r.source, list);
     }
     dead = [...bySource.entries()]
+      .map(([source, h]) => [source, onePerSync(h)] as const)
       .filter(([, h]) => newlyDeadTwice(h))
       .map(([source, h]) => ({ source, error: String(h[0].errors ?? "") }));
   } catch (e) {

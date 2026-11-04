@@ -22,6 +22,7 @@ import {
   bidIsServiceJob,
   bidNeedsPrequalification,
   constructionOutreachTrade,
+  federalConstructionJob,
   emailFitsSite,
   MAX_DAYS_TO_DUE,
   MIN_DAYS_TO_DUE,
@@ -29,7 +30,8 @@ import {
   placeIsLocal,
   type OutreachTrade,
 } from "~/lib/outreach";
-import { isConstructionNonWork } from "~/lib/trade-classification";
+import { isConstructionNonWork, isConstructionTitle } from "~/lib/trade-classification";
+import { resolveSourceClass } from "~/lib/source-class";
 import { ensureOutreach, isNewAddress, queueFirst, queueFollowups, recheckWaitingDrafts, skipAllDrafts } from "~/lib/outreach.server";
 import { bidPlace, placesQuery, siteHost } from "~/lib/prospect-finder";
 import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
@@ -61,6 +63,7 @@ interface BidRow {
   normalized_state: string;
   due_date: Date | string;
   description?: string | null;
+  source?: string | null;
 }
 
 /**
@@ -97,7 +100,7 @@ async function freshBids(match: string, limit: number): Promise<BidRow[]> {
 async function freshConstructionBids(state: string, limit: number): Promise<BidRow[]> {
   const s = sql();
   return (await s`
-    SELECT id, title, agency, location, normalized_state, due_date, description FROM bids
+    SELECT id, title, agency, location, normalized_state, due_date, description, source FROM bids
     WHERE normalized_state = ${state}
       AND category = 'Construction'
       AND due_date >= NOW() + ${`${MIN_DAYS_TO_DUE} days`}::interval
@@ -163,6 +166,7 @@ async function queueConstructionFocus(key: string, state: string): Promise<numbe
       bidIsServiceJob(b.title) &&
       !isConstructionNonWork(b.title) &&
       !bidNeedsPrequalification(b.agency, b.description) &&
+      (resolveSourceClass(b.source ?? "") !== "federal" || federalConstructionJob(b.title, isConstructionTitle)) &&
       outreachPlace(b) !== null,
   );
   console.log(`\n${state} construction: ${bids.length} fresh local bid(s)`);

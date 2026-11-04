@@ -36,8 +36,10 @@ describe("Mission Control top strip", () => {
 
 describe("Mission Control layout", () => {
   const page = readFileSync("src/routes/admin/live.tsx", "utf8");
-  test("one screen: four numbers, the map with who's on, one short feed", () => {
-    for (const label of ['label: "People today"', 'label: "Searches"', 'label: "Checkouts"', 'label: "Paid today"']) expect(page).toContain(label);
+  test("one screen: three numbers, the map with who's on, one short feed", () => {
+    for (const label of ['label: "People today"', 'label: "Searches"', 'label: "Paid today"']) expect(page).toContain(label);
+    // Owner 2026-11-04: "Thats a stat I don't really need."
+    expect(page).not.toContain('label: "Checkouts"');
     expect(page).toContain("data.feed.slice(0, 10)");
     expect(page).toContain("data.online.slice(0, 5)");
     expect(page).toContain('v.lead?.level === "hot" ? " is-hot" : ""');

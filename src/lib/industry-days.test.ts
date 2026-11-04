@@ -31,6 +31,18 @@ describe("grouping", () => {
     ]);
     expect(out.map((r) => r.id)).toEqual([1, 3]);
   });
+  test("a re-post with extra words in front of the same title is the same event (owner 2026-11-04)", () => {
+    const out = dedupeEvents([
+      row({ id: 1, title: "Ticket Release dates: 9/23 & 10/7; SAVE THE DATE: FY27 Naval Surface Warfare Center Phil Div (NSWCPD) Hybrid Industry Day", date: "2026-11-05" }),
+      row({ id: 2, title: "SAVE THE DATE: FY27 Naval Surface Warfare Center Phil Div (NSWCPD) Hybrid Industry Day", date: "2026-11-05" }),
+      // A different date is a different event.
+      row({ id: 3, title: "Ticket Release dates: 9/23 & 10/7; SAVE THE DATE: FY27 Naval Surface Warfare Center Phil Div (NSWCPD) Hybrid Industry Day", date: "2026-12-05" }),
+      // A short common title never swallows a longer, different event.
+      row({ id: 4, title: "Industry Day", date: "2026-11-05" }),
+      row({ id: 5, title: "Fort Bragg Industry Day", date: "2026-11-05" }),
+    ]);
+    expect(out.map((r) => r.id)).toEqual([2, 3, 4, 5]);
+  });
   test("state counts, busiest first", () => {
     expect(stateCounts([row({ state: "VA" }), row({ state: "SC" }), row({ state: "SC" }), row({ state: null })])).toEqual([
       { code: "SC", count: 2 },

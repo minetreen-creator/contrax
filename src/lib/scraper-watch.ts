@@ -144,6 +144,8 @@ export interface VisitorTrail {
   userAgent: string | null;
   firstSeen: string | null;
   lastSeen: string | null;
+  /** Where they came from: "Google search", "Facebook", "Direct", … (owner 2026-11-04). */
+  cameFrom: string;
   viewsTotal: number;
   viewsHour: number;
   medianGap: number | null;
@@ -152,4 +154,40 @@ export interface VisitorTrail {
   searches: { trade: string; state: string; matched: number; at: string }[];
   signals: ScraperSignal[];
   likelyScraper: boolean;
+}
+
+const REFERRER_NAMES: [RegExp, string][] = [
+  [/(^|\.)google\./, "Google search"],
+  [/(^|\.)bing\.com$/, "Bing search"],
+  [/(^|\.)duckduckgo\.com$/, "DuckDuckGo search"],
+  [/(^|\.)search\.yahoo\.com$|(^|\.)yahoo\.com$/, "Yahoo search"],
+  [/(^|\.)facebook\.com$|(^|\.)fb\.com$|^fb\.me$/, "Facebook"],
+  [/(^|\.)instagram\.com$/, "Instagram"],
+  [/(^|\.)linkedin\.com$|^lnkd\.in$/, "LinkedIn"],
+  [/(^|\.)(x|twitter)\.com$|^t\.co$/, "X (Twitter)"],
+  [/(^|\.)reddit\.com$/, "Reddit"],
+  [/(^|\.)chatgpt\.com$|(^|\.)openai\.com$/, "ChatGPT"],
+  [/(^|\.)perplexity\.ai$/, "Perplexity"],
+  [/(^|\.)claude\.ai$/, "Claude"],
+  [/(^|\.)gemini\.google\.com$/, "Gemini"],
+];
+
+/**
+ * Where a visitor came from, for the Visitor trail (owner 2026-11-04: "so how
+ * did they go right to that page?"). The first outside referrer wins, then a
+ * campaign source (`utm_source`), else "Direct". PURE.
+ */
+export function cameFromLabel(rows: readonly { referrer: string | null; source: string | null }[]): string {
+  for (const r of rows) {
+    if (!r.referrer) continue;
+    let host = "";
+    try { host = new URL(r.referrer).hostname.toLowerCase().replace(/^www\./, ""); } catch { continue; }
+    if (!host || /(^|\.)contrax\.company$/.test(host) || host === "localhost") continue;
+    const named = REFERRER_NAMES.find(([re]) => re.test(host));
+    if (named) return named[1];
+    return host.slice(0, 60);
+  }
+  const src = rows.find((r) => r.source)?.source;
+  if (src) return `Campaign: ${String(src).slice(0, 40)}`;
+  return "Direct (typed, bookmarked, or an app that hides the link)";
 }

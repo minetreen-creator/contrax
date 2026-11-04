@@ -124,7 +124,15 @@ export const CIVICENGAGE_HEADERS = {
 /** One board, exactly as it must be described on a row. All literals, no inference. */
 /** Titles that are a placeholder or a pointer to another portal, not a bid. */
 export const CIVICENGAGE_PLACEHOLDER_TITLE =
-  /^\s*(?:bids?|bid summary|bid results?|bid tabulations?|current bids|open bids|[a-z ]*postings?|see [a-z ]+ portal)\s*$/i;
+  /^\s*(?:bids?|bid summary|bid results?|bid tabulations?|current bids|open bids|[a-z ]*postings?|see [a-z ]+ portal)\s*$|^\W*no (?:open )?(?:bids?|bid summaries|solicitations|postings)\b.*\bavailable\b/i;
+
+/**
+ * Titles that announce something other than an open competition (owner
+ * 2026-11-04, Virginia boards: "Notice of sole source award - Fiber Broadband
+ * Services", "Public Notice: Surplus Brick Dust Available for Sale").
+ */
+export const CIVICENGAGE_NOT_A_BID_TITLE =
+  /^\W*(?:public )?notice of (?:sole[- ]source|intent to award|award)\b|\bsole[- ]source award\b|\bsurplus\b.*\b(?:for sale|available)\b/i;
 
 export interface CivicEngageBoardConfig {
   /** Optional source-specific decoder for the literal published closing text. */
@@ -370,6 +378,10 @@ export function parseCivicEngageBoard(
     // "bid", "Bid Summary", "PlanetBids Postings" — a pointer to another portal).
     if (CIVICENGAGE_PLACEHOLDER_TITLE.test(title)) {
       recordSkip(skipped, skippedRows, rowId, "placeholder_title");
+      continue;
+    }
+    if (CIVICENGAGE_NOT_A_BID_TITLE.test(title)) {
+      recordSkip(skipped, skippedRows, rowId, "not_a_bid_title");
       continue;
     }
 

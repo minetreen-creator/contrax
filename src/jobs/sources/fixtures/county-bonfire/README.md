@@ -66,3 +66,13 @@ duvalschools, fgcu and jaxport had 0 open. Both fetches matched.
 
 Indiana, captured 2026-10-30 (owner: "sure" to an Indiana board hunt). About 100 likely tenant names were tried;
 real tenants: indygo (IndyGo, Indianapolis' transit agency) 4 open; fwcs (Fort Wayne Community Schools) 0 open.
+
+Virginia tenants, captured 2026-11-04 by the same job pattern (owner: "we need more construction bids in VA"):
+bonfire | fauquiercounty | title=Portal — Open Opportunities - Fauquier County | open=4 | same=true
+bonfire | fcps | title=Portal — Open Opportunities - Fairfax County Public Schools | open=2 | same=true
+bonfire | pwcs | title=Portal — Open Opportunities - Prince William County Schools | open=3 | same=true
+bonfire | cnu | title=Portal — Open Opportunities - Christopher Newport University | open=1 | same=true
+bonfire | chesterfield | title=Portal — Open Opportunities - Chesterfield County | open=0 | same=true
+bonfire | loudounwater | title=Portal — Open Opportunities - Loudoun Water | open=0 | same=true
+bonfire | apsva | title=Portal — Open Opportunities - Arlington Public Schools | open=0 | same=true
+(Henrico County and Richmond Public Schools also have tenants but post to eVA, which Contrax reads.)

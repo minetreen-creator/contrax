@@ -95,3 +95,10 @@ Indiana, captured 2026-10-30. About 85 city and county sites were checked. Crown
 Westfield and Crawfordsville are CivicEngage boards with nothing open, scheduled with no file. Fort Wayne, South
 Bend, St. Joseph County, Fishers, Delaware County, Columbus, New Albany and several towns answered 403 to a plain
 request and are not read.
+
+Virginia boards, captured 2026-11-04 by the same job pattern (owner: "we need more
+construction bids in VA"). About 150 candidate city, county and town sites were
+tried; 40 new boards were added (16 had open competitive bids, so their captures
+are kept; the other 24 are real boards with nothing open that day). Goochland,
+Powhatan and Louisa already post to eVA (Contrax reads eVA), so they were left out
+to avoid listing the same bid twice. Petersburg is still all emergency/sole-source.

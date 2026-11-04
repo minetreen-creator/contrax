@@ -150,6 +150,14 @@ const BOARDS: Board[] = [
   { tenant: "tccd", source: "tx_tarrant_county_college_bonfire", stateName: "Texas", place: "Tarrant County College District", buyer: "Tarrant County College District", idPrefix: "tccdbonfire", location: "Fort Worth, TX" },
   { tenant: "hccs", source: "tx_houston_city_college_bonfire", stateName: "Texas", place: "Houston City College", buyer: "Houston City College", idPrefix: "hccsbonfire", location: "Houston, TX" },
   { tenant: "delmar", source: "tx_del_mar_college_bonfire", stateName: "Texas", place: "Del Mar College", buyer: "Del Mar College", idPrefix: "delmarbonfire", location: "Corpus Christi, TX" },
+  // Virginia, captured 2026-11-04 (owner: "we need more construction bids in VA").
+  { tenant: "fauquiercounty", source: "va_fauquier_county_bonfire", stateName: "Virginia", place: "Fauquier County", buyer: "Fauquier County, Virginia", idPrefix: "fauquiercountybonfire" },
+  { tenant: "fcps", source: "va_fairfax_schools_bonfire", stateName: "Virginia", place: "Fairfax County Public Schools", buyer: "Fairfax County Public Schools", idPrefix: "fcpsbonfire", location: "Fairfax County, VA" },
+  { tenant: "pwcs", source: "va_prince_william_schools_bonfire", stateName: "Virginia", place: "Prince William County Schools", buyer: "Prince William County Schools", idPrefix: "pwcsbonfire", location: "Prince William County, VA" },
+  { tenant: "cnu", source: "va_cnu_bonfire", stateName: "Virginia", place: "Christopher Newport University", buyer: "Christopher Newport University", idPrefix: "cnubonfire", location: "Newport News, VA" },
+  { tenant: "chesterfield", source: "va_chesterfield_county_bonfire", stateName: "Virginia", place: "Chesterfield County", buyer: "Chesterfield County, Virginia", idPrefix: "chesterfieldbonfire" },
+  { tenant: "loudounwater", source: "va_loudoun_water_bonfire", stateName: "Virginia", place: "Loudoun Water", buyer: "Loudoun Water", idPrefix: "loudounwaterbonfire", location: "Loudoun County, VA" },
+  { tenant: "apsva", source: "va_arlington_schools_bonfire", stateName: "Virginia", place: "Arlington Public Schools", buyer: "Arlington Public Schools", idPrefix: "apsvabonfire", location: "Arlington, VA" },
 ];
 
 export const COUNTY_BONFIRE_CONFIGS: readonly BonfireConfig[] = BOARDS.map(boardConfig);

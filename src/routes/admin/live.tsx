@@ -1593,7 +1593,7 @@ function StatStrip({ today }: { today: TodayStats | null }) {
       color: "#38bdf8",
       note: `${today.searches.yesterday.toLocaleString("en-US")} all day yesterday${today.searches.zeroToday ? ` · ${today.searches.zeroToday} found nothing today` : ""}`,
     },
-    { label: "Checkouts", value: today.checkouts.today.toLocaleString("en-US"), change: dayChange(today.checkouts.today, today.checkouts.yesterdaySoFar), color: "#fbbf24", note: `reached the payment page · ${today.checkouts.yesterday} all day yesterday` },
+    // Owner 2026-11-04: "Thats a stat I don't really need" (Checkouts tile removed).
     {
       label: "Paid today",
       value: today.paid ? money(today.paid.today) : "—",
@@ -1603,7 +1603,7 @@ function StatStrip({ today }: { today: TodayStats | null }) {
     },
   ];
   return (
-    <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
       {cards.map((c) => (
         <div key={c.label} className="live-bigstat" style={{ ["--kind" as string]: c.color }}>
           <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">{c.label}</span>

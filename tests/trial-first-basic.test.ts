@@ -52,7 +52,7 @@ describe("7-day trial, then Basic", () => {
     expect(needsFirstTrial({ plan_tier: "demo", trial_started_at: null })).toBe(false);
   });
 
-  test("the Basic weekly email is off", () => {
-    expect(WEEKLY_DIGEST_ENABLED).toBe(false);
+  test("the free weekly email is back on (owner 2026-11-04: their trade's bids + the $5 pass)", () => {
+    expect(WEEKLY_DIGEST_ENABLED).toBe(true);
   });
 });

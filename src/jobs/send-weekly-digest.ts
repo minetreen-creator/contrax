@@ -1,5 +1,5 @@
 /**
- * Weekly bid digest for free Basic users — CLI entrypoint
+ * Weekly bid digest for free accounts — CLI entrypoint
  * (`bun run weekly-digest`).
  *
  * Runs every morning from .github/workflows/daily-emails.yml right after the
@@ -14,12 +14,13 @@
 import { sql } from "~/db";
 import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
-import { sendWeeklyBidDigest, type NewBidSummary } from "~/lib/email";
-import { foundingBusinessSpotsRemaining } from "~/lib/founding-business.server";
+import { sendWeeklyBidDigest, type NewBidSummary, type WeeklyDigestRecipient } from "~/lib/email";
+import type { DigestBidFields, DigestProfile } from "~/lib/digest-match";
 import type { DigestUserRow } from "~/lib/digest-recipients";
 import {
   shouldSendWeeklyDigest,
   weeklyDigestRecipients,
+  weeklyRecipientBids,
   WEEKLY_DIGEST_ENABLED,
   weeklyUnsubscribeUrl,
   weeklyWindowBounds,
@@ -63,7 +64,8 @@ export async function sendWeeklyDigest(
   const { start: since, end: until } = weeklyWindowBounds(lastSent, now.getTime());
 
   const bids = (await sql()`
-    SELECT id AS bid_id, title, agency, source_url, location, due_date, set_aside, source
+    SELECT id AS bid_id, title, agency, source_url, location, due_date, set_aside, source,
+           description, category, naics_code
     FROM bids
     WHERE created_at > ${since.toISOString()}
       AND created_at <= ${until.toISOString()}
@@ -71,7 +73,7 @@ export async function sendWeeklyDigest(
       AND ${sql().unsafe(LOW_CONTENT_SQL)}
       AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
   `) as any[];
-  const newBids: NewBidSummary[] = bids.map((b) => ({
+  const newBids: (NewBidSummary & { match: DigestBidFields })[] = bids.map((b) => ({
     bid_id: Number(b.bid_id),
     title: String(b.title ?? ""),
     agency: String(b.agency ?? ""),
@@ -80,16 +82,17 @@ export async function sendWeeklyDigest(
     due_date: b.due_date ? new Date(b.due_date).toISOString() : null,
     set_aside: b.set_aside ?? null,
     source: b.source ?? undefined,
+    match: matchFields(b),
   }));
-  const headStart = (await sql()`
-    SELECT COUNT(*)::int AS n FROM bids
+  // Bids still in their head start: counted per person (matching ones only), never listed.
+  const headStart = ((await sql()`
+    SELECT title, agency, location, description, category, naics_code FROM bids
     WHERE created_at > ${until.toISOString()}
       AND due_date > NOW()
       AND ${sql().unsafe(LOW_CONTENT_SQL)}
       AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
-  `) as { n: number }[];
-  const headStartCount = Number(headStart[0]?.n ?? 0);
-  console.log(`📧 Weekly digest window ${since.toISOString()} → ${until.toISOString()}: ${newBids.length} open bid(s); ${headStartCount} newer in head start`);
+  `) as any[]).map(matchFields);
+  console.log(`📧 Weekly digest window ${since.toISOString()} → ${until.toISOString()}: ${newBids.length} open bid(s); ${headStart.length} newer in head start`);
   if (newBids.length === 0) return { bids: 0, recipients: 0, sent: false, reason: "no new bids" };
 
   const users = (await sql()`
@@ -98,9 +101,14 @@ export async function sendWeeklyDigest(
            EXISTS (
              SELECT 1 FROM bid_scout_subscriptions s
              WHERE s.user_id = u.id AND s.status = 'active'
-           ) AS has_bid_scout
+           ) AS has_bid_scout,
+           bp.locations, bp.naics_codes, bp.industry, bp.service_categories
     FROM users u
-  `) as DigestUserRow[];
+    LEFT JOIN LATERAL (
+      SELECT locations, naics_codes, industry, service_categories
+      FROM business_profiles p WHERE p.user_id = u.id ORDER BY p.id ASC LIMIT 1
+    ) bp ON true
+  `) as (DigestUserRow & DigestProfile)[];
   const optedOut = (await sql()`
     SELECT email_lower FROM email_preferences WHERE weekly_digest_unsubscribed_at IS NOT NULL
   `) as { email_lower: string }[];
@@ -117,13 +125,23 @@ export async function sendWeeklyDigest(
     SELECT email_lower, unsubscribe_token FROM email_preferences WHERE email_lower = ANY(${lowered}::text[])
   `) as { email_lower: string; unsubscribe_token: string }[];
   const tokenOf = new Map(tokens.map((t) => [t.email_lower, t.unsubscribe_token]));
-  const addressed = recipients
-    .filter((e) => tokenOf.has(e.toLowerCase()))
-    .map((e) => ({ email: e, unsubscribeUrl: weeklyUnsubscribeUrl(tokenOf.get(e.toLowerCase())!) }));
-
-  // Founding-member spots left (null when Stripe can't be read: the email then shows $19/month).
-  const foundingSpots = await foundingBusinessSpotsRemaining();
-  const accepted = await sendWeeklyBidDigest(addressed, newBids, headStartCount, foundingSpots);
+  // Owner 2026-11-04: each person gets their trade's bids (profile trade + state), all bids when no profile.
+  const profileOf = new Map<string, DigestProfile>();
+  for (const u of users) {
+    const key = String(u.email ?? "").trim().toLowerCase();
+    if (key && !profileOf.has(key)) profileOf.set(key, u);
+  }
+  const addressed: WeeklyDigestRecipient[] = [];
+  for (const e of recipients) {
+    const key = e.toLowerCase();
+    if (!tokenOf.has(key)) continue;
+    const r = weeklyRecipientBids(profileOf.get(key), newBids, headStart);
+    if (r.bids.length === 0) continue;
+    addressed.push({ email: e, unsubscribeUrl: weeklyUnsubscribeUrl(tokenOf.get(key)!), ...r });
+  }
+  console.log(`📧 ${addressed.length} of ${recipients.length} free account(s) have matching bids this week`);
+  if (addressed.length === 0) return { bids: newBids.length, recipients: 0, sent: false, reason: "no matching bids for any free account" };
+  const accepted = await sendWeeklyBidDigest(addressed);
   if (accepted > 0) {
     await sql()`
       INSERT INTO weekly_digest_log (sent_at, window_start, bids, recipients)
@@ -131,6 +149,17 @@ export async function sendWeeklyDigest(
     `;
   }
   return { bids: newBids.length, recipients: accepted, sent: accepted > 0 };
+}
+
+function matchFields(b: any): DigestBidFields {
+  return {
+    title: b.title ?? null,
+    description: b.description ?? null,
+    category: b.category ?? null,
+    location: b.location ?? null,
+    agency: b.agency ?? null,
+    naics_code: b.naics_code ?? null,
+  };
 }
 
 if (import.meta.main) {

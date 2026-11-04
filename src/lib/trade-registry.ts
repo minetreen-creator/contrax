@@ -397,6 +397,47 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
    * drainage, ponds, water and sewer mains. Phrases only; no bare "pipe",
    * "drain" or "pond". Equipment buys and rentals are vetoed below.
    */
+  // Owner 2026-11-04: a Seattle visitor searched "Flooring · WA" and got 6. The
+  // trade only knew flooring / floor covering / floor installation / terrazzo,
+  // so "Purchase and Install of Carpet", "VCT Replacement" or "Gym Floor
+  // Refinishing" never matched. Carpet CLEANING stays out (serviceTradeMismatch).
+  "flooring": {
+    label: "Flooring",
+    synonyms: [
+      "flooring",
+      "floor covering",
+      "floor coverings",
+      "floor installation",
+      "floor replacement",
+      "floor repair",
+      "floor refinishing",
+      "floor resurfacing",
+      "floor coating",
+      "epoxy floor",
+      "carpet",
+      "carpeting",
+      "carpet tile",
+      "vinyl tile",
+      "vinyl flooring",
+      "luxury vinyl",
+      "lvt",
+      "vct",
+      "sheet vinyl",
+      "resilient flooring",
+      "rubber flooring",
+      "ceramic tile",
+      "porcelain tile",
+      "floor tile",
+      "tile flooring",
+      "hardwood floor",
+      "wood floor",
+      "gym floor",
+      "gymnasium floor",
+      "polished concrete",
+      "terrazzo",
+    ],
+    naics: ["238330"],
+  },
   "excavation-sitework": {
     label: "Excavation & Site Work",
     synonyms: [
@@ -1600,6 +1641,8 @@ function isNonCarrierFreightWork(titleText: string, expansion: TradeExpansion): 
  */
 export function serviceTradeMismatch(titleText: string, expansion: TradeExpansion): boolean {
   const codes = expansion.naicsCodes;
+  // Carpet or floor CLEANING is janitorial work, not flooring (owner 2026-11-04).
+  if (codes.includes("238330") && /\b(clean(ing)?|shampoo(ing)?|extraction|stripping and waxing|strip and wax|scrub(bing)?|burnish(ing)?)\b/.test(titleText) && !/\b(install(ation)?|replace(ment)?|new)\b/.test(titleText)) return true;
   const serviceTrade = codes.some((c) => c === "561730" || c === "238220" || c === "561612" || c === "238120" || c === "238910" || c.startsWith("484"));
   if (!serviceTrade) return false;
   if (codes.some((c) => c.startsWith("484")) && /\b(?:lift trucks?|forklifts?|pallet jacks?)\b/.test(titleText)) return true;

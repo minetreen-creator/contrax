@@ -177,7 +177,7 @@ const REFERRER_NAMES: [RegExp, string][] = [
  * did they go right to that page?"). The first outside referrer wins, then a
  * campaign source (`utm_source`), else "Direct". PURE.
  */
-export function cameFromLabel(rows: readonly { referrer: string | null; source: string | null }[]): string {
+export function cameFromLabel(rows: readonly { referrer: string | null; source: string | null; medium?: string | null }[]): string {
   for (const r of rows) {
     if (!r.referrer) continue;
     let host = "";
@@ -187,7 +187,18 @@ export function cameFromLabel(rows: readonly { referrer: string | null; source: 
     if (named) return named[1];
     return host.slice(0, 60);
   }
-  const src = rows.find((r) => r.source)?.source;
-  if (src) return `Campaign: ${String(src).slice(0, 40)}`;
+  // No outside referrer on these rows: use the attribution saved at first
+  // arrival (src/lib/attribution.ts). It is a referrer class ("google" /
+  // "organic") or a click id ("cpc"), not always a tagged campaign.
+  const tagged = rows.find((r) => r.source && r.source !== "direct");
+  if (tagged) {
+    const src = String(tagged.source).toLowerCase();
+    const medium = String(tagged.medium ?? "").toLowerCase();
+    if (src === "google") return medium === "cpc" ? "Google Ads" : "Google search";
+    if (src === "facebook" && medium !== "cpc" && medium !== "paid") return "Facebook";
+    if (src === "linkedin" && medium === "social") return "LinkedIn";
+    if (src === "reddit" && medium === "social") return "Reddit";
+    return `Campaign: ${String(tagged.source).slice(0, 40)}${medium && medium !== "referral" ? ` (${medium.slice(0, 20)})` : ""}`;
+  }
   return "Direct (typed, bookmarked, or an app that hides the link)";
 }

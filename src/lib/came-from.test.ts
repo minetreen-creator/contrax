@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { cameFromLabel } from "./scraper-watch";
 
 // Owner 2026-11-04, on a DC visitor who landed on /industry-days: "so how did they go right to that page?"
-const r = (referrer: string | null, source: string | null = null) => ({ referrer, source });
+const r = (referrer: string | null, source: string | null = null, medium: string | null = null) => ({ referrer, source, medium });
 
 describe("Visitor trail: where they came from", () => {
   test("search engines, social apps and AI assistants get plain names", () => {
@@ -21,6 +21,8 @@ describe("Visitor trail: where they came from", () => {
 
   test("a campaign tag is used when there is no outside referrer, else Direct", () => {
     expect(cameFromLabel([r(null, "fb_group")])).toBe("Campaign: fb_group");
+    expect(cameFromLabel([r(null, "fb_group", "social")])).toBe("Campaign: fb_group (social)");
+    expect(cameFromLabel([r(null, "direct", "(none)")])).toStartWith("Direct");
     expect(cameFromLabel([r("https://www.contrax.company/")])).toStartWith("Direct");
     expect(cameFromLabel([])).toStartWith("Direct");
     expect(cameFromLabel([r("not a url")])).toStartWith("Direct");
@@ -35,5 +37,17 @@ describe("Visitor trail: where they came from", () => {
 describe("Industry Days in the site menu", () => {
   test("the header links to /industry-days", () => {
     expect(readFileSync("src/components/SiteHeader.tsx", "utf8")).toContain('href="/industry-days"');
+  });
+});
+
+// Owner 2026-11-04: an iPhone visitor showed "Campaign: google". The saved
+// first-arrival source "google" is a Google search (organic) unless it came
+// with a Google Ads click id (cpc).
+describe("first-arrival attribution reads plainly", () => {
+  test("google organic is a Google search, google cpc is Google Ads", () => {
+    expect(cameFromLabel([r(null, "google", "organic")])).toBe("Google search");
+    expect(cameFromLabel([r(null, "google", "cpc")])).toBe("Google Ads");
+    expect(cameFromLabel([r(null, "facebook", "social")])).toBe("Facebook");
+    expect(cameFromLabel([r(null, "linkedin", "social")])).toBe("LinkedIn");
   });
 });

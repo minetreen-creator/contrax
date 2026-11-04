@@ -83,10 +83,10 @@ async function GET({ request }: { request: Request }) {
     let cameFrom = cameFromLabel([]);
     try {
       const refs = (await db`
-        SELECT referrer, source FROM page_views
+        SELECT referrer, source, medium FROM page_views
         WHERE visitor_id = ${vid} AND (referrer IS NOT NULL OR source IS NOT NULL)
         ORDER BY created_at ASC LIMIT 10
-      `) as { referrer: string | null; source: string | null }[];
+      `) as { referrer: string | null; source: string | null; medium: string | null }[];
       cameFrom = cameFromLabel(refs);
     } catch {
       // Older rows without referrer columns: leave it as Direct.

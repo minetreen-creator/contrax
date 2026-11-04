@@ -74,6 +74,16 @@ export function constructionOutreachTrade(title: string): OutreachTrade {
   return hit ? { match: "", places: hit[1], label: hit[2] } : { match: "", places: "general contractor", label: "construction" };
 }
 
+/**
+ * A federal notice filed as Construction is only a construction job when its
+ * title says so or carries a federal construction/repair code (Y…, Z…) (owner
+ * 2026-11-04: a DLA fuel "PACOM Bunkers" solicitation and a DHS procurement-
+ * forecast notice were drafted to general contractors). PURE.
+ */
+export function federalConstructionJob(title: string, isConstructionTitle: (t: string) => boolean): boolean {
+  return isConstructionTitle(title) || /^\s*[YZ][0-9A-Z]{2,3}\s*--/i.test(title);
+}
+
 /** VDOT's highway lettings require VDOT prequalification: not a cold-email job for a local firm. */
 export function bidNeedsPrequalification(agency: string | null | undefined, description: string | null | undefined): boolean {
   return /department of transportation|\bvdot\b/i.test(String(agency ?? "")) || /\bprequalification required\b/i.test(String(description ?? ""));
@@ -142,7 +152,7 @@ export function bidIsServiceJob(title: string): boolean {
   // Owner 2026-11-02: nor engineering, architecture or "professional services"
   // contracts (Fairfax County's MEP Engineering ordering agreement went to two
   // plumbers). An "Engineering Building" job is still work.
-  return !/\b(suppl(y|ies)|materials?|parts|products|equipment|filters?|pool only|pre-?qualif\w*|invitational|rfi|request for information|sources? sought|design services|consult(ant|ants|ing)|project management|engineering services|a\s?&\s?e services|nsn|furnish(ing)?|feasibility|business feedback|market research|machining|\d+\s?psi|engineering(?!\s+(?:building|hall|center|complex|lab))|architect\w*|professional services)\b/i.test(title);
+  return !/\b(suppl(y|ies)|materials?|parts|products|equipment|filters?|pool only|pre-?qualif\w*|invitational|rfi|request for information|sources? sought|pre-?solicitation|design services|consult(ant|ants|ing)|project management|engineering services|a\s?&\s?e services|nsn|furnish(ing)?|feasibility|business feedback|market research|machining|\d+\s?psi|engineering(?!\s+(?:building|hall|center|complex|lab))|architect\w*|professional services)\b/i.test(title);
 }
 
 /**

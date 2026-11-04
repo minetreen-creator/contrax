@@ -306,3 +306,16 @@ describe("construction focus (owner 2026-11-04: \"concentrate on VA construction
     expect(wf.match(/if: \$\{\{ !inputs\.state \}\}/g)?.length).toBe(2);
   });
 });
+
+describe("federal notices in a construction focus run (owner 2026-11-04)", () => {
+  test("only construction titles or Y/Z construction codes count", async () => {
+    const { federalConstructionJob, bidIsServiceJob } = await import("./outreach");
+    const { isConstructionTitle } = await import("./trade-classification");
+    expect(federalConstructionJob("1.3B PACOM Bunkers Overseas Solicitation", isConstructionTitle)).toBe(false);
+    expect(federalConstructionJob("DHS APFS Transition, Effective October 30, 2026", isConstructionTitle)).toBe(false);
+    expect(federalConstructionJob("Y1DA--590-27-120 Replace Pneumatic Tube System", isConstructionTitle)).toBe(true);
+    expect(federalConstructionJob("LOADING DOCK CONCRETE REPAIRS", isConstructionTitle)).toBe(true);
+    expect(bidIsServiceJob("Presolicitation Notice PowerScribe Maintenance")).toBe(false);
+    expect(bidIsServiceJob("RFQ - Renovate Ewell Hall")).toBe(true);
+  });
+});

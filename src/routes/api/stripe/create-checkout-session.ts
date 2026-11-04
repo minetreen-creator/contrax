@@ -89,9 +89,12 @@ async function handler({ request }: { request: Request }) {
     // Starter 30-day pass (owner 2026-10-30, src/lib/starter-pass.ts).
     const { starterCheckoutOptions } = await import("~/lib/starter-pass.server");
     const starterOpts = await starterCheckoutOptions(body, userId ?? null);
+    const { visitorIdFromCookieHeader, recordCheckoutOpened } = await import("~/lib/checkout-attribution.server");
+    const visitorId = visitorIdFromCookieHeader(request.headers.get("cookie"));
     const result = await createCheckoutSession(body.planTier as PlanTier, {
       ...starterOpts,
       ...(userId != null ? { userId } : {}),
+      ...(visitorId ? { visitorId } : {}),
       mode: body.mode ?? "subscription",
       interval: body.interval === "year" ? "year" : "month",
       ...(promoCode ? { promoCode } : {}),
@@ -103,6 +106,15 @@ async function handler({ request }: { request: Request }) {
       return Response.json({ error: result.error }, { status: 500 });
     }
 
+    if (body.probe !== "path-check") {
+      await recordCheckoutOpened({
+        visitorId,
+        userId: userId == null ? null : Number(userId),
+        label: `${body.planTier}:${body.interval === "year" ? "year" : "month"}`,
+        ip: (request.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() || null,
+        userAgent: request.headers.get("user-agent"),
+      });
+    }
     return Response.json({ url: result.url });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";

@@ -643,9 +643,13 @@ async function handleCreateCheckoutSession(
     // Starter 30-day pass (owner 2026-10-30, src/lib/starter-pass.ts).
     const { starterCheckoutOptions } = await import("./src/lib/starter-pass.server.ts");
     const starterOpts = await starterCheckoutOptions(parsed, userId ?? null);
+    // Checkout attribution (owner 2026-11-04, src/lib/checkout-attribution.server.ts).
+    const { visitorIdFromCookieHeader, recordCheckoutOpened } = await import("./src/lib/checkout-attribution.server.ts");
+    const visitorId = visitorIdFromCookieHeader(cookieHeader);
     const result = await createCheckoutSession(parsed.planTier as any, {
       ...starterOpts,
       ...(userId != null ? { userId } : {}),
+      ...(visitorId ? { visitorId } : {}),
       mode: parsed.mode ?? "subscription",
       interval: parsed.interval === "year" ? "year" : "month",
       ...(promoCode ? { promoCode } : {}),
@@ -659,6 +663,16 @@ async function handleCreateCheckoutSession(
       };
     }
 
+    if ((parsed as { probe?: string }).probe !== "path-check") {
+      const fwd = req.headers["x-forwarded-for"];
+      await recordCheckoutOpened({
+        visitorId,
+        userId: userId == null ? null : Number(userId),
+        label: `${parsed.planTier}:${parsed.interval === "year" ? "year" : "month"}`,
+        ip: String(Array.isArray(fwd) ? fwd[0] : fwd ?? "").split(",")[0].trim() || null,
+        userAgent: (req.headers["user-agent"] as string | undefined) ?? null,
+      });
+    }
     return { status: 200, body: JSON.stringify({ url: result.url }) };
   } catch (err) {
     console.error("create-checkout-session error:", err);

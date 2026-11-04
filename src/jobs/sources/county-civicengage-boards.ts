@@ -275,6 +275,12 @@ export const COUNTY_CIVICENGAGE_CONFIGS: readonly CivicEngageBoardConfig[] = [
   board("va_woodstock", "www.woodstockva.gov", "Town of Woodstock", "Woodstock, VA", "woodstockvacivic"),
   board("va_vinton", "www.vintonva.gov", "Town of Vinton", "Vinton, VA", "vintoncivic"),
   board("va_middleburg", "www.middleburgva.gov", "Town of Middleburg", "Middleburg, VA", "middleburgcivic"),
+  // California, captured 2026-11-04 (owner: "I can branch out" → "dl all 3").
+  board("ca_alhambra", "www.alhambraca.gov", "City of Alhambra", "Alhambra, CA", "alhambracivic"),
+  board("ca_gilroy", "www.cityofgilroy.org", "City of Gilroy", "Gilroy, CA", "gilroycivic"),
+  board("ca_inglewood", "www.cityofinglewood.org", "City of Inglewood", "Inglewood, CA", "inglewoodcivic"),
+  board("ca_san_mateo", "www.cityofsanmateo.org", "City of San Mateo", "San Mateo, CA", "sanmateocivic"),
+  board("ca_moorpark", "www.moorparkca.gov", "City of Moorpark", "Moorpark, CA", "moorparkcivic"),
 ];
 
 export function countyCivicEngageConfig(source: string): CivicEngageBoardConfig {

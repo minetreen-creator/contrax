@@ -46,6 +46,8 @@ const OPEN: Record<string, number> = {
   tx_san_marcos: 5, tx_abilene: 6, tx_kerrville: 2, tx_fredericksburg: 4, tx_mansfield: 1, tx_duncanville: 2, tx_sachse: 2, tx_murphy: 1, tx_midlothian: 2, tx_sherman: 4, tx_denison: 3, tx_nacogdoches: 5, tx_huntsville: 3, tx_copperas_cove: 6, tx_taylor: 2, tx_lockhart: 2, tx_port_arthur: 2, tx_alvin: 2, tx_seabrook: 3, tx_snyder: 1, tx_stephenville: 1, tx_mineral_wells: 2, tx_jacksonville: 2, tx_henderson_county: 1,
   // Virginia, captured 2026-11-04.
   va_rockingham_county: 1, va_franklin_county: 1, va_henry_county: 13, va_martinsville: 3, va_bristol: 3, va_wise_county: 1, va_falls_church: 1, va_purcellville: 1, va_orange_county: 1, va_norton: 1, va_surry_county: 1, va_greene_county: 3, va_page_county: 1, va_scott_county: 1, va_wythe_county: 2, va_vinton: 1,
+  // California, captured 2026-11-04.
+  ca_alhambra: 5, ca_gilroy: 3, ca_inglewood: 1, ca_san_mateo: 3, ca_moorpark: 1,
 };
 // Real boards with nothing open at capture (scheduled so new bids flow in), so no file.
 const NO_CAPTURE = new Set([
@@ -64,10 +66,10 @@ const NO_CAPTURE = new Set([
 ]);
 
 describe("county CivicEngage boards", () => {
-  test("238 boards with unique sources and id prefixes", () => {
-    expect(COUNTY_CIVICENGAGE_CONFIGS).toHaveLength(238);
-    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.source)).size).toBe(238);
-    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.idPrefix)).size).toBe(238);
+  test("243 boards with unique sources and id prefixes", () => {
+    expect(COUNTY_CIVICENGAGE_CONFIGS).toHaveLength(243);
+    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.source)).size).toBe(243);
+    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.idPrefix)).size).toBe(243);
   });
 
   for (const cfg of COUNTY_CIVICENGAGE_CONFIGS.filter((c) => !NO_CAPTURE.has(c.source))) {

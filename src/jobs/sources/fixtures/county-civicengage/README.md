@@ -102,3 +102,8 @@ tried; 40 new boards were added (16 had open competitive bids, so their captures
 are kept; the other 24 are real boards with nothing open that day). Goochland,
 Powhatan and Louisa already post to eVA (Contrax reads eVA), so they were left out
 to avoid listing the same bid twice. Petersburg is still all emergency/sole-source.
+
+California boards, captured 2026-11-04 (owner: "I can branch out" → "dl all 3"). About 440
+candidate city hosts were tried; most California cities post on PlanetBids, which sits
+behind a bot challenge Contrax does not get around, and their CivicEngage pages are empty
+pointers. Kept the 5 boards with open bids: Alhambra, Gilroy, Inglewood, San Mateo, Moorpark.

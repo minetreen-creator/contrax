@@ -76,3 +76,11 @@ bonfire | chesterfield | title=Portal — Open Opportunities - Chesterfield Coun
 bonfire | loudounwater | title=Portal — Open Opportunities - Loudoun Water | open=0 | same=true
 bonfire | apsva | title=Portal — Open Opportunities - Arlington Public Schools | open=0 | same=true
 (Henrico County and Richmond Public Schools also have tenants but post to eVA, which Contrax reads.)
+
+California tenants, captured 2026-11-04 (owner: "I can branch out" → "dl all 3"):
+bonfire | lawa | Los Angeles World Airports (LAWA) | open=5 | same=true
+bonfire | actransit | AC Transit | open=4 | same=true
+bonfire | sutter | Sutter County | open=4 | same=true
+bonfire | ventura | County of Ventura | open=3 | same=true
+bonfire | egusd | Elk Grove Unified School District | open=1 | same=true
+bonfire | alamedacounty, yolocounty, cityofirvine, oaklandca (Capital Contracts Division), cityofwestminster | open=0 | same=true

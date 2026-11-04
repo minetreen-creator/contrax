@@ -116,9 +116,12 @@ async function handleCreateCheckoutSession(req: Request): Promise<Response> {
     // Starter 30-day pass (owner 2026-10-30, src/lib/starter-pass.ts).
     const { starterCheckoutOptions } = await import("./src/lib/starter-pass.server.ts");
     const starterOpts = await starterCheckoutOptions(body, userId ?? null);
+    const { visitorIdFromCookieHeader, recordCheckoutOpened } = await import("./src/lib/checkout-attribution.server.ts");
+    const visitorId = visitorIdFromCookieHeader(req.headers.get("cookie"));
     const result = await createCheckoutSession(body.planTier as any, {
       ...starterOpts,
       ...(userId != null ? { userId } : {}),
+      ...(visitorId ? { visitorId } : {}),
       mode: body.mode ?? "subscription",
       interval: body.interval === "year" ? "year" : "month",
       ...(promoCode ? { promoCode } : {}),
@@ -132,6 +135,15 @@ async function handleCreateCheckoutSession(req: Request): Promise<Response> {
       });
     }
 
+    if ((body as { probe?: string }).probe !== "path-check") {
+      await recordCheckoutOpened({
+        visitorId,
+        userId: userId == null ? null : Number(userId),
+        label: `${body.planTier}:${body.interval === "year" ? "year" : "month"}`,
+        ip: (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() || null,
+        userAgent: req.headers.get("user-agent"),
+      });
+    }
     return new Response(JSON.stringify({ url: result.url }), {
       status: 200,
       headers: { "Content-Type": "application/json" },

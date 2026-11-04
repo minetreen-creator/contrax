@@ -415,6 +415,9 @@ export interface CreateCheckoutSessionOptions {
   /** Logged-in Contrax user id — stored in session metadata so the webhook can
    *  attribute the payment to the right account without relying on email. */
   userId?: number | string | null;
+  /** The buyer's `contrax_vid` visitor cookie (owner 2026-11-04): stored in
+   *  metadata so the webhook can tie their visit to the new account. */
+  visitorId?: string | null;
   /**
    * "payment" for one-time prices, "subscription" for recurring (monthly)
    * prices. Defaults to "subscription" — all three Contrax plans are billed
@@ -622,6 +625,7 @@ export async function createCheckoutSession(
       metadata.promo_code = "VAD26";
     }
     if (opts.probe) metadata.probe = "path_check";
+    if (opts.visitorId) metadata.visitor_id = String(opts.visitorId).slice(0, 64);
 
     const firstMonth = !starterPass && opts.fullPrice !== true && starterFirstMonthApplies({ planTier, interval, mode, vad: isVad });
     if (firstMonth) {
@@ -873,6 +877,11 @@ export async function handleStripeWebhook(
     // Starter 30-day pass dates (or clear them when this is a subscription).
     const { recordCheckoutPass } = await import("~/lib/starter-pass.server");
     await recordCheckoutPass(userId, session);
+    // Tie the buyer's visit to the account (owner 2026-11-04; never throws).
+    if (session.metadata?.visitor_id) {
+      const { linkVisitorToUser } = await import("~/lib/checkout-attribution.server");
+      await linkVisitorToUser(session.metadata.visitor_id, Number(userId));
+    }
 
     // Create session token
     const token = crypto.randomUUID();

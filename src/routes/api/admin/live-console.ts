@@ -559,7 +559,7 @@ async function loadToday(db: ReturnType<typeof sql>, stripe: { day: ReturnType<t
               COUNT(DISTINCT visitor_id) FILTER (WHERE created_at <= NOW() - INTERVAL '24 hours')::int AS so_far
        FROM funnel_events
        WHERE created_at >= ${since} AND visitor_id IS NOT NULL
-         AND event_name = 'plan_checkout_redirected' AND ${human}
+         AND event_name IN ('plan_checkout_redirected', 'checkout_session_created') AND ${human}
        GROUP BY 1`,
     )) as { is_today: boolean; n: number; so_far: number }[];
     for (const r of rows) {

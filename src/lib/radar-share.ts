@@ -106,7 +106,8 @@ export function shareDescription(i: ShareCardInput): string {
   const parts: string[] = [];
   if (i.closestDue && i.count) parts.push(`Closest deadline ${shortDate(i.closestDue)}.`);
   parts.push(`Updated ${shortDate(i.now)}.`);
-  parts.push("Federal, state and local bids for small businesses. Free to search, no signup needed.");
+  // Owner 2026-11-04: no "free" wording in the Facebook link preview.
+  parts.push("Federal, state and local bids for small businesses, updated every day.");
   return parts.join(" ");
 }
 

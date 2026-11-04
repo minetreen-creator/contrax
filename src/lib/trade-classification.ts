@@ -515,10 +515,15 @@ const EXTRA_CONSTRUCTION_TITLE_WORDS =
 const ROAD_SEGMENT_TITLE =
   /\([^()]*\bto\b[^()]*\b(rd|road|st|street|ave|avenue|dr|drive|blvd|boulevard|hwy|highway|pkwy|parkway|ln|lane|loop|trail|fm \d+|ih[- ]?\d+|i-\d+|us \d+|sh \d+)\b[^()]*\)|\(\d{4} bond\)|\b\d{4} bond program\b|\barea streets\b|\bdetention (basin|pond)s?\b|\bditch (re-?establishment|improvements?|regrading)\b|\bintersection\b[^.]{0,60}\bimprovements?\b|\bcrossing improvements?\b/;
 
+/** Owner 2026-11-04 ("I can branch out" → California): BidNet California titles
+ *  that are construction but named none of the words above. Phrases only. */
+const CA_CONSTRUCTION_TITLE =
+  /\b(street|avenue|ave|road|rd|boulevard|blvd|drive|dr|lane|way|parkway)\.? (rehabilitation|resurfacing|reconstruction|widening)\b|\bbleachers?\b|\bfield improvements?\b|\belevator (tower|modernization|replacement)\b|\bnew (operations|maintenance|administration) building\b|\bmaintenance hole\b/;
+
 export function isConstructionTitle(title: string): boolean {
   const t = (title || "").toLowerCase();
   if (!t) return false;
-  if (ROAD_SEGMENT_TITLE.test(t)) return true;
+  if (ROAD_SEGMENT_TITLE.test(t) || CA_CONSTRUCTION_TITLE.test(t)) return true;
   if (t.includes("construction") || t.includes("renovation") || t.includes("demolition")) return true;
   if (CONSTRUCTION_WORDS.test(t) || CONSTRUCTION_TITLE_WORDS.test(t) || EXTRA_CONSTRUCTION_TITLE_WORDS.test(t)) return true;
   return MORE_CONSTRUCTION_TITLE_WORDS.test(t) && !ELECTRICAL_WORDS.test(t) && !ELECTRICAL_TITLE_WORDS.test(t) && !HVAC_TITLE_WORDS.test(t);
@@ -530,7 +535,7 @@ export function isConstructionTitle(title: string): boolean {
 export function isConstructionNonWork(title: string): boolean {
   const t = (title || "").toLowerCase();
   if (/\b(machines?|equipment|trucks?|trailers?|vehicles?|loaders?|rollers?|pavers? (machine|equipment)|parts|software|licen[cs]es?|subscriptions?|uniforms?|tools?|rental of)\b/.test(t) && !/\b(installation|install|repairs? (to|of) (the )?(building|facility|roof|street|bridge))\b/.test(t)) return true;
-  if (/\b(materials?|suppl(y|ies)|aggregates?|cold mix|emulsions?|rock|gravel|sand|limestone|base material|ready[- ]mix|rebar|lumber|pipe and fittings)\b/.test(t) && !/\b(and|&) (installation|install|labor|construction)\b|\b(construction|project|improvements?|repairs?|replacement|rehabilitation|overlay)\b/.test(t.replace(/\b(road|building|construction) materials?\b/g, ""))) return true;
+  if (/\b(materials?|suppl(y|ies)|aggregates?|cold mix|emulsions?|rock|gravel|sand|limestone|base material|ready[- ]mix|rebar|lumber|pipe and fittings)\b/.test(t) && !/\b(and|&) (installation|install|labor|construction)\b|\b(construction|project|improvements?|repairs?|replacement|rehabilitation|overlay|bridges?|culverts?)\b/.test(t.replace(/\b(road|building|construction) materials?\b/g, ""))) return true;
   if (/\b(inspection|testing|survey(ing)?|engineering|design services|architect(ural)?|consultant|consulting|management services|program management|construction management|cm services|cmi|cm&i|cm ?& ?i|materials testing|observation|staking|assessments?|study|studies|master plan|feasibility|appraisals?|sweeping|janitorial|custodial|mowing)\b/.test(t) && !/\b(design[- ]build|cmar|cm at risk|construction manager at risk|general contractor)\b/.test(t)) return true;
   return false;
 }
@@ -545,7 +550,8 @@ export function mapCategory(typeValue: string, title: string, description: strin
   // Owner 09-21: janitorial = custodial service work only (no bare "cleaning").
   // S5: moved AHEAD of the construction/type fallbacks (D3).
   if (isJanitorialWork(titleLc, full)) return "Janitorial";
-  if (full.includes("construction") || full.includes("renovation") || full.includes("demolition")) return "Construction";
+  // "Construction Management Services" is a consulting contract, not a construction job (owner 2026-11-04).
+  if ((full.includes("construction") || full.includes("renovation") || full.includes("demolition")) && !isConstructionNonWork(titleLc)) return "Construction";
   // Owner 2026-10-07: Wisconsin's VendorNet labeled remodels, paving, fencing and
   // roofing jobs "Other". Whole-word building-trade terms only.
   if (CONSTRUCTION_WORDS.test(full) || CONSTRUCTION_TITLE_WORDS.test(titleLc)) return "Construction";
@@ -566,6 +572,9 @@ export function mapCategory(typeValue: string, title: string, description: strin
   if (full.includes("hvac") || full.includes("heating") || full.includes("cooling") || HVAC_TITLE_WORDS.test(titleLc)) return "HVAC";
   if (full.includes("electrical") || full.includes("plumbing") || ELECTRICAL_WORDS.test(full) || ELECTRICAL_TITLE_WORDS.test(titleLc)) return "Plumbing & Electrical";
 
+  // Owner 2026-11-04: the Construction trade search's own title rules, so a
+  // listing with no category of its own (BidNet) is filed the way Radar finds it.
+  if (isConstructionTitle(titleLc) && !isConstructionNonWork(titleLc)) return "Construction";
   if (t.includes("solicitation") || t.includes("combined")) return "Construction";
   // S5/D4: `award` / `justification` / `special` deliberately fall through to the
   // honest "Other" (never "Construction").

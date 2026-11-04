@@ -4,7 +4,7 @@ import {
   resolveUserIdFromCookie,
   type PlanTier,
 } from "~/lib/stripe";
-import { guestCheckoutAllowed } from "~/lib/starter-offer";
+import { GUEST_EMAIL_REQUIRED, guestCheckoutAllowed, guestCheckoutEmail, guestNeedsEmail } from "~/lib/starter-offer";
 
 /**
  * POST /api/stripe/create-checkout-session
@@ -56,6 +56,8 @@ async function handler({ request }: { request: Request }) {
       founding?: boolean;
       /** "path-check": the daily money-path check (labeled, short-lived session). */
       probe?: string;
+      /** A guest's email from the $5 page (owner 2026-11-04). */
+      email?: string;
     };
     // SIGN-IN REQUIRED except for the monthly Starter checkout (pay first,
     // account after — CEO 2026-10-22, starter-offer.ts guestCheckoutAllowed).
@@ -64,6 +66,9 @@ async function handler({ request }: { request: Request }) {
         { error: "Sign in to choose a Contrax plan." },
         { status: 401 },
       );
+    }
+    if (guestNeedsEmail(userId, body)) {
+      return Response.json({ error: GUEST_EMAIL_REQUIRED, needEmail: true }, { status: 400 });
     }
 
     if (!body.planTier || !(VALID_TIERS as string[]).includes(body.planTier)) {
@@ -93,7 +98,7 @@ async function handler({ request }: { request: Request }) {
     const visitorId = visitorIdFromCookieHeader(request.headers.get("cookie"));
     const result = await createCheckoutSession(body.planTier as PlanTier, {
       ...starterOpts,
-      ...(userId != null ? { userId } : {}),
+      ...(userId != null ? { userId } : { customerEmail: guestCheckoutEmail(body) }),
       ...(visitorId ? { visitorId } : {}),
       mode: body.mode ?? "subscription",
       interval: body.interval === "year" ? "year" : "month",

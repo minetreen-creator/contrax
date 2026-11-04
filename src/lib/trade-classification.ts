@@ -493,9 +493,9 @@ const LANDSCAPING_TITLE_WORDS =
 /** Solar / photovoltaic installation work → Plumbing & Electrical (owner 2026-10-07). */
 const ELECTRICAL_WORDS = /\b(photovoltaic|solar (panel|array|pv|installation)|pv (removal|installation|system))\b/;
 /** Owner 2026-10-08 (Georgia): lighting, generator and fire-alarm jobs, title only. */
-const ELECTRICAL_TITLE_WORDS = /\b(led lighting|lighting (replacement|upgrades?|installation|project)|generators?|fire alarm)\b/;
+const ELECTRICAL_TITLE_WORDS = /\b(led lighting|lighting (replacement|upgrades?|installation|project)|generators?|fire alarm|motor control centers?|reclosers?)\b/;
 /** Owner 2026-10-08 (Georgia): boiler/chiller/ventilation equipment work, title only. */
-const HVAC_TITLE_WORDS = /\b(boilers?|chillers?|energy recovery (units?|ventilators?)|condensers?|central a\/?c)\b/;
+const HVAC_TITLE_WORDS = /\b(boilers?|chillers?|energy recovery (units?|ventilators?)|condensers?|central a\/?c|mechanical (package|upgrades?|replacement|improvements?))\b/;
 
 /**
  * Owner 2026-11-03 ("we need more construction bids in TX", "max inputs"): job
@@ -520,10 +520,18 @@ const ROAD_SEGMENT_TITLE =
 const CA_CONSTRUCTION_TITLE =
   /\b(street|avenue|ave|road|rd|boulevard|blvd|drive|dr|lane|way|parkway)\.? (rehabilitation|resurfacing|reconstruction|widening)\b|\bbleachers?\b|\bfield improvements?\b|\belevator (tower|modernization|replacement)\b|\bnew (operations|maintenance|administration) building\b|\bmaintenance hole\b/;
 
+/** Owner 2026-11-04 ("I'm concerned about the other category 336"): South
+ *  Carolina titles that are construction but were filed "Other" — plural roof
+ *  replacements, MR&R (maintenance, repair and renovation) packages, concrete
+ *  installation, courthouse expansion, waterlines, pond and road improvements,
+ *  treatment-plant (WWTP) liners, asbestos removal, weigh-station scales. */
+const SC_CONSTRUCTION_TITLE =
+  /\broof replacements\b|\bmr ?& ?r\b|\bconcrete installation\b|\b(courthouse|building|facility|library|school|terminal|hospital|jail|detention center) expansion\b|\bwater ?lines?\b|\bpond (improvements?|repairs?|rehabilitation|restoration)\b|\bimprovements? (to|of)\b[^.]{0,50}\b(roads?|streets?)\b|\bwwtp\b|\bgeomembrane\b|\b(asbestos|lead paint) (removal|abatement)\b|\bremoval of asbestos\b|\bweigh station\b/;
+
 export function isConstructionTitle(title: string): boolean {
   const t = (title || "").toLowerCase();
   if (!t) return false;
-  if (ROAD_SEGMENT_TITLE.test(t) || CA_CONSTRUCTION_TITLE.test(t)) return true;
+  if (ROAD_SEGMENT_TITLE.test(t) || CA_CONSTRUCTION_TITLE.test(t) || SC_CONSTRUCTION_TITLE.test(t)) return true;
   if (t.includes("construction") || t.includes("renovation") || t.includes("demolition")) return true;
   if (CONSTRUCTION_WORDS.test(t) || CONSTRUCTION_TITLE_WORDS.test(t) || EXTRA_CONSTRUCTION_TITLE_WORDS.test(t)) return true;
   return MORE_CONSTRUCTION_TITLE_WORDS.test(t) && !ELECTRICAL_WORDS.test(t) && !ELECTRICAL_TITLE_WORDS.test(t) && !HVAC_TITLE_WORDS.test(t);
@@ -535,8 +543,8 @@ export function isConstructionTitle(title: string): boolean {
 export function isConstructionNonWork(title: string): boolean {
   const t = (title || "").toLowerCase();
   if (/\b(machines?|equipment|trucks?|trailers?|vehicles?|loaders?|rollers?|pavers? (machine|equipment)|parts|software|licen[cs]es?|subscriptions?|uniforms?|tools?|rental of)\b/.test(t) && !/\b(installation|install|repairs? (to|of) (the )?(building|facility|roof|street|bridge))\b/.test(t)) return true;
-  if (/\b(materials?|suppl(y|ies)|aggregates?|cold mix|emulsions?|rock|gravel|sand|limestone|base material|ready[- ]mix|rebar|lumber|pipe and fittings)\b/.test(t) && !/\b(and|&) (installation|install|labor|construction)\b|\b(construction|project|improvements?|repairs?|replacement|rehabilitation|overlay|bridges?|culverts?)\b/.test(t.replace(/\b(road|building|construction) materials?\b/g, ""))) return true;
-  if (/\b(inspection|testing|survey(ing)?|engineering|design services|architect(ural)?|consultant|consulting|management services|program management|construction management|cm services|cmi|cm&i|cm ?& ?i|materials testing|observation|staking|assessments?|study|studies|master plan|feasibility|appraisals?|sweeping|janitorial|custodial|mowing)\b/.test(t) && !/\b(design[- ]build|cmar|cm at risk|construction manager at risk|general contractor)\b/.test(t)) return true;
+  if (/\b(materials?|suppl(y|ies)|aggregates?|cold mix|emulsions?|rock|gravel|sand|limestone|base material|ready[- ]mix|rebar|lumber|pipe and fittings)\b/.test(t) && !/\b(and|&) (installation|install|labor|construction)\b|\b(construction|project|improvements?|repairs?|replacement|rehabilitation|overlay|bridges?|culverts?|demolition|abatement|removal)\b/.test(t.replace(/\b(road|building|construction) materials?\b/g, ""))) return true;
+  if (/\b(inspection|testing|survey(ing)?|engineering|design services|architect(ural)?|consultant|consulting|management services|program management|construction management|cm services|cmi|cm&i|cm ?& ?i|materials testing|observation|staking|assessments?|study|studies|master plan|feasibility|appraisals?|sweeping|janitorial|custodial|mowing)\b/.test(t) && !/\b(design[- ]build|cmar|cm at[- ]risk|construction manage(r|ment) at[- ]risk|general contractor)\b/.test(t)) return true;
   return false;
 }
 

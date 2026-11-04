@@ -32,6 +32,13 @@ import { failureDetail, FetchFailures, httpFailureDetail } from "../jobs/fetch-f
 const PAGE_SIZE = 100;
 const MAX_PAGES = 2; // up to 200 rows per city per sync
 const DELAY_MS = 300;
+const RETRY_PAUSE_MS = 2000;
+
+/** Network seam (tests replace it). */
+export const cityProcurementDeps = {
+  fetch: (url: string, init: RequestInit) => fetch(url, init),
+  pause: (ms: number) => new Promise((r) => setTimeout(r, ms)),
+};
 const HEADERS = {
   Accept: "application/json",
   "User-Agent": "Contrax procurement intelligence (https://www.contrax.company)",
@@ -295,7 +302,16 @@ async function fetchSocrataBids(source: Omit<CitySourceConfig, "fetch">, mapReco
         $offset: String(page * PAGE_SIZE),
       });
       const url = `${endpoint}?${params}`;
-      const response = await fetch(url, { headers: HEADERS });
+      // One quick retry for a dropped connection (owner 2026-11-04: NYC Open Data
+      // closed the socket twice in one sync and answered fine minutes later).
+      let response: Response;
+      try {
+        response = await cityProcurementDeps.fetch(url, { headers: HEADERS, signal: AbortSignal.timeout(30000) });
+      } catch (first) {
+        console.error(`  [${source.name}] page ${page + 1} request failed, retrying once: ${failureDetail(first)}`);
+        await cityProcurementDeps.pause(RETRY_PAUSE_MS);
+        response = await cityProcurementDeps.fetch(url, { headers: HEADERS, signal: AbortSignal.timeout(30000) });
+      }
       if (!response.ok) {
         console.error(`  [${source.name}] page ${page + 1} returned ${response.status}`);
         failures.record(httpFailureDetail(response.status, url));

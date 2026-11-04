@@ -62,3 +62,19 @@ describe("dead-source warning", () => {
     expect(runner).toContain('const { alertNewlyDeadSources } = await import("./source-alerts");');
   });
 });
+
+describe("a sync and its retry are one sync (owner 2026-11-04: nyc_open_data)", () => {
+  const dead = (at: string) => ({ fetched: 0, errors: "request failed: The socket connection was closed unexpectedly", created_at: at });
+  const ok = (at: string) => ({ fetched: 200, errors: null, created_at: at });
+  test("12:33 retry + 12:31 first try is one failed sync, not two", async () => {
+    const { onePerSync, newlyDeadTwice } = await import("./source-alerts");
+    const h = [dead("2026-11-04T12:33:07Z"), dead("2026-11-04T12:31:21Z"), ok("2026-11-04T08:32:51Z"), dead("2026-11-04T08:32:26Z"), ok("2026-11-04T04:33:25Z")];
+    expect(onePerSync(h).map((r) => r.created_at)).toEqual(["2026-11-04T12:33:07Z", "2026-11-04T08:32:51Z", "2026-11-04T04:33:25Z"]);
+    expect(newlyDeadTwice(onePerSync(h))).toBe(false);
+  });
+  test("two separate failed syncs still warn", async () => {
+    const { onePerSync, newlyDeadTwice } = await import("./source-alerts");
+    const h = [dead("2026-11-04T16:33:00Z"), dead("2026-11-04T16:31:00Z"), dead("2026-11-04T12:33:00Z"), dead("2026-11-04T12:31:00Z"), ok("2026-11-04T08:32:00Z")];
+    expect(newlyDeadTwice(onePerSync(h))).toBe(true);
+  });
+});

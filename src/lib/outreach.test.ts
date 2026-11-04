@@ -210,10 +210,12 @@ describe("outreach review fixes (owner 2026-10-25)", () => {
     unsubscribeUrl: "https://www.contrax.company/api/outreach/unsubscribe?t=x",
     contactId: 7,
   };
-  test("the first email hands over the official posting and makes one ask: the $5 pass (owner 2026-10-30)", () => {
+  test("the first email never hands over the official posting and makes one ask: the $5 pass (owner 2026-11-04)", () => {
     const m = outreachEmail({ ...base, sourceUrl: "https://www.botetourtva.gov/bids/123" });
-    expect(m.text).toContain("Official posting: https://www.botetourtva.gov/bids/123");
-    expect(m.text).toContain("Summary on Contrax: https://www.contrax.company/bid/123");
+    expect(m.text).not.toContain("botetourtva.gov/bids/123");
+    expect(m.html).not.toContain("botetourtva.gov/bids/123");
+    expect(m.text).not.toContain("Official posting");
+    expect(m.text).toContain("Details: https://www.contrax.company/bid/123");
     expect(m.text).toContain("Your first 30 days are $5, with no automatic renewal: https://www.contrax.company/pricing?");
     // "I'm not sending out bids for free": no free list by reply.
     expect(m.text).not.toContain('reply "yes"');
@@ -230,9 +232,10 @@ describe("outreach review fixes (owner 2026-10-25)", () => {
     const m = outreachEmail({ ...base, buyer: "Department of General Services, Division of Purchases and Supply" });
     expect(m.subject).toBe("Open janitorial bid, due Nov 5");
   });
-  test("the follow-up keeps the official link and offers no free bids", () => {
+  test("the follow-up has no official link either and offers no free bids", () => {
     const m = outreachEmail({ ...base, kind: "followup", sourceUrl: "https://example.gov/b" });
-    expect(m.text).toContain("Official posting: https://example.gov/b");
+    expect(m.text).not.toContain("example.gov/b");
+    expect(m.text).toContain("Details: https://www.contrax.company/bid/123");
     expect(m.text).toContain("Starter is $5 for your first 30 days");
     expect(m.text).not.toContain('reply "yes"');
     expect(m.text).not.toContain("free");

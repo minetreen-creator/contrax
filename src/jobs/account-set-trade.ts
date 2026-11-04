@@ -6,7 +6,8 @@
  *
  * Updates business_profiles.industry, service_categories, naics_codes and
  * locations for ONE account matched by exact email. Prints the before and after.
- * Dry run unless APPLY=true.
+ * Dry run unless APPLY=true. An account with no profile gets one (owner
+ * 2026-11-04: the first $5 customer paid before onboarding, so had none).
  */
 import { sql } from "~/db";
 
@@ -42,12 +43,21 @@ export async function accountSetTrade(email: string, update: TradeUpdate, apply:
     SELECT id, industry, service_categories, naics_codes, locations
     FROM business_profiles WHERE user_id = ${u.id} ORDER BY id
   `) as Record<string, unknown>[];
-  if (before.length !== 1) throw new Error(`Expected one business profile, found ${before.length}`);
+  if (before.length > 1) throw new Error(`Expected at most one business profile, found ${before.length}`);
   console.log(`👤 ${u.email}`);
-  console.log("Before:", JSON.stringify(before[0]));
-  console.log("After: ", JSON.stringify({ id: before[0].id, industry: update.industry, service_categories: update.services, naics_codes: update.naics, locations: update.states }));
+  console.log("Before:", before.length ? JSON.stringify(before[0]) : "no profile yet (one will be created)");
+  console.log("After: ", JSON.stringify({ id: before[0]?.id ?? "new", industry: update.industry, service_categories: update.services, naics_codes: update.naics, locations: update.states }));
   if (!apply) {
     console.log("Dry run. Re-run with apply = true to save.");
+    return;
+  }
+  if (!before.length) {
+    await sql()`
+      INSERT INTO business_profiles (user_id, business_name, industry, service_categories, naics_codes, locations)
+      VALUES (${u.id}, '', ${update.industry}, ${JSON.stringify(update.services)}::jsonb,
+              ${JSON.stringify(update.naics)}::jsonb, ${JSON.stringify(update.states)}::jsonb)
+    `;
+    console.log("✅ Created.");
     return;
   }
   await sql()`

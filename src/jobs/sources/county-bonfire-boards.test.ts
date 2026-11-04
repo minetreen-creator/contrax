@@ -104,6 +104,8 @@ const CAPTURED: Record<string, number> = {
   va_fauquier_county_bonfire: 4, va_fairfax_schools_bonfire: 2, va_prince_william_schools_bonfire: 3, va_cnu_bonfire: 1,
   // California, captured 2026-11-04.
   ca_lawa_bonfire: 5, ca_ac_transit_bonfire: 4, ca_sutter_county_bonfire: 4, ca_ventura_county_bonfire: 3, ca_elk_grove_schools_bonfire: 1,
+  // New Jersey (+ Howard County MD and Clark County NV schools), captured 2026-11-04.
+  nj_hmfa_bonfire: 2, nj_sussex_county_bonfire: 6, nj_ocean_county_college_bonfire: 1, md_howard_schools_bonfire: 3, nv_clark_county_schools_bonfire: 1,
 };
 // Real tenants with nothing open at capture (portal title confirmed), so no file.
 const NO_CAPTURE = new Set([
@@ -115,13 +117,14 @@ const NO_CAPTURE = new Set([
   "tx_wylie_bonfire", "tx_southlake_bonfire", "tx_johnson_county_bonfire", "tx_cypress_fairbanks_isd_bonfire", "tx_garland_isd_bonfire", "tx_corpus_christi_isd_bonfire", "tx_ut_system_bonfire", "tx_utrgv_bonfire", "tx_del_mar_college_bonfire",
   "va_chesterfield_county_bonfire", "va_loudoun_water_bonfire", "va_arlington_schools_bonfire",
   "ca_alameda_county_bonfire", "ca_yolo_county_bonfire", "ca_irvine_bonfire", "ca_oakland_capital_bonfire", "ca_westminster_bonfire",
+  "nj_mcua_bonfire", "nj_raritan_valley_cc_bonfire", "nj_rcbc_bonfire",
 ]);
 
 describe("county Bonfire boards", () => {
-  test("125 boards, unique sources and id prefixes", () => {
-    expect(COUNTY_BONFIRE_CONFIGS).toHaveLength(125);
-    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.source)).size).toBe(125);
-    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.idPrefix)).size).toBe(125);
+  test("133 boards, unique sources and id prefixes", () => {
+    expect(COUNTY_BONFIRE_CONFIGS).toHaveLength(133);
+    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.source)).size).toBe(133);
+    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.idPrefix)).size).toBe(133);
   });
 
   for (const cfg of COUNTY_BONFIRE_CONFIGS.filter((c) => !NO_CAPTURE.has(c.source))) {

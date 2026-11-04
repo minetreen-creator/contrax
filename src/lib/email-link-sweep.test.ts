@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { emailLinkSweep, likelyAutomated } from "./visitor-intel";
+import { dataCenterLocation, emailLinkSweep, likelyAutomated } from "./visitor-intel";
 import { isLikelyScraper, scraperSignals } from "./scraper-watch";
 
 // Owner 2026-11-03: San Jose, Des Moines and Moses Lake "visitors" opened the
@@ -13,7 +13,11 @@ describe("email link sweep", () => {
     expect(emailLinkSweep(3, 0.1)).toContain("email link scanner");
     expect(emailLinkSweep(3, 8)).toContain("3 pages in 8 seconds");
     expect(emailLinkSweep(3, 40)).toBeNull();
-    expect(emailLinkSweep(2, 1)).toBeNull();
+    // Owner 2026-11-04: a first email's two links (bid + /pricing) opened together.
+    expect(emailLinkSweep(2, 1)).toContain("2 pages in 1 seconds");
+    expect(emailLinkSweep(2, 0.2)).toContain("email link scanner");
+    expect(emailLinkSweep(2, 10)).toBeNull();
+    expect(emailLinkSweep(1, 0)).toBeNull();
     expect(emailLinkSweep(3, null)).toBeNull();
   });
   test("the visitor trail calls it a likely bot, even at 4 seconds apart", () => {
@@ -31,5 +35,16 @@ describe("email link sweep", () => {
     expect(likelyAutomated(s)).toContain("email link scanner");
     expect(likelyAutomated({ ...s, paidClick: true })).toBeNull();
     expect(likelyAutomated({ ...s, signedUp: true })).toBeNull();
+  });
+});
+
+describe("Moses Lake and the two-link email (owner 2026-11-04: \"both are bots\")", () => {
+  test("Moses Lake, WA is a data-center town; San Jose is not", () => {
+    expect(dataCenterLocation("Moses Lake", "WA")).toContain("data-center town");
+    expect(dataCenterLocation("San Jose", "CA")).toBeNull();
+  });
+  test("the bid and /pricing opened together is a scanner, a person's pace is not", () => {
+    expect(likelyAutomated({ sessions: 1, pageViews: 2, activeSpanSeconds: 1, firstReferrer: null, signedUp: false, savedBid: false })).toContain("email link scanner");
+    expect(likelyAutomated({ sessions: 1, pageViews: 2, activeSpanSeconds: 15, firstReferrer: null, signedUp: false, savedBid: false })).toBeNull();
   });
 });

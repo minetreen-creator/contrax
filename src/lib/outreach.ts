@@ -230,10 +230,10 @@ export interface OutreachEmailInput {
   /** Row id, carried on links for attribution. */
   contactId: number;
   /**
-   * The buyer's official posting. Owner 2026-10-25 review: outreach bids are
-   * new, so on Contrax their official link is still behind the paid head
-   * start; a cold email has to hand over the posting itself, or the first
-   * click lands on a lock.
+   * The buyer's official posting. NOT put in the email (owner 2026-11-04: "I
+   * am not giving away free bids… remove the official link"): the official
+   * notice is what the $5 pass opens, so the email links only the Contrax bid
+   * page. Kept on the input so callers stay unchanged.
    */
   sourceUrl?: string | null;
   /** Prime emails: the state where the awarded work is ("Texas"). */
@@ -284,8 +284,8 @@ export function outreachEmail(i: OutreachEmailInput): { subject: string; text: s
     `You're receiving this because ${i.business} lists this address on its website. Unsubscribe: ${i.unsubscribeUrl}`,
   ];
 
-  const posting = safePostingUrl(i.sourceUrl);
-  const postingLines = posting ? [`Official posting: ${posting}`, `Summary on Contrax: ${bidUrl}`] : [`Details: ${bidUrl}`];
+  // Owner 2026-11-04: the official posting is the product; the email links only the Contrax page.
+  const postingLines = [`Details: ${bidUrl}`];
   const firstSubject = outreachSubject(i);
   let subject: string;
   let body: string[];

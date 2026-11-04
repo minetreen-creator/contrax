@@ -4,7 +4,7 @@ import { TAIL_SOURCES } from "../runner";
 import { SOURCE_CLASSES } from "~/lib/source-class";
 import { SOURCE_HOME_JURISDICTIONS } from "~/lib/location-state";
 import { LOCAL_AGENCIES } from "~/lib/local-agencies";
-import { CIVICENGAGE_NOT_A_BID_GROUP, parseCivicEngageBoard } from "./civicengage-bids";
+import { CIVICENGAGE_NOT_A_BID_GROUP, CIVICENGAGE_NOT_A_BID_TITLE, CIVICENGAGE_PLACEHOLDER_TITLE, parseCivicEngageBoard } from "./civicengage-bids";
 import { COUNTY_CIVICENGAGE_CONFIGS, COUNTY_CIVICENGAGE_SOURCES, parseCountyCivicEngage } from "./county-civicengage-boards";
 
 const dirOf = (host: string) =>
@@ -44,6 +44,8 @@ const OPEN: Record<string, number> = {
   in_crown_point: 1, in_shelbyville: 1,
   // Texas, captured 2026-11-03.
   tx_san_marcos: 5, tx_abilene: 6, tx_kerrville: 2, tx_fredericksburg: 4, tx_mansfield: 1, tx_duncanville: 2, tx_sachse: 2, tx_murphy: 1, tx_midlothian: 2, tx_sherman: 4, tx_denison: 3, tx_nacogdoches: 5, tx_huntsville: 3, tx_copperas_cove: 6, tx_taylor: 2, tx_lockhart: 2, tx_port_arthur: 2, tx_alvin: 2, tx_seabrook: 3, tx_snyder: 1, tx_stephenville: 1, tx_mineral_wells: 2, tx_jacksonville: 2, tx_henderson_county: 1,
+  // Virginia, captured 2026-11-04.
+  va_rockingham_county: 1, va_franklin_county: 1, va_henry_county: 13, va_martinsville: 3, va_bristol: 3, va_wise_county: 1, va_falls_church: 1, va_purcellville: 1, va_orange_county: 1, va_norton: 1, va_surry_county: 1, va_greene_county: 3, va_page_county: 1, va_scott_county: 1, va_wythe_county: 2, va_vinton: 1,
 };
 // Real boards with nothing open at capture (scheduled so new bids flow in), so no file.
 const NO_CAPTURE = new Set([
@@ -58,13 +60,14 @@ const NO_CAPTURE = new Set([
   "fl_florida_city", "fl_cocoa", "fl_wellington", "fl_miami_gardens", "fl_casselberry", "fl_new_smyrna_beach", "fl_levy_county",
   "in_westfield", "in_crawfordsville",
   "tx_garland", "tx_mesquite", "tx_killeen", "tx_missouri_city", "tx_baytown", "tx_pasadena", "tx_friendswood", "tx_texas_city", "tx_lake_jackson", "tx_victoria", "tx_buda", "tx_boerne", "tx_universal_city", "tx_cedar_hill", "tx_desoto", "tx_lancaster", "tx_rowlett", "tx_prosper", "tx_little_elm", "tx_the_colony", "tx_flower_mound", "tx_bedford", "tx_haltom_city", "tx_watauga", "tx_azle", "tx_weatherford", "tx_granbury", "tx_corsicana", "tx_texarkana", "tx_marshall", "tx_harker_heights", "tx_lakeway", "tx_plainview", "tx_borger", "tx_angleton", "tx_la_porte", "tx_webster", "tx_tomball", "tx_bellaire", "tx_rockport", "tx_eagle_pass", "tx_donna", "tx_san_benito", "tx_brownwood", "tx_kilgore", "tx_bexar_county", "tx_smith_county", "tx_hidalgo_county", "tx_webb_county", "tx_ellis_county", "tx_kaufman_county", "tx_rockwall_county", "tx_randall_county", "tx_midland_county", "tx_ector_county", "tx_chambers_county", "tx_bowie_county", "tx_wise_county", "tx_kendall_county",
+  "va_roanoke_county", "va_spotsylvania_county", "va_warren_county", "va_radford", "va_campbell_county", "va_amherst_county", "va_warrenton", "va_caroline_county", "va_king_william_county", "va_mecklenburg_county", "va_halifax_county", "va_cumberland_county", "va_appomattox_county", "va_madison_county", "va_grayson_county", "va_patrick_county", "va_russell_county", "va_dickenson_county", "va_ashland", "va_bedford", "va_woodstock", "va_middleburg", "va_christiansburg", "va_dinwiddie_county",
 ]);
 
 describe("county CivicEngage boards", () => {
-  test("198 boards with unique sources and id prefixes", () => {
-    expect(COUNTY_CIVICENGAGE_CONFIGS).toHaveLength(198);
-    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.source)).size).toBe(198);
-    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.idPrefix)).size).toBe(198);
+  test("238 boards with unique sources and id prefixes", () => {
+    expect(COUNTY_CIVICENGAGE_CONFIGS).toHaveLength(238);
+    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.source)).size).toBe(238);
+    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.idPrefix)).size).toBe(238);
   });
 
   for (const cfg of COUNTY_CIVICENGAGE_CONFIGS.filter((c) => !NO_CAPTURE.has(c.source))) {
@@ -106,6 +109,31 @@ describe("county CivicEngage boards", () => {
       expect(SOURCE_CLASSES[s.name]?.class).toBe("local");
       expect(SOURCE_HOME_JURISDICTIONS[s.name]).toBe(SOURCE_CLASSES[s.name]?.scopeState);
       expect(LOCAL_AGENCIES.some((a) => a.source === s.name)).toBe(true);
+    }
+  });
+});
+
+describe("Virginia boards (owner 2026-11-04: more construction bids in VA)", () => {
+  test("placeholder and non-competition titles are not bids", () => {
+    expect(CIVICENGAGE_PLACEHOLDER_TITLE.test("*NO BID SUMMARIES AVAILABLE AT THIS TIME, UNLESS LISTED BELOW.")).toBe(true);
+    expect(CIVICENGAGE_NOT_A_BID_TITLE.test("Notice of sole source award - Fiber Broadband Services")).toBe(true);
+    expect(CIVICENGAGE_NOT_A_BID_TITLE.test("Public Notice: Surplus Brick Dust Available for Sale")).toBe(true);
+    for (const real of ["BID 3136 PARTIAL ROOF REPLACEMENT PHILPOTT WATER PLANT", "RFB: Progress Park Lot 10 - Mass Grading", "Asphalt Paving Services RFP", "Surplus Property Auction Services RFP"]) {
+      expect(CIVICENGAGE_PLACEHOLDER_TITLE.test(real) || CIVICENGAGE_NOT_A_BID_TITLE.test(real)).toBe(false);
+    }
+  });
+
+  test("Henry County lists its construction bids, not its placeholder line", () => {
+    const { rows } = parseCountyCivicEngage("va_henry_county", capture("www.henrycountyva.gov", 1), now);
+    expect(rows.some((r) => /PARTIAL ROOF REPLACEMENT/.test(r.title))).toBe(true);
+    expect(rows.some((r) => /NO BID SUMMARIES/i.test(r.title))).toBe(false);
+  });
+
+  test("every new board is registered with its state and agency page", () => {
+    for (const cfg of COUNTY_CIVICENGAGE_CONFIGS.filter((c) => c.location.endsWith(", VA"))) {
+      expect(SOURCE_HOME_JURISDICTIONS[cfg.source]).toBe("VA");
+      expect(SOURCE_CLASSES[cfg.source]).toBeDefined();
+      expect(LOCAL_AGENCIES.some((a) => a.source === cfg.source)).toBe(true);
     }
   });
 });

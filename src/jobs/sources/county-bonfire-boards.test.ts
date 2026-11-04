@@ -100,6 +100,8 @@ const CAPTURED: Record<string, number> = {
   tx_ut_health_san_antonio_bonfire: 4,
   tx_tarrant_county_college_bonfire: 2,
   tx_houston_city_college_bonfire: 3,
+  // Virginia, captured 2026-11-04.
+  va_fauquier_county_bonfire: 4, va_fairfax_schools_bonfire: 2, va_prince_william_schools_bonfire: 3, va_cnu_bonfire: 1,
 };
 // Real tenants with nothing open at capture (portal title confirmed), so no file.
 const NO_CAPTURE = new Set([
@@ -109,13 +111,14 @@ const NO_CAPTURE = new Set([
   "fl_sunrise_bonfire", "fl_plantation_bonfire", "fl_duval_schools_bonfire", "fl_fgcu_bonfire", "fl_jaxport_bonfire",
   "in_fort_wayne_schools_bonfire",
   "tx_wylie_bonfire", "tx_southlake_bonfire", "tx_johnson_county_bonfire", "tx_cypress_fairbanks_isd_bonfire", "tx_garland_isd_bonfire", "tx_corpus_christi_isd_bonfire", "tx_ut_system_bonfire", "tx_utrgv_bonfire", "tx_del_mar_college_bonfire",
+  "va_chesterfield_county_bonfire", "va_loudoun_water_bonfire", "va_arlington_schools_bonfire",
 ]);
 
 describe("county Bonfire boards", () => {
-  test("108 boards, unique sources and id prefixes", () => {
-    expect(COUNTY_BONFIRE_CONFIGS).toHaveLength(108);
-    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.source)).size).toBe(108);
-    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.idPrefix)).size).toBe(108);
+  test("115 boards, unique sources and id prefixes", () => {
+    expect(COUNTY_BONFIRE_CONFIGS).toHaveLength(115);
+    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.source)).size).toBe(115);
+    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.idPrefix)).size).toBe(115);
   });
 
   for (const cfg of COUNTY_BONFIRE_CONFIGS.filter((c) => !NO_CAPTURE.has(c.source))) {

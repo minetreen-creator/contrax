@@ -144,24 +144,30 @@ export async function sendPasswordResetEmail(
  * accepted; never throws.
  */
 export const WEEKLY_DIGEST_BATCH_SIZE = 100;
-/** Bids the free weekly email lists (owner 2026-10-08: top 5; the rest are on Starter). */
+/** Bids the free weekly email lists (owner 2026-10-08: top 5; the rest come with the $5 pass). */
 export const WEEKLY_DIGEST_LIST_LIMIT = 5;
 
-export async function sendWeeklyBidDigest(
-  recipients: { email: string; unsubscribeUrl: string }[],
-  newBids: NewBidSummary[],
-  headStartCount = 0,
-  foundingSpots: number | null = null,
-): Promise<number> {
-  if (recipients.length === 0 || newBids.length === 0) return 0;
+/** One free account's Monday email (owner 2026-11-04: their trade's bids + the $5 pass). */
+export interface WeeklyDigestRecipient {
+  email: string;
+  unsubscribeUrl: string;
+  /** The bids this person gets: matched to their trade and state, or all when they have none set. */
+  bids: NewBidSummary[];
+  /** Matching bids still in the 7-day paid head start (counted, never listed). */
+  headStartCount: number;
+  /** "Flooring in WA" when the list was matched to their profile. */
+  matchLabel?: string;
+}
+
+export async function sendWeeklyBidDigest(recipients: WeeklyDigestRecipient[]): Promise<number> {
+  recipients = recipients.filter((r) => r.bids.length > 0);
+  if (recipients.length === 0) return 0;
   const resend = getResend();
   if (!resend) {
     console.warn("Cannot send weekly bid digest — RESEND_API_KEY not set");
     return 0;
   }
-  // Owner 2026-10-08: the free weekly email lists only the top 5; the rest point to Starter.
-  const listed = digestBidsToList(newBids, WEEKLY_DIGEST_LIST_LIMIT);
-  const subject = `Your weekly bid digest: ${newBids.length} new government bid${newBids.length === 1 ? "" : "s"} — Contrax`;
+  // Owner 2026-10-08: the free weekly email lists only the top 5; the rest point to the $5 pass.
   let accepted = 0;
   for (let i = 0; i < recipients.length; i += WEEKLY_DIGEST_BATCH_SIZE) {
     const chunk = recipients.slice(i, i + WEEKLY_DIGEST_BATCH_SIZE);
@@ -171,8 +177,12 @@ export async function sendWeeklyBidDigest(
           from: "Contrax <hello@contrax.company>",
           replyTo: "contrax.companyllc@gmail.com",
           to: [r.email],
-          subject,
-          html: bidDigestHtml(listed, newBids.length, { unsubscribeUrl: r.unsubscribeUrl, headStartCount, foundingSpots }),
+          subject: `Your weekly bids: ${r.bids.length} new bid${r.bids.length === 1 ? "" : "s"}${r.matchLabel ? ` for ${r.matchLabel}` : ""} — Contrax`,
+          html: bidDigestHtml(digestBidsToList(r.bids, WEEKLY_DIGEST_LIST_LIMIT), r.bids.length, {
+            unsubscribeUrl: r.unsubscribeUrl,
+            headStartCount: r.headStartCount,
+            matchLabel: r.matchLabel,
+          }),
           headers: {
             "List-Unsubscribe": `<${r.unsubscribeUrl}>`,
             "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
@@ -188,7 +198,7 @@ export async function sendWeeklyBidDigest(
       console.error(`Weekly digest batch ${i / WEEKLY_DIGEST_BATCH_SIZE + 1} failed:`, (err as Error).message);
     }
   }
-  console.log(`Weekly bid digest accepted for ${accepted} of ${recipients.length} recipient(s), ${newBids.length} new bid(s)`);
+  console.log(`Weekly bid digest accepted for ${accepted} of ${recipients.length} recipient(s)`);
   return accepted;
 }
 
@@ -932,14 +942,19 @@ export function starterPriceHtml(spots: number | null | undefined): string {
 
 // ── Bid Digest HTML Template ───────────────────────────────────────────────────
 
-/** The free Basic plan's weekly variant: weekly wording, a Starter line and an unsubscribe link. */
+/** The free accounts' weekly variant: weekly wording, the $5 pass line and an unsubscribe link. */
 export interface WeeklyDigestHtmlOptions {
   unsubscribeUrl: string;
   /** Open bids added in the last HEAD_START_DAYS days, still in their paid head start (not listed). */
   headStartCount?: number;
-  /** Founding-member spots left (null/0 = show the regular Starter price). */
+  /** Founding-member spots left (unused since 2026-11-04: the weekly email offers the $5 pass). */
   foundingSpots?: number | null;
+  /** "Flooring in WA" when the list was matched to the reader's trade and state. */
+  matchLabel?: string;
 }
+
+/** Where the weekly email's offer sends people (the $5 30-day pass). */
+export const WEEKLY_PASS_URL = "https://www.contrax.company/upgrade?plan=starter&source=weekly_email";
 
 /** The paying member's personal daily variant (src/lib/digest-match.ts). */
 export interface DailyDigestHtmlOptions {
@@ -1017,7 +1032,7 @@ export function bidDigestHtml(
       <tr>
         <td style="padding:24px 32px 8px;">
           <p style="margin:0;color:#374151;font-size:15px;line-height:1.6;">
-            Contrax found <strong>${totalNew} new government contract${totalNew === 1 ? "" : "s"}</strong> ${weekly ? "this past week" : "since your last digest"}${daily?.matchLabel ? ` that match your profile (${escapeHtml(daily.matchLabel)})` : ""}. ${moreCount > 0 ? `Here are the ${bids.length} closing soonest:` : "Here's what's new:"}
+            Contrax found <strong>${totalNew} new government contract${totalNew === 1 ? "" : "s"}</strong> ${weekly ? "this past week" : "since your last digest"}${(daily?.matchLabel ?? weekly?.matchLabel) ? ` that match your profile (${escapeHtml(String(daily?.matchLabel ?? weekly?.matchLabel))})` : ""}. ${moreCount > 0 ? `Here are the ${bids.length} closing soonest:` : "Here's what's new:"}
           </p>
         </td>
       </tr>
@@ -1027,7 +1042,7 @@ export function bidDigestHtml(
           <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
             ${bidRows}
           </table>
-          ${moreCount > 0 ? `<p style="margin:12px 0 0;color:#374151;font-size:14px;text-align:center;">${weekly ? `<strong>+ ${moreCount} more new bid${moreCount === 1 ? "" : "s"} on Starter.</strong> <a href="https://www.contrax.company/pricing" style="color:#2563eb;font-weight:600;text-decoration:none;">See them all →</a>` : `+ ${moreCount} more new bid${moreCount === 1 ? "" : "s"} on Contrax.`}</p>` : ""}
+          ${moreCount > 0 ? `<p style="margin:12px 0 0;color:#374151;font-size:14px;text-align:center;">${weekly ? `<strong>+ ${moreCount} more new ${weekly.matchLabel ? "matching " : ""}bid${moreCount === 1 ? "" : "s"} with the $5 pass.</strong> <a href="${WEEKLY_PASS_URL}" style="color:#2563eb;font-weight:600;text-decoration:none;">See them all →</a>` : `+ ${moreCount} more new bid${moreCount === 1 ? "" : "s"} on Contrax.`}</p>` : ""}
         </td>
       </tr>
       <!-- CTA -->
@@ -1052,9 +1067,9 @@ export function bidDigestHtml(
       <tr>
         <td style="padding:0 32px 24px;text-align:center;">
           <p style="margin:0;color:#374151;font-size:14px;line-height:1.6;">
-            ${weekly.headStartCount ? `<strong>+ ${weekly.headStartCount} newer bid${weekly.headStartCount === 1 ? " was" : "s were"} posted in the last ${HEAD_START_DAYS} days.</strong> Starter members already have ${weekly.headStartCount === 1 ? "it" : "them"}; free accounts see new bids after a ${HEAD_START_DAYS}-day head start.<br>` : ""}
-            You get this once a week on the free Basic plan. <strong>Starter</strong> sends every new bid at 6 AM Eastern, every morning, for ${starterPriceHtml(weekly.foundingSpots)}.
-            <a href="https://www.contrax.company/${foundingOfferOpen(weekly.foundingSpots) ? "founding-businesses" : "pricing"}" style="color:#2563eb;font-weight:600;text-decoration:none;">${foundingOfferOpen(weekly.foundingSpots) ? "Claim a founding spot →" : "See Starter →"}</a>
+            ${weekly.headStartCount ? `<strong>+ ${weekly.headStartCount} newer ${weekly.matchLabel ? "matching " : ""}bid${weekly.headStartCount === 1 ? " was" : "s were"} posted in the last ${HEAD_START_DAYS} days.</strong> $5 pass members already have ${weekly.headStartCount === 1 ? "it" : "them"}; free accounts see new bids after a ${HEAD_START_DAYS}-day head start.<br>` : ""}
+            You get this once a week on a free account. <strong>The $5 pass</strong> sends every new bid ${weekly.matchLabel ? `for ${escapeHtml(weekly.matchLabel)} ` : ""}at 6 AM Eastern, every morning, for 30 days. No auto-renew.
+            <a href="${WEEKLY_PASS_URL}" style="color:#2563eb;font-weight:600;text-decoration:none;">Get the $5 pass →</a>
           </p>
         </td>
       </tr>` : ""}

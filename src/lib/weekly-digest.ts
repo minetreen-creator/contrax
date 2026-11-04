@@ -6,7 +6,7 @@
  * Everyone else with an account — Basic users and expired trials — gets ONE
  * email a week, Monday at 6 AM Eastern, listing the bids added in the past
  * week (soonest deadline first, at most DIGEST_MAX_BIDS) with a line saying
- * Starter sends them every morning. Each weekly email is addressed to one
+ * the $5 pass sends them every morning (owner 2026-11-04: matched to their trade). Each weekly email is addressed to one
  * person and carries a one-click unsubscribe link.
  *
  * Internal demo/seed tiers never get it (same rule as the daily digest).
@@ -15,15 +15,17 @@
  */
 import { DIGEST_TIER_ORDER, isDigestEligible, type DigestUserRow } from "./digest-recipients";
 import { HEAD_START_HOURS } from "./head-start";
+import { buildDigestMatcher, type DigestBidFields, type DigestProfile } from "./digest-match";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 /** The weekly email goes out on this New York weekday. */
 /**
- * Owner 2026-10-12: free Basic is search only (every signup gets a 7-day full
- * trial first), so the Basic weekly email no longer sends. Kept as a switch so
- * the job, template and unsubscribe route stay intact.
+ * Owner 2026-10-12 turned the free weekly email off; owner 2026-11-04 ("2": a
+ * Monday email to free accounts with their trade's bids and the $5 offer)
+ * turned it back on. Each person gets the bids matching their profile's trade
+ * and state (src/lib/digest-match.ts), or all new bids when no profile is set.
  */
-export const WEEKLY_DIGEST_ENABLED = false;
+export const WEEKLY_DIGEST_ENABLED = true;
 export const WEEKLY_DIGEST_WEEKDAY = "Monday";
 /** A second weekly send is refused within this many days of the last one. */
 export const WEEKLY_DIGEST_MIN_GAP_DAYS = 6;
@@ -102,4 +104,23 @@ export function weeklyWindowBounds(
 
 export function weeklyUnsubscribeUrl(token: string): string {
   return `https://www.contrax.company/api/email/weekly-unsubscribe?token=${encodeURIComponent(token)}`;
+}
+
+/**
+ * One free account's Monday list (owner 2026-11-04): the week's bids matching
+ * their profile's trade and state, or every bid when they have no profile, plus
+ * how many matching bids are still in the paid head start.
+ */
+export function weeklyRecipientBids<B extends { match: DigestBidFields }>(
+  profile: DigestProfile | null | undefined,
+  newBids: readonly B[],
+  headStart: readonly DigestBidFields[],
+): { bids: Omit<B, "match">[]; headStartCount: number; matchLabel?: string } {
+  const m = buildDigestMatcher(profile);
+  const mine = m.personal ? newBids.filter((b) => m.matches(b.match)) : newBids;
+  return {
+    bids: mine.map(({ match: _match, ...b }) => b),
+    headStartCount: m.personal ? headStart.filter((b) => m.matches(b)).length : headStart.length,
+    matchLabel: m.personal && m.label ? m.label : undefined,
+  };
 }

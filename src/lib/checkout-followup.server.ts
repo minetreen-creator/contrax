@@ -79,7 +79,17 @@ export async function runCheckoutFollowups(nowMs: number = Date.now()): Promise<
       ON CONFLICT (email) DO NOTHING RETURNING email`) as unknown[];
     if (!claimed.length) continue;
     const unsub = unsubscribeUrl(email);
-    const mail = checkoutFollowupEmail({ metadata: lite.metadata, postalAddress: postal!, unsubscribeUrl: unsub });
+    let search: { trade: string; state: string } | null = null;
+    const vid = s.metadata?.visitor_id;
+    if (vid) {
+      try {
+        const [r] = (await sql()`SELECT trade, state FROM radar_search_log WHERE visitor_id = ${vid} ORDER BY created_at DESC LIMIT 1`) as { trade: string; state: string }[];
+        if (r?.trade && r?.state) search = { trade: String(r.trade).toLowerCase(), state: String(r.state).toUpperCase() };
+      } catch {
+        search = null; // the search log is optional; the email still goes
+      }
+    }
+    const mail = checkoutFollowupEmail({ metadata: lite.metadata, search, postalAddress: postal!, unsubscribeUrl: unsub });
     try {
       const { data, error } = await resend.emails.send({
         from: OUTREACH_FROM,

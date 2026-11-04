@@ -50,16 +50,24 @@ const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replac
 
 export function checkoutFollowupEmail(i: {
   metadata: Record<string, string> | null;
+  /** The visitor's last Radar search, when known ("janitorial", "LA"). */
+  search?: { trade: string; state: string } | null;
   postalAddress: string;
   unsubscribeUrl: string;
 }): { subject: string; text: string; html: string } {
   const founding = i.metadata?.founding_member === "true";
   const plan = founding ? "the Founding Business plan" : `Contrax ${PLAN_NAMES[i.metadata?.plan_tier ?? ""] ?? "Starter"}`;
   const link = returnLink(i.metadata);
+  // Owner 2026-11-04: the $5 pass says what it is, and names the search they ran.
+  const pass = i.metadata?.starter_pass === "true";
+  const what = i.search ? `new ${i.search.trade} bids in ${i.search.state}` : "new government bids that fit your business";
   const lines = [
     "Hi,",
     "",
-    `You started checkout for ${plan} but didn't finish. No problem, nothing was charged.`,
+    pass
+      ? `You started the $5 Contrax pass but didn't finish. No problem, nothing was charged.`
+      : `You started checkout for ${plan} but didn't finish. No problem, nothing was charged.`,
+    ...(pass ? ["", `The pass emails you ${what} every morning at 6 AM for 30 days. It's $5 once, with no automatic renewal.`] : []),
     "",
     `If you'd like to pick up where you left off: ${link}`,
     "",
@@ -75,5 +83,5 @@ export function checkoutFollowupEmail(i: {
       .map((l) => (l === "" ? "<br>" : l.includes(link) ? `<p style="margin:0">If you'd like to pick up where you left off: <a href="${esc(link)}">${esc(link)}</a></p>` : `<p style="margin:0">${esc(l)}</p>`))
       .join("\n") +
     `\n<p style="margin-top:24px;color:#6b7280;font-size:12px">${esc(footer[0]!)}<br>Don't want emails like this? <a href="${esc(i.unsubscribeUrl)}">Unsubscribe</a></p>`;
-  return { subject: "Still deciding on Contrax?", text, html };
+  return { subject: pass ? "Your $5 Contrax pass is one click away" : "Still deciding on Contrax?", text, html };
 }

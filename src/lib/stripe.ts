@@ -415,6 +415,9 @@ export interface CreateCheckoutSessionOptions {
   /** Logged-in Contrax user id — stored in session metadata so the webhook can
    *  attribute the payment to the right account without relying on email. */
   userId?: number | string | null;
+  /** A guest's email from the $5 page (owner 2026-11-04): pre-fills Stripe and
+   *  gives the checkout follow-up an address. Ignored when userId is set. */
+  customerEmail?: string | null;
   /** The buyer's `contrax_vid` visitor cookie (owner 2026-11-04): stored in
    *  metadata so the webhook can tie their visit to the new account. */
   visitorId?: string | null;
@@ -642,6 +645,7 @@ export async function createCheckoutSession(
       ...(starterPass ? { customer_creation: "always" as const } : {}),
       ...(firstMonth ? { discounts: [{ coupon: STARTER_FIRST_MONTH_COUPON }] } : {}),
       metadata,
+      ...(opts.userId == null && opts.customerEmail ? { customer_email: opts.customerEmail } : {}),
       ...(opts.probe
         ? { client_reference_id: "contrax-path-check", expires_at: Math.floor(Date.now() / 1000) + PROBE_SESSION_SECONDS }
         : {}),

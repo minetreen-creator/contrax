@@ -16,10 +16,23 @@ const FALLBACKS: [RegExp, string][] = [
   ],
 ];
 
+/**
+ * NAICS code searches (owner 2026-11-04: "238150 · OH" — Glass and Glazing —
+ * found 0; few city and county boards tag bids with codes). A code with nothing
+ * open re-runs once on its broad trade, like a niche trade word does.
+ */
+const CODE_FALLBACKS: [RegExp, string][] = [
+  [/^561730$/, "landscaping"],
+  [/^561720$/, "janitorial"],
+  [/^(484|4885)\d*$/, "trucking"],
+  [/^23\d{4}$/, "construction"],
+];
+
 /** The broader trade to retry with, or null when there is none (or it is the same trade). */
 export function broaderRadarTrade(trade: string | null | undefined): string | null {
   const t = (trade ?? "").trim().toLowerCase();
-  if (!t || /^\d{2,6}$/.test(t)) return null;
+  if (!t) return null;
+  if (/^\d{2,6}$/.test(t)) return CODE_FALLBACKS.find(([re]) => re.test(t))?.[1] ?? null;
   for (const [re, broader] of FALLBACKS) {
     if (re.test(t)) return t === broader ? null : broader;
   }

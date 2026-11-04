@@ -2098,7 +2098,7 @@ function RadarLanding() {
                 <h2 className="text-xl font-bold text-white sm:text-2xl">Your top matches</h2>
                 {fallbackFrom && (
                   <p className="mt-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
-                    No open &ldquo;{fallbackFrom.slice(0, 40)}&rdquo; bids right now, so here are {tradeLabel(trade)} bids,
+                    No open &ldquo;{/^\d{6}$/.test(fallbackFrom) && NAICS_NAMES[fallbackFrom] ? `${NAICS_NAMES[fallbackFrom]} (${fallbackFrom})` : fallbackFrom.slice(0, 40)}&rdquo; bids right now, so here are {tradeLabel(trade)} bids,
                     which often include that work.
                   </p>
                 )}

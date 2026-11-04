@@ -412,6 +412,7 @@ function TrackDrawer({ vid, label, onClose, onChanged }: { vid: string; label: s
               <dt className="text-slate-500">Browser</dt><dd className="text-slate-200">{[trail.browser, trail.device].filter(Boolean).join(" · ") || "Unknown"}</dd>
               <dt className="text-slate-500">First seen</dt><dd className="text-slate-200">{agoLabel(trail.firstSeen, now)}</dd>
               <dt className="text-slate-500">Last seen</dt><dd className="text-slate-200">{agoLabel(trail.lastSeen, now)}</dd>
+              <dt className="text-slate-500">Came from</dt><dd className="text-slate-200">{trail.cameFrom ?? "Unknown"}</dd>
               <dt className="text-slate-500">Pages</dt><dd className="text-slate-200">{trail.viewsTotal} total · {trail.viewsHour} this hour{trail.medianGap !== null ? ` · ~${Math.round(trail.medianGap)}s apart` : ""}</dd>
             </dl>
             {trail.userAgent ? <p className="break-all font-mono text-[10px] leading-relaxed text-slate-500">{trail.userAgent}</p> : null}

@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { getUserFromRequest } from "~/lib/api-auth";
 import { sql } from "~/db";
 import { placeLabel } from "~/lib/live-console";
-import { isLikelyScraper, medianGapSeconds, scraperSignals, type VisitorTrail } from "~/lib/scraper-watch";
+import { cameFromLabel, isLikelyScraper, medianGapSeconds, scraperSignals, type VisitorTrail } from "~/lib/scraper-watch";
 import { ensureTrackedVisitorsTable } from "~/lib/scraper-watch.server";
 import { clearIpBlockCache, ensureBlockedIpsTable, isIpBlocked } from "~/lib/ip-block.server";
 import { getClientIp } from "~/lib/request-ip";
@@ -80,6 +80,18 @@ async function GET({ request }: { request: Request }) {
       WHERE visitor_id = ${vid} AND created_at > NOW() - INTERVAL '60 minutes' AND path LIKE '/bid/%'
     `) as { n: number }[];
 
+    let cameFrom = cameFromLabel([]);
+    try {
+      const refs = (await db`
+        SELECT referrer, source FROM page_views
+        WHERE visitor_id = ${vid} AND (referrer IS NOT NULL OR source IS NOT NULL)
+        ORDER BY created_at ASC LIMIT 10
+      `) as { referrer: string | null; source: string | null }[];
+      cameFrom = cameFromLabel(refs);
+    } catch {
+      // Older rows without referrer columns: leave it as Direct.
+    }
+
     let searches: VisitorTrail["searches"] = [];
     let searchesHour = 0;
     try {
@@ -147,6 +159,7 @@ async function GET({ request }: { request: Request }) {
       userAgent: agg?.ua ? String(agg.ua).slice(0, 300) : null,
       firstSeen: iso(agg?.first_at ?? v?.first_seen_at),
       lastSeen: iso(agg?.last_at ?? v?.last_seen_at),
+      cameFrom,
       viewsTotal: Number(agg?.total ?? 0),
       viewsHour: hitTimesHour.length,
       medianGap: medianGapSeconds(hitTimesHour),

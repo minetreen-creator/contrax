@@ -34,15 +34,24 @@ export interface IndustryDayRow {
  * ORLEANS"), so the key is the title and the date, not the agency.
  */
 export function dedupeEvents(rows: IndustryDayRow[]): IndustryDayRow[] {
+  const norm = (t: string) => t.replace(/\s+/g, " ").trim().toLowerCase();
   const seen = new Set<string>();
   const out: IndustryDayRow[] = [];
   for (const r of rows) {
-    const key = `${r.title.replace(/\s+/g, " ").trim().toLowerCase()}|${r.date ?? ""}`;
+    const key = `${norm(r.title)}|${r.date ?? ""}`;
     if (seen.has(key)) continue;
     seen.add(key);
     out.push(r);
   }
-  return out;
+  // Owner 2026-11-04: a re-posted notice can carry extra words in front of the
+  // same title ("Ticket Release dates: 9/23 & 10/7; SAVE THE DATE: FY27 NSWCPD
+  // Hybrid Industry Day"). On the same date, a title that contains another
+  // event's whole title is the same event; keep the shorter, cleaner one.
+  const MIN = 25;
+  return out.filter((r) => {
+    const t = norm(r.title);
+    return !out.some((o) => o !== r && (o.date ?? "") === (r.date ?? "") && norm(o.title).length >= MIN && norm(o.title).length < t.length && t.includes(norm(o.title)));
+  });
 }
 
 /** States that have events, busiest first (then by code), for the filter. */

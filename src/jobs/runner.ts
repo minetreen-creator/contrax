@@ -84,6 +84,7 @@ import { fetchCoVssBids } from "./sources/co-vss";
 import { fetchOhOdotBids } from "./sources/oh-odot";
 import { fetchVaVdotCabbBids } from "./sources/va-vdot-cabb";
 import { fetchLaDotdLettingBids } from "./sources/la-dotd-lettings";
+import { fetchNjTransitBids } from "./sources/nj-transit";
 import { fetchNyNyscrBids } from "./sources/ny-nyscr";
 import { fetchMiSigmaBids } from "./sources/mi-sigma";
 import { PERISCOPE_TAIL_SOURCES } from "./sources/periscope-states";
@@ -371,6 +372,8 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "va_vdot_cabb", fetchFn: () => fetchVaVdotCabbBids() },
   // LA DOTD highway construction lettings, owner 2026-11-04.
   { name: "la_dotd_lettings", fetchFn: () => fetchLaDotdLettingBids() },
+  // NJ TRANSIT procurement calendar, owner 2026-11-04.
+  { name: "nj_transit", fetchFn: () => fetchNjTransitBids() },
   // New York State Contract Reporter: open state and local ads.
   { name: "ny_nyscr", fetchFn: () => fetchNyNyscrBids() },
   // Michigan SIGMA Vendor Self Service: open state and local solicitations.

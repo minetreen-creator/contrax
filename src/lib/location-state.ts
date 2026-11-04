@@ -1494,6 +1494,7 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   oh_odot: "OH",
   va_vdot_cabb: "VA",
   la_dotd_lettings: "LA",
+  nj_transit: "NJ",
   ny_nyscr: "NY",
   mi_sigma: "MI",
   ma_boston: "MA",

@@ -189,6 +189,8 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
   va_vdot_cabb: { class: "state", scopeState: "VA", searchScope: "state-portal", recordType: "opportunity" },
   // LA DOTD highway construction lettings (src/jobs/sources/la-dotd-lettings.ts).
   la_dotd_lettings: { class: "state", scopeState: "LA", searchScope: "state-portal", recordType: "opportunity" },
+  // NJ TRANSIT procurement calendar (src/jobs/sources/nj-transit.ts).
+  nj_transit: { class: "state", scopeState: "NJ", searchScope: "state-portal", recordType: "opportunity" },
   // New York State Contract Reporter (src/jobs/sources/ny-nyscr.ts).
   ny_nyscr: { class: "state", scopeState: "NY", searchScope: "state-portal", recordType: "opportunity" },
   // Michigan SIGMA Vendor Self Service (src/jobs/sources/mi-sigma.ts).

@@ -169,6 +169,15 @@ const BOARDS: Board[] = [
   { tenant: "cityofirvine", source: "ca_irvine_bonfire", stateName: "California", place: "Irvine", buyer: "City of Irvine, California", idPrefix: "cityofirvinebonfire" },
   { tenant: "oaklandca", source: "ca_oakland_capital_bonfire", stateName: "California", place: "Oakland", buyer: "City of Oakland, Capital Contracts Division", idPrefix: "oaklandcabonfire", location: "Oakland, CA" },
   { tenant: "cityofwestminster", source: "ca_westminster_bonfire", stateName: "California", place: "Westminster", buyer: "City of Westminster, California", idPrefix: "cityofwestminsterbonfire", location: "Westminster, CA" },
+  // New Jersey (and two school districts found on the way), captured 2026-11-04.
+  { tenant: "njhmfa", source: "nj_hmfa_bonfire", stateName: "New Jersey", place: "New Jersey Housing and Mortgage Finance Agency", buyer: "New Jersey Housing and Mortgage Finance Agency", idPrefix: "njhmfabonfire", location: "Trenton, NJ" },
+  { tenant: "sussex", source: "nj_sussex_county_bonfire", stateName: "New Jersey", place: "County of Sussex", buyer: "County of Sussex, New Jersey", idPrefix: "sussexbonfire", location: "Sussex County, NJ" },
+  { tenant: "ocean", source: "nj_ocean_county_college_bonfire", stateName: "New Jersey", place: "Ocean County College", buyer: "Ocean County College", idPrefix: "oceanbonfire", location: "Toms River, NJ" },
+  { tenant: "mcua", source: "nj_mcua_bonfire", stateName: "New Jersey", place: "Middlesex County Utilities Authority", buyer: "Middlesex County Utilities Authority", idPrefix: "mcuabonfire", location: "Sayreville, NJ" },
+  { tenant: "raritanval", source: "nj_raritan_valley_cc_bonfire", stateName: "New Jersey", place: "Raritan Valley Community College", buyer: "Raritan Valley Community College", idPrefix: "raritanvalbonfire", location: "Branchburg, NJ" },
+  { tenant: "rcbc", source: "nj_rcbc_bonfire", stateName: "New Jersey", place: "Rowan College at Burlington County", buyer: "Rowan College at Burlington County", idPrefix: "rcbcbonfire", location: "Mount Laurel, NJ" },
+  { tenant: "hcpss", source: "md_howard_schools_bonfire", stateName: "Maryland", place: "Howard County Public School System", buyer: "Howard County Public School System", idPrefix: "hcpssbonfire", location: "Howard County, MD" },
+  { tenant: "ccsd", source: "nv_clark_county_schools_bonfire", stateName: "Nevada", place: "Clark County School District", buyer: "Clark County School District", idPrefix: "ccsdbonfire", location: "Las Vegas, NV" },
 ];
 
 export const COUNTY_BONFIRE_CONFIGS: readonly BonfireConfig[] = BOARDS.map(boardConfig);

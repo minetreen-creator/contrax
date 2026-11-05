@@ -205,6 +205,12 @@ const BOARDS: Board[] = [
   { tenant: "dps", source: "oh_dayton_schools_bonfire", stateName: "Ohio", place: "Dayton Public Schools", buyer: "Dayton Public Schools", idPrefix: "dpsbonfire", location: "Dayton, OH" },
   { tenant: "grps", source: "mi_grand_rapids_schools_bonfire", stateName: "Michigan", place: "Grand Rapids Public Schools", buyer: "Grand Rapids Public Schools", idPrefix: "grpsbonfire", location: "Grand Rapids, MI" },
   { tenant: "sou", source: "or_southern_oregon_university_bonfire", stateName: "Oregon", place: "Southern Oregon University", buyer: "Southern Oregon University", idPrefix: "soubonfire", location: "Ashland, OR" },
+  // PA, IL, KY portals, captured 2026-11-05 (owner: "add more state and local boards").
+  { tenant: "alleghenycounty", source: "pa_allegheny_county_bonfire", stateName: "Pennsylvania", place: "Allegheny County", buyer: "Allegheny County, Pennsylvania", idPrefix: "alleghenycountybonfire", location: "Pittsburgh, PA" },
+  { tenant: "joliet", source: "il_joliet_bonfire", stateName: "Illinois", place: "Joliet", buyer: "City of Joliet, Illinois", idPrefix: "jolietbonfire", location: "Joliet, IL" },
+  { tenant: "owensboro", source: "ky_owensboro_bonfire", stateName: "Kentucky", place: "Owensboro", buyer: "City of Owensboro, Kentucky", idPrefix: "owensborobonfire", location: "Owensboro, KY" },
+  { tenant: "lexingtonky", source: "ky_lexington_bonfire", stateName: "Kentucky", place: "Lexington", buyer: "Lexington-Fayette Urban County Government", idPrefix: "lexingtonkybonfire", location: "Lexington, KY" },
+  { tenant: "covingtonky", source: "ky_covington_bonfire", stateName: "Kentucky", place: "Covington", buyer: "City of Covington, Kentucky", idPrefix: "covingtonkybonfire", location: "Covington, KY" },
 ];
 
 export const COUNTY_BONFIRE_CONFIGS: readonly BonfireConfig[] = BOARDS.map(boardConfig);

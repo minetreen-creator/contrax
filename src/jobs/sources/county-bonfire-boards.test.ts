@@ -67,6 +67,7 @@ const CAPTURED: Record<string, number> = {
   fl_ucf_bonfire: 2,
   nc_ncsu_bonfire: 4,
   nc_wcu_bonfire: 1,
+  pa_allegheny_county_bonfire: 8, il_joliet_bonfire: 18, ky_owensboro_bonfire: 2,
   // Big-city, school, transit and university portals, captured 2026-11-05.
   ny_buffalo_schools_bonfire: 7, ny_nfta_bonfire: 6, oh_columbus_bonfire: 15, mi_detroit_bonfire: 19, ga_atlanta_schools_bonfire: 4, or_portland_state_bonfire: 1, ak_university_of_alaska_bonfire: 2,
   fl_lee_schools_bonfire: 1,
@@ -125,14 +126,15 @@ const NO_CAPTURE = new Set([
   "ca_alameda_county_bonfire", "ca_yolo_county_bonfire", "ca_irvine_bonfire", "ca_oakland_capital_bonfire", "ca_westminster_bonfire",
   "nj_mcua_bonfire", "nj_raritan_valley_cc_bonfire", "nj_rcbc_bonfire",
   "fl_famu_bonfire", "ny_stony_brook_bonfire", "oh_toledo_schools_bonfire", "oh_dayton_schools_bonfire", "mi_grand_rapids_schools_bonfire", "or_southern_oregon_university_bonfire",
+  "ky_lexington_bonfire", "ky_covington_bonfire",
   "wa_clark_county_bonfire", "wa_renton_bonfire", "wa_port_of_everett_bonfire", "wa_tacoma_schools_bonfire", "wa_lake_washington_schools_bonfire", "wa_northshore_schools_bonfire", "id_west_ada_schools_bonfire",
 ]);
 
 describe("county Bonfire boards", () => {
   test("142 boards, unique sources and id prefixes", () => {
-    expect(COUNTY_BONFIRE_CONFIGS).toHaveLength(157);
-    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.source)).size).toBe(157);
-    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.idPrefix)).size).toBe(157);
+    expect(COUNTY_BONFIRE_CONFIGS).toHaveLength(162);
+    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.source)).size).toBe(162);
+    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.idPrefix)).size).toBe(162);
   });
 
   for (const cfg of COUNTY_BONFIRE_CONFIGS.filter((c) => !NO_CAPTURE.has(c.source))) {

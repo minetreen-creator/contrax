@@ -1,0 +1,779 @@
+www.miamidade.gov | status=404 | final=https://www.miamidade.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.broward.org | ERR TypeError: The response redirected too many times. For more information, pass `verbose: true` in the
+www.pbcgov.org | status=404 | final=https://discover.pbc.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.hillsboroughcounty.org | status=404 | final=https://hcfl.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.ocfl.net | status=404 | final=https://www.ocfl.net/bids.aspx | civicengage=false | itemsLinks=0
+www.pinellas.gov | status=404 | final=https://pinellas.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.coj.net | status=404 | final=https://www.jacksonville.gov/bids | civicengage=false | itemsLinks=0
+www.tampa.gov | status=404 | final=https://www.tampa.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.orlando.gov | status=404 | final=https://www.orlando.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.stpete.org | status=404 | final=https://www.stpete.org/bids.aspx | civicengage=false | itemsLinks=0
+www.miamigov.com | status=404 | final=https://www.miami.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.hialeahfl.gov | status=200 | final=https://www.hialeahfl.gov/bids.aspx | civicengage=true | itemsLinks=6
+www.fortlauderdale.gov | status=404 | final=https://www.fortlauderdale.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.cityofpsl.com | status=404 | final=https://www.cityofpsl.com/bids.aspx | civicengage=false | itemsLinks=0
+www.capecoral.gov | status=404 | final=https://www.capecoral.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.talgov.com | status=404 | final=https://www.talgov.com/bids.aspx | civicengage=false | itemsLinks=0
+www.gainesvillefl.gov | status=404 | final=https://www.gainesvillefl.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.myclearwater.com | status=404 | final=https://www.myclearwater.com/bids.aspx | civicengage=false | itemsLinks=0
+www.wpb.org | status=404 | final=https://www.wpb.org/bids.aspx | civicengage=false | itemsLinks=0
+www.lakelandgov.net | status=404 | final=https://www.lakelandgov.net/bids.aspx | civicengage=false | itemsLinks=0
+www.pompanobeachfl.gov | status=404 | final=https://www.pompanobeachfl.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.hollywoodfl.org | status=200 | final=https://www.hollywoodfl.org/bids.aspx | civicengage=true | itemsLinks=0
+www.miramarfl.gov | status=404 | final=https://www.miramarfl.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.coralsprings.gov | status=404 | final=https://www.coralsprings.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.palmbayfl.gov | status=403 | final=https://www.palmbayfl.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.brevardfl.gov | status=403 | final=https://www.brevardfl.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.volusia.org | status=403 | final=https://www.volusia.org/bids.aspx | civicengage=false | itemsLinks=0
+www.seminolecountyfl.gov | status=404 | final=https://www.seminolecountyfl.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.polk-county.net | status=403 | final=https://www.polkfl.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.leegov.com | status=403 | final=https://www.leefl.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.colliercountyfl.gov | status=404 | final=https://www.collier.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.scgov.net | status=403 | final=https://www.scgov.net/bids.aspx | civicengage=false | itemsLinks=0
+www.mymanatee.org | status=404 | final=https://www.mymanatee.org/bids.aspx | civicengage=false | itemsLinks=0
+www.marionfl.org | status=403 | final=https://www.marionfl.org/bids.aspx | civicengage=false | itemsLinks=0
+www.lakecountyfl.gov | status=403 | final=https://www.lakecountyfl.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.osceola.org | status=404 | final=https://www.osceola.org/bids.aspx | civicengage=false | itemsLinks=0
+www.sjcfl.us | status=404 | final=https://www.sjcfl.us/bids.aspx | civicengage=false | itemsLinks=0
+www.myescambia.com | status=200 | final=https://myescambia.com/errorpage?aspxerrorpath=/bids.aspx | civicengage=false | itemsLinks=0
+www.alachuacounty.us | status=404 | final=https://www.alachuacounty.us/bids.aspx | civicengage=false | itemsLinks=0
+www.myokaloosa.com | status=404 | final=https://www.myokaloosa.com/bids.aspx | civicengage=false | itemsLinks=0
+www.charlottecountyfl.gov | status=403 | final=https://www.charlottecountyfl.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.martin.fl.us | status=404 | final=https://www.martin.fl.us/bids.aspx | civicengage=false | itemsLinks=0
+www.stlucieco.gov | status=403 | final=https://www.stlucieco.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.citrusbocc.com | status=200 | final=https://www.citruscounty.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.hernandocounty.us | status=404 | final=https://www.hernandocounty.us/bids.aspx | civicengage=false | itemsLinks=0
+www.pascocountyfl.net | status=404 | final=https://www.pascocountyfl.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.santarosa.fl.gov | status=200 | final=https://www.santarosa.fl.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.claycountygov.com | status=403 | final=https://www.claycountygov.com/bids.aspx | civicengage=false | itemsLinks=0
+www.flaglercounty.gov | status=404 | final=https://www.flaglercounty.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.sumtercountyfl.gov | status=404 | final=https://www.sumtercountyfl.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.highlandsfl.gov | status=404 | final=https://www.highlandsfl.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.cityofdeltona.org | ERR TypeError: getaddrinfo ENOTFOUND www.cityofdeltona.org
+www.cityofdaytonabeach.org | ERR TypeError: getaddrinfo ENOTFOUND www.cityofdaytonabeach.org
+www.ormondbeach.org | status=200 | final=https://cpauthentication.civicplus.com/Identity/Account/Login?ReturnUrl=%2Fconnect%2Fauthorize%2Fcallback%3Fclient_id%3D97d89c99-9061-4992-9806-d010df86dd51%26redirect_uri%3Dhttps%253A%252F%252Fwww.ormondbeach.org%252FIdentityServer%252FSignInCallback%26response_type%3Dcode%2520id_token%2520token%26scope%3Dopenid%2520profile%2520email%2520account.api%26state%3D3fc30abdbe6a422fb9a02d2a2383d96d_https%253A%252F%252Fwww.ormondbeach.org%252Fbids.aspx%26nonce%3D545c5a6cbcd8475dac2c643684ec784c%26response_mode%3Dform_post%26acr_values%3DOrgBranding%253Ad8308ed5-9b90-451e-a679-8d4efa1785a9%26code_challenge%3Dcdb026c8644dbd58077fc513c45634765922b00e4929dd97a76fd33e2f2bc367%26code_challenge_method%3DS256%26login_origin_uri%3Dhttps%253A%252F%252Fwww.ormondbeach.org%252Fbids.aspx | civicengage=false | itemsLinks=0
+www.palmcoast.gov | status=200 | final=https://www.palmcoast.gov/home/notfound | civicengage=false | itemsLinks=0
+www.cityofsanford.org | ERR TypeError: getaddrinfo ENOTFOUND www.cityofsanford.org
+www.altamonte.org | status=404 | final=https://www.altamonte.org/bids.aspx | civicengage=false | itemsLinks=0
+www.winterparkfl.gov | ERR TypeError: getaddrinfo ENOTFOUND www.winterparkfl.gov
+www.cityofkissimmee.gov | ERR TypeError: getaddrinfo ENOTFOUND www.cityofkissimmee.gov
+www.stcloudfl.gov | status=200 | final=https://www.stcloudfl.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.ocoee.org | status=200 | final=https://www.ocoee.org/bids.aspx | civicengage=true | itemsLinks=0
+www.apopka.net | status=525 | final=https://www.apopka.net/bids.aspx | civicengage=false | itemsLinks=0
+www.wintergarden-fl.gov | ERR TypeError: getaddrinfo ENOTFOUND www.wintergarden-fl.gov
+www.cityofwinterhaven.com | status=401 | final=http://ww547.cityofwinterhaven.com/?tkn=19vnMT3S | civicengage=false | itemsLinks=0
+www.bartow.org | status=200 | final=https://www.bartow.org/bids.aspx | civicengage=true | itemsLinks=0
+www.largo.com | status=404 | final=https://www.largo.com/bids.aspx | civicengage=false | itemsLinks=0
+www.dunedin.gov | status=404 | final=https://www.dunedin.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.tarponsprings.gov | ERR TypeError: getaddrinfo ENOTFOUND www.tarponsprings.gov
+www.cityofpinellaspark.com | ERR TypeError: getaddrinfo ENOTFOUND www.cityofpinellaspark.com
+www.cityofsarasotafl.gov | ERR TypeError: Unable to connect. Is the computer able to access the url?
+www.venicegov.com | status=403 | final=https://www.venicegov.com/bids.aspx | civicengage=false | itemsLinks=0
+www.cityofnorthport.com | ERR TypeError: getaddrinfo ENOTFOUND www.cityofnorthport.com
+www.bradentonfl.gov | status=200 | final=https://www.bradentonfl.gov/404.htm?aspxerrorpath=/bids.aspx | civicengage=false | itemsLinks=0
+www.cityofpalmetto.com | ERR TypeError: getaddrinfo ENOTFOUND www.cityofpalmetto.com
+www.naplesgov.com | status=403 | final=https://www.naplesgov.com/bids.aspx | civicengage=false | itemsLinks=0
+www.cityftmyers.com | status=404 | final=https://fortmyers.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.bonitaspringsfl.gov | ERR TypeError: getaddrinfo ENOTFOUND www.bonitaspringsfl.gov
+www.cityofpanamacity.com | status=200 | final=https://www.cityofpanamacity.com/ | civicengage=false | itemsLinks=0
+www.cityofdestin.com | status=200 | final=https://www.cityofdestin.com/bids.aspx | civicengage=true | itemsLinks=0
+www.fwb.org | status=200 | final=https://www.fwb.org/bids.aspx | civicengage=true | itemsLinks=0
+www.cityofocala.org | ERR TypeError: getaddrinfo ENOTFOUND www.cityofocala.org
+www.cityofstaugustine.com | ERR TypeError: getaddrinfo ETIMEOUT www.cityofstaugustine.com
+www.jaxbchfl.net | ERR TypeError: The socket connection was closed unexpectedly. For more information, pass `verbose: true`
+www.ci.boca-raton.fl.us | ERR TypeError: The socket connection was closed unexpectedly. For more information, pass `verbose: true`
+www.myboca.us | status=200 | final=https://cpauthentication.civicplus.com/Identity/Account/Login?ReturnUrl=%2Fconnect%2Fauthorize%2Fcallback%3Fclient_id%3Dfa7f59b3-cc5b-4b5e-ae66-72ab790c5caa%26redirect_uri%3Dhttps%253A%252F%252Fwww.myboca.us%252FIdentityServer%252FSignInCallback%26response_type%3Dcode%2520id_token%2520token%26scope%3Dopenid%2520profile%2520email%2520account.api%26state%3D535f83fe27e74a79ba1aa4637d06e38e_https%253A%252F%252Fwww.myboca.us%252Fbids.aspx%26nonce%3D933e177de067402299214e2aa6d4e36d%26response_mode%3Dform_post%26acr_values%3DOrgBranding%253A65e5f90d-46fd-48d3-a083-74f65ebf868e%26code_challenge%3Dfc377c9d7f1e3c52ab6ae0a829d44f01dd0332e3881013a0c25d37ab69587418%26code_challenge_method%3DS256%26login_origin_uri%3Dhttps%253A%252F%252Fwww.myboca.us%252Fbids.aspx | civicengage=false | itemsLinks=0
+www.delraybeachfl.gov | status=403 | final=https://www.delraybeachfl.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.boynton-beach.org | status=200 | final=https://www.boynton-beach.org/bids.aspx | civicengage=true | itemsLinks=0
+www.jupiter.fl.us | status=200 | final=https://www.jupiter.fl.us/bids.aspx | civicengage=true | itemsLinks=0
+www.pbgfl.com | status=200 | final=https://www.pbgfl.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.rivierabeach.org | status=404 | final=https://www.rivierabeach.org/bids.aspx | civicengage=false | itemsLinks=0
+www.lakeworthbeachfl.gov | status=404 | final=https://lakeworthbeachfl.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.royalpalmbeach.com | ERR TypeError: The socket connection was closed unexpectedly. For more information, pass `verbose: true`
+www.margatefl.com | status=200 | final=https://www.margatefl.com/bids.aspx | civicengage=true | itemsLinks=3
+www.coconutcreek.net | status=404 | final=https://www.coconutcreek.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.tamarac.org | status=200 | final=https://cpauthentication.civicplus.com/Identity/Account/Login?ReturnUrl=%2Fconnect%2Fauthorize%2Fcallback%3Fclient_id%3D87bd406d-5cc5-426f-abf2-be217d8dd436%26redirect_uri%3Dhttps%253A%252F%252Fwww.tamarac.gov%252FIdentityServer%252FSignInCallback%26response_type%3Dcode%2520id_token%2520token%26scope%3Dopenid%2520profile%2520email%2520account.api%26state%3Db17dfb66a76e485c8333ed3c7c74788c_https%253A%252F%252Fwww.tamarac.gov%252Fbids.aspx%26nonce%3D47b683bb85a441f7a5d9d569ff7d2d79%26response_mode%3Dform_post%26acr_values%3DOrgBranding%253Affc980c8-ce71-48be-9dd8-3cc6082319b8%26code_challenge%3D49944f2a555ccf45424a4a6b5a91be82876127ac97514e4feb4404f7563a9c78%26code_challenge_method%3DS256%26login_origin_uri%3Dhttps%253A%252F%252Fwww.tamarac.gov%252Fbids.aspx | civicengage=false | itemsLinks=0
+www.sunrisefl.gov | status=403 | final=https://www.sunrisefl.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.plantation.org | status=403 | final=https://www.plantation.org/bids.aspx | civicengage=false | itemsLinks=0
+www.davie-fl.gov | status=403 | final=https://www.davie-fl.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.cooper-city.org | ERR TypeError: getaddrinfo ENOTFOUND www.cooper-city.org
+www.pembrokepines.org | ERR TypeError: unknown certificate verification error
+www.weston.org | ERR TypeError: ERR_TLS_CERT_ALTNAME_INVALID fetching "https://www.weston.org/bids.aspx". For more inform
+www.deerfield-beach.com | status=200 | final=https://www.deerfield-beach.com/bids.aspx | civicengage=true | itemsLinks=0
+www.lauderhill-fl.gov | status=403 | final=https://www.lauderhill-fl.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.northmiamifl.gov | status=200 | final=https://www.northmiamifl.gov/bids.aspx | civicengage=true | itemsLinks=21
+www.northmiamibeach.gov | ERR TypeError: getaddrinfo ENOTFOUND www.northmiamibeach.gov
+www.miamibeachfl.gov | status=404 | final=https://www.miamibeachfl.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.coralgables.com | status=404 | final=https://www.coralgables.com/bids.aspx | civicengage=false | itemsLinks=0
+www.homesteadfl.gov | status=200 | final=https://www.homesteadfl.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.doralfl.gov | ERR TypeError: getaddrinfo ENOTFOUND www.doralfl.gov
+www.cityofaventura.com | status=200 | final=https://www.cityofaventura.com/bids.aspx | civicengage=true | itemsLinks=0
+www.columbus.gov | status=404 | final=https://www.columbus.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.clevelandohio.gov | status=404 | final=https://www.clevelandohio.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.cincinnati-oh.gov | status=404 | final=https://www.cincinnati-oh.gov/cityofcincinnati/bids.aspx/bids.aspx | civicengage=false | itemsLinks=0
+www.toledo.oh.gov | status=404 | final=https://toledo.oh.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.akronohio.gov | status=404 | final=https://www.akronohio.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.cityofparma-oh.gov | status=200 | final=https://www.cityofparma-oh.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.cantonohio.gov | status=200 | final=https://www.cantonohio.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.youngstownohio.gov | status=404 | final=https://www.youngstownohio.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.cityoflorain.org | status=200 | final=https://www.cityoflorain.org/bids.aspx | civicengage=true | itemsLinks=12
+www.hamilton-oh.gov | status=404 | final=https://www.hamilton-oh.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.springfieldohio.gov | status=403 | final=https://www.springfieldohio.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.ketteringoh.org | status=403 | final=https://www.ketteringoh.org/bids.aspx | civicengage=false | itemsLinks=0
+www.cityofelyria.org | status=404 | final=https://www.cityofelyria.org/bids.aspx | civicengage=false | itemsLinks=0
+www.lakewoodoh.gov | status=404 | final=https://lakewoodoh.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.cuyahogacounty.gov | status=404 | final=https://www.cuyahogacounty.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.franklincountyohio.gov | status=404 | final=https://www.franklincountyohio.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.hamiltoncountyohio.gov | status=404 | final=https://www.hamiltoncountyohio.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.summitoh.net | status=404 | final=https://co.summitoh.net/portal/County-of-Summit-Ohio.htmlbids.aspx | civicengage=false | itemsLinks=0
+www.mcohio.org | status=403 | final=https://www.mcohio.org/bids.aspx | civicengage=false | itemsLinks=0
+www.co.lucas.oh.us | status=200 | final=https://www.co.lucas.oh.us/bids.aspx | civicengage=true | itemsLinks=0
+www.butlercountyohio.org | status=404 | final=https://www.bcohio.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.starkcountyohio.gov | status=404 | final=https://www.starkcountyohio.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.loraincounty.us | ERR TypeError: The socket connection was closed unexpectedly. For more information, pass `verbose: true`
+www.lakecountyohio.gov | status=404 | final=https://www.lakecountyohio.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.mahoningcountyoh.gov | status=200 | final=https://www.mahoningcountyoh.gov/bids.aspx | civicengage=true | itemsLinks=2
+www.co.warren.oh.us | status=200 | final=https://www.warrencountyohio.gov/ | civicengage=false | itemsLinks=0
+www.co.delaware.oh.us | status=200 | final=https://co.delaware.oh.us/ | civicengage=false | itemsLinks=0
+www.clermontcountyohio.gov | status=404 | final=https://www.clermontcountyohio.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.medinaco.org | ERR TypeError: The socket connection was closed unexpectedly. For more information, pass `verbose: true`
+www.greenecountyohio.gov | status=403 | final=https://www.greenecountyohio.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.lcounty.com | status=404 | final=https://lickingcounty.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.co.portage.oh.us | status=403 | final=https://www.co.portage.oh.us/bids.aspx | civicengage=false | itemsLinks=0
+www.woodcountyohio.gov | status=200 | final=https://www.woodcountyohio.gov/bids.aspx | civicengage=true | itemsLinks=2
+www.co.fairfield.oh.us | status=200 | final=https://www.co.fairfield.oh.us/404.html | civicengage=false | itemsLinks=0
+www.miamicountyohio.gov | status=200 | final=https://www.miamicountyohio.gov/bids.aspx/ | civicengage=false | itemsLinks=0
+www.clarkcountyohio.gov | status=200 | final=https://www.clarkcountyohio.gov/bids.aspx | civicengage=true | itemsLinks=21
+www.co.richland.oh.us | ERR TypeError: getaddrinfo ETIMEOUT www.co.richland.oh.us
+www.allencountyohio.com | status=404 | final=https://allencountyohio.com/bids.aspx | civicengage=false | itemsLinks=0
+www.co.wayne.oh.us | ERR TimeoutError: The operation timed out.
+www.co.tuscarawas.oh.us | status=404 | final=https://www.co.tuscarawas.oh.us/bids.aspx | civicengage=false | itemsLinks=0
+www.co.muskingum.oh.us | ERR TypeError: getaddrinfo ENOTFOUND www.co.muskingum.oh.us
+www.rosscountyohio.gov | status=404 | final=https://www.rosscountyohio.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.erie-county-ohio.net | status=200 | final=https://greenh2summitchile.com/bids.aspx | civicengage=false | itemsLinks=0
+www.geauga.oh.gov | status=404 | final=https://geauga.oh.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.co.columbiana.oh.us | ERR TypeError: getaddrinfo ENOTFOUND www.co.columbiana.oh.us
+www.trumbullcounty.org | status=404 | final=https://www.trumbullcounty.org/bids.aspx | civicengage=false | itemsLinks=0
+www.ashtabulacounty.us | status=200 | final=https://www.ashtabulacounty.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.cityofmentor.com | status=403 | final=https://www.cityofmentor.com/bids.aspx | civicengage=false | itemsLinks=0
+www.dublinohiousa.gov | status=404 | final=https://dublinohiousa.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.westerville.org | status=403 | final=https://www.westerville.org/bids.aspx | civicengage=false | itemsLinks=0
+www.grovecityohio.gov | status=200 | final=https://www.grovecityohio.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.upperarlingtonoh.gov | status=200 | final=https://www.upperarlingtonoh.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.hilliardohio.gov | status=403 | final=https://www.hilliardohio.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.reynoldsburg.gov | status=200 | final=https://www.reynoldsburg.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.gahanna.gov | status=200 | final=https://www.gahanna.gov/bids.aspx | civicengage=true | itemsLinks=12
+www.cityofdelawareohio.gov | ERR TypeError: getaddrinfo ENOTFOUND www.cityofdelawareohio.gov
+www.lancasterohio.gov | status=200 | final=https://www.lancasterohio.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.newarkohio.gov | status=404 | final=https://www.newarkohio.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.marysvilleohio.org | status=200 | final=https://www.marysvilleohio.org/bids.aspx | civicengage=true | itemsLinks=24
+www.mason-oh.gov | ERR TypeError: getaddrinfo ENOTFOUND www.mason-oh.gov
+www.westchesteroh.org | status=403 | final=https://www.westchesteroh.org/bids.aspx | civicengage=false | itemsLinks=0
+www.fairfield-city.org | status=200 | final=https://www.fairfield-city.org/bids.aspx | civicengage=true | itemsLinks=0
+www.middletownohio.gov | ERR TypeError: The socket connection was closed unexpectedly. For more information, pass `verbose: true`
+www.cityoffairborn.org | ERR TypeError: getaddrinfo ENOTFOUND www.cityoffairborn.org
+www.beavercreekohio.gov | status=200 | final=https://www.beavercreekohio.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.huberheightsoh.gov | ERR TypeError: getaddrinfo ENOTFOUND www.huberheightsoh.gov
+www.centervilleohio.gov | status=200 | final=https://www.centervilleohio.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.miamisburg.org | status=404 | final=https://www.miamisburg.org/bids.aspx | civicengage=false | itemsLinks=0
+www.troyohio.gov | status=404 | final=https://www.troyohio.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.piquaoh.org | status=200 | final=https://www.piquaoh.org/bids.aspx | civicengage=true | itemsLinks=3
+www.sidneyoh.com | status=200 | final=https://www.sidneyoh.com/bids.aspx | civicengage=true | itemsLinks=6
+www.cityofsandusky.com | status=404 | final=https://www.cityofsandusky.com/bids.aspx | civicengage=false | itemsLinks=0
+www.norwalkoh.gov | ERR TypeError: getaddrinfo ENOTFOUND www.norwalkoh.gov
+www.findlayohio.com | status=403 | final=https://www.findlayohio.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.limaohio.gov | status=200 | final=https://www.limaohio.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.mansfieldcity.com | status=404 | final=https://www.mansfieldcity.com/bids.aspx | civicengage=false | itemsLinks=0
+www.cityofmarionoh.gov | ERR TypeError: getaddrinfo ENOTFOUND www.cityofmarionoh.gov
+www.wooster-oh.com | ERR TypeError: getaddrinfo ETIMEOUT www.wooster-oh.com
+www.massillonohio.gov | ERR TypeError: ERR_TLS_CERT_ALTNAME_INVALID fetching "https://www.massillonohio.gov/bids.aspx". For more
+www.northcantonohio.gov | status=200 | final=https://www.northcantonohio.gov/bids.aspx | civicengage=true | itemsLinks=6
+www.cityofbarberton.com | status=200 | final=https://www.cityofbarberton.com/bids.aspx | civicengage=true | itemsLinks=0
+www.cuyahogafalls.gov | ERR TypeError: getaddrinfo ENOTFOUND www.cuyahogafalls.gov
+www.stow.oh.us | ERR TypeError: ERR_TLS_CERT_ALTNAME_INVALID fetching "https://www.stow.oh.us/bids.aspx". For more inform
+www.hudson.oh.us | status=200 | final=https://www.hudson.oh.us/bids.aspx | civicengage=true | itemsLinks=9
+www.kentohio.org | status=200 | final=https://www.kentohio.gov/ | civicengage=false | itemsLinks=0
+www.ravennaoh.gov | status=404 | final=https://www.ravennaoh.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.strongsville.org | status=404 | final=https://www.strongsville.org/bids.aspx | civicengage=false | itemsLinks=0
+www.northolmsted.com | status=200 | final=https://www.northolmsted.com/bids.aspx | civicengage=false | itemsLinks=0
+www.westlake.oh.us | ERR TypeError: getaddrinfo ENOTFOUND www.westlake.oh.us
+www.northroyalton.org | status=404 | final=https://northroyalton.org/bids.aspx | civicengage=false | itemsLinks=0
+www.brunswick.oh.us | status=404 | final=https://www.brunswick.oh.us/bids.aspx | civicengage=false | itemsLinks=0
+www.medinaoh.org | status=403 | final=https://www.medinaoh.org/bids.aspx | civicengage=false | itemsLinks=0
+www.avonlake.org | status=404 | final=https://www.avonlake.org/bids.aspx | civicengage=false | itemsLinks=0
+www.avonohio.org | ERR TypeError: getaddrinfo ENOTFOUND www.avonohio.org
+www.cityofnorthridgeville.org | ERR TypeError: getaddrinfo ENOTFOUND www.cityofnorthridgeville.org
+www.euclidoh.gov | ERR TypeError: getaddrinfo ENOTFOUND www.euclidoh.gov
+www.clevelandheights.gov | status=200 | final=https://www.clevelandheights.gov/881/Request-For-Proposals | civicengage=false | itemsLinks=0
+www.shakeronline.com | status=200 | final=https://www.shakerheightsoh.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.solonohio.org | status=200 | final=https://www.solonohio.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.twinsburg.oh.us | ERR TypeError: The socket connection was closed unexpectedly. For more information, pass `verbose: true`
+www.zanesvilleoh.org | ERR TypeError: getaddrinfo ENOTFOUND www.zanesvilleoh.org
+www.chillicotheoh.gov | status=404 | final=https://www.chillicotheoh.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.athensoh.org | ERR TypeError: ERR_TLS_CERT_ALTNAME_INVALID fetching "https://www.athensoh.org/bids.aspx". For more info
+www.portsmouthoh.org | ERR TypeError: getaddrinfo ENOTFOUND www.portsmouthoh.org
+www.steubenvilleoh.com | ERR TypeError: getaddrinfo ETIMEOUT www.steubenvilleoh.com
+detroitmi.gov | status=200 | final=https://detroitmi.gov/ | civicengage=false | itemsLinks=0
+www.grandrapidsmi.gov | status=404 | final=https://www.grandrapidsmi.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.cityofwarren.org | status=404 | final=https://www.cityofwarren.org/bids.aspx | civicengage=false | itemsLinks=0
+www.sterlingheights.gov | status=200 | final=https://www.sterlingheights.gov/bids.aspx | civicengage=true | itemsLinks=12
+www.a2gov.org | status=404 | final=https://www.a2gov.org/bids.aspx | civicengage=false | itemsLinks=0
+www.lansingmi.gov | status=200 | final=https://www.lansingmi.gov/bids-proposals | civicengage=false | itemsLinks=0
+www.cityofflint.com | status=403 | final=https://www.cityofflint.com/bids.aspx | civicengage=false | itemsLinks=0
+www.cityofdearborn.org | ERR TypeError: The socket connection was closed unexpectedly. For more information, pass `verbose: true`
+www.livonia.gov | status=200 | final=https://cpauthentication.civicplus.com/Identity/Account/Login?ReturnUrl=%2Fconnect%2Fauthorize%2Fcallback%3Fclient_id%3D06a89cab-7205-473b-9fb7-28e8cee3aeaf%26redirect_uri%3Dhttps%253A%252F%252Flivonia.gov%252FIdentityServer%252FSignInCallback%26response_type%3Dcode%2520id_token%2520token%26scope%3Dopenid%2520profile%2520email%2520account.api%26state%3D826bec30d93b4e6d82660d9922f9e874_%252Fbids.aspx%26nonce%3D37b6113a64da4d9fb2a8a03124800eaa%26response_mode%3Dform_post%26acr_values%3DOrgBranding%253Af31125ad-84aa-4a55-936d-a40835cb2565%26code_challenge%3Dcec1e50ad61dac8bc32670f6530481c4e15999a5b9570674629e145b70761095%26code_challenge_method%3DS256%26login_origin_uri%3Dhttps%253A%252F%252Flivonia.gov%252Fbids.aspx | civicengage=false | itemsLinks=0
+www.troymi.gov | status=404 | final=https://troymi.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.cityofwestland.com | status=200 | final=https://www.cityofwestland.com/bids.aspx | civicengage=true | itemsLinks=15
+www.fhgov.com | status=404 | final=https://www.fhgov.com/bids | civicengage=false | itemsLinks=0
+www.cityofsouthfield.com | status=404 | final=https://www.cityofsouthfield.com/bids.aspx | civicengage=false | itemsLinks=0
+www.kalamazoocity.org | status=404 | final=https://www.kalamazoocity.org/bids.aspx | civicengage=false | itemsLinks=0
+www.wyomingmi.gov | status=404 | final=https://www.wyomingmi.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.rochesterhills.org | status=404 | final=https://www.rochesterhills.org/bids.aspx | civicengage=false | itemsLinks=0
+www.cityofnovi.org | status=404 | final=https://www.cityofnovi.org/bids | civicengage=false | itemsLinks=0
+www.pontiac.mi.us | status=404 | final=https://www.pontiacmi.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.cityoftaylor.com | status=200 | final=https://www.cityoftaylor.com/bids.aspx | civicengage=true | itemsLinks=0
+www.scsmi.net | status=200 | final=https://www.scsmi.net/bids.aspx | civicengage=true | itemsLinks=0
+www.romi.gov | status=200 | final=https://www.romi.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.cityofdearbornheights.com | ERR TypeError: getaddrinfo ENOTFOUND www.cityofdearbornheights.com
+www.battlecreekmi.gov | status=200 | final=https://www.battlecreekmi.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.saginaw-mi.com | status=200 | final=https://www.saginaw-mi.com/bids.aspx | civicengage=true | itemsLinks=15
+www.kentwood.us | status=404 | final=https://www.kentwood.us/bids.aspx | civicengage=false | itemsLinks=0
+www.cityofeastlansing.com | status=200 | final=https://www.cityofeastlansing.com/bids.aspx | civicengage=true | itemsLinks=3
+www.portagemi.gov | status=200 | final=https://www.portagemi.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.cityofmidlandmi.gov | status=200 | final=https://www.cityofmidlandmi.gov/bids.aspx | civicengage=true | itemsLinks=16
+www.muskegon-mi.gov | status=404 | final=https://muskegon-mi.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.waynecounty.com | status=200 | final=https://utility.waynecountymi.gov/wc_redirect.html?r=/bids.aspx | civicengage=false | itemsLinks=0
+www.oakgov.com | status=404 | final=https://www.oaklandcountymi.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.macombgov.org | status=404 | final=https://www.macombgov.org/bids.aspx | civicengage=false | itemsLinks=0
+www.accesskent.com | status=403 | final=https://www.kentcountymi.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.gc4me.com | status=404 | final=https://www.gc4me.com/bids.aspx | civicengage=false | itemsLinks=0
+www.washtenaw.org | status=404 | final=https://www.washtenaw.org/bids.aspx | civicengage=false | itemsLinks=0
+www.ingham.org | status=404 | final=https://www.ingham.org/bids.aspx | civicengage=false | itemsLinks=0
+www.miottawa.org | ERR TypeError: The socket connection was closed unexpectedly. For more information, pass `verbose: true`
+www.kalcounty.com | status=403 | final=https://www.kalcounty.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.saginawcounty.com | status=404 | final=https://www.saginawcountymi.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.livgov.com | ERR TypeError: The socket connection was closed unexpectedly. For more information, pass `verbose: true`
+www.co.monroe.mi.us | status=200 | final=https://www.co.monroe.mi.us/bids.aspx | civicengage=true | itemsLinks=0
+www.stclaircounty.org | status=404 | final=https://www.stclaircounty.org/bids.aspx | civicengage=false | itemsLinks=0
+www.mijackson.org | status=200 | final=https://www.mijackson.org/bids.aspx | civicengage=true | itemsLinks=7
+www.bayCounty-mi.gov | ERR TypeError: getaddrinfo ENOTFOUND www.baycounty-mi.gov
+www.co.midland.mi.us | status=404 | final=https://www.co.midland.mi.us/bids.aspx | civicengage=false | itemsLinks=0
+www.allegancounty.org | status=403 | final=https://www.allegancounty.org/bids.aspx | civicengage=false | itemsLinks=0
+www.berriencounty.org | status=403 | final=https://www.berriencounty.org/bids.aspx | civicengage=false | itemsLinks=0
+www.calhouncountymi.gov | status=404 | final=https://www.calhouncountymi.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.eatoncounty.org | status=200 | final=https://www.eatoncounty.org/bids.aspx | civicengage=true | itemsLinks=0
+www.co.lapeer.mi.us | ERR TypeError: getaddrinfo ENOTFOUND www.co.lapeer.mi.us
+www.lenawee.mi.us | status=200 | final=https://www.lenawee.mi.us/bids.aspx | civicengage=true | itemsLinks=0
+www.co.grand-traverse.mi.us | ERR TypeError: The socket connection was closed unexpectedly. For more information, pass `verbose: true`
+www.marquettecounty.org | status=401 | final=http://ww547.marquettecounty.org/?tkn=19vnMT3S | civicengage=false | itemsLinks=0
+www.co.isabella.mi.us | ERR TypeError: getaddrinfo ENOTFOUND www.co.isabella.mi.us
+www.cityofholland.com | status=200 | final=https://www.cityofholland.com/bids.aspx | civicengage=true | itemsLinks=0
+www.cityofportage.org | ERR TypeError: getaddrinfo ENOTFOUND www.cityofportage.org
+www.ci.mt-pleasant.mi.us | ERR TypeError: getaddrinfo ENOTFOUND www.ci.mt-pleasant.mi.us
+www.traversecitymi.gov | status=404 | final=https://www.traversecitymi.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.marquettemi.gov | status=404 | final=https://marquettemi.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.baycitymi.org | ERR TypeError: getaddrinfo ENOTFOUND www.baycitymi.org
+www.cityofjackson.org | status=200 | final=https://www.cityofjackson.org/bids.aspx | civicengage=true | itemsLinks=11
+www.cityofadrian.org | status=400 | final=https://www.cityofadrian.org/bids.aspx | civicengage=false | itemsLinks=0
+www.cityofmonroe.org | status=404 | final=https://www.cityofmonroe.org/bids.aspx | civicengage=false | itemsLinks=0
+www.porthuron.org | status=404 | final=https://www.porthuron.org/bids.aspx | civicengage=false | itemsLinks=0
+www.cityofroyaloak.org | ERR TypeError: getaddrinfo ENOTFOUND www.cityofroyaloak.org
+www.ferndalemi.gov | status=404 | final=https://www.ferndalemi.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.birminghammi.gov | ERR TypeError: getaddrinfo ENOTFOUND www.birminghammi.gov
+www.bloomfieldhills.net | status=200 | final=https://www.bloomfieldhills.net/bids.aspx | civicengage=false | itemsLinks=0
+www.auburnhills.org | status=403 | final=https://www.auburnhills.org/bids.aspx | civicengage=false | itemsLinks=0
+www.cityofwixom.com | ERR TypeError: getaddrinfo ENOTFOUND www.cityofwixom.com
+www.cityofnoviis.org | ERR TypeError: getaddrinfo ENOTFOUND www.cityofnoviis.org
+www.canton-mi.org | status=200 | final=https://www.cantonmi.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.plymouthmi.gov | status=404 | final=https://www.plymouthmi.gov/errors/FileNotFound.aspx?aspxerrorpath=/bids.aspx | civicengage=false | itemsLinks=0
+www.northvillemi.org | ERR TypeError: unknown certificate verification error
+www.ypsitownship.org | ERR TypeError: getaddrinfo ENOTFOUND www.ypsitownship.org
+www.cityofypsilanti.com | status=200 | final=https://www.cityofypsilanti.com/bids.aspx | civicengage=true | itemsLinks=3
+www.saline.lib.mi.us | ERR TimeoutError: The operation timed out.
+www.cityofsaline.org | status=404 | final=https://www.salinemi.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.grandhaven.org | status=404 | final=https://grandhaven.org/bids.aspx | civicengage=false | itemsLinks=0
+www.cityofgrandville.com | status=404 | final=https://www.cityofgrandville.com/bids.aspx | civicengage=false | itemsLinks=0
+www.walkermi.gov | status=200 | final=https://www.walkermi.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.ci.wyoming.mi.us | ERR TypeError: getaddrinfo ENOTFOUND www.ci.wyoming.mi.us
+www.cityofeastgrandrapids.com | ERR TypeError: getaddrinfo ENOTFOUND www.cityofeastgrandrapids.com
+www.shelbytwp.org | status=403 | final=https://www.shelbytwp.org/bids.aspx | civicengage=false | itemsLinks=0
+www.clintontownship.com | status=200 | final=https://www.clintontownship.com/bids.aspx | civicengage=true | itemsLinks=0
+www.macombtwp.org | ERR TypeError: ERR_TLS_CERT_ALTNAME_INVALID fetching "https://www.macombtwp.org/bids.aspx". For more inf
+www.chesterfieldtwp.org | status=200 | final=https://www.chesterfieldtwp.org/bids.aspx | civicengage=true | itemsLinks=0
+www.harrisontownship.org | ERR TypeError: The socket connection was closed unexpectedly. For more information, pass `verbose: true`
+www.cityofroseville.com | status=404 | final=https://www.cityofroseville.com/bids.aspx | civicengage=false | itemsLinks=0
+www.eastpointecity.org | status=404 | final=https://www.eastpointemi.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.grossepointefarms.org | status=404 | final=https://www.grossepointefarms.org/bids.aspx | civicengage=false | itemsLinks=0
+www.cityofallenpark.org | status=404 | final=https://www.cityofallenpark.org/bids.aspx | civicengage=false | itemsLinks=0
+www.cityofsouthgate.org | status=404 | final=https://www.cityofsouthgate.org/bids.aspx | civicengage=false | itemsLinks=0
+www.cityofwyandotte.net | ERR TypeError: getaddrinfo ENOTFOUND www.cityofwyandotte.net
+www.cityoftrenton.org | ERR TypeError: getaddrinfo ENOTFOUND www.cityoftrenton.org
+www.cityofromulus.org | ERR TypeError: getaddrinfo ENOTFOUND www.cityofromulus.org
+www.cityofinkster.com | status=200 | final=https://www.cityofinkstermi.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.cityofgardencity.org | ERR TypeError: getaddrinfo ENOTFOUND www.cityofgardencity.org
+www.seattle.gov | status=404 | final=https://www.seattle.gov/bids.aspx | civicengage=false | itemsLinks=0
+kingcounty.gov | status=404 | final=https://kingcounty.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.spokanecity.org | status=200 | final=https://my.spokanecity.org/ | civicengage=false | itemsLinks=0
+www.spokanecounty.org | status=403 | final=https://www.spokanecounty.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.cityoftacoma.org | ERR TimeoutError: The operation timed out.
+www.cityofvancouver.us | status=404 | final=https://www.cityofvancouver.us/bids.aspx | civicengage=false | itemsLinks=0
+www.everettwa.gov | status=403 | final=https://www.everettwa.gov/bids.aspx | civicengage=false | itemsLinks=0
+bellevuewa.gov | status=404 | final=https://bellevuewa.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.kentwa.gov | status=403 | final=https://www.kentwa.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.yakimawa.gov | status=404 | final=https://www.yakimawa.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.rentonwa.gov | status=404 | final=https://www.rentonwa.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.cityoffederalway.com | status=404 | final=https://www.federalwaywa.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.kirklandwa.gov | status=404 | final=https://www.kirklandwa.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.auburnwa.gov | status=404 | final=https://www.auburnwa.gov/errors/FileNotFound.aspx?aspxerrorpath=/bids.aspx | civicengage=false | itemsLinks=0
+cob.org | status=200 | final=https://cob.org/services/business/purchasing | civicengage=false | itemsLinks=0
+www.shorelinewa.gov | status=403 | final=https://www.shorelinewa.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.ci.richland.wa.us | status=403 | final=https://www.richlandwa.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.olympiawa.gov | status=404 | final=https://www.olympiawa.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.thurstoncountywa.gov | status=404 | final=https://www.thurstoncountywa.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.kitsap.gov | status=404 | final=https://www.kitsap.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.whatcomcounty.us | status=403 | final=https://www.whatcomcounty.us/bids.aspx | civicengage=false | itemsLinks=0
+www.co.benton.wa.us | status=404 | final=https://www.bentoncountywa.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.skagitcounty.net | status=200 | final=https://www.skagitcountywa.gov/page-not-found-404/ | civicengage=false | itemsLinks=0
+www.lakewoodwa.gov | status=520 | final=https://www.lakewoodwa.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.ci.lacey.wa.us | ERR TypeError: ERR_TLS_CERT_ALTNAME_INVALID fetching "https://www.ci.lacey.wa.us/bids.aspx". For more in
+www.ci.tumwater.wa.us | status=403 | final=https://www.ci.tumwater.wa.us/bids.aspx | civicengage=false | itemsLinks=0
+www.sammamish.us | status=404 | final=https://www.sammamish.us/bids.aspx | civicengage=false | itemsLinks=0
+www.issaquahwa.gov | status=403 | final=https://www.issaquahwa.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.burienwa.gov | status=404 | final=https://www.burienwa.gov/errors/FileNotFound.aspx?aspxerrorpath=/bids.aspx | civicengage=false | itemsLinks=0
+www.ci.mercer-island.wa.us | ERR TypeError: getaddrinfo ETIMEOUT www.ci.mercer-island.wa.us
+www.edmondswa.gov | status=404 | final=https://www.edmondswa.gov/errors/FileNotFound.aspx?aspxerrorpath=/bids.aspx | civicengage=false | itemsLinks=0
+www.lynnwoodwa.gov | status=404 | final=https://www.lynnwoodwa.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.mountlaketerracewa.gov | ERR TypeError: getaddrinfo ENOTFOUND www.mountlaketerracewa.gov
+www.mukilteowa.gov | status=200 | final=https://www.mukilteowa.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.cityofmillcreek.com | status=404 | final=https://millcreekwa.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.lakestevenswa.gov | status=200 | final=https://www.lakestevenswa.gov/bids.aspx | civicengage=true | itemsLinks=2
+www.monroewa.gov | status=200 | final=https://www.monroewa.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.snohomishwa.gov | status=404 | final=https://www.snohomishwa.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.arlingtonwa.gov | status=200 | final=https://www.arlingtonwa.gov/bids.aspx | civicengage=true | itemsLinks=6
+www.ci.oak-harbor.wa.us | ERR TypeError: getaddrinfo ENOTFOUND www.ci.oak-harbor.wa.us
+www.ferndale-wa.gov | ERR TypeError: getaddrinfo ENOTFOUND www.ferndale-wa.gov
+www.lyndenwa.org | status=200 | final=https://www.lyndenwa.org/bids.aspx | civicengage=true | itemsLinks=6
+www.cityofwenatchee.com | ERR TimeoutError: The operation timed out.
+www.co.chelan.wa.us | status=404 | final=https://www.co.chelan.wa.us/bids.aspx | civicengage=false | itemsLinks=0
+www.walla-wallawa.gov | ERR TypeError: getaddrinfo ENOTFOUND www.walla-wallawa.gov
+www.co.walla-walla.wa.us | status=404 | final=https://www.wwcowa.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.cityofpullman.gov | ERR TypeError: getaddrinfo ENOTFOUND www.cityofpullman.gov
+www.ci.moses-lake.wa.us | ERR TypeError: The socket connection was closed unexpectedly. For more information, pass `verbose: true`
+www.ci.sunnyside.wa.us | ERR TypeError: The socket connection was closed unexpectedly. For more information, pass `verbose: true`
+www.co.lewis.wa.us | ERR TypeError: getaddrinfo ETIMEOUT www.co.lewis.wa.us
+www.ci.centralia.wa.us | ERR TypeError: getaddrinfo ENOTFOUND www.ci.centralia.wa.us
+www.co.grays-harbor.wa.us | status=200 | final=https://www.graysharbor.us/bids.aspx | civicengage=false | itemsLinks=0
+www.cityofaberdeenwa.gov | ERR TypeError: getaddrinfo ENOTFOUND www.cityofaberdeenwa.gov
+www.co.mason.wa.us | status=404 | final=https://www.co.mason.wa.us/bids.aspx | civicengage=false | itemsLinks=0
+www.ci.shelton.wa.us | status=404 | final=https://www.ci.shelton.wa.us/bids.aspx | civicengage=false | itemsLinks=0
+www.co.kittitas.wa.us | status=404 | final=https://www.co.kittitas.wa.us/error/404.aspx?aspxerrorpath=/bids.aspx | civicengage=false | itemsLinks=0
+www.co.stevens.wa.us | ERR TypeError: getaddrinfo ENOTFOUND www.co.stevens.wa.us
+www.co.okanogan.wa.us | ERR TypeError: getaddrinfo ENOTFOUND www.co.okanogan.wa.us
+www.ci.camas.wa.us | ERR TypeError: certificate has expired
+www.battlegroundwa.gov | ERR TypeError: getaddrinfo ENOTFOUND www.battlegroundwa.gov
+www.cityofsequim.com | ERR TypeError: unknown certificate verification error
+www.cityofpa.us | status=200 | final=https://www.cityofpa.us/bids.aspx | civicengage=true | itemsLinks=9
+www.bainbridgewa.gov | status=200 | final=https://www.bainbridgewa.gov/bids.aspx | civicengage=true | itemsLinks=6
+www.cityofpoulsbo.com | status=404 | final=https://poulsbo.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.gigharborwa.gov | status=200 | final=https://www.gigharborwa.gov/bids.aspx | civicengage=true | itemsLinks=6
+www.cityofuniversityplace.org | status=404 | final=https://www.cityofuniversityplace.org/bids.aspx | civicengage=false | itemsLinks=0
+www.cityofpuyallup.org | status=200 | final=https://www.puyallupwa.gov/bids.aspx | civicengage=true | itemsLinks=28
+www.cityofsumnerwa.org | ERR TypeError: getaddrinfo ENOTFOUND www.cityofsumnerwa.org
+www.cityofbonneylakewa.gov | ERR TypeError: getaddrinfo ENOTFOUND www.cityofbonneylakewa.gov
+www.cityofenumclaw.gov | ERR TypeError: getaddrinfo ENOTFOUND www.cityofenumclaw.gov
+www.covingtonwa.gov | status=404 | final=https://www.covingtonwa.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.maplevalleywa.gov | status=404 | final=https://www.maplevalleywa.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.tukwilawa.gov | status=403 | final=https://www.tukwilawa.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.seatacwa.gov | status=404 | final=https://www.seatacwa.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.normandyparkwa.gov | status=404 | final=https://normandyparkwa.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.woodinvillewa.gov | ERR TypeError: getaddrinfo ENOTFOUND www.woodinvillewa.gov
+www.kenmorewa.gov | status=403 | final=https://www.kenmorewa.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.denvergov.org | status=404 | final=https://www.denvergov.org/bids.aspx | civicengage=false | itemsLinks=0
+coloradosprings.gov | status=404 | final=https://coloradosprings.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.elpasoco.com | status=404 | final=https://www.elpasoco.com/bids.aspx | civicengage=false | itemsLinks=0
+www.auroragov.org | status=404 | final=https://www.auroragov.org/errors/FileNotFound.aspx?aspxerrorpath=/bids.aspx | civicengage=false | itemsLinks=0
+www.fcgov.com | status=403 | final=https://www.fcgov.com/bids.aspx | civicengage=false | itemsLinks=0
+www.lakewood.org | status=404 | final=https://www.lakewoodco.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.thorntonco.gov | status=404 | final=https://www.thorntonco.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.arvada.org | status=403 | final=https://www.arvadaco.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.cityofwestminster.us | status=200 | final=https://www.westminsterco.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.pueblo.us | status=200 | final=https://www.pueblo.us/bids.aspx | civicengage=true | itemsLinks=0
+www.centennialco.gov | status=404 | final=https://www.centennialco.gov/bids.aspx | civicengage=false | itemsLinks=0
+bouldercolorado.gov | status=404 | final=https://bouldercolorado.gov/bids.aspx | civicengage=false | itemsLinks=0
+bouldercounty.gov | status=405 | final=https://bouldercounty.gov/bids.aspx | civicengage=false | itemsLinks=0
+greeleygov.com | status=404 | final=https://greeleyco.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.longmontcolorado.gov | status=404 | final=https://longmontcolorado.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.lovgov.org | status=403 | final=https://www.lovgov.org/bids.aspx | civicengage=false | itemsLinks=0
+www.broomfield.org | status=200 | final=https://www.broomfield.org/bids.aspx | civicengage=true | itemsLinks=0
+www.crgov.com | status=403 | final=https://www.crgov.com/bids.aspx | civicengage=false | itemsLinks=0
+www.c3gov.com | status=404 | final=https://www.c3gov.com/bids.aspx | civicengage=false | itemsLinks=0
+www.parkerco.gov | status=404 | final=https://www.parkerco.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.littletongov.org | status=404 | final=https://www.littletongov.org/bids.aspx | civicengage=false | itemsLinks=0
+www.northglenn.org | status=404 | final=https://www.northglenn.org/bids.aspx | civicengage=false | itemsLinks=0
+www.brightonco.gov | status=200 | final=https://www.bidnetdirect.com/colorado/city-of-brighton | civicengage=false | itemsLinks=0
+www.englewoodco.gov | status=403 | final=https://www.englewoodco.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.jeffco.us | status=404 | final=https://www.jeffco.us/bids.aspx | civicengage=false | itemsLinks=0
+www.arapahoeco.gov | status=404 | final=https://www.arapahoeco.gov/bids.aspx | civicengage=false | itemsLinks=0
+adcogov.org | status=403 | final=https://adamscountyco.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.douglas.co.us | status=403 | final=https://www.douglasco.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.larimer.gov | status=403 | final=https://www.larimer.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.weld.gov | status=404 | final=https://www.weld.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.mesacounty.us | status=404 | final=https://www.mesacounty.us/bids.aspx | civicengage=false | itemsLinks=0
+www.gjcity.org | status=200 | final=https://www.gjcity.org/bids.aspx | civicengage=true | itemsLinks=0
+www.pueblocounty.us | ERR TypeError: unknown certificate verification error
+www.eaglecounty.us | status=404 | final=https://www.eaglecounty.us/bids.aspx | civicengage=false | itemsLinks=0
+www.garfield-county.com | status=200 | final=https://www.garfieldcountyco.gov/ | civicengage=false | itemsLinks=0
+www.summitcountyco.gov | status=200 | final=https://www.summitcountyco.gov/how_do_i/apply_for/bid_postings.php | civicengage=false | itemsLinks=0
+www.co.fremont.co.us | ERR TypeError: getaddrinfo ENOTFOUND www.co.fremont.co.us
+www.lpcgov.org | status=404 | final=https://www.lpcgov.org/bids.aspx | civicengage=false | itemsLinks=0
+www.montrosecounty.net | status=200 | final=https://www.montrosecounty.net/bids.aspx | civicengage=true | itemsLinks=3
+www.cityofmontrose.org | status=200 | final=https://www.cityofmontrose.org/bids.aspx | civicengage=true | itemsLinks=0
+www.durangogov.org | status=200 | final=https://www.durangoco.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.cityofgolden.net | status=404 | final=https://www.cityofgolden.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.wheatridge.co.us | ERR TypeError: getaddrinfo ENOTFOUND www.wheatridge.co.us
+www.commercecity.co.gov | ERR TypeError: getaddrinfo ENOTFOUND www.commercecity.co.gov
+www.federalheights.org | status=200 | final=https://www.federalheights.org/bids.aspx | civicengage=false | itemsLinks=0
+www.erieco.gov | status=404 | final=https://www.erieco.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.lafayetteco.gov | status=200 | final=https://www.lafayetteco.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.louisvilleco.gov | status=404 | final=https://www.louisvilleco.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.superiorcolorado.gov | status=404 | final=https://www.superiorcolorado.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.windsorgov.com | status=403 | final=https://www.windsorco.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.timnath.org | status=403 | final=https://www.timnath.org/bids.aspx | civicengage=false | itemsLinks=0
+www.berthoud.org | status=200 | final=https://www.berthoud.org/bids.aspx | civicengage=true | itemsLinks=6
+www.johnstown.colorado.gov | ERR TypeError: getaddrinfo ENOTFOUND www.johnstown.colorado.gov
+www.firestoneco.gov | status=200 | final=https://www.firestoneco.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.frederickco.gov | status=200 | final=https://www.frederickco.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.dacono.org | ERR TimeoutError: The operation timed out.
+www.ftlupton.org | ERR TypeError: getaddrinfo ENOTFOUND www.ftlupton.org
+www.cityofevans.org | status=404 | final=https://www.cityofevans.org/bids.aspx | civicengage=false | itemsLinks=0
+www.sterlingcolo.com | status=404 | final=https://www.sterlingcolo.com/bids.aspx | civicengage=false | itemsLinks=0
+www.ci.fort-morgan.co.us | ERR TypeError: getaddrinfo ENOTFOUND www.ci.fort-morgan.co.us
+www.canoncity.org | status=200 | final=https://www.bidnetdirect.com/colorado/cityofcanoncity | civicengage=false | itemsLinks=0
+www.salida.com | status=404 | final=https://www.salida.com/bids.aspx | civicengage=false | itemsLinks=0
+www.cityofsalida.com | status=403 | final=https://www.cityofsalida.com/bids.aspx | civicengage=false | itemsLinks=0
+www.glenwoodsprings.co.gov | ERR TypeError: getaddrinfo ENOTFOUND www.glenwoodsprings.co.gov
+www.aspen.gov | status=200 | final=https://www.aspen.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.vailgov.com | status=403 | final=https://www.vail.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.steamboatsprings.net | status=200 | final=https://www.steamboatsprings.net/bids.aspx | civicengage=true | itemsLinks=3
+www.cityofcraig.org | status=200 | final=https://www.cityofcraig.org/bids.aspx | civicengage=false | itemsLinks=0
+www.cityofrifle.org | ERR TypeError: getaddrinfo ENOTFOUND www.cityofrifle.org
+www.monumentco.gov | ERR TypeError: getaddrinfo ENOTFOUND www.monumentco.gov
+www.fountaincolorado.org | status=200 | final=https://fountain.colorado.gov/ | civicengage=false | itemsLinks=0
+www.woodlandparkco.us | ERR TypeError: getaddrinfo ENOTFOUND www.woodlandparkco.us
+www.castlepinesco.gov | status=404 | final=https://www.castlepinesco.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.lonetreeco.gov | ERR TypeError: getaddrinfo ENOTFOUND www.lonetreeco.gov
+www.greenwoodvillage.com | status=200 | final=https://www.greenwoodvillage.com/bids.aspx | civicengage=true | itemsLinks=0
+www.cherryhillsvillage.com | status=200 | final=https://cpauthentication.civicplus.com/Identity/Account/Login?ReturnUrl=%2Fconnect%2Fauthorize%2Fcallback%3Fclient_id%3Dd1689188-5218-4864-ad6f-6e787f483090%26redirect_uri%3Dhttps%253A%252F%252Fwww.cherryhillsvillage.com%252FIdentityServer%252FSignInCallback%26response_type%3Dcode%2520id_token%2520token%26scope%3Dopenid%2520profile%2520email%2520account.api%26state%3D97202f9fa1fd422c95b0555b9c56e63f_https%253A%252F%252Fwww.cherryhillsvillage.com%252Fbids.aspx%26nonce%3D9288c55e835943adaa2f7ed7380532bf%26response_mode%3Dform_post%26acr_values%3DOrgBranding%253Ace618693-cafa-4f6e-bb4e-a460f44c0a34%26code_challenge%3D8144ff8789736c8eeeb4fd39b308426cd0c551644d4c857b62fa98e9db93b393%26code_challenge_method%3DS256%26login_origin_uri%3Dhttps%253A%252F%252Fwww.cherryhillsvillage.com%252Fbids.aspx | civicengage=false | itemsLinks=0
+www.sheridanco.gov | ERR TypeError: getaddrinfo ENOTFOUND www.sheridanco.gov
+www.edgewaterco.com | status=403 | final=https://www.edgewaterco.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.portland.gov | status=404 | final=https://www.portland.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.portlandoregon.gov | status=404 | final=https://www.portlandoregon.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.multco.us | status=404 | final=https://multco.us/bids.aspx | civicengage=false | itemsLinks=0
+www.washingtoncountyor.gov | status=404 | final=https://www.washingtoncountyor.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.clackamas.us | status=404 | final=https://www.clackamas.us/bids.aspx | civicengage=false | itemsLinks=0
+lanecounty.org | status=404 | final=https://www.lanecounty.org/errors/FileNotFound.aspx?aspxerrorpath=/bids.aspx | civicengage=false | itemsLinks=0
+www.co.marion.or.us | status=404 | final=https://www.co.marion.or.us/bids.aspx | civicengage=false | itemsLinks=0
+www.cityofsalem.net | status=403 | final=https://www.cityofsalem.net/bids.aspx | civicengage=false | itemsLinks=0
+www.eugene-or.gov | status=403 | final=https://www.eugene-or.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.greshamoregon.gov | status=404 | final=https://www.greshamoregon.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.hillsboro-oregon.gov | status=403 | final=https://www.hillsboro-oregon.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.beavertonoregon.gov | status=404 | final=https://www.beavertonoregon.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.bendoregon.gov | status=403 | final=https://www.bendoregon.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.medfordoregon.gov | status=404 | final=https://www.medfordoregon.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.springfield-or.gov | status=404 | final=https://springfield-or.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.corvallisoregon.gov | status=403 | final=https://www.corvallisoregon.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.cityofalbany.net | status=200 | final=https://albanyoregon.gov/404 | civicengage=false | itemsLinks=0
+www.tigard-or.gov | status=403 | final=https://www.tigard-or.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.ci.oswego.or.us | status=404 | final=https://www.ci.oswego.or.us/bids.aspx | civicengage=false | itemsLinks=0
+www.keizer.org | status=500 | final=https://www.keizer.org/bids.aspx | civicengage=false | itemsLinks=0
+www.grantspassoregon.gov | status=200 | final=https://www.grantspassoregon.gov/bids.aspx | civicengage=true | itemsLinks=9
+www.orcity.org | status=200 | final=https://cpauthentication.civicplus.com/Identity/Account/Login?ReturnUrl=%2Fconnect%2Fauthorize%2Fcallback%3Fclient_id%3Dc803a371-468a-4e94-ad11-30d3d940efb6%26redirect_uri%3Dhttps%253A%252F%252Fwww.orcity.org%252FIdentityServer%252FSignInCallback%26response_type%3Dcode%2520id_token%2520token%26scope%3Dopenid%2520profile%2520email%2520account.api%26state%3Df9443f44da544643b20f9239b18dcb66_https%253A%252F%252Fwww.orcity.org%252Fbids.aspx%26nonce%3D0ffce6018c0043bf86a03f4dc4fdc366%26response_mode%3Dform_post%26acr_values%3DOrgBranding%253A084be47b-621f-4f55-b426-a46ec401d169%26code_challenge%3Dcee422aaf8a6a1e6cc870d2521c7838bf07247481a752ab30bd12c026f07613e%26code_challenge_method%3DS256%26login_origin_uri%3Dhttps%253A%252F%252Fwww.orcity.org%252Fbids.aspx | civicengage=false | itemsLinks=0
+www.mcminnvilleoregon.gov | status=403 | final=https://www.mcminnvilleoregon.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.redmondoregon.gov | status=403 | final=https://www.redmondoregon.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.deschutes.org | status=200 | final=https://cpauthentication.civicplus.com/Identity/Account/Login?ReturnUrl=%2Fconnect%2Fauthorize%2Fcallback%3Fclient_id%3D603e5016-4b34-49b9-a16e-2bafcc3b11f7%26redirect_uri%3Dhttps%253A%252F%252Fwww.deschutescounty.gov%252FIdentityServer%252FSignInCallback%26response_type%3Dcode%2520id_token%2520token%26scope%3Dopenid%2520profile%2520email%2520account.api%26state%3D1e235f4020344f6f8639ce3aa6259498_https%253A%252F%252Fwww.deschutescounty.gov%252Fbids.aspx%26nonce%3D066c60d382ba432d91383526bfb06837%26response_mode%3Dform_post%26acr_values%3DOrgBranding%253Adb5d089d-8e25-4060-9900-45b4a67f3b7b%26code_challenge%3Dd1031bb13fca828748fb26a4e675567e998374bc644dd675b785c55de4e68241%26code_challenge_method%3DS256%26login_origin_uri%3Dhttps%253A%252F%252Fwww.deschutescounty.gov%252Fbids.aspx | civicengage=false | itemsLinks=0
+www.jacksoncountyor.gov | status=404 | final=https://www.jacksoncountyor.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.co.linn.or.us | status=403 | final=https://www.co.linn.or.us/bids.aspx | civicengage=false | itemsLinks=0
+www.co.benton.or.us | status=200 | final=https://www.bentoncountyor.gov/ | civicengage=false | itemsLinks=0
+www.co.josephine.or.us | status=404 | final=https://www.josephinecounty.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.co.douglas.or.us | status=403 | final=https://www.douglascountyor.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.co.coos.or.us | status=404 | final=https://co.coos.or.us/bids.aspx | civicengage=false | itemsLinks=0
+www.co.klamath.or.us | ERR TypeError: certificate has expired
+www.co.umatilla.or.us | status=404 | final=https://www.co.umatilla.or.us/bids.aspx | civicengage=false | itemsLinks=0
+www.co.yamhill.or.us | status=200 | final=https://www.co.yamhill.or.us/bids.aspx | civicengage=true | itemsLinks=3
+www.co.polk.or.us | status=404 | final=https://www.polkcountyor.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.co.columbia.or.us | status=200 | final=https://www.columbiacountyor.gov/ | civicengage=false | itemsLinks=0
+www.co.clatsop.or.us | ERR TypeError: The socket connection was closed unexpectedly. For more information, pass `verbose: true`
+www.co.lincoln.or.us | ERR TimeoutError: The operation timed out.
+www.co.tillamook.or.us | ERR TypeError: The socket connection was closed unexpectedly. For more information, pass `verbose: true`
+www.co.wasco.or.us | status=404 | final=https://www.wascocountyor.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.co.hood-river.or.us | status=200 | final=https://www.co.hood-river.or.us/404.htm?aspxerrorpath=/bids.aspx | civicengage=false | itemsLinks=0
+www.co.union.or.us | ERR TypeError: getaddrinfo ENOTFOUND www.co.union.or.us
+www.co.malheur.or.us | ERR TypeError: getaddrinfo ENOTFOUND www.co.malheur.or.us
+www.co.crook.or.us | status=200 | final=https://crookcountyor.gov/bids.aspx | civicengage=true | itemsLinks=3
+www.co.jefferson.or.us | status=403 | final=https://www.jeffersoncountyor.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.tualatinoregon.gov | status=403 | final=https://www.tualatinoregon.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.ci.sherwood.or.us | status=404 | final=https://www.sherwoodoregon.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.wilsonvilleoregon.gov | status=200 | final=https://www.wilsonvilleoregon.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.westlinnoregon.gov | status=403 | final=https://www.westlinnoregon.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.milwaukieoregon.gov | status=404 | final=https://www.milwaukieoregon.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.happyvalleyor.gov | status=403 | final=https://www.happyvalleyor.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.troutdaleoregon.gov | status=404 | final=https://www.troutdaleoregon.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.cityoffairview.com | ERR TypeError: getaddrinfo ENOTFOUND www.cityoffairview.com
+www.woodvillage-or.gov | ERR TypeError: getaddrinfo ENOTFOUND www.woodvillage-or.gov
+www.forestgrove-or.gov | status=200 | final=https://www.forestgrove-or.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.cornelius-or.gov | ERR TypeError: getaddrinfo ENOTFOUND www.cornelius-or.gov
+www.newbergoregon.gov | status=404 | final=https://www.newbergoregon.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.dundeecity.org | status=200 | final=https://www.dundeecity.org/404.htm?aspxerrorpath=/bids.aspx | civicengage=false | itemsLinks=0
+www.canbyoregon.gov | status=403 | final=https://www.canbyoregon.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.ci.woodburn.or.us | ERR TypeError: The socket connection was closed unexpectedly. For more information, pass `verbose: true`
+www.silverton.or.us | status=403 | final=https://www.silverton.or.us/bids.aspx | civicengage=false | itemsLinks=0
+www.ci.dallas.or.us | ERR TypeError: getaddrinfo ENOTFOUND www.ci.dallas.or.us
+www.ci.monmouth.or.us | status=200 | final=https://www.ci.monmouth.or.us/default.aspx?a=111 | civicengage=false | itemsLinks=0
+www.lebanonoregon.gov | status=200 | final=https://www.lebanonoregon.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.cityofsweethome.org | ERR TypeError: getaddrinfo ENOTFOUND www.cityofsweethome.org
+www.roseburgor.gov | status=404 | final=https://roseburgor.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.coosbay.org | status=403 | final=https://www.coosbayor.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.ci.north-bend.or.us | ERR TypeError: getaddrinfo ETIMEOUT www.ci.north-bend.or.us
+www.klamathfalls.city | status=404 | final=https://www.klamathfalls.city/bids.aspx | civicengage=false | itemsLinks=0
+www.pendletonor.gov | status=404 | final=https://www.pendletonor.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.hermiston.or.us | status=403 | final=https://www.hermiston.or.us/bids.aspx | civicengage=false | itemsLinks=0
+www.cityoflagrande.org | status=200 | final=https://www.cityoflagrande.org/bids.aspx | civicengage=true | itemsLinks=0
+www.ontariooregon.org | status=404 | final=https://www.ontariooregon.org/bids.aspx | civicengage=false | itemsLinks=0
+www.thedalles.org | status=404 | final=https://www.thedalles.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.astoria.or.us | status=404 | final=https://www.astoria.gov/Errors/PageNotFound.aspx?aspxerrorpath=/bids.aspx | civicengage=false | itemsLinks=0
+www.ci.seaside.or.us | ERR TypeError: getaddrinfo ENOTFOUND www.ci.seaside.or.us
+www.newportoregon.gov | status=404 | final=https://www.newportoregon.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.lincolncity.org | status=403 | final=https://www.lincolncityor.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.ashland.or.us | ERR TypeError: unable to get local issuer certificate
+www.centralpointoregon.gov | status=200 | final=https://www.centralpointoregon.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.cityofphoenix.org | status=404 | final=https://www.cityofphoenix.org/bids.aspx | civicengage=false | itemsLinks=0
+www.cityofeaglepoint.org | status=200 | final=https://www.cityofeaglepoint.org/bids.aspx | civicengage=true | itemsLinks=0
+www.cityofsisters.org | ERR TypeError: getaddrinfo ENOTFOUND www.cityofsisters.org
+www.ci.prineville.or.us | ERR TypeError: getaddrinfo ENOTFOUND www.ci.prineville.or.us
+www.ci.madras.or.us | ERR TypeError: The socket connection was closed unexpectedly. For more information, pass `verbose: true`
+www.birminghamal.gov | status=404 | final=https://www.birminghamal.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.montgomeryal.gov | status=403 | final=https://www.montgomeryal.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.huntsvilleal.gov | status=403 | final=https://www.huntsvilleal.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.cityofmobile.org | status=404 | final=https://www.cityofmobile.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.tuscaloosa.com | status=200 | final=https://www.tuscaloosa.com/bids.aspx | civicengage=false | itemsLinks=0
+www.hooveralabama.gov | status=200 | final=https://www.hooveralabama.gov/bids.aspx | civicengage=true | itemsLinks=6
+www.dothan.org | status=200 | final=https://www.dothan.org/bids.aspx | civicengage=true | itemsLinks=0
+www.auburnalabama.org | status=404 | final=https://www.auburnal.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.decaturalabamausa.com | status=404 | final=https://www.decatur-al.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.madisonal.gov | status=404 | final=https://www.madisonal.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.florenceal.org | ERR TypeError: unknown certificate verification error
+www.cityofgadsden.com | status=200 | final=https://www.cityofgadsden.com/bids.aspx | civicengage=true | itemsLinks=0
+www.vhal.org | status=404 | final=https://vhal.org/bids.aspx | civicengage=false | itemsLinks=0
+www.prattvilleal.gov | status=307 | final=https://www.prattvilleal.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.phenixcityal.us | ERR TypeError: ERR_TLS_CERT_ALTNAME_INVALID fetching "https://www.phenixcityal.us/bids.aspx". For more i
+www.cityofalabaster.com | status=200 | final=https://www.cityofalabaster.com/bids.aspx | civicengage=true | itemsLinks=9
+www.opelika-al.gov | status=200 | final=https://www.opelika-al.gov/bids.aspx | civicengage=true | itemsLinks=6
+www.cityofnorthport.org | status=200 | final=https://www.northportal.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.enterpriseal.gov | status=404 | final=https://www.enterpriseal.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.cityofhomewood.com | status=403 | final=https://www.cityofhomewood.com/bids.aspx | civicengage=false | itemsLinks=0
+www.jccal.org | status=403 | final=https://www.jccal.org/bids.aspx | civicengage=false | itemsLinks=0
+www.mobilecountyal.gov | status=200 | final=https://www.mobilecountyal.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.madisoncountyal.gov | status=403 | final=https://www.madisoncountyal.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.baldwincountyal.gov | status=404 | final=https://www.baldwincountyal.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.mc-ala.org | status=403 | final=https://www.montgomerycountyal.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.shelbyal.com | status=200 | final=https://www.shelbyal.com/bids.aspx | civicengage=true | itemsLinks=0
+www.tuscco.com | status=403 | final=https://www.tuscco.com/bids.aspx | civicengage=false | itemsLinks=0
+www.leeco.us | status=404 | final=https://www.leecountyal.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.morgancountyal.gov | ERR TypeError: getaddrinfo ENOTFOUND www.morgancountyal.gov
+www.calhouncounty.org | status=200 | final=https://www.calhouncounty.org/bids.aspx | civicengage=false | itemsLinks=0
+www.etowahcounty.org | status=404 | final=https://etowahcounty.org/bids.aspx | civicengage=false | itemsLinks=0
+www.houstoncounty.org | ERR TypeError: ERR_TLS_CERT_ALTNAME_INVALID fetching "https://www.houstoncounty.org/bids.aspx". For more
+www.limestonecounty-al.gov | status=404 | final=https://www.limestonecounty-al.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.marshallco.org | status=404 | final=https://www.marshallco.org/bids.aspx | civicengage=false | itemsLinks=0
+www.stclairco.com | status=200 | final=https://www.stclairco.com/bids.aspx | civicengage=true | itemsLinks=0
+www.cullmancounty.org | ERR TypeError: getaddrinfo ENOTFOUND www.cullmancounty.org
+www.autaugaco.org | status=200 | final=https://www.autaugaco.org/Default.asp | civicengage=false | itemsLinks=0
+www.elmoreco.org | status=403 | final=https://www.elmoreco.org/bids.aspx | civicengage=false | itemsLinks=0
+www.talladegacountyal.org | status=404 | final=https://www.talladegacountyal.org/bids.aspx | civicengage=false | itemsLinks=0
+www.walkercounty.com | ERR TypeError: unknown certificate verification error
+www.cityofdaphne.org | ERR TypeError: getaddrinfo ENOTFOUND www.cityofdaphne.org
+www.fairhopeal.gov | status=200 | final=https://www.fairhopeal.gov/bids.aspx | civicengage=true | itemsLinks=18
+www.cityoffoley.org | status=403 | final=https://www.cityoffoley.org/bids.aspx | civicengage=false | itemsLinks=0
+www.gulfshoresal.gov | status=404 | final=https://www.gulfshoresal.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.orangebeachal.gov | status=200 | final=https://www.orangebeachal.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.spanishfortal.gov | ERR TypeError: getaddrinfo ENOTFOUND www.spanishfortal.gov
+www.cityofsaraland.com | ERR TypeError: getaddrinfo ENOTFOUND www.cityofsaraland.com
+www.prichardal.org | ERR TypeError: getaddrinfo ENOTFOUND www.prichardal.org
+www.cityofathens.com | status=200 | final=https://www.cityofathens.com/bids.aspx | civicengage=false | itemsLinks=0
+www.hartselle.org | status=200 | final=https://www.hartselle.org/bids.aspx | civicengage=true | itemsLinks=0
+www.cullmanal.gov | status=200 | final=https://www.cullmanal.gov/bids.aspx | civicengage=true | itemsLinks=9
+www.albertvilleal.gov | ERR TypeError: getaddrinfo ENOTFOUND www.albertvilleal.gov
+www.guntersvilleal.org | status=404 | final=https://guntersvilleal.org/bids.aspx | civicengage=false | itemsLinks=0
+www.scottsboro.org | status=404 | final=https://www.scottsboro.org/bids.aspx | civicengage=false | itemsLinks=0
+www.fortpayneal.gov | ERR TypeError: getaddrinfo ENOTFOUND www.fortpayneal.gov
+www.cityofannistonal.gov | ERR TypeError: getaddrinfo ENOTFOUND www.cityofannistonal.gov
+www.oxfordal.gov | status=404 | final=https://www.oxfordal.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.talladega.com | status=404 | final=https://www.talladega.com/bids.aspx | civicengage=false | itemsLinks=0
+www.sylacauga.net | status=404 | final=https://sylacauga.net/bids.aspx | civicengage=false | itemsLinks=0
+www.alexandercityal.gov | status=403 | final=https://www.alexandercityal.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.troyal.gov | status=404 | final=https://www.troyal.gov/content/404.aspx?aspxerrorpath=/bids.aspx | civicengage=false | itemsLinks=0
+www.ozarkalabama.us | status=400 | final=https://www.ozarkal.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.cityofdaleville.com | status=200 | final=https://www.cityofdaleville.com/bids.aspx | civicengage=false | itemsLinks=0
+www.selma-al.gov | ERR TypeError: unknown certificate verification error
+www.cityofmillbrook-al.gov | ERR TypeError: getaddrinfo ENOTFOUND www.cityofmillbrook-al.gov
+www.wetumpkaal.com | status=200 | final=https://www.wetumpkaal.com/bids.aspx | civicengage=false | itemsLinks=0
+www.cityofpelham.net | ERR TypeError: getaddrinfo ENOTFOUND www.cityofpelham.net
+www.cityofhelena.org | status=404 | final=https://www.cityofhelena.org/bids.aspx | civicengage=false | itemsLinks=0
+www.trussville.org | status=404 | final=https://trussville.org/bids.aspx | civicengage=false | itemsLinks=0
+www.gardendaleal.com | ERR TypeError: getaddrinfo ENOTFOUND www.gardendaleal.com
+www.leedsalabama.gov | status=200 | final=https://www.leedsalabama.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.mountainbrookal.gov | ERR TypeError: getaddrinfo ENOTFOUND www.mountainbrookal.gov
+www.bessemeral.org | status=404 | final=https://bessemeral.org/bids.aspx | civicengage=false | itemsLinks=0
+www.cityoffairfield.com | status=200 | final=https://www.hugedomains.com/domain_profile.cfm?d=cityoffairfield.com | civicengage=false | itemsLinks=0
+www.cityofmuscleshoals.com | status=200 | final=https://www.cityofmuscleshoals.com/bids.aspx | civicengage=true | itemsLinks=0
+www.cityofsheffield.com | status=200 | final=https://www.cityofsheffield.com/bids.aspx | civicengage=false | itemsLinks=0
+www.tuscumbia.org | status=404 | final=https://www.tuscumbia.org/bids.aspx | civicengage=false | itemsLinks=0
+www.nashville.gov | status=404 | final=https://www.nashville.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.memphistn.gov | status=403 | final=https://www.memphistn.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.shelbycountytn.gov | status=403 | final=https://www.shelbycountytn.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.knoxvilletn.gov | status=403 | final=https://www.knoxvilletn.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.knoxcounty.org | status=404 | final=https://www.knoxcounty.org/bids.aspx | civicengage=false | itemsLinks=0
+www.chattanooga.gov | status=404 | final=https://chattanooga.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.hamiltontn.gov | status=404 | final=https://www.hamiltontn.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.cityofclarksville.com | status=200 | final=https://www.clarksvilletn.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.murfreesborotn.gov | status=403 | final=https://www.murfreesborotn.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.franklintn.gov | status=403 | final=https://www.franklintn.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.johnsoncitytn.org | status=404 | final=https://www.johnsoncitytn.org/bids.aspx | civicengage=false | itemsLinks=0
+www.jacksontn.gov | status=404 | final=https://www.jacksontn.gov/errors/FileNotFound.aspx?aspxerrorpath=/bids.aspx | civicengage=false | itemsLinks=0
+www.kingsporttn.gov | status=403 | final=https://www.kingsporttn.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.collierville.com | ERR TimeoutError: The operation timed out.
+www.townofsmyrna.org | status=404 | final=https://www.townofsmyrna.org/bids.aspx | civicengage=false | itemsLinks=0
+www.brentwoodtn.gov | status=404 | final=https://www.brentwoodtn.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.cityofbartlett.org | status=200 | final=https://www.cityofbartlett.org/bids.aspx | civicengage=true | itemsLinks=9
+www.hvilletn.org | status=200 | final=https://www.hvilletn.org/bids.aspx | civicengage=true | itemsLinks=6
+www.columbiatn.com | ERR TypeError: getaddrinfo ENOTFOUND www.columbiatn.com
+www.germantown-tn.gov | status=403 | final=https://www.germantown-tn.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.rutherfordcountytn.gov | status=200 | final=https://www.rutherfordcountytn.gov/404.htm?aspxerrorpath=/bids.aspx | civicengage=false | itemsLinks=0
+www.williamsoncounty-tn.gov | status=200 | final=https://www.williamsoncounty-tn.gov/bids.aspx | civicengage=true | itemsLinks=2
+www.sumnertn.org | status=404 | final=https://www.sumnertn.org/bids.aspx | civicengage=false | itemsLinks=0
+www.mcgtn.org | status=200 | final=https://montgomerytn.gov/404 | civicengage=false | itemsLinks=0
+www.blounttn.org | status=200 | final=https://www.blounttn.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.seviercountytn.org | status=404 | final=https://www.seviercountytn.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.sullivancountytn.gov | status=404 | final=https://sullivancountytn.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.madisoncountytn.gov | status=200 | final=https://www.madisoncountytn.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.bradleycountytn.gov | ERR TypeError: The socket connection was closed unexpectedly. For more information, pass `verbose: true`
+www.putnamcountytn.gov | status=404 | final=https://putnamcountytn.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.robertsoncountytn.gov | status=404 | final=https://www.robertsoncountytn.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.dicksoncountytn.gov | status=404 | final=https://www.dicksoncountytn.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.cheathamcountytn.gov | status=404 | final=https://www.cheathamcountytn.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.coffeecountytn.org | ERR TypeError: The socket connection was closed unexpectedly. For more information, pass `verbose: true`
+www.andersontn.org | ERR TypeError: ERR_TLS_CERT_ALTNAME_INVALID fetching "https://www.andersontn.org/bids.aspx". For more in
+www.loudoncounty-tn.gov | status=404 | final=https://loudoncounty-tn.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.roanecountytn.gov | status=404 | final=https://roanecountytn.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.greenecountytngov.com | status=403 | final=https://www.greenecountytngov.com/bids.aspx | civicengage=false | itemsLinks=0
+www.hawkinscountytn.gov | status=404 | final=https://www.hawkinscountytn.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.carterclerk.com | ERR TypeError: getaddrinfo ENOTFOUND www.carterclerk.com
+www.jeffersoncountytn.gov | status=404 | final=https://jeffersoncountytn.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.hamblencountytn.gov | status=404 | final=https://hamblencountytn.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.tipton-county.com | status=404 | final=https://www.tipton-county.com/bids.aspx | civicengage=false | itemsLinks=0
+www.fayettetn.us | status=404 | final=https://fayettetn.us/bids.aspx | civicengage=false | itemsLinks=0
+www.cityofmaryville.org | ERR TypeError: getaddrinfo ENOTFOUND www.cityofmaryville.org
+www.alcoatn.gov | ERR TypeError: getaddrinfo ENOTFOUND www.alcoatn.gov
+www.cityofathenstn.com | status=404 | final=https://cityofathenstn.com/bids.aspx | civicengage=false | itemsLinks=0
+www.tullahomatn.gov | status=404 | final=https://www.tullahomatn.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.manchestertn.gov | ERR TypeError: getaddrinfo ENOTFOUND www.manchestertn.gov
+www.shelbyvilletn.org | status=404 | final=https://www.shelbyvilletn.org/bids.aspx | civicengage=false | itemsLinks=0
+www.lewisburgtn.gov | status=404 | final=https://lewisburgtn.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.thompsons-station.com | status=404 | final=https://thompsons-station.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.nolensvilletn.gov | status=404 | final=https://www.nolensvilletn.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.dicksontn.gov | ERR TypeError: getaddrinfo ENOTFOUND www.dicksontn.gov
+www.bristoltn.org | status=403 | final=http://www.bristoltn.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.elizabethton.org | status=404 | final=https://www.elizabethton.org/bids.aspx | civicengage=false | itemsLinks=0
+www.morristowntn.gov | ERR TypeError: getaddrinfo ENOTFOUND www.morristowntn.gov
+www.greenevilletn.gov | status=404 | final=https://www.greenevilletn.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.sevierville.org | ERR TypeError: getaddrinfo ETIMEOUT www.sevierville.org
+www.pigeonforgetn.gov | ERR TypeError: getaddrinfo ENOTFOUND www.pigeonforgetn.gov
+www.gatlinburgtn.gov | status=404 | final=https://www.gatlinburgtn.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.farragut.org | status=403 | final=https://www.farragut.org/bids.aspx | civicengage=false | itemsLinks=0
+www.lenoircitytn.gov | status=404 | final=https://www.lenoircitytn.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.dyersburgtn.gov | status=403 | final=https://www.dyersburgtn.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.unioncity-tn.org | ERR TypeError: getaddrinfo ENOTFOUND www.unioncity-tn.org
+www.martintn.org | ERR TypeError: getaddrinfo ENOTFOUND www.martintn.org
+www.parisbpw.com | ERR TypeError: getaddrinfo ENOTFOUND www.parisbpw.com
+www.millingtontn.gov | status=200 | final=https://www.millingtontn.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.lakelandtn.gov | status=200 | final=https://www.lakelandtn.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.arlingtontn.gov | ERR TypeError: getaddrinfo ENOTFOUND www.arlingtontn.gov
+www.atokatn.org | ERR TypeError: getaddrinfo ENOTFOUND www.atokatn.org
+www.covingtontn.com | status=404 | final=https://www.covingtontn.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.indy.gov | status=404 | final=https://www.indy.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.cityoffortwayne.org | status=403 | final=https://www.cityoffortwayne.in.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.evansvillegov.org | status=404 | final=https://www.evansvillegov.org/bids.aspx | civicengage=false | itemsLinks=0
+southbendin.gov | status=403 | final=https://southbendin.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.fishers.in.us | status=403 | final=https://www.fishers.in.us/bids.aspx | civicengage=false | itemsLinks=0
+bloomington.in.gov | status=404 | final=https://bloomington.in.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.gohammond.com | status=404 | final=https://www.gohammond.com/bids.aspx | civicengage=false | itemsLinks=0
+www.gary.gov | status=404 | final=https://www.gary.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.cityofmuncie.com | status=404 | final=https://www.muncie.in.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.terrehaute.in.gov | status=404 | final=https://www.terrehaute.in.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.cityofkokomo.org | status=404 | final=https://www.cityofkokomo.org/bids.aspx | civicengage=false | itemsLinks=0
+www.cityofnoblesville.org | ERR TimeoutError: The operation timed out.
+www.greenwood.in.gov | status=404 | final=https://www.greenwood.in.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.elkhartindiana.org | status=404 | final=https://www.cityofelkhartin.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.mishawaka.in.gov | status=403 | final=http://mishawaka.in.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.cityoflawrence.org | ERR TypeError: The socket connection was closed unexpectedly. For more information, pass `verbose: true`
+www.cityofjeff.net | ERR TypeError: certificate has expired
+www.columbus.in.gov | status=403 | final=https://www.columbus.in.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.allencounty.us | ERR TypeError: certificate has expired
+www.lakecountyin.gov | status=404 | final=https://www.lakecountyin.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.sjcindiana.gov | status=403 | final=https://www.sjcindiana.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.vanderburghgov.org | status=404 | final=https://www.evansvillegov.org/bids.aspx | civicengage=false | itemsLinks=0
+www.porterco.org | status=404 | final=https://www.porterco.org/bids.aspx | civicengage=false | itemsLinks=0
+www.elkhartcounty.com | status=403 | final=https://www.elkhartcounty.com/bids.aspx | civicengage=false | itemsLinks=0
+www.co.hendricks.in.us | status=404 | final=https://www.co.hendricks.in.us/bids.aspx | civicengage=false | itemsLinks=0
+www.co.johnson.in.us | status=404 | final=https://johnsoncounty.in.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.madisoncounty.in.gov | status=400 | final=https://www.madisoncounty.in.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.co.monroe.in.us | ERR TypeError: unable to verify the first certificate
+www.delawarecounty.in.gov | status=403 | final=https://www.delawarecounty.in.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.vigocounty.in.gov | status=404 | final=https://www.vigocounty.in.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.co.clark.in.us | ERR TypeError: ERR_TLS_CERT_ALTNAME_INVALID fetching "https://www.co.clark.in.us/bids.aspx". For more in
+www.floydcounty.in.gov | status=200 | final=https://www.in.gov/counties/floyd/ | civicengage=false | itemsLinks=0
+www.howardcountyin.gov | ERR TypeError: ERR_TLS_CERT_ALTNAME_INVALID fetching "https://www.howardcountyin.gov/bids.aspx". For mor
+www.co.bartholomew.in.us | ERR TypeError: getaddrinfo ENOTFOUND www.co.bartholomew.in.us
+www.kosciuskocounty.us | ERR TimeoutError: The operation timed out.
+www.laportecounty.org | ERR TypeError: certificate has expired
+www.co.wayne.in.us | status=404 | final=https://www.co.wayne.in.us/bids.aspx | civicengage=false | itemsLinks=0
+www.hancockcoingov.org | ERR TypeError: The socket connection was closed unexpectedly. For more information, pass `verbose: true`
+www.co.boone.in.us | ERR TypeError: getaddrinfo ENOTFOUND www.co.boone.in.us
+www.co.morgan.in.us | ERR TypeError: getaddrinfo ENOTFOUND www.co.morgan.in.us
+www.shelbycounty.in.gov | status=200 | final=https://www.in.gov/counties/shelby/ | civicengage=false | itemsLinks=0
+www.dearborncounty.org | status=404 | final=https://www.dearborncounty.org/bids.aspx | civicengage=false | itemsLinks=0
+www.cityofrichmond.org | status=401 | final=http://ww547.cityofrichmond.org/?tkn=19vnMT3S | civicengage=false | itemsLinks=0
+www.newalbanyonline.com | ERR TypeError: getaddrinfo ENOTFOUND www.newalbanyonline.com
+www.portageindiana.org | ERR TypeError: getaddrinfo ENOTFOUND www.portageindiana.org
+www.cityofvalparaiso.com | status=200 | final=https://unstoppabledomains.com/d/cityofvalparaiso.com | civicengage=false | itemsLinks=0
+www.michigancityin.gov | status=404 | final=https://michigancityin.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.cityoflaporte.com | ERR TypeError: The socket connection was closed unexpectedly. For more information, pass `verbose: true`
+www.merrillville.in.gov | status=404 | final=https://www.merrillville.in.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.schererville.org | status=404 | final=https://www.schererville.org/bids.aspx | civicengage=false | itemsLinks=0
+www.townofhighland.org | ERR TypeError: getaddrinfo ENOTFOUND www.townofhighland.org
+www.munster.org | status=404 | final=https://www.munster.org/bids.aspx | civicengage=false | itemsLinks=0
+www.hobart.in.us | ERR TypeError: getaddrinfo ENOTFOUND www.hobart.in.us
+www.cityofgoshen.org | status=200 | final=https://www.cityofgoshen.org/bids.aspx | civicengage=false | itemsLinks=0
+www.warsaw.in.gov | status=200 | final=https://www.warsaw.in.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.plymouthin.com | status=404 | final=https://www.plymouthin.com/bids.aspx | civicengage=false | itemsLinks=0
+www.cityofmarion.in.gov | status=404 | final=https://www.cityofmarion.in.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.cityofwabash.com | status=404 | final=https://www.cityofwabash.com/bids.aspx | civicengage=false | itemsLinks=0
+www.logansport.in.gov | status=200 | final=https://www.in.gov/cities/logansport/ | civicengage=false | itemsLinks=0
+www.cityofperu.org | status=404 | final=https://www.cityofperu.org/bids.aspx | civicengage=false | itemsLinks=0
+www.frankfort-in.gov | status=404 | final=https://www.frankfort-in.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.cityoflebanon.org | ERR TypeError: ERR_TLS_CERT_ALTNAME_INVALID fetching "https://www.cityoflebanon.org/bids.aspx". For more
+www.plainfield-in.gov | ERR TypeError: getaddrinfo ENOTFOUND www.plainfield-in.gov
+www.mooresville.in.gov | status=403 | final=https://www.mooresville.in.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.martinsville.in.gov | status=403 | final=https://www.martinsville.in.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.franklin.in.gov | status=404 | final=https://www.franklin.in.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.beechgrove.com | status=403 | final=https://www.beechgrove.com/bids.aspx | civicengage=false | itemsLinks=0
+www.greenfieldin.org | ERR TimeoutError: The operation timed out.
+www.newcastlein.gov | ERR TypeError: getaddrinfo ENOTFOUND www.newcastlein.gov
+www.connersvillecommunity.com | status=404 | final=https://connersvillecommunity.com/bids.aspx | civicengage=false | itemsLinks=0
+www.seymourindiana.org | ERR TypeError: getaddrinfo ENOTFOUND www.seymourindiana.org
+www.cityofmadison.us | ERR TypeError: getaddrinfo ENOTFOUND www.cityofmadison.us
+www.jasperindiana.gov | status=404 | final=https://www.jasperindiana.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.vincennes.org | status=404 | final=https://www.vincennes.org/bids.aspx | civicengage=false | itemsLinks=0
+www.washingtonin.us | status=404 | final=https://www.washingtonin.us/bids.aspx | civicengage=false | itemsLinks=0
+www.cityofbedford.org | ERR TypeError: getaddrinfo ENOTFOUND www.cityofbedford.org
+www.crawfordsville-in.gov | ERR TypeError: getaddrinfo ENOTFOUND www.crawfordsville-in.gov

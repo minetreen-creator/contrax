@@ -19,8 +19,23 @@
 /** Android 9 on a Xiaomi Redmi, with exactly Chrome 106.0.0.0 Mobile. */
 const REDMI_CHROME_106 = /\bAndroid 9; Redmi [^;)]*\).*\bChrome\/106\.0\.0\.0 Mobile Safari\//;
 
+/**
+ * The 2026-11-05 bid-page scraper (owner: "Track the source" → "Do all"). 458
+ * one-page visits to 348 different bids in one hour from 455 IPs on 390
+ * networks in 40+ countries, every one claiming a desktop browser from late
+ * 2023: Chrome 118–121 (some as Edge) or Firefox 120–121, versions real
+ * browsers auto-updated past years ago. A read-only check: 30 days of these
+ * builds were 0–4 views a day apart from a 27-view probe on Oct 30, and no
+ * signed-in Contrax user has ever been seen on one. The US-only block stops its
+ * foreign exits; this stops the few US ones (5 that day).
+ */
+const STALE_DESKTOP_CHROME = /\((?:Windows NT 10\.0; Win64; x64|Macintosh; Intel Mac OS X 10_15_7)\) AppleWebKit\/537\.36 \(KHTML, like Gecko\) Chrome\/1(?:1[89]|2[01])\.0\.0\.0 Safari\/537\.36(?: Edg\/1(?:1[89]|2[01])\.0\.0\.0)?$/;
+const STALE_DESKTOP_FIREFOX = /\((?:Windows NT 10\.0; Win64; x64|Macintosh; Intel Mac OS X 10\.15); rv:12[01]\.0\) Gecko\/20100101 Firefox\/12[01]\.0$/;
+
 export const BLOCKED_USER_AGENTS: readonly { name: string; pattern: RegExp }[] = [
   { name: "Redmi + Chrome 106 proxy bot", pattern: REDMI_CHROME_106 },
+  { name: "Stale desktop Chrome 118-121 scraper", pattern: STALE_DESKTOP_CHROME },
+  { name: "Stale desktop Firefox 120-121 scraper", pattern: STALE_DESKTOP_FIREFOX },
 ];
 
 /** The blocked signature this user agent matches, or null. PURE. */
@@ -31,7 +46,7 @@ export function blockedUserAgent(userAgent: string | null | undefined): string |
 }
 
 /** The same signature as a SQL predicate on a `user_agent` column (for BOT_EXCLUSION_SQL). */
-export const BLOCKED_USER_AGENT_SQL = `(COALESCE(user_agent,'') LIKE '%Android 9; Redmi %' AND COALESCE(user_agent,'') LIKE '%Chrome/106.0.0.0 Mobile Safari/%')`;
+export const BLOCKED_USER_AGENT_SQL = `((COALESCE(user_agent,'') LIKE '%Android 9; Redmi %' AND COALESCE(user_agent,'') LIKE '%Chrome/106.0.0.0 Mobile Safari/%') OR COALESCE(user_agent,'') ~ '\\((Windows NT 10\\.0; Win64; x64|Macintosh; Intel Mac OS X 10_15_7)\\) AppleWebKit/537\\.36 \\(KHTML, like Gecko\\) Chrome/1(1[89]|2[01])\\.0\\.0\\.0 Safari/537\\.36( Edg/1(1[89]|2[01])\\.0\\.0\\.0)?$' OR COALESCE(user_agent,'') ~ '\\((Windows NT 10\\.0; Win64; x64|Macintosh; Intel Mac OS X 10\\.15); rv:12[01]\\.0\\) Gecko/20100101 Firefox/12[01]\\.0$')`;
 
 /**
  * Hidden, not blocked (owner 2026-10-30: "2"). Android "Chrome 138" visitors who

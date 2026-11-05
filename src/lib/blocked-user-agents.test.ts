@@ -68,3 +68,40 @@ describe("blocked user agents", () => {
     expect(src).toContain("HIDDEN_AD_CLICK_SQL");
   });
 });
+
+// The 2026-11-05 bid-page scraper: the ten browser strings it rotated, as page_views recorded them.
+const STALE_SEEN = [
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:121.0) Gecko/20100101 Firefox/121.0",
+];
+
+describe("stale desktop browser scraper (owner 2026-11-05)", () => {
+  test("every build it used is blocked", () => {
+    for (const ua of STALE_SEEN) expect(blockedUserAgent(ua)).toMatch(/^Stale desktop (Chrome 118-121|Firefox 120-121) scraper$/);
+  });
+
+  test("current desktop browsers, Android Chrome 120 and newer Firefox are not", () => {
+    for (const ua of [
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0",
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:145.0) Gecko/20100101 Firefox/145.0",
+      "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36",
+    ]) expect(blockedUserAgent(ua)).toBeNull();
+  });
+
+  test("the SQL twin carries the same two patterns", () => {
+    expect(BLOCKED_USER_AGENT_SQL).toContain("Chrome/1(1[89]|2[01])\\.0\\.0\\.0 Safari/537\\.36( Edg/1(1[89]|2[01])\\.0\\.0\\.0)?$");
+    expect(BLOCKED_USER_AGENT_SQL).toContain("Gecko/20100101 Firefox/12[01]\\.0$");
+    expect(BOT_EXCLUSION_SQL).toContain(BLOCKED_USER_AGENT_SQL);
+  });
+});

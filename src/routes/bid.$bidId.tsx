@@ -21,6 +21,7 @@ import { getCurrentUser } from "~/lib/auth";
 import { applyHeadStart } from "~/lib/head-start";
 import { hasPaidBidAccess } from "~/lib/head-start.server";
 import { agencyDisplay, bidStarterHref, daysLeftLabel, jobSummary, valueLabel } from "~/lib/bid-job-summary";
+import { watermarkText } from "~/lib/bid-watermark";
 import { trackEvent } from "~/lib/track";
 import { redirectToCheckout } from "~/lib/checkout";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
@@ -101,6 +102,8 @@ interface PublicBid extends Omit<BidDetail, "learned" | "contact" | "signed_in">
   has_link: boolean;
   /** Open bids like this one in the same state (src/lib/similar-bids.ts). */
   similar: SimilarBids;
+  /** Invisible per-render watermark token (src/lib/bid-watermark.ts); null when not recorded. */
+  wm: string | null;
 }
 
 interface SimilarBid {
@@ -215,6 +218,8 @@ const getPublicBid = createServerFn({ method: "GET" })
         naics_code: r.naics_code ? String(r.naics_code) : null,
         has_contact: (await loadContact(id)) !== null,
         similar: await loadSimilar(Number(r.id), code ?? null, r.naics_code ? String(r.naics_code) : null),
+        // Owner 2026-11-05 ("Do all"): traces copied listings back to the visit (src/lib/bid-watermark.ts).
+        wm: await (await import("~/lib/bid-watermark.server")).recordBidWatermark(Number(r.id)),
       };
     } catch (e) {
       console.error("[bid/$id] public load failed:", e);
@@ -452,8 +457,11 @@ function BidDetailPage() {
               <section aria-label="What the job is" className="border-b border-slate-800 px-5 py-4">
                 <h2 className="text-sm font-semibold text-slate-200">What the job is</h2>
                 <p className="mt-1 text-sm leading-relaxed text-slate-300">
-                  {jobSummary(bid.description, bid.title) ??
-                    `${bid.title || "This bid"}${bid.agency ? `, for ${agencyDisplay(bid.agency)}` : ""}. The agency's official notice has the full scope of work, the documents and how to submit.`}
+                  {watermarkText(
+                    jobSummary(bid.description, bid.title) ??
+                      `${bid.title || "This bid"}${bid.agency ? `, for ${agencyDisplay(bid.agency)}` : ""}. The agency's official notice has the full scope of work, the documents and how to submit.`,
+                    bid.wm,
+                  )}
                 </p>
               </section>
               {(locked || membersOnly) && (

@@ -6,7 +6,7 @@ import { attentionItems, cleanNote, greeting, operations, tiles, type CommandCou
 const base: CommandCounts = {
   outreachDrafts: 0, outreachSentToday: 0, storiesPending: 0, dataFeedRequestsNew: 0, bidFitReviewsOpen: 0,
   nonprofitReviews: 0, passesEndingSoon: 0, failingSources: [], sourcesSyncedToday: 300, newBidsToday: 120,
-  openBids: 30603, lastSyncAt: "2026-11-05T12:00:00.000Z", federalFiguresFailing: 0, federalFiguresLastAt: "2026-11-05T11:58:00.000Z",
+  openBids: 30603, lastSyncAt: "2026-11-05T12:00:00.000Z", federalFiguresFailing: 0, federalFiguresLastAt: "2026-11-05T11:58:00.000Z", partnersNew: 0, partnersActive: 0,
 };
 const NOW = new Date("2026-11-05T15:00:00.000Z");
 
@@ -27,6 +27,7 @@ describe("Command Center", () => {
     expect(items[2].label).toBe("86 outreach drafts to approve");
     expect(items[3].detail).toContain("ma_boston");
     expect(attentionItems({ ...base, storiesPending: 1 })[0].label).toBe("1 success story to review");
+    expect(attentionItems({ ...base, partnersNew: 1, outreachDrafts: 2 })[0].label).toBe("1 new Association Partner ($149/month)");
   });
 
   test("jobs read their status from what they wrote", () => {

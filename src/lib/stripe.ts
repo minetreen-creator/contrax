@@ -744,6 +744,11 @@ export async function handleStripeWebhook(
 
   // Standalone Contractor Operations subscription. Its webhook-owned status is
   // the only authority for payment and labor workspace access.
+  // Association Partner, $149/month (owner 2026-11-05): its own product line,
+  // owned by metadata.product === "association_partner" or a stored subscription.
+  const { handlePartnerEvent } = await import("~/lib/association-partner.server");
+  if (await handlePartnerEvent(event)) return { success: true };
+
   // Contrax bid data feed (owner 2026-10-06): its own subscription line, owned
   // by metadata.product === "contrax_data_feed" or a stored subscription id.
   const { handleDataFeedEvent } = await import("~/lib/data-feed-billing.server");

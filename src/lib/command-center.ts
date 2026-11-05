@@ -30,6 +30,9 @@ export interface CommandCounts {
   lastSyncAt: string | null;
   federalFiguresFailing: number;
   federalFiguresLastAt: string | null;
+  /** Association Partners ($149/month) who subscribed in the last 7 days. */
+  partnersNew: number;
+  partnersActive: number;
 }
 
 export interface AttentionItem {
@@ -46,6 +49,8 @@ const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? o
 /** What is waiting on the owner, most valuable first. Nothing invented: zero counts are left out. PURE. */
 export function attentionItems(c: CommandCounts): AttentionItem[] {
   const items: AttentionItem[] = [];
+  if (c.partnersNew > 0)
+    items.push({ key: "partners", kind: "money", label: `${plural(c.partnersNew, "new Association Partner")} ($149/month)`, detail: "Send their first weekly bid list within one business day, as the checkout promised.", href: "/admin/command" });
   if (c.dataFeedRequestsNew > 0)
     items.push({ key: "data-feed", kind: "money", label: `${plural(c.dataFeedRequestsNew, "data feed request")}`, detail: "A business asked for the $299–$799/mo bid data feed. Reply the same day.", href: "/admin/data-access" });
   if (c.bidFitReviewsOpen > 0)

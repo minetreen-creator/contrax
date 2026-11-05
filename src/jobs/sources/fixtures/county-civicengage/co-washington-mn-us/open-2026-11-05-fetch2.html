@@ -1,0 +1,2029 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+	<meta http-equiv="Content-type" content="text/html; charset=UTF-8" />
+<!-- Google Tag Manager for GA4 -->
+				<script>(function(w,d,s,l,i){w.GAMeasurementID='G-5GR87NT5XY';w[l]=w[l]||[];w[l].push({'gtm.start':
+				new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+				j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+				'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+				})(window,document,'script','cpDataLayerGA4','GTM-K73C5PS');</script>
+				<!-- End Google Tag Manager for GA4 -->
+				<script type='text/javascript'>
+					var enableTelemetry = 'false'
+					var aiConfig = {
+					instrumentationKey: '1cde048e-3185-4906-aa46-c92a7312b60f'						
+					}
+					var appInsights = window.appInsights || function (a) { function b(a) { c[a] = function () { var b = arguments; c.queue.push(function () { c[a].apply(c, b) }) } } var c = { config: a }, d = document, e = window; setTimeout(function () { var b = d.createElement('script'); b.src = a.url || 'https://js.monitor.azure.com/scripts/a/ai.0.js', d.getElementsByTagName('script')[0].parentNode.appendChild(b) }); try { c.cookie = d.cookie } catch (a) { } c.queue = []; for (var f = ['Event', 'Exception', 'Metric', 'PageView', 'Trace', 'Dependency']; f.length;)b('track' + f.pop()); if (b('setAuthenticatedUserContext'), b('clearAuthenticatedUserContext'), b('startTrackEvent'), b('stopTrackEvent'), b('startTrackPage'), b('stopTrackPage'), b('flush'), !a.disableExceptionTracking) { f = 'onerror', b('_' + f); var g = e[f]; e[f] = function (a, b, d, e, h) { var i = g && g(a, b, d, e, h); return !0 !== i && c['_' + f](a, b, d, e, h), i } } return c }(aiConfig);
+					window.appInsights = appInsights, appInsights.queue && 0 === appInsights.queue.length;
+					// Add telemetry initializer
+					appInsights.queue.push(function() {
+						appInsights.context.addTelemetryInitializer(function(envelope) {
+							var telemetryItem = envelope.data.baseData;
+							// To check the telemetry item’s type:
+							if (!false)
+							{
+								//If the telemetry is not enabled, we still want to capture Google map custom event, so only allow that
+								if (envelope.name.indexOf('.Event') == -1)
+									return false;
+							}
+						});
+					});						
+					appInsights.trackPageView();
+				</script>
+	<script>
+		function populateAntiForgery(token) {
+			var input = document.createElement("input");
+			input.name = "__RequestVerificationToken";
+			input.type = "hidden";
+			input.value = token;
+			var absPat = /^https?:\/\/|^\/\//i;
+			var forms = document.getElementsByTagName("form");
+			for (var i = 0; i < forms.length; i++) {
+				if (forms[i].method == "post" &&
+					!forms[i].querySelector('[name="__RequestVerificationToken"]') &&
+					!absPat.test(forms[i].getAttribute("action"))) {
+					forms[i].appendChild(input.cloneNode());
+				}
+			}
+		}
+
+		function getAntiForgeryToken(callback, error) {
+			var xhr = new XMLHttpRequest();
+			xhr.open("GET", "/antiforgery");
+			xhr.addEventListener("load", function() {
+				try {
+					if (this.status !== 200) {
+						throw Error("Invalid status. Could not retrieve antiforgery token.");
+					}
+					var obj = JSON.parse(this.responseText);
+					callback(obj.token);
+				} catch (e) {
+					typeof error === "function" && error(e);
+				}
+			});
+			xhr.send();
+		}
+
+		getAntiForgeryToken(function(token) {
+			if (document.readyState === "complete"
+				|| document.readyState === "loaded" 
+				|| document.readyState === "interactive") {
+				populateAntiForgery(token);
+				return;
+			}
+			document.addEventListener("DOMContentLoaded", function() {
+				populateAntiForgery(token);
+			}, false);
+		}, console.error);
+	</script>
+			
+
+	<script type="text/javascript">
+		window.departmentHeader = {};
+		window.pageSectionTracker = {};
+		window.isResponsiveEnabled = true;
+		window.isRemoveSetHeights= true;
+		if (window.isRemoveSetHeights) {
+			document.documentElement.className += ' removeSetHeights';
+		}
+		window.mainMenuMediaQuery = 'screen and (max-width: 40em)';
+		window.isMobileBrowserIncludingTablets = false;
+		window.fixedResponsiveMenu = true;
+		window.fullWidthResponsiveMenu = false;
+		window.responsiveMenuHeight = '';
+		window.responsiveMenuFontSize = '';
+		window.isContentAdvisor = false;
+		(function () {
+			window.setSizeCookie = function () {
+				document.cookie = "dpi=" + window.devicePixelRatio + "; path=/";
+				document.cookie = "viewportWidth=" + window.innerWidth + "; path=/";
+				document.cookie = "viewportHeight=" + window.innerHeight + "; path=/";
+				if (screen && screen.width && screen.height) {
+					document.cookie = "screenWidth=" + screen.width + "; path=/";
+					document.cookie = "screenHeight=" + screen.height + "; path=/";
+				}
+				document.cookie = "responsiveGhost=1; path=/";
+			};
+
+			setSizeCookie();
+		}());
+	</script>
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+
+	<script async src="https://docaccess.com/docbox.js"></script>
+	<meta name="google-site-verification" content="8CG3J0COnLzq_O1sBTwZDRlD4cSNcBfeol-ysBPHpow" />
+
+<meta name="google-translate-customization" content="7336eb79813dbbdc-d43f3a8a668ff88a-g075589abddc2bb73-18"></meta>
+
+<meta name="msvalidate.01" content="885D33CE7269ED9CC65DA4F4A286AC0E" />
+
+<meta name="google-site-verification" content="e3jnN3YpZTHmvx2xvJNVktaj-nG7DhU8rkQ2jWmuFfU" />
+
+	
+	
+	<meta name="theme-color" content="rgb(11, 99, 57)">
+	<link rel="icon" href="/images/favicon.ico" type="image/x-icon" />
+	<link rel="shortcut icon" href="/images/favicon.ico" type="image/x-icon" />
+		<title>Bid Postings • Washington County, MN • CivicEngage</title>
+
+			<script src="/Assets/Scripts/jQuery/jquery-3.7.1.min.js"></script>
+	<script src="/Assets/Scripts/jQuery/jquery-migrate-3.6.0.min.js" type="text/javascript"></script>
+	
+
+	<!--[if IE 6]><script language="JavaScript" type="text/javascript"> var isie6 = true; </script><![endif]-->
+	<!--[if IE 7]><script language="JavaScript" type="text/javascript"> var isie7 = true; </script><![endif]-->
+	<!--[if IE 8]><script language="JavaScript" type="text/javascript"> var isie8 = true; </script><![endif]-->
+	<!--[if IE 9]><script language="JavaScript" type="text/javascript"> var isie8 = true; </script><![endif]-->
+	<script type="text/javascript"><!--
+	var intCountryCode = 840;
+	var order = '';
+//--></script>
+	
+<link href="/-681783051.css" rel="stylesheet" type="text/css" />	<link href="/-2140275272.css" rel="stylesheet" type="text/css" />	<link href="/667914278.css" rel="stylesheet" type="text/css" />
+
+	<link rel="stylesheet" type="text/css" href="/Assets/Styles/Print.css" media="print">
+	<script type="text/javascript">
+		window.Pages = window.Pages || {};
+		// FrontEnd RWD initialization
+		window.Pages.rwdReady = $.Deferred();
+		window.Pages.toolBarDeferred = $.Deferred();
+		window.Pages.rwdSetupComplete = $.Deferred();
+		window.Pages.megaMenuLoaded = $.Deferred();
+		window.Pages.angularToolbarComplete = $.Deferred();
+		window.Pages.frontEndToolbarComplete = $.Deferred();
+	</script>
+	
+
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		
+	
+    <meta property="og:title" content="Bids" />
+    <meta name="twitter:title" content="Bids" />
+    <meta property="og:url" content="https://www.washingtoncountymn.gov/bids.aspx" />
+    <meta name="twitter:url" content="https://www.washingtoncountymn.gov/bids.aspx" />
+    <meta property="og:site_name" content="Washington County, MN" />
+    <meta name="twitter:site" content="Washington County, MN" />
+    <meta property="og:description" content="Learn about current bid and contract opportunities available to consultants, service providers, contractors, vendors, or suppliers." />
+    <meta name="twitter:description" content="Learn about current bid and contract opportunities available to consultants, service providers, contractors, vendors, or suppliers." />
+<meta name="twitter:card" content="summary" />
+
+	<link rel="stylesheet" href="/App_Themes/CP/nmenu.css" type="text/css">
+
+    
+	<!-- Dynamic Header Scripts -->
+	
+	<!--Reference Stylesheet-->
+	
+    
+		<!--Dynamic Header Styles-->
+	<style type="text/css">
+	h1.BidPublicHeader {
+	font: normal bold 14pt Verdana;
+	text-decoration: none;
+	color: rgb(0, ;
+}
+span.BidContent {
+	font: normal normal 10pt Verdana;
+	text-decoration: none;
+	color: rgb(0, ;
+}
+span.BidContentBold {
+	font: normal bold 10pt Verdana;
+	text-decoration: none;
+	color: rgb(0, ;
+}
+span.BidDetail {
+	font: normal normal 12pt Verdana;
+	text-decoration: none;
+	color: Black;
+}
+span.BidDetailSpec {
+	font: normal normal 12pt Verdana;
+	text-decoration: none;
+	color: Black;
+	text-align: left;
+}
+span.BidListHeader {
+	text-decoration: none;
+	font: normal bold 10pt Verdana;
+	text-decoration: none;
+	color: rgb(0, ;
+}
+span.BidHeading {
+	font: normal normal 18pt Verdana;
+	text-decoration: none;
+	color: Black;
+}
+
+	</style>
+	
+	
+	
+
+
+
+	<script src="/739942322.js" type="text/javascript"></script>
+	
+	
+
+	<!--[if lte IE 8]><link rel="stylesheet" type="text/css" href="/App_Themes/ie8.css"><![endif]-->
+	<!--[if lte IE 7]><link rel="stylesheet" type="text/css" href="/App_Themes/ie7.css"><![endif]-->
+	<!--[if lte IE 6]><link rel="stylesheet" type="text/css" href="/App_Themes/ie6.css"><![endif]-->
+	<!--[if lt IE 9]><script type="text/javascript" src="/Scripts/html5.js"></script><![endif]-->
+
+	<script type="text/javascript">
+		setEditorVariables(false, 840);
+		function getPrintPreviewType() { return 0; } function printPreview() {pPreview(getPrintPreviewType()); }
+	</script>
+	<script src="/Assets/Scripts/AlpineJS/3.14.1/alpine.min.js" type="text/javascript" defer="defer"></script>
+</head>
+<body class="wide hideContent" >
+
+    <script>jQuery(document).click(function (event) {
+	var target = jQuery(event.target);
+	if (target.attr('src') && target.parents('.image').length && target.parents('.widget').length) {
+		var text = target.attr('title');
+		
+		if (!text.length) {
+			text = "N/A";
+		}
+		ga('send',
+			{
+				hitType: 'event',
+				eventCategory: 'Image',
+				eventAction: 'Image - ' + text,
+				eventLabel: window.location.href
+			});
+	}
+	if (target.is('button') || target.hasClass('button') || target.parents().hasClass('button')) {
+		var text = "";
+		if (target.parents('.button')[0]) {
+			text = target.parents('.button').first().text();
+		} else if (target.text().length) {
+			text = target.text();
+		} else if (target.attr('title').length) {
+			text = target.attr('title');
+		}
+		if (!text.length) {
+			text = "N/A";
+		}
+		ga('send',
+			{
+				hitType: 'event',
+				eventCategory: 'Button',
+				eventAction: 'Button - ' + text,
+				eventLabel: window.location.href
+			});
+	}
+	if (target.parents('.widgetCustomHtml').length) {
+		ga('send',
+			{
+				hitType: 'event',
+				eventCategory: 'Custom Html',
+				eventAction: 'Custom Html Clicked',
+				eventLabel: window.location.href
+			});
+	}
+	if (target.parents('.editor').length) {
+		ga('send',
+			{
+				hitType: 'event',
+				eventCategory: 'Editor',
+				eventAction: 'Editor Link Clicked',
+				eventLabel: window.location.href
+			});
+	}
+	if (target.parents('.GraphicLinks').length) {
+		var text = "";
+		var targetGraphicLink = target;
+		if (target.hasClass('widgetGraphicLinksLink')) {
+			targetGraphicLink = jQuery(target.children()[0]);
+		}
+		if (targetGraphicLink.hasClass('text')) {
+			text = targetGraphicLink.text();
+		} else if (targetGraphicLink.attr('src').length) {
+			if (targetGraphicLink.attr('alt').length) {
+				text = targetGraphicLink.attr('alt');
+			} else {
+				text = targetGraphicLink.attr('src');
+			}
+		} else {
+			text = "N/A";
+		}
+		ga('send',
+			{
+				hitType: 'event',
+				eventCategory: 'Graphic Links',
+				eventAction: 'Graphic Link - ' + text,
+				eventLabel: window.location.href
+			});
+	}
+	if (target.parents('.InfoAdvanced').length) {
+		ga('send',
+			{
+				hitType: 'event',
+				eventCategory: 'Info Advanced',
+				eventAction: 'Info Advanced Clicked',
+				eventLabel: window.location.href
+			});
+	}
+	if (target.parents('.list').length) {
+		ga('send',
+			{
+				hitType: 'event',
+				eventCategory: 'List',
+				eventAction: 'List Clicked',
+				eventLabel: window.location.href
+			});
+	}
+	if (target.parents('.megaMenuItem').length || target.parents('.topMenuItem').length) {
+		var megaMenuText = jQuery('.topMenuItem.mouseover').find('span').text();
+		var breadCrumbs = [];
+		jQuery('.breadCrumbs > li').each(function () {
+			 breadCrumbs.push(this.textContent);
+		});
+		var pageTitle = breadCrumbs.join('>');
+		var subTitleText = target.parents('.megaMenuItem').children('.widgetTitle').children().text();
+		var text = "";
+		if (pageTitle) {
+			text += pageTitle + " | ";
+		} else {
+			text += document.title + ' - ';
+		}
+		if (target.text() == "" && megaMenuText == "") {
+			text += "N/A";
+		} else if (target.text().length && megaMenuText.length) {
+			if (megaMenuText == target.text()) {
+				text += megaMenuText;
+			} else {
+				text += megaMenuText + " - " + subTitleText + " - " + target.text();
+			}
+		} else if (target.text() == "") {
+			text += megaMenuText;
+		} else {
+			text += target.text();
+		}
+		if (!text.length) {
+			text = "N/A";
+		}
+		ga('send',
+			{
+				hitType: 'event',
+				eventCategory: 'Mega Menu',
+				eventAction: 'Mega Menu : ' + text,
+				eventLabel: window.location.href
+			});
+	}
+	if (target.parents('.widgetNewsFlash').length && target.parents('.widgetItem').length) {
+		var text = jQuery(target.parents('.widgetItem')[0]).find('.widgetTitle').children().text();
+		if (!text.length) {
+			text = "N/A";
+		}
+		ga('send',
+			{
+				hitType: 'event',
+				eventCategory: 'News Flash',
+				eventAction: 'News Flash - ' + text,
+				eventLabel: window.location.href
+			});
+	}
+	if (target.hasClass('widgetQuickLinksLink') || target.find('.widgetQuickLinksLink').length) {
+		var text = target.text();
+		if (!text.length) {
+			text = "N/A";
+		}
+		ga('send',
+			{
+				hitType: 'event',
+				eventCategory: 'Quick Links',
+				eventAction: 'Quick Links - ' + text,
+				eventLabel: window.location.href
+			});
+	}
+	if (target.attr('src') && target.parents('.cpSlideshow').length) {
+		var text = target.attr('title');
+		if (!text.length) {
+			text = "N/A";
+		}
+		ga('send',
+			{
+				hitType: 'event',
+				eventCategory: 'Slideshow',
+				eventAction: 'Slideshow - ' + text,
+				eventLabel: window.location.href
+			});
+	}
+	if (target.parents('.widgetText').length) {
+		ga('send',
+			{
+				hitType: 'event',
+				eventCategory: 'Text',
+				eventAction: 'Text Link Clicked',
+				eventLabel: window.location.href
+			});
+	}
+});</script>
+	<div id="popoverModal" class="cp-PopOver cp-PopOver--modal cp-AdminWrap" style="position: fixed; display: none;">
+	<div class="cp-PopOver-header">
+		<h3 class="cp-PopOver-title"></h3>
+		<button class="cp-Btn cp-PopOver-close" onclick="closePopOverModal(event)">
+			<svg class="cp-Icon--close" alt="close" title="close">
+				<use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#iconClose"></use>
+			</svg>
+		</button>
+	</div>
+	<div id="cpPopOverBody" class="cp-PopOver-body">
+		<form id="cpPopOverForm" name="cpPopOverForm" novalidate></form>
+	</div>
+	<div id="cpPopOverFooter" class="cp-PopOver-footer">
+		<div class="cp-BtnGroup" id="actionButtons">
+			<!-- Action buttons will be dynamically added here -->
+		</div>
+	</div>
+</div>
+    <div id="fb-root"></div>
+<div id=skipToContentLinks>
+<a href="#contentarea" target="_self" class="skipToContentLink">Skip to Main Content</a>
+</div>
+    <form id="frmReferenceFormForTelerikEditorDialogs"></form>
+
+        <input type="hidden" id="GoogleMapsKey" value="AIzaSyDWUuE-ifkbhxblF920N8MjpBdTg1Wt784" />
+
+
+
+    <input type="hidden" id="cpcDomain" value="https://cp-civicplusuniversity2.civicplus.com">
+    <input type="hidden" id="hdnStructureID" value="7" />
+    <input type="hidden" id="hdnContentCollectionID" value="6e1a6834-7ad6-4867-9ea3-5b20337117a1" />
+    <input type="hidden" id="hdnWorkingCopyID" value="00000000-0000-0000-0000-000000000000" />
+    <input type="hidden" id="hdnThemeID" value="18" />
+    <input type="hidden" id="pageIsFrontEnd" value="true" />
+    <input type="hidden" id="pageModuleID" value="16" />
+    <input type="hidden" id="pagePageID" />
+
+        <input type="hidden" id="hdnModuleID" value="16" />
+    <div id="stickyPlaceholder"></div>
+    <div id="outer-wrap" class="outer-wrap">
+        <div id="inner-wrap" class="inner-wrap">
+                <div id="divToolbars" class="cpToolbars newCP mui-fixed" style="">
+                    
+
+
+
+                </div>
+            <div id="bodyWrapper">
+                <div id="mainNavHolderMobile" class="mainNavHolderMobile"></div>
+                
+<div data-cpRole="structuralContainer" id="bodyContainerTS">
+<!-- Header Container --><header data-cpRole="structuralContainer" id="headerContainerTS" class="fixedTopTS">
+<div data-cpRole="structuralContainer" id="headerContainerTSa">
+<div class="siteWrap" id="flexNavTS"><div data-cpRole="contentContainer" id="linksTSa">	<div id="cca9f9ca0d-8da5-4e4e-b02f-ca38df88e031" data-containerid="a9f9ca0d-8da5-4e4e-b02f-ca38df88e031" class="pageContent cpGrid cpGrid24 isLockedContainer showInMobile">
+				                
+
+		<div class="row outer wide"><!--
+--><div class="outer col col24 first last" style="" data-widgetcontainerid="b61e3a50-9d6a-4816-9144-6344fb5d8b86">				
+	<div class="row nest first last wide">
+	
+	<div class="inner col col24 first last id84dd8003-e3cd-4c19-826e-e2af3bf9e85a" style="" data-widgetcontainerid="84dd8003-e3cd-4c19-826e-e2af3bf9e85a">	
+	<div data-widget-id="b6c537d1-91f8-48ab-b7ab-6213c001eb5a" data-widget-controller-path="/QuickLinks/Widget">
+
+
+
+
+
+
+
+
+	<section id="widgetQuicklinkb6c537d1-91f8-48ab-b7ab-6213c001eb5a" class="widget widgetQuickLinks skin29 widgetOptionSet32 narrow" data-modulewidgettype="quickLinks" data-elementqueryclasses='{"wide-narrow":"min-width:25em"}' data-elementquerymatch='matchMultiColumn' data-elementqueryunmatch='unmatchMultiColumn' aria-label="Quick Links">
+			<header class="widgetHeader" id="quickLinksHeaderb6c537d1-91f8-48ab-b7ab-6213c001eb5a">
+		<div class="">
+						</div>
+	</header>
+	<div class="widgetBody cpGrid cpGrid2 ">
+        <div class="row autoWidths right narrow">
+				<div class="col col1 first ">
+					<ol class="semanticList">
+
+
+
+
+    <li style="position:relative" class="widgetItem QuickLinks">
+        <a class="widgetDesc widgetQuickLinksLink" href="https://www.governmentjobs.com/careers/washingtonmn" target="_self" aria-label="Jobs - Secondary navigation bar" rel="">Jobs</a>
+        <div class="widgetMeta"></div>
+    </li>
+					</ol>
+				</div>
+				<div class="col col1  last">
+					<ol class="semanticList">
+
+
+
+
+    <li style="position:relative" class="widgetItem QuickLinks">
+        <a class="widgetDesc widgetQuickLinksLink" href="/3893/Contact" target="_self" aria-label="Contact - Secondary navigation bar" rel="">Contact</a>
+        <div class="widgetMeta"></div>
+    </li>
+					</ol>
+				</div>
+		</div>
+        
+	</div>
+	<div class="widgetFooter">
+	</div>
+	<div class="addItemModal hidden">
+		<div class="url hidden">/QuickLinks.aspx</div>
+	</div>
+
+	</section>
+</div>
+
+	</div> <!-- inner column -->
+
+	</div> <!-- inner row -->
+
+			</div><!-- outer column --><!--		--></div> <!-- outer row -->
+
+
+	</div>
+</div><div data-cpRole="contentContainer" id="linksTSb">	<div id="cc58d4782c-5230-42aa-9524-3b9de1e40563" data-containerid="58d4782c-5230-42aa-9524-3b9de1e40563" class="pageContent cpGrid cpGrid24 isLockedContainer showInMobile" data-contentcontainerbreakpoint="10">
+				                
+
+		<div class="row outer wide"><!--
+--><div class="outer col col24 first last" style="" data-widgetcontainerid="9faaa796-b09a-4c24-ac80-2e1edf367bb6">				
+	<div class="row nest first last wide">
+	
+	<div class="inner col col24 first last id5411dd4d-7c34-4193-a821-c264b475cacd" style="" data-widgetcontainerid="5411dd4d-7c34-4193-a821-c264b475cacd">	
+ 
+	<div data-widget-id='d16fb005-032e-4c6a-bcf9-f33b46871773' data-moduleName="customHtml" id='widgetCustomHtmld16fb005-032e-4c6a-bcf9-f33b46871773' class="widget widgetCustomHtml skin28 narrow" >
+	<div class="widgetBody pageStyles" id="widgetBodyd16fb005-032e-4c6a-bcf9-f33b46871773">
+		<div id="customHtmld16fb005-032e-4c6a-bcf9-f33b46871773"><div><div id="google_translate_element" style=""><script> function googleTranslateElementInit() { new google.translate.TranslateElement({pageLanguage: 'en', includedLanguages: 'ar,de,el,en,es,fr,ga,hi,id,it,iw,ja,ko,pt,ru,sv,tl,vi,zh-CN,zh-TW', layout: google.translate.TranslateElement.InlineLayout.SIMPLE, gaTrack: true, gaId: 'UA-87122838-1'}, 'google_translate_element'); } </script><script src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script></div></div></div>
+	</div>
+
+	</div>
+
+	</div> <!-- inner column -->
+
+	</div> <!-- inner row -->
+
+			</div><!-- outer column --><!--		--></div> <!-- outer row -->
+
+
+	</div>
+</div></div>
+</div><div class="siteWrap"><div data-cpRole="structuralContainer" id="flexHeaderTS">
+<div data-cpRole="banner" id="bannerLogoTS" class="bannerLogoTS empty">
+
+
+
+
+				<a id="bannerLogoTS-41" style="			display: block; text-align: center;
+" class="bannerObject" href="/" target="_self"><img alt="Washington County Homepage" class="bannerObject" height="723" src="/ImageRepository/Document?documentID=75378" width="1500" /></a>
+</div><nav data-cpRole="nav" id="mainNav" class="siteNav mainNav" role="navigation" aria-label="Main navigation">
+<ol id="mainNavMenu" data-parent="1" class="rootNavMenu" role="menu"><!--
+--><li id="MainItem3491" class="topMenuItem" role="none" data-pageid="3491" data-displaymegamenu="True"><!--
+			--><!--
+			--> <a role = "menuitem"  aria-haspopup=true aria-expanded='false' aria-controls="mainNavMegaMenu3491" id = "mainNavResident" class="navMainItem mainNavItem mainNavItem1 " href="/3491/Resident" target = "_self" >   Resident  </a>			<!--
+			--><!--
+			--></li><!----><li id="MainItem35" class="topMenuItem" role="none" data-pageid="35" data-displaymegamenu="True"><!--
+			--><!--
+			--> <a role = "menuitem"  aria-haspopup=true aria-expanded='false' aria-controls="mainNavMegaMenu35" id = "mainNavBusiness" class="navMainItem mainNavItem mainNavItem2 " href="/35/Business" target = "_self" >   Business  </a>			<!--
+			--><!--
+			--></li><!----><li id="MainItem27" class="topMenuItem" role="none" data-pageid="27" data-displaymegamenu="True"><!--
+			--><!--
+			--> <a role = "menuitem"  aria-haspopup=true aria-expanded='false' aria-controls="mainNavMegaMenu27" id = "mainNavGovernment" class="navMainItem mainNavItem mainNavItem3 " href="/27/Government" target = "_self" >   Government  </a>			<!--
+			--><!--
+			--></li><!----><li id="MainItem309" class="topMenuItem" role="none" data-pageid="309" data-displaymegamenu="True"><!--
+			--><!--
+			--> <a role = "menuitem"  aria-haspopup=true aria-expanded='false' aria-controls="mainNavMegaMenu309" id = "mainNavOnlineServices" class="navMainItem mainNavItem mainNavItem4 " href="/309/Online-Services" target = "_self" >   Online Services  </a>			<!--
+			--><!--
+			--></li><!---->
+</ol>
+
+
+	<script type="text/javascript">
+		(function () {
+			function setupMenu() {
+				const menuID = 'mainNavMenu';
+				const menuType = MAIN_MENU;
+
+				//setup menu manager properties for main menu
+				if (!menuManager.mobileMainNav && true)
+					menuManager.adjustMainItemsWidth('#' + menuID);
+				menuManager.isMainMenuEditable = false;
+				menuManager.mainMenuMaxSubMenuLevels = 4;
+				menuManager.setMOMMode(2, menuType);
+
+				//Init main menu
+				const setupDraggable = menuManager.isMainMenuEditable;
+				const urlToGetHiddenMenus = '/Pages/MenuMain/HiddenMainSubMenus?pageID=1&moduleID=16&themeID=18&menuContainerID=mainNav';
+
+				menuManager.setupMenu(menuID, 'mainNav', menuType, setupDraggable, urlToGetHiddenMenus);
+				menuManager.mainMenuInit = true;
+				menuManager.mainMenuTextResizer = false;
+				if (1.00 > 0)
+					menuManager.mainMenuTextResizerRatio = 1.00;
+				if (window.isResponsiveEnabled)
+					menuManager.mainMenuReady.resolve();
+
+			}
+
+			if (document.readyState === "complete"
+				|| document.readyState === "loaded"
+				|| document.readyState === "interactive") {
+				setupMenu();
+				return;
+			}
+
+			document.addEventListener("DOMContentLoaded", setupMenu);
+		})();
+	</script>
+
+
+<aside data-cpRole="megaMenu" id="megaMenu" class="megaMenu" style="display: none;"><input type="hidden" id="megaMenuPopupDirection" value="0"><input type="hidden" id="megaMenuWidthReference" value="1"><aside role="menu" data-cpRole="contentContainer" id="mainNavMegaMenu3491" class="contentTop mainNavMegaMenu megaMenuContainer pageID_3491 hidden" data-orientation="horizontal">	<div id="ccaadd3e48-c480-4610-8663-24ac1c227962" data-containerid="aadd3e48-c480-4610-8663-24ac1c227962" class="pageContent cpGrid cpGrid24 showInMobile">
+				                
+
+
+
+	</div>
+</aside><aside role="menu" data-cpRole="contentContainer" id="mainNavMegaMenu35" class="contentTop mainNavMegaMenu megaMenuContainer pageID_35 hidden" data-orientation="horizontal">	<div id="cc01eef49b-b521-4e2c-8465-24857f11f1a7" data-containerid="01eef49b-b521-4e2c-8465-24857f11f1a7" class="pageContent cpGrid cpGrid24 showInMobile">
+				                
+
+
+
+	</div>
+</aside><aside role="menu" data-cpRole="contentContainer" id="mainNavMegaMenu27" class="contentTop mainNavMegaMenu megaMenuContainer pageID_27 hidden" data-orientation="horizontal">	<div id="cc680982ce-a2aa-40c7-b25f-eb3d28c6abfc" data-containerid="680982ce-a2aa-40c7-b25f-eb3d28c6abfc" class="pageContent cpGrid cpGrid24 showInMobile">
+				                
+
+
+
+	</div>
+</aside><aside role="menu" data-cpRole="contentContainer" id="mainNavMegaMenu309" class="contentTop mainNavMegaMenu megaMenuContainer pageID_309 hidden" data-orientation="horizontal">	<div id="cccc5d9269-6470-4f96-a1ad-b21fc5718d92" data-containerid="cc5d9269-6470-4f96-a1ad-b21fc5718d92" class="pageContent cpGrid cpGrid24 showInMobile">
+				                
+
+
+
+	</div>
+</aside></aside></nav><div data-cpRole="contentContainer" id="searchTS">	<div id="cc0b764a2a-f6d6-4148-a1e6-3d3abc433da5" data-containerid="0b764a2a-f6d6-4148-a1e6-3d3abc433da5" class="pageContent cpGrid cpGrid24 isLockedContainer showInMobile">
+				                
+
+		<div class="row outer wide"><!--
+--><div class="outer col col24 first last" style="" data-widgetcontainerid="b177c6db-9539-47bf-aa36-95c400be214c">				
+	<div class="row nest first last wide">
+	
+	<div class="inner col col24 first last id826d677a-e249-4378-9075-2b3a394d0c35" style="" data-widgetcontainerid="826d677a-e249-4378-9075-2b3a394d0c35">	
+ 
+	<div data-widget-id='973b1204-633a-4c8c-bc91-f7927ed43563' data-moduleName="customHtml" id='widgetCustomHtml973b1204-633a-4c8c-bc91-f7927ed43563' class="widget widgetCustomHtml skin47 narrow" >
+	<div class="widgetBody pageStyles" id="widgetBody973b1204-633a-4c8c-bc91-f7927ed43563">
+		<div id="customHtml973b1204-633a-4c8c-bc91-f7927ed43563"><div><script>
+/*
+ * Google Programmable Search Engine
+ * CX: 76e3247bef3ce4f75
+ *
+ * This tracks Sitewide PSE searches in GA4 ONLY if the visitor
+ * has previously used the Library search.
+ */
+
+window.__gcse = window.__gcse || {};
+
+window.__gcse.searchCallbacks = {
+  web: {
+    starting: function(gname, query) {
+
+      /*
+       * Check whether the visitor has used the Library
+       * search during this browser session.
+       *
+       * Your Library search needs to set:
+       * sessionStorage.setItem("library_search_used", "true");
+       */
+      var otherSearchUsed =
+        sessionStorage.getItem("library_search_used") === "true";
+
+      if (otherSearchUsed && typeof gtag === "function") {
+
+        gtag("event", "search", {
+          search_term: query
+        });
+
+        console.log(
+          "Sitewide PSE search tracked:",
+          query
+        );
+
+      } else {
+
+        console.log(
+          "Sitewide PSE search NOT tracked:",
+          query
+        );
+      }
+
+      return "";
+    }
+  }
+};
+</script>
+
+<script async="" src="https://cse.google.com/cse.js?cx=76e3247bef3ce4f75">
+</script>
+
+<div class="gcse-searchbox-only"></div></div></div>
+	</div>
+
+	</div>
+
+	</div> <!-- inner column -->
+
+	</div> <!-- inner row -->
+
+			</div><!-- outer column --><!--		--></div> <!-- outer row -->
+
+
+	</div>
+</div>
+</div></div>
+</header><!-- Banner --><div data-cpRole="structuralContainer" id="bannerContainerTS" class="noOverflowTS">
+<div data-cpRole="banner" id="banner1"><div data-cpRole="structuralContainer" id="bannerSizingTS">
+<div class="siteWrap"><div data-cpRole="contentContainer" id="welcomeTS">	<div id="cc46f24512-3bf4-4d06-bdb1-ac617688817c" data-containerid="46f24512-3bf4-4d06-bdb1-ac617688817c" class="pageContent cpGrid cpGrid24 showInMobile">
+				                
+
+
+
+	</div>
+</div></div>
+</div>
+
+
+
+
+		<div id="bannerImagesJSON40" class="hidden"></div>
+		<div id="bannerSlideshowControls_banner1" class="bannerSlideshowControlsNew none " style="display:none">
+			<a id="arrowPrev_banner1" tabindex="0" class="arrowNew prev" aria-label="Banner Arrow Previous"><svg style=" " class=""><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#iconSlideshowArrowLeft"></use></svg></a>
+			<a id="arrowNext_banner1" tabindex="0" class="arrowNew next" aria-label="Banner Arrow Next"><svg style=" " class=""><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#iconSlideshowArrowRight"></use></svg></a>
+		</div>
+			<script type="text/javascript">
+				$(window).on("load", function () {
+					$.when(window.Pages.rwdSetupComplete)
+						.done(function () {
+							renderExternalBannerSlideshow('banner1',
+								{"BannerOptionID":40,"ThemeID":18,"SlotName":"banner1","Name":"Default","IsDefault":true,"BannerMode":2,"SlideShowSlideTiming":"5","SlideshowTransition":0,"SlideShowTransitionTiming":"1","ImageScale":true,"ImageAlignment":1,"ImageScroll":true,"MuteSound":true,"VideoType":0,"Status":40,"SlideshowControlsPosition":0,"SlideshowControlsAlignment":0,"SlideshowBannerControlsColorScheme":0,"DisplayVideoPauseButton":false,"VideoPauseButtonAlignment":1,"VideoPauseButtonControlsAlignment":0,"VideoPauseButtonStyle":"#FFFFFF","VideoPauseButtonBackgroundStyle":"#000000","VideoPauseButtonAlignmentClass":"alignRight viewport","DisplaySlideshowPauseButton":true,"SlideshowControlsColor":"#FFFFFF","SlideshowControlsBackgroundColor":"#000000","SlideshowPauseButtonClass":"isHidden","BannerImages":[{"BannerImageID":568,"BannerOptionID":40,"FileName":"/ImageRepository/Document?documentID=75035","Height":1,"Width":1,"StartingOn":null,"StoppingOn":null,"IsLink":false,"LinkAddress":null,"Sequence":1,"RecordStatus":0,"ModifiedBy":0,"ModifiedOn":"\/Date(-62135575200000)\/","AltText":""}],"BannerVideos":[],"RecordStatus":0,"ModifiedBy":0,"ModifiedOn":"\/Date(-62135575200000)\/"},
+								'/App_Themes/Simple/Images/',
+								'Rotating');
+						});
+				});
+			</script>
+
+</div>
+</div><!-- Content container --><div data-cpRole="structuralContainer" id="mainContainerTS">
+<div class="siteWrap"><div data-cpRole="structuralContainer" id="mainWrapTS" class="mainWrap" role="main">
+<div data-cpRole="structuralContainer" id="outerContentWrapTS" class="outerContentWrap">
+<div data-cpRole="structuralContainer" id="contentWrapTS" class="contentWrap">
+<div data-cpRole="breadCrumbs" id="breadCrumbs" class="breadCrumbContainer">		<ol class="semanticList breadCrumbs">
+			<li><a class="breadCrumb" href="/">Home</a></li><li><a href class="breadCrumb" aria-current="page">Bid Postings</a></li>
+		</ol>
+
+	   
+    
+</div>
+<div data-cpRole="mainContentContainer" id="moduleContent">
+
+<div id="ctl00_ctl00_MainContent_BodyWrapper">
+	
+	<script type="text/javascript"><!--
+	var isie6 = false, isie7 = false, isie6or7 = false;
+	var intCountryCode = 840;
+
+	function setUrlLength(editor) {
+		//Toggle Image Context Menu Items
+		setMenuItems(editor);
+		//setContentBackgroundColor(editor);
+		removeIEParagraphs(editor);
+	}
+	function setUrlLengthAndToolToggle(editor) {
+		var minToolsGroups = 2; // Number of MinimumSetOfTools tools groups.
+		
+		// Hide the MinimumSetOfTools on load.
+		var toolbar = editor.get_toolContainer(); // Get toolbar container.
+		var toolgroups = toolbar.getElementsByTagName("UL"); // Get all toolgroups containers.
+		
+		for (var i = toolgroups.length - 1; i >= minToolsGroups; i--)			toolgroups[i].style.display = "none";
+		
+		if (editor.isIE) {
+			var elem = editor.get_element();
+			elem.style.height = "430px";
+ 			elem.style.minHeight = "430px";
+		}
+		
+		// Toggle Image Context Menu Items.
+		setMenuItems(editor);
+		//setContentBackgroundColor(editor);
+		removeIEParagraphs(editor);
+	}
+//--></script><!--[if IE 6]><script type="text/javascript">isie6 = true; isie6or7 = true;</script><![endif]-->
+<!--[if IE 7]><script type="text/javascript">isie7 = true; isie6or7 = true;</script><![endif]-->
+
+	
+
+	<form name="aspnetForm" method="post" action="./bids.aspx" id="aspnetForm" style="display:inline;" onsubmit="return headerValidationCallback();" enctype="multipart/form-data" autocomplete="off">
+<div>
+<input type="hidden" name="__EVENTTARGET" id="__EVENTTARGET" value="" />
+<input type="hidden" name="__EVENTARGUMENT" id="__EVENTARGUMENT" value="" />
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="UpSOYCcH2drVJwRXrUVfG4NyMe9ncM7AQgXBIlPDxGxjjMa7NtgLeIuEdB9fhaKyjU1TfeP7dIt4kf2IJKKYToj93OrK3ixZ6lU2qBqrghO8Np8gUMtSDhYNsy5fs50b" />
+</div>
+
+<script type="text/javascript">
+//<![CDATA[
+var theForm = document.forms['aspnetForm'];
+if (!theForm) {
+    theForm = document.aspnetForm;
+}
+function __doPostBack(eventTarget, eventArgument) {
+    if (!theForm.onsubmit || (theForm.onsubmit() != false)) {
+        theForm.__EVENTTARGET.value = eventTarget;
+        theForm.__EVENTARGUMENT.value = eventArgument;
+        theForm.submit();
+    }
+}
+//]]>
+</script>
+
+
+<script src="/WebResource.axd?d=pynGkmcFUV13He1Qd6_TZOXf_SSYm_hNzWne75huTxdud7cIA1uWzh9JzfZkPiYCIYsaq60fGvwAps_CTPGYgQ2&amp;t=639190664600000000" type="text/javascript"></script>
+
+
+<script src="/ScriptResource.axd?d=9LiQfHzCayiHqXhrLu58Tc-L1jXZFfyC25IUPgN15gYaLrgKC1xWOK8O8WG5VdkaJhQMw0JpacVN23f7ad6OyExeVMC4c-yVxnrfWASwJ44lNquCWksPIb_R7XVzIGrObMzaWz4uGGSiI2xQ6XmoC4Hu1ZnWZTUArUNMEzhlLTSE2dZwxe4CNIgvzj4Az4FJKmq6qHQ6BBxh9946jnAoj0Rk0FcONwUKLO60zwaR0JThMiuZrEA6C8aMKbebg19g0_VNPA8TMw87nqkuAwdOGBcbqZ5sDegxIix5Y2_LVVuWtXc6welSL32Hcj_27Zyd_kc7_uhhcQ_muhm9698hvv1s2Hh1DO99x_i2vmI-A1uYHFYsWyldVPKgwl7heQD8iVIaBtXVug8wX1Se8xysEVopGigCNlLJQNTXnpJmoaWtpLsywvUws64V7d702GfAXbwGIv72DH2p1sxmsqeEgK3ngeE19X7oJod7XwWPfK-qF8ObNYhhMMloTwWYJ9lV2DGI4yNf7oWpbgpRUAN7zZt_aX3nY3hl8L-1klgZiokLONikePtorQYaQ8OxbHfPWmSOXJhij5VECB6xFna_CnvItUvIBg2Ah8FEAldtKdjQ8Ok7Vf8jr0bhhrHbbiFqwU484xiX-xUAIZuFg55pGc5YhrCT8Mid6FmtwwGFyga3YixWK7FFExkJjf3lbQhZ1To-f9oaUrud5p2JuL19F32MfEUU8W6psBjzGC9cVj_tBuUT3__HcdzpvQ0LrdlogK84iXbXrdczpgDBAkQmoS3MyQUS3l8cnHk75Ddq1AXoySatVSttMYkVgSs-l4jYPdZsES56sH-suhM4AEVLBQ2" type="text/javascript"></script>
+<div>
+
+	<input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="E4CF5D76" />
+</div>
+		<!--for archiving purpose-->
+		<input name="ysnNotifyMe" type="hidden">
+		<input name="strPage" type="hidden">
+		<input name="intArchMainCatID" type="hidden">
+		<input name="intArchMainItemID" type="hidden">
+		 <script type="text/javascript">
+//<![CDATA[
+Sys.WebForms.PageRequestManager._initialize('ctl00$ctl00$MainContent$scriptManager', 'aspnetForm', [], [], [], 90, 'ctl00$ctl00');
+//]]>
+</script>
+
+		<script type="text/javascript">
+			Sys.WebForms.PageRequestManager.getInstance().add_beginRequest(beginRequest);
+			Sys.WebForms.PageRequestManager.getInstance().add_pageLoaded(pageLoaded);
+		</script>
+		
+		<div id="modulecontent" name="modulecontent.aspx" style="padding-top: 0px;">
+
+<style>
+	ul ul
+	{
+		display: block;
+		width: auto;
+	}
+	.BidDetail ul {
+		padding-left: 40px;
+	}
+	.BidDetail ol {
+		padding-left: 40px;
+	}
+	.BidPrint {
+		color: #666666;
+		font-weight: bold;
+		line-height: 16px;
+	}
+	.BidPrint svg {
+		width: 21px;
+		height: 21px;
+		vertical-align: middle;
+		margin-right: 5px;
+	}
+
+</style>
+<div style="display: none;">
+	<svg xmlns="http://www.w3.org/2000/svg" style="display:none;">
+	<symbol id="iconPrint" viewBox="0 0 24 24">
+		<title>Print</title>
+		<path fill="currentColor" d="M18,3H6V7H18M19,12A1,1 0 0,1 18,11A1,1 0 0,1 19,10A1,1 0 0,1 20,11A1,1 0 0,1 19,12M16,19H8V14H16M19,8H5A3,3 0 0,0 2,11V17H6V21H18V17H22V11A3,3 0 0,0 19,8Z"></path>
+	</symbol>
+	</svg>
+	</div>
+
+	<link href="/Common/Modules/Bids/RWDBids.css" rel="stylesheet" type="text/css">
+	<script src="/Common/Modules/Bids/RWDBids.js" type="text/javascript"></script>
+
+
+<!-- BEGIN BidsCONTENT.aspx ***** -->
+<!-- BEGIN Left Margin ***** -->
+<div id="contentarea" class="layoutClass">
+<!-- END Left Margin ***** --><div class="advantageSignIn"><a href="/list.aspx?Mode=Subscribe#bids">Sign up</a> to receive a text message or email when new bids are added!</div>
+	<div style="margin: 3px;">
+					<span class="BidContent"><span style="font-size: 12pt;">Learn about current bid and contract opportunities available to consultants, service providers, contractors, vendors, or suppliers.</span><br>&nbsp;</span>
+	</div>	<div style="display:inline">
+			<div style="margin: 3px;">
+				<div class="bidsTbl">
+					<div>
+						<span class="BidContent"><label for="CatID">Show Me</label></span>
+						<select name="CatID" id="CatID" onChange="if (document.aspnetForm.CatID.options[0].selected == true) { document.getElementById('frmCategories').value=''; }submitBidForm('true');">								<option value="showStatus" selected>Open Bids</option>										<option value="29">Vendor Information</option>										<option value="24">Washington County Accounting & Finance</option>										<option value="17">Washington County Public Works</option>										<option value="21">Washington County Sheriff's Office</option>							</select>
+					</div>
+					<div>
+						<span class="BidContent"><label for="txtSort">Sorted By</label></span>
+						<select name="txtSort" id="txtSort" onchange="submitBidForm('true');">
+							<option value="Category" selected>Category</option>
+								<option value="Title">Bid Title</option>
+								<option value="Date">Closing Date</option>								<option value="BidNumberAsc">Bid Number (Ascending)</option>								<option value="BidNumberDesc">Bid Number (Descending)</option>						</select>
+					</div>					<div class="showOtherBids"><label class="BidContent" for="showAllBids">Show Closed/Awarded/Cancelled Bids:</label><input type="checkbox" style="margin-left: 4px;" id="showAllBids" value="on" name="showAllBids" onclick="submitBidForm('true');"></div>
+				</div>
+			</div>
+			</div>
+		<div style="margin: 3px; padding-top: 1.0em; padding-bottom: 1.2em;">
+			<span class="BidDetail">
+				The following is a listing of various bid postings. Click on any of the titles for the details on that particular bid.
+			</span>
+		</div>
+		<div class="pageStyles" style="margin: 3px;">
+			<div class="bidItems listItems">
+			   <div class="bidsHeader listHeader">
+						<span>Vendor Information</span>
+						<span>1 Bid</span>
+			   </div>
+				<div class="listItemsRow bid">
+					<div class="bidTitle" style="vertical-align: top">
+						<span><a href="bids.aspx?bidID=799">Artificial Intelligence (AI) Policy</a></span><br>
+						<span></span>
+					</div>
+					<div class="bidStatus">
+					<div>						<span id="BidStatus79929">Status:</span><br>						<span id="BidCloses79929">Closes:</span>
+					</div>					<div>						<span>Open</span><br>						<span>Upon Contract</span>
+					</div>
+					</div>
+				</div>			   <div class="bidsHeader listHeader">
+						<span>Washington County Accounting & Finance</span>
+						<span>1 Bid</span>
+			   </div>
+				<div class="listItemsRow bid">
+					<div class="bidTitle" style="vertical-align: top">
+						<span><a href="bids.aspx?bidID=831">Request for Proposals (RFP) for Investment Software</a></span><br>
+						<span>The purpose of this Request for Proposals (RFP) is for Washington County to secure services for investment software to provide accounting reports, compliance monitoring,... [<a href="bids.aspx?bidID=831" style="font-style: normal; text-decoration: underline; font-family: Verdana" aria-label="Read on: Request for Proposals (RFP) for Investment Software">Read on<span class="visuallyHidden">: Request for Proposals (RFP) for Investment Software</span></a>]</span>
+					</div>
+					<div class="bidStatus">
+					<div>						<span id="BidStatus83124">Status:</span><br>						<span id="BidCloses83124">Closes:</span>
+					</div>					<div>						<span>Open</span><br>						<span>11/13/2026 4:30 PM</span>
+					</div>
+					</div>
+				</div>			   <div class="bidsHeader listHeader">
+						<span>Washington County Public Works</span>
+						<span>4 Bids</span>
+			   </div>
+				<div class="listItemsRow bid">
+					<div class="bidTitle" style="vertical-align: top">
+						<span><a href="bids.aspx?bidID=827">Request for Proposals (RFP) for Final Design Engineering Services</a></span><br>
+						<span>The Washington County Public Works Department is issuing this request for proposals (RFP) to provide final design engineering services for the County State Aid Highway (CSAH)... [<a href="bids.aspx?bidID=827" style="font-style: normal; text-decoration: underline; font-family: Verdana" aria-label="Read on: Request for Proposals (RFP) for Final Design Engineering Services">Read on<span class="visuallyHidden">: Request for Proposals (RFP) for Final Design Engineering Services</span></a>]</span>
+					</div>
+					<div class="bidStatus">
+					<div>						<span id="BidStatus82717">Status:</span><br>						<span id="BidCloses82717">Closes:</span>
+					</div>					<div>						<span>Open</span><br>						<span>11/6/2026 3:00 PM</span>
+					</div>
+					</div>
+				</div>				<div class="listItemsRow bid alt">
+					<div class="bidTitle" style="vertical-align: top">
+						<span><a href="bids.aspx?bidID=829">RFP for 2027 Construction Services</a></span><br>
+						<span>The purpose of this Request for Proposals (RFP) is for Washington County to secure services for Construction Administration and Inspection Services for certain projects that... [<a href="bids.aspx?bidID=829" style="font-style: normal; text-decoration: underline; font-family: Verdana" aria-label="Read on: RFP for 2027 Construction Services">Read on<span class="visuallyHidden">: RFP for 2027 Construction Services</span></a>]</span>
+					</div>
+					<div class="bidStatus">
+					<div>						<span id="BidStatus82917">Status:</span><br>						<span id="BidCloses82917">Closes:</span>
+					</div>					<div>						<span>Open</span><br>						<span>11/18/2026 3:00 PM</span>
+					</div>
+					</div>
+				</div>				<div class="listItemsRow bid">
+					<div class="bidTitle" style="vertical-align: top">
+						<span><a href="bids.aspx?bidID=825">RFP for CSAH 18 at CSAH 19 RAB Modifications</a></span><br>
+						<span>The Washington County Public Works Department is issuing this request for proposals (RFP) to provide project coordination, preliminary engineering, final design, stakeholder... [<a href="bids.aspx?bidID=825" style="font-style: normal; text-decoration: underline; font-family: Verdana" aria-label="Read on: RFP for CSAH 18 at CSAH 19 RAB Modifications">Read on<span class="visuallyHidden">: RFP for CSAH 18 at CSAH 19 RAB Modifications</span></a>]</span>
+					</div>
+					<div class="bidStatus">
+					<div>						<span id="BidStatus82517">Status:</span><br>						<span id="BidCloses82517">Closes:</span>
+					</div>					<div>						<span>Open</span><br>						<span>11/6/2026 3:00 PM</span>
+					</div>
+					</div>
+				</div>				<div class="listItemsRow bid alt">
+					<div class="bidTitle" style="vertical-align: top">
+						<span><a href="bids.aspx?bidID=830">RFP for Electronic Premises Security Card Access</a></span><br>
+						<span>Washington County seeks a qualified integrator to provide ongoing maintenance, support and repair of its electronic access control system, covering both the Software House... [<a href="bids.aspx?bidID=830" style="font-style: normal; text-decoration: underline; font-family: Verdana" aria-label="Read on: RFP for Electronic Premises Security Card Access">Read on<span class="visuallyHidden">: RFP for Electronic Premises Security Card Access</span></a>]</span>
+					</div>
+					<div class="bidStatus">
+					<div>						<span id="BidStatus83017">Status:</span><br>						<span id="BidCloses83017">Closes:</span>
+					</div>					<div>						<span>Open</span><br>						<span>11/20/2026 4:00 PM</span>
+					</div>
+					</div>
+				</div>			   <div class="bidsHeader listHeader">
+						<span>Washington County Sheriff's Office</span>
+						<span>1 Bid</span>
+			   </div>
+				<div class="listItemsRow bid">
+					<div class="bidTitle" style="vertical-align: top">
+						<span><a href="bids.aspx?bidID=826">Request for Proposals (RFP) for Jail Food Services</a></span><br>
+						<span>Washington County is seeking proposals from qualified firms to provide food service for our inmate population. Washington County operates a 228-bed jail and a 5-bed temporary... [<a href="bids.aspx?bidID=826" style="font-style: normal; text-decoration: underline; font-family: Verdana" aria-label="Read on: Request for Proposals (RFP) for Jail Food Services">Read on<span class="visuallyHidden">: Request for Proposals (RFP) for Jail Food Services</span></a>]</span>
+					</div>
+					<div class="bidStatus">
+					<div>						<span id="BidStatus82621">Status:</span><br>						<span id="BidCloses82621">Closes:</span>
+					</div>					<div>						<span>Open</span><br>						<span>11/30/2026 2:00 PM</span>
+					</div>
+					</div>
+				</div>			</div>
+		</div><script type="text/javascript"><!--
+	function submitBidForm(ysnShowAllBids) {
+		var form = document.getElementById('frmCategories');
+		form.CatID.value = document.aspnetForm.CatID.value;
+		form.txtSort.value = document.aspnetForm.txtSort.value;
+		if(ysnShowAllBids == 'true')
+		form.showAllBids.value = (document.aspnetForm.showAllBids.checked ? document.aspnetForm.showAllBids.value : '');
+		form.submit();
+	}
+//--></script>
+<div style="margin-top: 2em; height: 0px; font-size: 0.1pt;"></div><!-- BEGIN Left Margin ***** --></div><!-- END Left Margin ***** --></div>
+<script type="text/javascript">order+='ModuleContent\n'</script>
+
+		<div id="ctl00_ctl00_MainContent_ctl00_liveEditPopupWindow" class="modalContainer modalContainerCP" style="display: none;">
+	<div id="ctl00_liveEditTitleBar" class="modalTitleLeft"><h3 id="ctl00_LiveEditModalTitle" class="modalTitle">Live Edit</h3><a id="ctl00_LiveEditCloseButton" class="modalClose" aria-label="Close this modal" href="/" title="Close this window"><svg viewBox='0 0 25 25' id='modalIconClose'><polygon style='fill:currentcolor' points='18.806,6.98 18.075,6.248 12.532,11.792 6.989,6.248 6.257,6.98 11.786,12.508 6.212,18.084 6.943,18.815 12.532,13.224 18.12,18.815 18.851,18.084 13.277,12.508'></polygon></svg></a></div><div id="ctl00_liveEditContentLeft" class="modalContentLeft"><div id="ctl00_liveEditContentRight" class="modalContentRight"><div id="ctl00_liveEditContent" class="modalContent"><iframe style="display: none; border: none;" src="about:blank" id="liveEditDialog" title="Live Edit Dialog" name="liveEditDialog"></iframe></div></div></div><div id="ctl00_liveEditFooter" class="modalBottomLeft"><div id="ctl00_liveEditfooterbar" class="modalBottomRight"><div id="ctl00_liveEditfooterbar1" class="modalBottom"></div></div></div>
+</div><input type="submit" name="ctl00$ctl00$MainContent$ctl00_liveEditSpawnWindow" value="" id="ctl00_ctl00_MainContent_ctl00_liveEditSpawnWindow" disabled="disabled" aria-hidden="true" style="display: none;" />
+	
+
+<script type="text/javascript">
+//<![CDATA[
+Sys.Application.add_init(function() {
+    $create(AjaxControlToolkit.ModalPopupBehavior, {"BackgroundCssClass":"modalBackground","CancelControlID":"ctl00_LiveEditCloseButton","PopupControlID":"ctl00_ctl00_MainContent_ctl00_liveEditPopupWindow","PopupDragHandleControlID":"ctl00_liveEditTitleBar","dynamicServicePath":"/bids.aspx","id":"editItemBehavior"}, null, null, $get("ctl00_ctl00_MainContent_ctl00_liveEditSpawnWindow"));
+});
+//]]>
+</script>
+</form>
+	<form id="aspnetSearchForm" name="aspnetSearchForm" style="display:none;" action="/Search.aspx" method="get">
+		<input name="SearchString" type = "hidden" value ="" />
+	</form>
+	
+	<form name="frmCategories" id="frmCategories" action="/Bids.aspx" method="GET"><input type="hidden" name="CatID" value=""><input type="hidden" name="txtSort" value=""><input type="hidden" name="showAllBids" value=""><input type="hidden" name="Status" value="open"></form>
+
+	
+	</div>
+	 
+</div>	
+
+</div>
+</div>
+</div></div>
+</div><!-- Extra Content --><div data-cpRole="structuralContainer" id="intContainer1">
+<div class="siteWrap"><div data-cpRole="contentContainer" id="intContent1a">	<div id="cc16fbf6e8-6a1b-4d99-8917-080d80a039e6" data-containerid="16fbf6e8-6a1b-4d99-8917-080d80a039e6" class="pageContent cpGrid cpGrid24 showInMobile">
+				                
+
+
+
+	</div>
+</div></div>
+</div><!-- GBs --><div data-cpRole="structuralContainer" id="gbsContainerTS">
+<div class="siteWrap"><div data-cpRole="contentContainer" id="gbsTS">	<div id="cc4d1aa11c-979c-4de3-8f92-4366dbfeb5e5" data-containerid="4d1aa11c-979c-4de3-8f92-4366dbfeb5e5" class="pageContent cpGrid cpGrid24 isLockedContainer showInMobile" data-contentcontainerbreakpoint="83">
+				                
+
+
+
+	</div>
+</div></div>
+</div><!-- Footer --><footer data-cpRole="structuralContainer" id="footerContainerTS" class="noOverflowTS">
+<div data-cpRole="banner" id="banner2"><div data-cpRole="structuralContainer" id="bannerSizingTS2">
+<div class="siteWrap"><div data-cpRole="contentContainer" id="footerTS">	<div id="cc870c96e9-c385-404a-bcef-0e02dafab345" data-containerid="870c96e9-c385-404a-bcef-0e02dafab345" class="pageContent cpGrid cpGrid24 isLockedContainer showInMobile" data-contentcontainerbreakpoint="55">
+				                
+
+		<div class="row outer wide"><!--
+--><div class="outer col col5 first" style="" data-widgetcontainerid="7f4a3fd0-6f98-4200-8e33-57f359fe1964">				
+	<div class="row nest first wide">
+	
+	<div class="inner col col5 first last id8be5389f-8ee8-4b20-bee9-8b8fa05bd65a" style="" data-widgetcontainerid="8be5389f-8ee8-4b20-bee9-8b8fa05bd65a">	
+    <div data-widget-id="87101417-f199-4287-ad4f-0417d230a23d" data-widget-controller-path="/InfoAdvanced/Widget">
+
+
+
+
+
+	<section id="divInfoAdv87101417-f199-4287-ad4f-0417d230a23d" class="widget widgetInfoAdvanced skin15 widgetOptionSet5 wide" data-modulewidgettype="infoAdv" data-elementqueryclasses='{"wide-narrow":"min-width:25em"}' data-elementquerymatch='matchMultiColumn' data-elementqueryunmatch='unmatchMultiColumn' aria-label="Info Advanced">
+			<header class="widgetHeader" id="header87101417-f199-4287-ad4f-0417d230a23d">
+		<div class="">
+								</div>
+	</header>
+	<div class="widgetBody  cpGrid cpGrid1 ">
+		<div class="row  wide">
+					<div class="col col1 first last">
+						<ol class="pageStyles semanticList">
+
+<li class="InfoAdvanced widgetItem fr-view">
+	<p><a href="/"><img src="/ImageRepository/Document?documentId=75026" class="fr-dib" alt="Washington County Minnesota Homepage" style="width: 240px;"></a></p>
+</li>						</ol>
+					</div>
+		</div>
+	</div>
+	<div class="widgetFooter">
+
+	</div>
+
+	</section>
+
+
+
+<script type="text/javascript">
+	//Render slideshow if info advacned items contain one.
+	$(document).ready(function (e) {
+		$('#divInfoAdv87101417-f199-4287-ad4f-0417d230a23d .InfoAdvanced.widgetItem').each(function () {
+			renderSlideshowIfApplicable($(this));		
+		});
+	});
+</script></div>
+	</div> <!-- inner column -->
+
+	</div> <!-- inner row -->
+	<div class="row nest last wide">
+	
+	<div class="inner col col5 first last id20ce1a39-da0f-493a-ac39-814cfa66ef84" style="" data-widgetcontainerid="20ce1a39-da0f-493a-ac39-814cfa66ef84">	
+<div data-widget-id="0ab378af-5902-4cc9-86b7-713f4ec3ff0d" data-widget-controller-path="/GraphicLinks/Widget">
+
+
+
+
+<div id="graphicLinkWidget0ab378af-5902-4cc9-86b7-713f4ec3ff0d" class="widget widgetGraphicLinks skin30 widgetOptionSet24 wide" data-elementqueryclasses='{"wide-narrow":"min-width:1em"}' data-elementquerymatch='matchMultiColumn' data-elementqueryunmatch='unmatchMultiColumn' data-modulewidgettype="graphicLinks">
+	<div class="widgetHeader">
+		<div class="">
+				</div>
+	</div>
+	<div class="widgetBody cpGrid cpGrid6 ">
+		<nav class="widgetGraphicLinksNav" aria-labelledby="GraphicLinkHeaderText">
+				<div class="row autoWidths center wide">
+					<!--
+--><div class="col col1 first "><ul class="semanticList"><!--
+	    --><li class="widgetItem GraphicLinks"><a class="widgetDesc widgetGraphicLinksLink" href="https://www.facebook.com/WashingtonCountyMN" target="_blank">
+
+<img src="/ImageRepository/Document?documentID=51127" 
+     class="graphicButtonLink" alt="Facebook (opens in new window)" 
+     onmouseover="this.src='/ImageRepository/Document?documentID=51127'" 
+	onmouseout="this.src='/ImageRepository/Document?documentID=51127'"
+     onfocus="this.src='/ImageRepository/Document?documentID=51127'" 
+	onblur="this.src='/ImageRepository/Document?documentID=51127'"> 
+</a></li><!--
+--></ul></div><!----><div class="col col1  "><ul class="semanticList"><!--
+	    --><li class="widgetItem GraphicLinks"><a class="widgetDesc widgetGraphicLinksLink" href="https://www.instagram.com/washcountyparks/?hl=en" target="_blank">
+
+<img src="/ImageRepository/Document?documentID=51128" 
+     class="graphicButtonLink" alt="Instagram (opens in new window)" 
+     onmouseover="this.src='/ImageRepository/Document?documentID=51128'" 
+	onmouseout="this.src='/ImageRepository/Document?documentID=51128'"
+     onfocus="this.src='/ImageRepository/Document?documentID=51128'" 
+	onblur="this.src='/ImageRepository/Document?documentID=51128'"> 
+</a></li><!--
+--></ul></div><!----><div class="col col1  "><ul class="semanticList"><!--
+	    --><li class="widgetItem GraphicLinks"><a class="widgetDesc widgetGraphicLinksLink" href="https://vimeo.com/washingtoncountymn" target="_blank">
+
+<img src="/ImageRepository/Document?documentID=77911" 
+     class="graphicButtonLink" alt="Vimeo Logo (opens in new window)" 
+     onmouseover="this.src='/ImageRepository/Document?documentID=77911'" 
+	onmouseout="this.src='/ImageRepository/Document?documentID=77911'"
+     onfocus="this.src='/ImageRepository/Document?documentID=77911'" 
+	onblur="this.src='/ImageRepository/Document?documentID=77911'"> 
+</a></li><!--
+--></ul></div><!----><div class="col col1  "><ul class="semanticList"><!--
+	    --><li class="widgetItem GraphicLinks"><a class="widgetDesc widgetGraphicLinksLink" href="https://www.linkedin.com/company/washington-county-minnesota-hr" target="_blank">
+
+<img src="/ImageRepository/Document?documentID=51129" 
+     class="graphicButtonLink" alt="LinkedIn (opens in new window)" 
+     onmouseover="this.src='/ImageRepository/Document?documentID=51129'" 
+	onmouseout="this.src='/ImageRepository/Document?documentID=51129'"
+     onfocus="this.src='/ImageRepository/Document?documentID=51129'" 
+	onblur="this.src='/ImageRepository/Document?documentID=51129'"> 
+</a></li><!--
+--></ul></div><!----><div class="col col1  "><ul class="semanticList"><!--
+	    --><li class="widgetItem GraphicLinks"><a class="widgetDesc widgetGraphicLinksLink" href="https://nextdoor.com/agency-city/mn/washington-county/" target="_blank">
+
+<img src="/ImageRepository/Document?documentID=51130" 
+     class="graphicButtonLink" alt="Nextdoor (opens in new window)" 
+     onmouseover="this.src='/ImageRepository/Document?documentID=51130'" 
+	onmouseout="this.src='/ImageRepository/Document?documentID=51130'"
+     onfocus="this.src='/ImageRepository/Document?documentID=51130'" 
+	onblur="this.src='/ImageRepository/Document?documentID=51130'"> 
+</a></li><!--
+--></ul></div><!----><div class="col col1  last"><ul class="semanticList"><!--
+	    --><li class="widgetItem GraphicLinks"><a class="widgetDesc widgetGraphicLinksLink" href="https://twitter.com/WashingtonCoMN" target="_blank">
+
+<img src="/ImageRepository/Document?documentID=67407" 
+     class="graphicButtonLink" alt="X icon (opens in new window)" 
+     onmouseover="this.src='/ImageRepository/Document?documentID=67407'" 
+	onmouseout="this.src='/ImageRepository/Document?documentID=67407'"
+     onfocus="this.src='/ImageRepository/Document?documentID=67407'" 
+	onblur="this.src='/ImageRepository/Document?documentID=67407'"> 
+</a></li><!--
+--></ul></div><!--				-->
+				</div>
+			</nav>
+		</div>
+	<div class="widgetFooter">
+			</div>
+</div>
+</div>
+
+	</div> <!-- inner column -->
+
+	</div> <!-- inner row -->
+
+			</div><!-- outer column --><!----><div class="outer col col2" style="" data-widgetcontainerid="bb7670fe-81ce-4240-95f9-c52536525704">				
+	<div class="row nest first last wide">
+	
+	<div class="inner col col2 first last id7595ddd1-7c59-4e29-8605-f2a3d7211e0f" style="" data-widgetcontainerid="7595ddd1-7c59-4e29-8605-f2a3d7211e0f">	
+
+<div class="widget widgetSpacer" id="f1a0c99d-4a16-49c3-b7e6-fc232349c1ac"></div>
+	</div> <!-- inner column -->
+
+	</div> <!-- inner row -->
+
+			</div><!-- outer column --><!----><div class="outer col col5" style="" data-widgetcontainerid="a24c5eae-f2cb-4234-b3df-6d05aaae1db7">				
+	<div class="row nest first last wide">
+	
+	<div class="inner col col5 first last idc013d403-138d-4b21-8db5-0993536fe61e" style="" data-widgetcontainerid="c013d403-138d-4b21-8db5-0993536fe61e">	
+    <div data-widget-id="97d64aa8-a7af-4bf2-b44c-e2d486a1596c" data-widget-controller-path="/InfoAdvanced/Widget">
+
+
+
+
+
+	<section id="divInfoAdv97d64aa8-a7af-4bf2-b44c-e2d486a1596c" class="widget widgetInfoAdvanced skin19 widgetOptionSet5 wide" data-modulewidgettype="infoAdv" data-elementqueryclasses='{"wide-narrow":"min-width:25em"}' data-elementquerymatch='matchMultiColumn' data-elementqueryunmatch='unmatchMultiColumn' aria-labelledby="header97d64aa8-a7af-4bf2-b44c-e2d486a1596c">
+			<header class="widgetHeader" id="header97d64aa8-a7af-4bf2-b44c-e2d486a1596c">
+		<div class="">
+					<h3 >Contact Us</h3>
+								</div>
+	</header>
+	<div class="widgetBody  cpGrid cpGrid1 ">
+		<div class="row  wide">
+					<div class="col col1 first last">
+						<ol class="pageStyles semanticList">
+
+<li class="InfoAdvanced widgetItem fr-view">
+	<p>P.O. Box 6<br>14949 62nd Street North<br>Stillwater, MN 55082-6132</p><p>Phone:<br><a href="tel:6514306000">651-430-6000</a><br> <a href="tel:6514306246">651-430-6246 (TTY)</a></p>
+</li>						</ol>
+					</div>
+		</div>
+	</div>
+	<div class="widgetFooter">
+
+	</div>
+
+	</section>
+
+
+
+<script type="text/javascript">
+	//Render slideshow if info advacned items contain one.
+	$(document).ready(function (e) {
+		$('#divInfoAdv97d64aa8-a7af-4bf2-b44c-e2d486a1596c .InfoAdvanced.widgetItem').each(function () {
+			renderSlideshowIfApplicable($(this));		
+		});
+	});
+</script></div>
+	</div> <!-- inner column -->
+
+	</div> <!-- inner row -->
+
+			</div><!-- outer column --><!----><div class="outer col col1" style="" data-widgetcontainerid="85bc6d8a-fdc4-461b-b8d9-8432fd3e16d3">				
+	<div class="row nest first last wide">
+	
+	<div class="inner col col1 first last id04d4575c-aba7-4387-be53-d6a31f4c0ebc" style="" data-widgetcontainerid="04d4575c-aba7-4387-be53-d6a31f4c0ebc">	
+
+<div class="widget widgetSpacer" id="c99590af-f6f9-4868-b35d-2bb8f6a02f53"></div>
+	</div> <!-- inner column -->
+
+	</div> <!-- inner row -->
+
+			</div><!-- outer column --><!----><div class="outer col col5" style="" data-widgetcontainerid="890b1b81-277d-4236-8bcb-46563b5588de">				
+	<div class="row nest first last wide">
+	
+	<div class="inner col col5 first last id44d9ccf2-1c46-41ed-9367-0ac8e07f7f5c" style="" data-widgetcontainerid="44d9ccf2-1c46-41ed-9367-0ac8e07f7f5c">	
+	<div data-widget-id="c16bc5ef-8c64-4415-a7d0-6b2a0a5dc335" data-widget-controller-path="/QuickLinks/Widget">
+
+
+
+
+
+
+
+
+	<section id="widgetQuicklinkc16bc5ef-8c64-4415-a7d0-6b2a0a5dc335" class="widget widgetQuickLinks skin19 widgetOptionSet18 narrow" data-modulewidgettype="quickLinks" data-elementqueryclasses='{"wide-narrow":"min-width:25em"}' data-elementquerymatch='matchMultiColumn' data-elementqueryunmatch='unmatchMultiColumn' aria-labelledby="quickLinksHeaderc16bc5ef-8c64-4415-a7d0-6b2a0a5dc335">
+			<header class="widgetHeader" id="quickLinksHeaderc16bc5ef-8c64-4415-a7d0-6b2a0a5dc335">
+		<div class="">
+					<h3><a  style="" href="/QuickLinks.aspx?CID=447" >Essential Links</a></h3>
+						</div>
+	</header>
+	<div class="widgetBody cpGrid cpGrid1 ">
+        <div class="row  narrow">
+				<div class="col col1 first last">
+					<ol class="semanticList">
+
+
+
+
+    <li style="position:relative" class="widgetItem QuickLinks">
+        <a class="widgetDesc widgetQuickLinksLink" href="/667/Elections" target="_self" aria-label="Elections - 1-Essential Links" rel="">Elections</a>
+        <div class="widgetMeta"></div>
+    </li>
+
+
+
+
+    <li style="position:relative" class="widgetItem QuickLinks">
+        <a class="widgetDesc widgetQuickLinksLink" href="/3434/Property-Environment" target="_self" aria-label="Property &amp; Environment - 1-Essential Links" rel="">Property & Environment</a>
+        <div class="widgetMeta"></div>
+    </li>
+
+
+
+
+    <li style="position:relative" class="widgetItem QuickLinks">
+        <a class="widgetDesc widgetQuickLinksLink" href="/492/Parks-Trails" target="_self" aria-label="Parks &amp; Trails - 1-Essential Links" rel="">Parks & Trails</a>
+        <div class="widgetMeta"></div>
+    </li>
+
+
+
+
+    <li style="position:relative" class="widgetItem QuickLinks">
+        <a class="widgetDesc widgetQuickLinksLink" href="/3821/Library" target="_self" aria-label="Library - 1-Essential Links" rel="">Library</a>
+        <div class="widgetMeta"></div>
+    </li>
+
+
+
+
+    <li style="position:relative" class="widgetItem QuickLinks">
+        <a class="widgetDesc widgetQuickLinksLink" href="/373/Public-Safety" target="_self" aria-label="Public Safety &amp; Law - 1-Essential Links" rel="">Public Safety & Law</a>
+        <div class="widgetMeta"></div>
+    </li>
+
+
+
+
+    <li style="position:relative" class="widgetItem QuickLinks">
+        <a class="widgetDesc widgetQuickLinksLink" href="https://washingtoncomn.sharepoint.com/" target="_blank" aria-label="Employee Portal - 1-Essential Links opens in new window" rel="noopener">Employee Portal</a>
+        <div class="widgetMeta"></div>
+    </li>
+					</ol>
+				</div>
+		</div>
+        
+	</div>
+	<div class="widgetFooter">
+	</div>
+	<div class="addItemModal hidden">
+		<div class="url hidden">/QuickLinks.aspx</div>
+	</div>
+
+	</section>
+</div>
+
+	</div> <!-- inner column -->
+
+	</div> <!-- inner row -->
+
+			</div><!-- outer column --><!----><div class="outer col col1" style="" data-widgetcontainerid="31b88a40-6912-4e4f-8034-cabd55457553">				
+	<div class="row nest first last wide">
+	
+	<div class="inner col col1 first last idd26ae3e6-faf2-4a51-a7d5-90918421fe23" style="" data-widgetcontainerid="d26ae3e6-faf2-4a51-a7d5-90918421fe23">	
+
+<div class="widget widgetSpacer" id="0f714cc1-920b-4fe3-a3f2-78a585d64527"></div>
+	</div> <!-- inner column -->
+
+	</div> <!-- inner row -->
+
+			</div><!-- outer column --><!----><div class="outer col col5 last" style="" data-widgetcontainerid="9b1b0ad3-79f3-423b-923e-a5980b68dfc3">				
+	<div class="row nest first last wide">
+	
+	<div class="inner col col5 first last idb4b115f4-449a-47da-8008-f4322a94088a" style="" data-widgetcontainerid="b4b115f4-449a-47da-8008-f4322a94088a">	
+	<div data-widget-id="3e47fa3a-8163-422d-8328-a03e54428b73" data-widget-controller-path="/QuickLinks/Widget">
+
+
+
+
+
+
+
+
+	<section id="widgetQuicklink3e47fa3a-8163-422d-8328-a03e54428b73" class="widget widgetQuickLinks skin19 widgetOptionSet18 narrow" data-modulewidgettype="quickLinks" data-elementqueryclasses='{"wide-narrow":"min-width:25em"}' data-elementquerymatch='matchMultiColumn' data-elementqueryunmatch='unmatchMultiColumn' aria-labelledby="quickLinksHeader3e47fa3a-8163-422d-8328-a03e54428b73">
+			<header class="widgetHeader" id="quickLinksHeader3e47fa3a-8163-422d-8328-a03e54428b73">
+		<div class="">
+					<h3><a  style="" href="/QuickLinks.aspx?CID=446" >Site Links</a></h3>
+						</div>
+	</header>
+	<div class="widgetBody cpGrid cpGrid1 ">
+        <div class="row  narrow">
+				<div class="col col1 first last">
+					<ol class="semanticList">
+
+
+
+
+    <li style="position:relative" class="widgetItem QuickLinks">
+        <a class="widgetDesc widgetQuickLinksLink" href="/accessibility" target="_self" aria-label="Accessibility - 1-Site Links" rel="">Accessibility</a>
+        <div class="widgetMeta"></div>
+    </li>
+
+
+
+
+    <li style="position:relative" class="widgetItem QuickLinks">
+        <a class="widgetDesc widgetQuickLinksLink" href="/site/copyright" target="_self" aria-label="Copyright - 1-Site Links" rel="">Copyright</a>
+        <div class="widgetMeta"></div>
+    </li>
+
+
+
+
+    <li style="position:relative" class="widgetItem QuickLinks">
+        <a class="widgetDesc widgetQuickLinksLink" href="/1822/Data-Practices" target="_self" aria-label="Data Practices - 1-Site Links" rel="">Data Practices</a>
+        <div class="widgetMeta"></div>
+    </li>
+
+
+
+
+    <li style="position:relative" class="widgetItem QuickLinks">
+        <a class="widgetDesc widgetQuickLinksLink" href="/site/privacy" target="_self" aria-label="Privacy Policy - 1-Site Links" rel="">Privacy Policy</a>
+        <div class="widgetMeta"></div>
+    </li>
+
+
+
+
+    <li style="position:relative" class="widgetItem QuickLinks">
+        <a class="widgetDesc widgetQuickLinksLink" href="/sitemap" target="_self" aria-label="Site Map - 1-Site Links" rel="">Site Map</a>
+        <div class="widgetMeta"></div>
+    </li>
+					</ol>
+				</div>
+		</div>
+        
+	</div>
+	<div class="widgetFooter">
+	</div>
+	<div class="addItemModal hidden">
+		<div class="url hidden">/QuickLinks.aspx</div>
+	</div>
+
+	</section>
+</div>
+
+	</div> <!-- inner column -->
+
+	</div> <!-- inner row -->
+
+			</div><!-- outer column --><!--		--></div> <!-- outer row -->
+
+
+	</div>
+</div></div>
+</div>
+
+
+
+
+		<div id="banner2-42" style="display: none"></div>
+			<script type="text/javascript">
+				$(window).on("load", function () {
+					$.when(window.Pages.rwdSetupComplete)
+						.done(function () {
+							renderBanner('banner2-42',
+								'banner2',
+								{"BannerOptionID":42,"ThemeID":18,"SlotName":"banner2","Name":"Default","IsDefault":true,"BannerMode":1,"SlideShowSlideTiming":"5","SlideshowTransition":0,"SlideShowTransitionTiming":"1","ImageScale":true,"ImageAlignment":1,"ImageScroll":true,"MuteSound":true,"VideoType":0,"Status":40,"SlideshowControlsPosition":0,"SlideshowControlsAlignment":0,"SlideshowBannerControlsColorScheme":0,"DisplayVideoPauseButton":false,"VideoPauseButtonAlignment":1,"VideoPauseButtonControlsAlignment":0,"VideoPauseButtonStyle":"#FFFFFF","VideoPauseButtonBackgroundStyle":"#000000","VideoPauseButtonAlignmentClass":"alignRight viewport","DisplaySlideshowPauseButton":false,"SlideshowControlsColor":"#FFFFFF","SlideshowControlsBackgroundColor":"#000000","SlideshowPauseButtonClass":"isHidden","BannerImages":[{"BannerImageID":570,"BannerOptionID":42,"FileName":"/ImageRepository/Document?documentID=74998","Height":700,"Width":2200,"StartingOn":null,"StoppingOn":null,"IsLink":false,"LinkAddress":null,"Sequence":1,"RecordStatus":0,"ModifiedBy":0,"ModifiedOn":"\/Date(-62135575200000)\/","AltText":null}],"BannerVideos":[],"RecordStatus":0,"ModifiedBy":0,"ModifiedOn":"\/Date(-62135575200000)\/"},
+								{"BannerImageID":570,"BannerOptionID":42,"FileName":"/ImageRepository/Document?documentID=74998","Height":700,"Width":2200,"StartingOn":null,"StoppingOn":null,"IsLink":false,"LinkAddress":null,"Sequence":1,"RecordStatus":0,"ModifiedBy":0,"ModifiedOn":"\/Date(-62135575200000)\/","AltText":null},
+								'/App_Themes/Simple/Images/',
+								'<img alt="" class="bannerObject" src="/ImageRepository/Document?documentID=74998" />');
+						});
+				});
+			</script>
+
+</div>
+</footer><!-- Powered By --><div data-cpRole="structuralContainer" id="poweredByContainerTS">
+<div class="siteWrap"><div data-cpRole="contentContainer" id="poweredByTS">	<div id="cc24713256-f407-48f5-be96-e62dfccb7d81" data-containerid="24713256-f407-48f5-be96-e62dfccb7d81" class="pageContent cpGrid cpGrid24 isLockedContainer showInMobile">
+				                
+
+		<div class="row outer wide"><!--
+--><div class="outer col col24 first last" style="" data-widgetcontainerid="0ed9a6dd-783a-461f-b24a-a353b14614c3">				
+	<div class="row nest first last wide">
+	
+	<div class="inner col col24 first last id13dd0618-0f5b-49c6-9e2c-00fb258ca06b" style="" data-widgetcontainerid="13dd0618-0f5b-49c6-9e2c-00fb258ca06b">	
+ 
+	<div data-widget-id='ebae01e8-3fba-43a2-bef8-57849ea44df5' data-moduleName="customHtml" id='widgetCustomHtmlebae01e8-3fba-43a2-bef8-57849ea44df5' class="widget widgetCustomHtml skin15 narrow" >
+	<div class="widgetBody pageStyles" id="widgetBodyebae01e8-3fba-43a2-bef8-57849ea44df5">
+		<div id="customHtmlebae01e8-3fba-43a2-bef8-57849ea44df5"><div><style>
+  /* CP icon */
+  .cpBylineIconTS {
+    color: #fff;
+  }
+  /* CP Text */
+  .cpBylineTextTS,
+  .cpBylineTextTS a:link {
+    color: #fff;
+  }
+
+  .cpBylineTS {
+    text-align: center;
+  }
+  
+  .cpBylineIconTS {
+    fill: currentColor;
+    width: 39px;
+    height: 26px;
+    display: inline;
+    vertical-align: middle;
+  }
+</style>
+
+<div class="widgetItem cpBylineTS">
+  <svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 100 100" class="cpBylineIconTS">
+    <path class="c" d="M73.4,23.2h-19v16.7h19c2.8,0,5,2.2,5,5c0,2.8-2.2,5-5,5h-19v28.4h5.5l11.3-11.7h2.2c11.9,0,21.6-9.7,21.6-21.6C95,33,85.3,23.2,73.4,23.2"></path>
+    <path class="p" d="M45.8,66.5H26.6C14.7,66.5,5,56.8,5,44.9C5,33,14.7,23.2,26.6,23.2h19.1v16.7H26.6c-2.8,0-5,2.2-5,5c0,2.8,2.2,5,5,5h19.1V66.5z"></path>
+  </svg>
+  <span class="cpBylineTextTS">Government Websites by <a href="https://connect.civicplus.com/referral">CivicPlus&reg;</a></span>
+</div>
+</div></div>
+	</div>
+
+	</div>
+
+	</div> <!-- inner column -->
+
+	</div> <!-- inner row -->
+
+			</div><!-- outer column --><!--		--></div> <!-- outer row -->
+
+
+	</div>
+</div></div>
+</div>
+</div>
+
+            </div>
+        </div>
+    </div>
+
+
+<link href="/745732998.css" rel="stylesheet" type="text/css" />
+
+<div id="SplashMessageWrapper" class="cp-Splash-wrapper">
+	<div role="dialog" aria-labelledby="cp-Splash-title" aria-describedby="editorContentDesc" aria-modal="true" tabindex="-1" id="SplashMessage" class="hidden cp-Splash cp-Splash--modal is-open">
+		<div class="cp-Splash-header">
+			<h2 class="cp-Splash-title" id="cp-Splash-title">Loading</h2>
+			<button class="cp-Splash-Btn cp-Splash-close" aria-label="Close this modal" title="Close this window">
+				<svg id="iconClose" viewBox="0 0 25 25">
+					<polygon style="fill:currentcolor"
+							 points="18.806,6.98 18.075,6.248 12.532,11.792 6.989,6.248 6.257,6.98 11.786,12.508 6.212,18.084 6.943,18.815 12.532,13.224 18.12,18.815 18.851,18.084 13.277,12.508"></polygon>
+				</svg>
+			</button>
+		</div>
+		<div class="cp-Splash-body">
+			<div class="cp-Splash-Prose editorContent fr-view" id="editorContentDesc">
+				<!-- Content from the Froala Editor will go here. -->
+				Loading
+			</div>
+		</div>
+		<div class="cp-Splash-footer">
+			<button class="cp-Splash-Btn cp-Splash-Btn--NoShow">Do Not Show Again</button>
+			<button class="cp-Splash-Btn cp-Splash-Btn--Close">Close</button>
+		</div>
+	</div>
+</div>
+
+<script src="/Assets/Scripts/APIClient.js"></script>
+<script src="/Assets/Mystique/Shared/Scripts/Moment/Moment.min.js"></script>
+<script src="/Assets/Scripts/SplashModal/SplashModalRender.js"></script>
+<script>
+
+		$(document).ready(function () {
+			var filter = {
+				targetId: '',
+				targetType: 0
+			}
+
+			new SplashModalRender().triggerRender(filter);
+		});
+</script>
+
+	
+	
+
+
+
+
+
+
+    <script src="/-1442400649.js" type="text/javascript"></script>
+    <!-- Google Analytics -->
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-55732236-1', 'auto');
+  ga('send', 'pageview');
+
+</script>
+<!-- End Google Analytics -->
+
+<script src="https://web1.co.washington.mn.us/Scripts/CivicPlus.js" type="text/javascript" ></script>
+
+<!--Start SiteImprove-->
+<script async src=https://siteimproveanalytics.com/js/siteanalyze_1310196.js></script>
+<!--End SiteImprove-->
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-M7FYBH3X59"></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date()); gtag('config', 'G-M7FYBH3X59');
+</script>
+
+<!-- START Monsido -->
+<script type="text/javascript">
+    window._monsido = window._monsido || {
+        token: "7xUbVKA1UChtNGYrPIC9zg",
+        statistics: {
+            enabled: true,
+            cookieLessTracking: true,
+            documentTracking: {
+                enabled: true,
+                documentCls: "monsido_download",
+                documentIgnoreCls: "monsido_ignore_download",
+                documentExt: [],
+            },
+        },
+        heatmap: {
+            enabled: true,
+        },
+        pageCorrect: {
+            enabled: true,
+        },
+        pageAssistV2: {
+            enabled: true,
+            theme: "light",
+            mainColor: "#783CE2",
+            textColor: "#ffffff",
+            linkColor: "#783CE2",
+            buttonHoverColor: "#783CE2",
+            mainDarkColor: "#052942",
+            textDarkColor: "#ffffff",
+            linkColorDark: "#FFCF4B",
+            buttonHoverDarkColor: "#FFCF4B",
+            greeting: "Discover your personalization options",
+            direction: "leftbottom",
+            coordinates: "undefined undefined undefined undefined",
+            iconShape: "circle",
+            title: "Personalization Options",
+            titleText: "Welcome to PageAssist toolbar! Adjust the options below to cater the website to your accessibility needs.",
+            iconPictureUrl: "logo",
+            logoPictureUrl: "",
+            logoPictureBase64: "",
+            languages: [""],
+            defaultLanguage: "",
+            skipTo: false,
+            alwaysOnTop: false,
+        },
+    };
+</script>
+<script type="text/javascript" async src="https://app-script.monsido.com/v2/monsido-script.js"></script>
+<!-- END Monsido -->
+
+<!-- Fixed Nav Adjustment -->
+<script>
+  function getValueTS(elem, attr) {
+    var val = elem.css(attr);
+    if (val === undefined) return undefined;
+    var num = parseInt(val, 10);
+    if (num === NaN) return undefined;
+    return num;
+  }
+
+  function clampTS(number, min, max) {
+    return Math.min(Math.max(number, min), max);
+  }
+
+  function isPageEditingTS() {
+    return (
+      $("#doneEditing").length > 0 || // In live edit
+      typeof DesignCenter !== "undefined" // In theme manager
+    );
+  }
+
+  var bgColorRegexTS = new RegExp("rgba\((\d+), (\d+), (\d+), (\d*\.?\d*)\)");
+  function isTransparentTS(elem) {
+    var bg = elem.css('background-color');
+    if (typeof bg !== "string") return false;
+    if (bg === "transparent") return true;
+    if (!bg.startsWith('rgba(')) return false;
+    var matchState = bg.match(bgColorRegexTS);
+    if (!matchState || matchState.length !== 5) return false;
+    var alpha = parseFloat(matchState[4], 10);
+    if (!(alpha >= 0 && alpha < 1)) return false;
+    return true;
+  }
+
+  function iterateLeftpads(cb) {
+    var containersTS = $("[class^='siteWrap'],[class*=' siteWrap']");
+    for (var i = 0; i < containersTS.length; i++) {
+      var containerTS = containersTS[i];
+      // Skip the body container and anything with data-skip-leftpad
+      if (
+        containerTS.id !== "bodyContainerTS" &&
+        containerTS.getAttribute('data-skip-leftpad') === null
+      ) {
+        cb(containerTS);
+      }
+    }
+  }
+
+  function iterateRightpads(cb) {
+    var containersTS = $("[class^='siteWrap'],[class*=' siteWrap']");
+    for (var i = 0; i < containersTS.length; i++) {
+      var containerTS = containersTS[i];
+      // Skip the body container and anything with data-skip-rightpad
+      if (
+        containerTS.id !== "bodyContainerTS" &&
+        containerTS.getAttribute('data-skip-rightpad') === null
+      ) {
+        cb(containerTS);
+      }
+    }
+  }
+
+  var anchor = $("#divToolbars");
+  var bodyContainerTS = $("#bodyContainerTS");
+
+  // Outer banner padding (push banner down)
+  var outerSizingTS = $("#bannerContainerTS");
+  // Inner banner padding (push banner content down) - Transparent header OR on attaching headers
+  var innerSizingTS = $("#bannerSizingTS");
+
+  var forceUnfixClassTS = "forceUnfixTS";
+
+  var fixedTopTS = $(".fixedTopTS");
+  var fixedBottomTS = $(".fixedBottomTS");
+  var fixedLeftTS = $(".fixedLeftTS");
+  var fixedRightTS = $(".fixedRightTS");
+
+  var initialTopTS;
+  var topAttachTS;
+  if (fixedTopTS && fixedTopTS.length === 1) {
+    initialTopTS = getValueTS(fixedTopTS, 'top');
+    var attachment = fixedTopTS.attr('data-attach');
+    if (attachment) topAttachTS = $("#" + attachment);
+    if (!topAttachTS || topAttachTS.length !== 1) topAttachTS = undefined;
+  }
+
+  function resizeAdjustmentTS() {
+    var editing = isPageEditingTS();
+
+    // Fixed top script
+    (function () {
+      if (!fixedTopTS || fixedTopTS.length !== 1 || initialTopTS === undefined) return;
+
+      if (editing) {
+        fixedTopTS[0].classList.add(forceUnfixClassTS);
+      } else {
+        fixedTopTS[0].classList.remove(forceUnfixClassTS);
+      }
+
+      var topPosition = fixedTopTS.css('position');
+      if (topPosition === 'fixed') {
+        if (topAttachTS) {
+          scrollAdjustmentTS();
+        } else {
+          var anchorHeight = anchor.outerHeight() - 1;
+          fixedTopTS.css('top', anchorHeight + initialTopTS);
+        }
+      } else {
+        fixedTopTS.css('top', initialTopTS);
+      }
+
+      if (topPosition === 'fixed' || topPosition === 'absolute') {
+        // Bump the banner content down
+        if (isTransparentTS(fixedTopTS)) {
+          innerSizingTS.css('padding-top', initialTopTS + fixedTopTS.outerHeight());
+          outerSizingTS.css('padding-top', '');
+
+          try {
+            window.Pages.onResizeHandlersExecute();
+          } catch (e) { }
+        } else {
+          outerSizingTS.css('padding-top', fixedTopTS.outerHeight() - 1);
+          innerSizingTS.css('padding-top', '');
+        }
+      } else {
+        innerSizingTS.css('padding-top', '');
+        outerSizingTS.css('padding-top', '');
+      }
+    })();
+
+    // Fixed bottom script
+    (function () {
+      if (!fixedBottomTS || fixedBottomTS.length === 0) return;
+
+      // If the widget has gone narrow, force unfix
+      if (editing || fixedBottomTS.outerHeight() > 200) {
+        fixedBottomTS[0].classList.add(forceUnfixClassTS);
+      } else {
+        fixedBottomTS[0].classList.remove(forceUnfixClassTS);
+      }
+
+      if (fixedBottomTS.css('position') === 'fixed') {
+        bodyContainerTS.css('padding-bottom', fixedBottomTS.outerHeight());
+      } else {
+        bodyContainerTS.css('padding-bottom', '');
+      }
+    })();
+
+    // Fixed left script
+    (function () {
+      if (!fixedLeftTS || fixedLeftTS.length === 0) return;
+
+      if (editing) {
+        fixedLeftTS[0].classList.add(forceUnfixClassTS);
+      } else {
+        fixedLeftTS[0].classList.remove(forceUnfixClassTS);
+      }
+
+      if (fixedLeftTS.css('position') === 'fixed') {
+        var anchorHeight = anchor.outerHeight() - 1;
+        fixedLeftTS.css('top', anchorHeight);
+        var leftBoundingTS = fixedLeftTS[0].getBoundingClientRect();
+        iterateLeftpads(function (containerTS) {
+          var containerBoundingTS = containerTS.getBoundingClientRect();
+          if (containerBoundingTS.left <= leftBoundingTS.right) {
+            $(containerTS).css('padding-left', leftBoundingTS.width + 16);
+          } else {
+            $(containerTS).css('padding-left', '');
+          }
+        });
+      } else {
+        fixedLeftTS.css('top', '');
+        iterateLeftpads(function (containerTS) {
+          $(containerTS).css('padding-left', '');
+        });
+      }
+    })();
+
+    // Fixed right script
+    (function () {
+      if (!fixedRightTS || fixedRightTS.length === 0) return;
+
+      if (editing) {
+        fixedRightTS[0].classList.add(forceUnfixClassTS);
+      } else {
+        fixedRightTS[0].classList.remove(forceUnfixClassTS);
+      }
+
+      if (fixedRightTS.css('position') === 'fixed') {
+        var anchorHeight = anchor.outerHeight() - 1;
+        fixedRightTS.css('top', anchorHeight);
+        var rightBoundingTS = fixedRightTS[0].getBoundingClientRect();
+        iterateRightpads(function (containerTS) {
+          var containerBoundingTS = containerTS.getBoundingClientRect();
+          if (containerBoundingTS.right >= rightBoundingTS.left) {
+            $(containerTS).css('padding-right', rightBoundingTS.width + 16);
+          }
+        });
+      } else {
+        fixedRightTS.css('top', '');
+        iterateRightpads(function (containerTS) {
+          $(containerTS).css('padding-right', '');
+        });
+      }
+    })();
+  }
+
+  function scrollAdjustmentTS() {
+    if (!fixedTopTS || fixedTopTS.length !== 1 || !topAttachTS || topAttachTS.length !== 1) return;
+    var topPosition = fixedTopTS.css('position');
+    if (topPosition === 'fixed' || topPosition === 'absolute') {
+      var anchorBounding = anchor[0].getBoundingClientRect();
+      var attachBounding = topAttachTS[0].getBoundingClientRect();
+      var scrollTop = $(window).scrollTop();
+
+      fixedTopTS.css('top', Math.max(anchorBounding.bottom - 1, attachBounding.bottom));
+    } else {
+      fixedTopTS.css('top', initialTopTS);
+    }
+  }
+
+  $(window).load(function () {
+    setTimeout(function () {
+      try {
+        resizeAdjustmentTS();
+      } catch (e) {
+        console.error(e);
+      }
+    }, 350);
+
+    $(window).scroll(function () {
+      try {
+        scrollAdjustmentTS();
+      } catch (e) {
+        console.error(e);
+      }
+    });
+
+    var adjustTimeoutTS;
+    $(window).resize(function () {
+      clearTimeout(adjustTimeoutTS);
+      adjustTimeoutTS = setTimeout(function () {
+        try {
+          resizeAdjustmentTS();
+        } catch (e) {
+          console.error(e);
+        }
+      }, 350);
+    });
+
+    $.when(window.Pages.angularToolbarComplete).done(function () {
+      try {
+        resizeAdjustmentTS();
+      } catch (e) {
+        console.error(e);
+      }
+    });
+  });
+</script>
+<!-- End Fixed Nav Adjustment -->
+
+
+<script src="https://cdn-residentagent.civicplus.com/loader.js"></script>
+<script>
+    window.ResidentAgentWidget.load({
+        agentId: '2697c5c0-3712-4215-8a36-657c8d1b5526',
+        apiUrl: 'https://residentagent-api-production.azurewebsites.net'
+    });
+</script>
+
+
+    <script type="text/javascript">
+        $(function () {
+            document.cookie = "responsiveGhost=0; path=/";
+        });
+        $(window).on("load", function () {
+            $('body').addClass('doneLoading').removeClass('hideContent');
+
+            if ($('#404Content').length > 0)
+                $('div#bodyWrapper').css('padding', '0px');
+        });
+    </script>
+
+    <noscript>
+        <style>
+            body.hideContent {
+                opacity: 1 !important;
+            }
+        </style>
+    </noscript>
+
+        
+<div style="display: none;">
+	<svg xmlns="http://www.w3.org/2000/svg" style="display:none;">
+
+		<symbol id="iconArrow--left" viewbox="0 0 25 25">
+			<title>Arrow Left</title>
+			<polygon style="fill:currentcolor" points="18.044,25 19.498,23.545 8.409,12.454 19.408,1.455 17.954,0 5.502,12.452"></polygon>
+		</symbol>
+
+		<symbol id="iconArrow--right" viewbox="0 0 25 25">
+			<title>Arrow Right</title>
+			<polygon style="fill:currentcolor" points="6.957,0 5.502,1.455 16.591,12.546 5.592,23.545 7.047,25 19.498,12.548"></polygon>
+		</symbol>
+
+	</svg>
+</div>
+    <script type="text/javascript">loadCSS('//fonts.googleapis.com/css?family=Lato:100,100italic,300,300italic,700,700italic,900,900italic,italic,regular|Montserrat:700,regular|Open+Sans:500,600,700,800,italic,regular|Public+Sans:500,600,700,800,900,italic,regular|STIX+Two+Text:500,500italic,600,600italic,700,700italic,italic,regular|Work+Sans:600,regular|');</script>
+    
+
+    <div class="hidden activeWidgetSkinComponentsOnPageJson">[]</div>
+        <div style="display: none;">
+            <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+                <symbol id="iconSlideshowArrowLeft" viewBox="0 0 22.68 40">
+                    <title>Slideshow Left Arrow</title>
+                    <g>
+                        <path style="fill:currentcolor;" d="M20,40a2.67,2.67,0,0,1-1.9-.79L.79,21.9a2.68,2.68,0,0,1,0-3.79L18.1.79a2.68,2.68,0,1,1,3.79,3.79L6.47,20,21.89,35.42A2.68,2.68,0,0,1,20,40Z"></path>
+                    </g>
+                </symbol>
+                <symbol id="iconSlideshowArrowRight" viewBox="0 0 22.68 40">
+                    <title>Slideshow Right Arrow</title>
+                    <g>
+                        <path style="fill:currentcolor;" d="M2.68,0a2.67,2.67,0,0,1,1.9.79L21.89,18.1a2.68,2.68,0,0,1,0,3.79L4.58,39.21A2.68,2.68,0,0,1,.79,35.42L16.21,20,.79,4.58A2.68,2.68,0,0,1,2.68,0Z"></path>
+                    </g>
+                </symbol>
+            </svg>
+        </div>
+    
+	
+	
+
+    <div id="root-picker-outlet"></div>
+</body>
+</html>

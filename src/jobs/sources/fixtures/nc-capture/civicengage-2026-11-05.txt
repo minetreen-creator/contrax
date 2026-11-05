@@ -1,0 +1,112 @@
+www.durhamnc.gov | status=403 | final=https://www.durhamnc.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.dconc.gov | status=404 | final=https://www.dconc.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.greensboro-nc.gov | status=403 | final=https://www.greensboro-nc.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.guilfordcountync.gov | status=404 | final=https://www.guilfordcountync.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.fayettevillenc.gov | status=404 | final=https://www.fayettevillenc.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.cumberlandcountync.gov | status=404 | final=https://www.cumberlandcountync.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.carync.gov | status=403 | final=https://www.carync.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.mecknc.gov | status=404 | final=https://www.mecknc.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.ashevillenc.gov | status=404 | final=https://www.ashevillenc.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.buncombecounty.org | status=403 | final=https://www.buncombenc.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.wilmingtonnc.gov | status=404 | final=https://www.wilmingtonnc.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.concordnc.gov | status=404 | final=https://concordnc.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.cabarruscounty.us | status=404 | final=https://www.cabarruscounty.us/bids.aspx | civicengage=false | itemsLinks=0
+www.townofchapelhill.org | status=404 | final=https://www.chapelhillnc.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.orangecountync.gov | status=200 | final=https://www.orangecountync.gov/bids.aspx | civicengage=true | itemsLinks=4
+www.hickorync.gov | ERR TimeoutError: The operation timed out.
+www.catawbacountync.gov | status=404 | final=https://www.catawbacountync.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.greenvillenc.gov | status=403 | final=https://www.greenvillenc.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.rockymountnc.gov | status=403 | final=https://www.rockymountnc.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.mooresvillenc.gov | status=404 | final=https://www.mooresvillenc.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.huntersville.org | status=200 | final=https://www.huntersville.org/bids.aspx | civicengage=true | itemsLinks=12
+www.kannapolisnc.gov | status=404 | final=https://www.kannapolisnc.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.goldsboronc.gov | status=200 | final=https://www.goldsboronc.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.salisburync.gov | status=200 | final=https://salisburync.gov/Government/Finance/Bids-and-Purchasing | civicengage=false | itemsLinks=0
+www.sanfordnc.net | status=200 | final=https://www.sanfordnc.net/bids.aspx | civicengage=true | itemsLinks=0
+www.hollyspringsnc.gov | status=200 | final=https://www.hollyspringsnc.gov/2456/Bids-Requests-for-Proposals | civicengage=false | itemsLinks=0
+www.wakeforestnc.gov | status=404 | final=https://www.wakeforestnc.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.fuquay-varina.org | status=200 | final=https://www.fuquay-varina.org/bids.aspx | civicengage=true | itemsLinks=6
+www.garnernc.gov | status=403 | final=https://www.garnernc.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.matthewsnc.gov | status=200 | final=https://www.matthewsnc.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.minthill.com | status=404 | final=https://www.minthill.com/bids.aspx | civicengage=false | itemsLinks=0
+www.cornelius.org | status=404 | final=https://www.cornelius.org/bids.aspx | civicengage=false | itemsLinks=0
+www.townofmorrisville.org | status=404 | final=https://www.morrisvillenc.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.unioncountync.gov | status=403 | final=https://www.unioncountync.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.johnstonnc.com | status=404 | final=https://www.johnstonnc.com/bids.aspx | civicengage=false | itemsLinks=0
+www.harnett.org | status=404 | final=https://www.harnett.org/bids.aspx | civicengage=false | itemsLinks=0
+www.onslowcountync.gov | status=403 | final=https://www.onslowcountync.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.alamance-nc.com | status=403 | final=https://www.alamance-nc.com/bids.aspx | civicengage=false | itemsLinks=0
+www.chathamcountync.gov | status=403 | final=https://www.chathamcountync.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.hendersoncountync.gov | status=403 | final=https://www.hendersoncountync.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.co.davidson.nc.us | status=200 | final=https://www.co.davidson.nc.us/bids.aspx | civicengage=true | itemsLinks=12
+www.randolphcountync.gov | status=200 | final=https://cpauthentication.civicplus.com/Identity/Account/Login?ReturnUrl=%2Fconnect%2Fauthorize%2Fcallback%3Fclient_id%3Dc2e740ca-a572-44ce-bcc1-1e343c89712b%26redirect_uri%3Dhttps%253A%252F%252Fwww.randolphcountync.gov%252FIdentityServer%252FSignInCallback%26response_type%3Dcode%2520id_token%2520token%26scope%3Dopenid%2520profile%2520email%2520account.api%26state%3D5987f2060e8241379aa3a98c062038fa_https%253A%252F%252Fwww.randolphcountync.gov%252Fbids.aspx%26nonce%3D19d1baa875c94c798b0c3b13026d6bb3%26response_mode%3Dform_post%26acr_values%3DOrgBranding%253A390171d8-f728-45a6-8783-505d5f79478e%26code_challenge%3D4181a2927a211302ad29df3f6ad9ecb0005aab3fcaf6801ee930ade2ce8981f4%26code_challenge_method%3DS256%26login_origin_uri%3Dhttps%253A%252F%252Fwww.randolphcountync.gov%252Fbids.aspx | civicengage=false | itemsLinks=0
+www.lincolncounty.org | status=200 | final=http://www.lincolncountync.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.moorecountync.gov | status=200 | final=https://www.moorecountync.gov/bids.aspx | civicengage=true | itemsLinks=3
+www.nashcountync.gov | status=200 | final=https://www.nashcountync.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.cravencountync.gov | status=200 | final=https://www.cravencountync.gov/bids.aspx | civicengage=true | itemsLinks=6
+www.carteretcountync.gov | status=200 | final=https://www.carteretcountync.gov/bids.aspx | civicengage=true | itemsLinks=27
+www.forsyth.cc | status=404 | final=https://www.forsyth.cc/bids.aspx | civicengage=false | itemsLinks=0
+www.wake.gov | status=404 | final=https://www.wake.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.newbernnc.gov | status=404 | final=https://www.newbernnc.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.burkenc.org | status=200 | final=https://www.burkenc.org/bids.aspx | civicengage=true | itemsLinks=6
+www.rutherfordcountync.gov | status=200 | final=https://www.rutherfordcountync.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.clevelandcounty.com | status=404 | final=https://www.clevelandcounty.com/bids.aspx | civicengage=false | itemsLinks=0
+www.co.surry.nc.us | status=404 | final=https://www.co.surry.nc.us/bids.aspx | civicengage=false | itemsLinks=0
+www.wilkescounty.net | status=200 | final=https://www.wilkescounty.net/bids.aspx | civicengage=true | itemsLinks=3
+www.caldwellcountync.org | status=200 | final=https://www.caldwellcountync.org/bids.aspx | civicengage=true | itemsLinks=0
+www.haywoodcountync.gov | status=200 | final=https://www.haywoodcountync.gov/bids.aspx | civicengage=true | itemsLinks=12
+www.jacksonnc.org | status=200 | final=https://www.jacksonnc.org/bids.aspx | civicengage=true | itemsLinks=8
+www.wilsoncountync.gov | status=403 | final=https://www.wilsoncountync.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.wilsonnc.org | status=403 | final=https://www.wilsonnc.org/bids.aspx | civicengage=false | itemsLinks=0
+www.lenoircountync.gov | status=404 | final=https://lenoircountync.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.ci.kinston.nc.us | ERR TypeError: ERR_TLS_CERT_ALTNAME_INVALID fetching "https://www.ci.kinston.nc.us/bids.aspx". For more 
+www.edgecombecountync.gov | status=404 | final=https://www.edgecombecountync.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.co.robeson.nc.us | status=200 | final=https://www.robesoncountync.gov/ | civicengage=false | itemsLinks=0
+www.lumbertonnc.gov | status=200 | final=https://www.lumbertonnc.gov/bids.aspx | civicengage=true | itemsLinks=5
+www.sampsonnc.com | status=404 | final=https://www.sampsoncountync.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.columbusco.org | status=404 | final=https://www.columbusco.org/bids.aspx | civicengage=false | itemsLinks=0
+www.pendercountync.gov | status=200 | final=https://www.pendercountync.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.statesvillenc.net | status=404 | final=https://www.statesvillenc.net/bids.aspx | civicengage=false | itemsLinks=0
+www.thomasvillenc.gov | ERR TypeError: getaddrinfo ENOTFOUND www.thomasvillenc.gov
+www.lexingtonnc.gov | status=403 | final=https://www.lexingtonnc.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.asheboronc.gov | status=404 | final=https://www.asheboronc.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.monroenc.org | status=200 | final=https://www.monroenc.org/bids.aspx | civicengage=true | itemsLinks=0
+www.elizabethcitync.org | ERR TypeError: unknown certificate verification error
+www.morgantonnc.gov | status=403 | final=https://www.morgantonnc.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.shelbync.gov | ERR TypeError: getaddrinfo ENOTFOUND www.shelbync.gov
+www.havelocknc.us | status=404 | final=https://www.havelocknc.us/bids.aspx | civicengage=false | itemsLinks=0
+www.boonenc.gov | status=200 | final=https://www.boonenc.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.henderson-nc.gov | ERR TypeError: getaddrinfo ENOTFOUND www.henderson-nc.gov
+www.reidsvillenc.gov | status=403 | final=https://www.reidsvillenc.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.clemmons.org | status=200 | final=https://www.clemmons.org/bids.aspx | civicengage=true | itemsLinks=6
+www.kernersville.com | ERR TypeError: unknown certificate verification error
+www.indiantrail.org | status=200 | final=https://www.indiantrail.org/bids.aspx | civicengage=true | itemsLinks=0
+www.waxhaw.com | status=403 | final=https://www.waxhaw.com/bids.aspx | civicengage=false | itemsLinks=0
+www.mebanenc.gov | ERR TypeError: getaddrinfo ENOTFOUND www.mebanenc.gov
+www.graham-nc.org | ERR TypeError: getaddrinfo ENOTFOUND www.graham-nc.org
+www.hillsboroughnc.gov | status=403 | final=https://www.hillsboroughnc.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.townofknightdale.org | ERR TypeError: getaddrinfo ENOTFOUND www.townofknightdale.org
+www.wendellnc.gov | ERR TypeError: getaddrinfo ENOTFOUND www.wendellnc.gov
+www.zebulon.nc.gov | ERR TypeError: getaddrinfo ENOTFOUND www.zebulon.nc.gov
+www.clayton-nc.gov | ERR TypeError: getaddrinfo ENOTFOUND www.clayton-nc.gov
+www.smithfield-nc.com | status=404 | final=https://www.smithfield-nc.com/bids.aspx | civicengage=false | itemsLinks=0
+www.townofapexnc.org | ERR TypeError: getaddrinfo ENOTFOUND www.townofapexnc.org
+www.leland.nc.gov | ERR TypeError: getaddrinfo ENOTFOUND www.leland.nc.gov
+www.carolinabeach.org | status=200 | final=https://www.carolinabeach.gov/bids.aspx | civicengage=true | itemsLinks=0
+www.emeraldisle-nc.org | status=200 | final=https://www.emeraldisle-nc.org/bids.aspx | civicengage=true | itemsLinks=0
+www.dunn-nc.org | ERR TypeError: certificate has expired
+www.oxfordnc.org | status=200 | final=https://www.oxfordnc.org/bids.aspx | civicengage=false | itemsLinks=0
+www.roxboronc.com | ERR TypeError: The socket connection was closed unexpectedly. For more information, pass `verbose: true`
+www.tarboro-nc.com | status=404 | final=https://www.tarboro-nc.com/bids.aspx | civicengage=false | itemsLinks=0
+www.washingtonnc.gov | status=404 | final=https://www.washingtonnc.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.albemarlenc.gov | status=403 | final=https://www.albemarlenc.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.lincolntonnc.org | status=200 | final=https://www.lincolntonnc.org/bids.aspx | civicengage=true | itemsLinks=0
+www.belmontnc.gov | ERR TypeError: getaddrinfo ENOTFOUND www.belmontnc.gov
+www.mounthollync.gov | ERR TypeError: getaddrinfo ENOTFOUND www.mounthollync.gov
+www.cherryvillenc.gov | ERR TypeError: getaddrinfo ENOTFOUND www.cherryvillenc.gov
+www.kingsmountainnc.com | status=200 | final=https://www.kingsmountainnc.com/bids.aspx | civicengage=false | itemsLinks=0
+www.forestcity.net | status=202 | final=https://lyvwellapartments.com/bids.aspx | civicengage=false | itemsLinks=0
+www.brevardnc.gov | ERR TypeError: getaddrinfo ENOTFOUND www.brevardnc.gov
+www.hendersonvillenc.gov | status=404 | final=https://www.hendersonvillenc.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.waynesvillenc.gov | status=404 | final=https://www.waynesvillenc.gov/bids.aspx | civicengage=false | itemsLinks=0
+www.blackmountainnc.gov | ERR TypeError: getaddrinfo ENOTFOUND www.blackmountainnc.gov

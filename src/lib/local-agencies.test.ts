@@ -57,7 +57,8 @@ describe("local agency registry", () => {
     const va = placesInState("VA");
     expect(va.length).toBeGreaterThan(0);
     expect(va.every((p) => p.stateCode === "VA")).toBe(true);
-    expect(placesInState("WY")).toEqual([]);
+    // Wyoming got its first boards 2026-11-04; Vermont still has none.
+    expect(placesInState("VT")).toEqual([]);
   });
 });
 

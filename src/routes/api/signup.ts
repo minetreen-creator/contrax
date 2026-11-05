@@ -250,6 +250,22 @@ async function handler({ request }: { request: Request }) {
       maxAge: SESSION_TTL_DAYS * 24 * 60 * 60,
     });
 
+    // Owner 2026-11-04: this browser just paid for a $5 pass as a guest with a
+    // different email; move the pass onto the account they are creating now
+    // (src/lib/pass-claim.ts). Fail-open: never affects the signup response.
+    let passMoved = false;
+    try {
+      const { readClaimToken, PASS_CLAIM_COOKIE } = await import("~/lib/pass-claim");
+      const claimToken = readClaimToken(request.headers.get("cookie"));
+      if (claimToken) {
+        const { movePassOnSignup } = await import("~/lib/pass-claim.server");
+        passMoved = await movePassOnSignup(claimToken, user.id);
+        setCookie(PASS_CLAIM_COOKIE, "", { httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: 0 });
+      }
+    } catch (claimErr) {
+      console.error("[api/signup] pass claim failed (non-fatal):", claimErr);
+    }
+
     // ── Identity backfill (fail-open, MUST NOT affect the response) ─────────
     // Once the user is known, tie their ENTIRE pre-signup anonymous funnel journey
     // (radar_scan → signup_view → signup_success) to this account, scoped to the
@@ -284,6 +300,7 @@ async function handler({ request }: { request: Request }) {
     return Response.json({
       success: true,
       user: { id: user.id, email: user.email, created_at: String(user.created_at) },
+      ...(passMoved ? { passMoved: true } : {}),
     });
   } catch (err) {
     console.error("[api/signup] error:", err);

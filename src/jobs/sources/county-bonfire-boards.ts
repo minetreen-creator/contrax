@@ -178,6 +178,16 @@ const BOARDS: Board[] = [
   { tenant: "rcbc", source: "nj_rcbc_bonfire", stateName: "New Jersey", place: "Rowan College at Burlington County", buyer: "Rowan College at Burlington County", idPrefix: "rcbcbonfire", location: "Mount Laurel, NJ" },
   { tenant: "hcpss", source: "md_howard_schools_bonfire", stateName: "Maryland", place: "Howard County Public School System", buyer: "Howard County Public School System", idPrefix: "hcpssbonfire", location: "Howard County, MD" },
   { tenant: "ccsd", source: "nv_clark_county_schools_bonfire", stateName: "Nevada", place: "Clark County School District", buyer: "Clark County School District", idPrefix: "ccsdbonfire", location: "Las Vegas, NV" },
+  // Washington and Idaho, captured 2026-11-04.
+  { tenant: "cityofvancouver", source: "wa_vancouver_bonfire", stateName: "Washington", place: "Vancouver", buyer: "City of Vancouver, Washington", idPrefix: "cityofvancouverbonfire", location: "Vancouver, WA" },
+  { tenant: "adacounty", source: "id_ada_county_bonfire", stateName: "Idaho", place: "Ada County", buyer: "Ada County, Idaho", idPrefix: "adacountybonfire", location: "Ada County, ID" },
+  { tenant: "clarkcountywa", source: "wa_clark_county_bonfire", stateName: "Washington", place: "Clark County", buyer: "Clark County, Washington", idPrefix: "clarkcountywabonfire", location: "Clark County, WA" },
+  { tenant: "renton", source: "wa_renton_bonfire", stateName: "Washington", place: "Renton", buyer: "City of Renton, Washington", idPrefix: "rentonbonfire", location: "Renton, WA" },
+  { tenant: "portofeverett", source: "wa_port_of_everett_bonfire", stateName: "Washington", place: "Port of Everett", buyer: "Port of Everett", idPrefix: "portofeverettbonfire", location: "Everett, WA" },
+  { tenant: "tacoma", source: "wa_tacoma_schools_bonfire", stateName: "Washington", place: "Tacoma Public Schools", buyer: "Tacoma Public Schools", idPrefix: "tacomaschoolsbonfire", location: "Tacoma, WA" },
+  { tenant: "lwsd", source: "wa_lake_washington_schools_bonfire", stateName: "Washington", place: "Lake Washington School District", buyer: "Lake Washington School District", idPrefix: "lwsdbonfire", location: "Redmond, WA" },
+  { tenant: "nsd", source: "wa_northshore_schools_bonfire", stateName: "Washington", place: "Northshore School District", buyer: "Northshore School District", idPrefix: "nsdbonfire", location: "Bothell, WA" },
+  { tenant: "westada", source: "id_west_ada_schools_bonfire", stateName: "Idaho", place: "West Ada School District", buyer: "West Ada School District", idPrefix: "westadabonfire", location: "Meridian, ID" },
 ];
 
 export const COUNTY_BONFIRE_CONFIGS: readonly BonfireConfig[] = BOARDS.map(boardConfig);

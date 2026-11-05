@@ -52,6 +52,8 @@ const OPEN: Record<string, number> = {
   la_kenner: 5, la_assumption_parish: 11,
   // New Jersey, captured 2026-11-04.
   nj_gloucester_county: 6, nj_passaic: 4, nj_freehold_township: 3, nj_orange: 13, nj_summit: 9, nj_jackson_township: 1, nj_asbury_park: 1, nj_willingboro: 3,
+  // Washington, Idaho, captured 2026-11-04.
+  wa_marysville: 1, wa_redmond: 4, wa_bothell: 1, wa_puyallup: 1, wa_bremerton: 3, wa_des_moines: 2, wa_anacortes: 1, wa_yakima_county: 1, wa_franklin_county: 4, wa_cowlitz_county: 2, wa_grant_county: 1, wa_clallam_county: 1, wa_jefferson_county: 1, id_idaho_falls: 2, id_pocatello: 2, id_kootenai_county: 1,
 };
 // Real boards with nothing open at capture (scheduled so new bids flow in), so no file.
 const NO_CAPTURE = new Set([
@@ -69,13 +71,14 @@ const NO_CAPTURE = new Set([
   "va_roanoke_county", "va_spotsylvania_county", "va_warren_county", "va_radford", "va_campbell_county", "va_amherst_county", "va_warrenton", "va_caroline_county", "va_king_william_county", "va_mecklenburg_county", "va_halifax_county", "va_cumberland_county", "va_appomattox_county", "va_madison_county", "va_grayson_county", "va_patrick_county", "va_russell_county", "va_dickenson_county", "va_ashland", "va_bedford", "va_woodstock", "va_middleburg", "va_christiansburg", "va_dinwiddie_county",
   "la_bossier_city", "la_lake_charles", "la_baton_rouge", "la_leesville", "la_sulphur", "la_st_james_parish", "la_plaquemines_parish", "la_st_bernard_parish", "la_west_baton_rouge_parish",
   "nj_burlington_county", "nj_cape_may_county", "nj_hunterdon_county", "nj_elizabeth", "nj_woodbridge", "nj_toms_river", "nj_east_orange", "nj_north_brunswick", "nj_howell", "nj_randolph", "nj_roxbury", "nj_bloomfield", "nj_rahway", "nj_union_township", "nj_berkeley_township", "nj_long_branch", "nj_red_bank", "nj_paramus", "nj_moorestown",
+  "wa_spokane_valley", "wa_pasco", "wa_kennewick", "wa_mount_vernon", "wa_longview", "wa_north_bend", "wa_port_orchard", "wa_burlington", "wa_washougal", "wa_ridgefield", "wa_ellensburg", "wa_west_richland", "wa_cheney", "wa_liberty_lake", "wa_pierce_county", "wa_snohomish_county", "wa_island_county", "wa_douglas_county", "wa_adams_county", "wa_asotin_county", "id_twin_falls", "id_lewiston", "id_eagle", "wy_laramie", "wy_campbell_county", "wy_albany_county", "wy_green_river", "wy_torrington", "wy_carbon_county", "wy_goshen_county",
 ]);
 
 describe("county CivicEngage boards", () => {
-  test("281 boards with unique sources and id prefixes", () => {
-    expect(COUNTY_CIVICENGAGE_CONFIGS).toHaveLength(281);
-    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.source)).size).toBe(281);
-    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.idPrefix)).size).toBe(281);
+  test("327 boards with unique sources and id prefixes", () => {
+    expect(COUNTY_CIVICENGAGE_CONFIGS).toHaveLength(327);
+    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.source)).size).toBe(327);
+    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.idPrefix)).size).toBe(327);
   });
 
   for (const cfg of COUNTY_CIVICENGAGE_CONFIGS.filter((c) => !NO_CAPTURE.has(c.source))) {

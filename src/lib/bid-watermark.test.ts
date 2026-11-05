@@ -36,3 +36,9 @@ describe("bid page watermark (owner 2026-11-05: Do all)", () => {
     expect(api).toContain("if (!user.is_admin)");
   });
 });
+
+test("the Command Center has the paste-and-trace box (owner 2026-11-05: Do both)", () => {
+  const page = readFileSync("src/routes/admin/command.tsx", "utf8");
+  expect(page).toContain("<TraceCopy />");
+  expect(page).toContain('fetch("/api/admin/watermark"');
+});

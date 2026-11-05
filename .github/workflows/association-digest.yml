@@ -1,0 +1,38 @@
+name: Association bid list (samples to owner)
+
+# Owner 2026-11-05: contractor and small-business associations that already
+# hand-curate weekly bid alerts → "Do that". Builds each association's weekly
+# bid list (src/jobs/association-digest.ts) and emails it to the OWNER only.
+# Nothing is sent to an association from here.
+
+on:
+  workflow_dispatch:
+    inputs:
+      association:
+        description: "One association key (e.g. namc-central-texas, mmca, mwmca, hca-san-antonio, namc-national, navoba, gbca); empty = all"
+        type: string
+        default: ""
+
+concurrency:
+  group: association-digest
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build and email samples to the owner
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      ASSOCIATION: ${{ inputs.association }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - run: bun install --frozen-lockfile
+      - run: bun run src/jobs/association-digest.ts

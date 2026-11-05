@@ -52,7 +52,11 @@ export async function commandCounts(): Promise<CommandCounts> {
     last(() => db`SELECT MAX(created_at) AS at FROM sync_logs`),
     last(() => db`SELECT MAX(fetched_at) AS at FROM local_award_snapshots`),
   ]);
+  const { partnerCounts } = await import("~/lib/association-partner.server");
+  const partners = await partnerCounts();
   return {
+    partnersNew: partners.newThisWeek,
+    partnersActive: partners.active,
     outreachDrafts,
     outreachSentToday,
     storiesPending,

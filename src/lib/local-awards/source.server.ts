@@ -1,4 +1,5 @@
 import {
+  splitWindow,
   filtersFor,
   parseAction,
   cents,
@@ -148,4 +149,52 @@ export async function fetchSnapshot(
  */
 export function reconciliationToleranceCents(categoryRows: number): number {
   return Math.max(1, Math.ceil(categoryRows / 2));
+}
+
+/**
+ * Owner 2026-11-05 (Fulton County, GA failed three hourly runs in a row): a
+ * very large county's year of actions takes longer to page through than
+ * USAspending keeps connections open, and every retry started again from page
+ * 1. This fetches the same year a quarter at a time, pausing between quarters,
+ * and retries only the quarter that failed. Each quarter is reconciled on its
+ * own exactly like a full fetch, so no partial or mismatched total is ever
+ * published; a quarter that still fails fails the whole county.
+ */
+export const CHUNK_PARTS = 4;
+export const CHUNK_PAUSE_MS = 10_000;
+export const CHUNK_RETRY_PAUSE_MS = 45_000;
+export async function fetchSnapshotInChunks(
+  county: County,
+  start: string,
+  end: string,
+  signal?: AbortSignal,
+  fetcher = post,
+  pause: (ms: number) => Promise<unknown> = (ms) => new Promise((r) => setTimeout(r, ms)),
+): Promise<Snapshot> {
+  const parts: Snapshot[] = [];
+  const windows = splitWindow(start, end, CHUNK_PARTS);
+  for (const [i, w] of windows.entries()) {
+    if (i) await pause(CHUNK_PAUSE_MS);
+    let snap: Snapshot | null = null;
+    let last: unknown;
+    for (let attempt = 0; attempt < 2 && !snap; attempt++) {
+      if (attempt) await pause(CHUNK_RETRY_PAUSE_MS);
+      if (signal?.aborted) throw new Error("Spending refresh timed out");
+      try {
+        snap = await fetchSnapshot(county, w.start, w.end, signal, fetcher);
+      } catch (e) {
+        last = e;
+      }
+    }
+    if (!snap) throw last;
+    parts.push(snap);
+  }
+  return {
+    county,
+    start,
+    end,
+    fetchedAt: new Date().toISOString(),
+    actions: parts.flatMap((p) => p.actions),
+    categoryCents: parts.reduce((sum, p) => sum + p.categoryCents, 0),
+  };
 }

@@ -370,6 +370,9 @@ function TraceCopy() {
           ))}
         </ul>
       )}
+      <p className="mt-4 text-xs text-slate-400">
+        Evidence files (CSV, for your lawyer): <a href="/api/admin/evidence-export?part=burst" className="font-semibold text-cyan-300">Nov 5 scrape</a> · <a href="/api/admin/evidence-export?part=recon" className="font-semibold text-cyan-300">Oct 29–31 server visits</a>
+      </p>
     </Panel>
   );
 }

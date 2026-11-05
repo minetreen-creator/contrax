@@ -96,6 +96,7 @@ function CommandCenter() {
             <Jarvis />
             <Operations data={data} />
             <Notes data={data} reload={load} />
+            <TraceCopy />
           </div>
         </main>
       </div>
@@ -305,6 +306,70 @@ function Notes({ data, reload }: { data: CommandData | null; reload: () => void 
         ))}
         {data && data.notes.length === 0 && <li className="text-sm text-slate-400">No open notes.</li>}
       </ul>
+    </Panel>
+  );
+}
+
+interface TraceHit {
+  token: string;
+  bid_id: number | null;
+  bid_title: string | null;
+  served_at: string | null;
+  country: string | null;
+  user_agent: string | null;
+  views_that_hour: number;
+}
+
+/**
+ * Owner 2026-11-05 ("Do both"): paste text copied from another site; the hidden
+ * bid-page watermark (src/lib/bid-watermark.ts) says which visit took it.
+ */
+function TraceCopy() {
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [hits, setHits] = useState<TraceHit[]>([]);
+  const check = async () => {
+    setBusy(true);
+    setMsg("");
+    setHits([]);
+    try {
+      const r = await fetch("/api/admin/watermark", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text }) });
+      const j = (await r.json().catch(() => ({}))) as { found?: TraceHit[]; note?: string; error?: string };
+      if (!r.ok) throw new Error(j.error || "Lookup failed");
+      setHits(j.found ?? []);
+      if (!j.found?.length) setMsg(j.note ?? "No Contrax watermark in that text.");
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "Lookup failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Panel title="Trace a copied listing" icon="🔎">
+      <p className="text-xs text-slate-400">Found one of our bids on another site? Copy its description there and paste it here. Pages served since Nov 5 carry an invisible code that names the visit that copied it.</p>
+      <textarea value={text} onChange={(e) => setText(e.target.value)} rows={4} placeholder="Paste the copied description…" className="mt-3 w-full rounded-xl border border-fuchsia-500/30 bg-black/30 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none" />
+      <button type="button" onClick={check} disabled={busy || !text.trim()} className="mt-2 rounded-xl bg-gradient-to-r from-fuchsia-600 to-pink-500 px-4 py-2 text-sm font-bold text-white disabled:opacity-40">{busy ? "Checking…" : "Trace it"}</button>
+      {msg && <p className="mt-2 text-sm text-slate-300">{msg}</p>}
+      {hits.length > 0 && (
+        <ul className="mt-3 space-y-2">
+          {hits.map((h) => (
+            <li key={h.token} className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-slate-100">
+              {h.bid_id === null ? (
+                <span>Code {h.token}: not one of ours, or from before Nov 5.</span>
+              ) : (
+                <>
+                  <a href={`/bid/${h.bid_id}`} className="font-semibold text-cyan-300">{h.bid_title || `Bid ${h.bid_id}`}</a>
+                  <p className="mt-1 text-xs text-slate-400">
+                    Copied {h.served_at ? etTime(h.served_at) : "?"} ET · {h.country ?? "country unknown"} · same visitor read {h.views_that_hour} bid page{h.views_that_hour === 1 ? "" : "s"} within 30 min
+                  </p>
+                  {h.user_agent && <p className="mt-1 break-all font-mono text-[11px] text-slate-500">{h.user_agent}</p>}
+                </>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
     </Panel>
   );
 }

@@ -10,11 +10,12 @@
  * PURE. vercel-entry.ts refuses a blocked request with a 403 before any page,
  * API or tracking runs (so these hits no longer reach the visitor counts).
  *
+ * Owner 2026-11-05 ("Remove the signed-in exception, block everyone"): a
+ * signed-in browser outside the U.S. is refused too.
+ *
  * Never blocked:
  * - an unknown country (no Vercel geo header: local runs, previews) — fail open;
  * - U.S. states and territories;
- * - a signed-in browser (session cookie), so a customer or the owner traveling
- *   abroad keeps access;
  * - machine endpoints that must work from anywhere: Stripe and other webhooks,
  *   Vercel Cron, robots.txt, sitemaps and /.well-known.
  */
@@ -24,11 +25,10 @@ const EXEMPT_PATH = /^\/(?:api\/stripe\/|api\/webhooks\/|api\/cron\/|robots\.txt
 
 export const GEO_BLOCK_MESSAGE = "Contrax lists U.S. government bids and is available in the United States only.";
 
-export function geoBlocked(args: { country: string | null | undefined; pathname: string; cookie: string | null | undefined }): boolean {
+export function geoBlocked(args: { country: string | null | undefined; pathname: string }): boolean {
   const country = String(args.country ?? "").trim().toUpperCase();
   if (!country) return false;
   if (ALLOWED_COUNTRIES.has(country)) return false;
   if (EXEMPT_PATH.test(args.pathname)) return false;
-  if (/(?:^|;\s*)contrax_session=[^;\s]/.test(String(args.cookie ?? ""))) return false;
   return true;
 }

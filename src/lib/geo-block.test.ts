@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { geoBlocked } from "./geo-block";
 
 describe("US-only access (owner 2026-11-05: Block non-US)", () => {
-  const visit = (country: string | null, pathname = "/bid/941259", cookie = "") => geoBlocked({ country, pathname, cookie });
+  const visit = (country: string | null, pathname = "/bid/941259") => geoBlocked({ country, pathname });
 
   test("non-US visitors are refused on pages and APIs", () => {
     for (const c of ["PK", "BD", "MX", "BR", "VN", "DZ", "AE", "IT", "AR", "pk"]) expect(visit(c)).toBe(true);
@@ -18,9 +18,9 @@ describe("US-only access (owner 2026-11-05: Block non-US)", () => {
     expect(visit("")).toBe(false);
   });
 
-  test("signed-in browsers and machine endpoints are never blocked", () => {
-    expect(visit("IT", "/dashboard", "foo=1; contrax_session=abc123")).toBe(false);
-    expect(visit("IT", "/dashboard", "contrax_session=")).toBe(true);
+  test("signed-in browsers are blocked too; machine endpoints never are", () => {
+    expect(visit("IT", "/dashboard")).toBe(true);
+    expect(visit("IT", "/admin/command")).toBe(true);
     for (const p of ["/api/stripe/webhook", "/api/webhooks/update", "/api/cron/sync-bids", "/robots.txt", "/sitemap.xml", "/sitemap-bids.xml", "/.well-known/security.txt"]) {
       expect(visit("IE", p)).toBe(false);
     }

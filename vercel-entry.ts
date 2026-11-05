@@ -924,10 +924,10 @@ export default async function vercelHandler(
       return;
     }
 
-    // Outside the U.S. (Vercel geo header): refused, except signed-in browsers,
-    // webhooks, cron and crawler files (src/lib/geo-block.ts).
+    // Outside the U.S. (Vercel geo header): refused, signed in or not; only
+    // webhooks, cron and crawler files pass (src/lib/geo-block.ts).
     const country = req.headers["x-vercel-ip-country"];
-    if (geoBlocked({ country: typeof country === "string" ? country : null, pathname: url.pathname, cookie: req.headers.cookie ?? null })) {
+    if (geoBlocked({ country: typeof country === "string" ? country : null, pathname: url.pathname })) {
       res.statusCode = 403;
       res.setHeader("content-type", "text/plain; charset=utf-8");
       res.setHeader("cache-control", "no-store");

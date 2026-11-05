@@ -55,4 +55,9 @@ describe("Command Center", () => {
     const shared = readFileSync("src/components/AdminShared.tsx", "utf8");
     expect(shared.indexOf('key: "command"')).toBeLessThan(shared.indexOf('key: "overview"'));
   });
+
+  test("the Admin buttons open the Command Center (owner 2026-11-05: 'Admin dashboard still waiting')", () => {
+    expect(readFileSync("src/components/SiteHeader.tsx", "utf8")).toContain('<a href="/admin/command"');
+    expect(readFileSync("src/routes/dashboard.tsx", "utf8")).toContain('<a href="/admin/command"');
+  });
 });

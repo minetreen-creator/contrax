@@ -1685,7 +1685,7 @@ function DashboardPage({ user, trial, onTrialStarted }: { user: AuthUser; trial:
             <a href="/losses" className="text-sm font-medium text-slate-400 hover:text-slate-600 hidden sm:inline transition-colors">Losses</a>
             <a href="/learnings" className="text-sm font-medium text-slate-400 hover:text-slate-600 hidden sm:inline transition-colors">🧠 Learnings</a>
             <a href="/compliance" className="text-sm font-medium text-slate-400 hover:text-slate-600 hidden sm:inline transition-colors">Compliance</a>
-              {user.is_admin && <a href="/admin" className="text-sm font-semibold text-amber-600 hover:text-amber-500 bg-amber-50 px-2.5 py-1 rounded-md transition-colors">⚙ Admin</a>}
+              {user.is_admin && <a href="/admin/command" className="text-sm font-semibold text-amber-600 hover:text-amber-500 bg-amber-50 px-2.5 py-1 rounded-md transition-colors">⚙ Admin</a>}
             <span className="text-sm text-slate-500 hidden sm:inline">{user.email}</span>
             <button
               type="button"

@@ -45,7 +45,7 @@ export function SiteHeader({ user: userProp }: { user?: HeaderUser }) {
           {/* Admins get an extra link; drop Pricing on phones so the row still fits. */}
           <a href="/pricing" className={user?.is_admin ? `${link} hidden sm:inline` : link}>Pricing</a>
           {user?.is_admin && (
-            <a href="/admin" className="rounded-md bg-amber-50 px-2.5 py-1 font-semibold text-amber-600 no-underline hover:text-amber-500">
+            <a href="/admin/command" className="rounded-md bg-amber-50 px-2.5 py-1 font-semibold text-amber-600 no-underline hover:text-amber-500">
               Admin
             </a>
           )}

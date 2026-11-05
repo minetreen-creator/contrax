@@ -1,5 +1,5 @@
 import { sql } from "~/db";
-import { fetchSnapshot } from "./source.server";
+import { fetchSnapshot, fetchSnapshotInChunks } from "./source.server";
 import { windowFor, summarize, type County, type Snapshot } from "./model";
 export async function ensureLocalAwards() {
   await sql()`CREATE TABLE IF NOT EXISTS local_award_snapshots (fips TEXT PRIMARY KEY, snapshot JSONB, fetched_at TIMESTAMPTZ, requested_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), refresh_started_at TIMESTAMPTZ, last_error TEXT)`;
@@ -17,7 +17,16 @@ export async function refreshCounty(
     day: "2-digit",
   }).format(new Date());
   const { start, end } = windowFor(today);
-  const snapshot = await fetchSnapshot(county, start, end, signal);
+  // Owner 2026-11-05: a county too large to page through in one go (Fulton
+  // County, GA) is fetched again a quarter at a time.
+  let snapshot: Snapshot;
+  try {
+    snapshot = await fetchSnapshot(county, start, end, signal);
+  } catch (e) {
+    if (signal?.aborted || !/socket|closed|timed? ?out|ECONNRESET|fetch failed|USAspending 5\d\d|network/i.test((e as Error).message)) throw e;
+    console.log(`[local-awards] ${county.fips} full-year fetch dropped (${(e as Error).message.slice(0, 80)}); fetching by quarter`);
+    snapshot = await fetchSnapshotInChunks(county, start, end, signal);
+  }
   await sql()`UPDATE local_award_snapshots SET snapshot=${JSON.stringify(snapshot)}::jsonb, fetched_at=NOW(), refresh_started_at=NULL, last_error=NULL, failed_runs=0 WHERE fips=${county.fips}`;
   return snapshot;
 }

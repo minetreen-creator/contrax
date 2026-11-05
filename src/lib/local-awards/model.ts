@@ -20,6 +20,26 @@ export function windowFor(today: string) {
     end: end.toISOString().slice(0, 10),
   };
 }
+/**
+ * Split an inclusive [start, end] day range into `parts` back-to-back ranges
+ * that share no day (owner 2026-11-05: Fulton County's year of actions was too
+ * long a download for USAspending in one go). PURE.
+ */
+export function splitWindow(start: string, end: string, parts: number): { start: string; end: string }[] {
+  const day = 86_400_000;
+  const a = Date.parse(`${start}T00:00:00Z`);
+  const b = Date.parse(`${end}T00:00:00Z`);
+  if (!Number.isFinite(a) || !Number.isFinite(b) || b < a) throw new Error("Invalid window");
+  const days = Math.round((b - a) / day) + 1;
+  const n = Math.max(1, Math.min(parts, days));
+  const out: { start: string; end: string }[] = [];
+  for (let i = 0; i < n; i++) {
+    const from = a + Math.floor((days * i) / n) * day;
+    const to = a + (Math.floor((days * (i + 1)) / n) - 1) * day;
+    out.push({ start: new Date(from).toISOString().slice(0, 10), end: new Date(to).toISOString().slice(0, 10) });
+  }
+  return out;
+}
 export function filtersFor(county: County, start: string, end: string) {
   return {
     award_type_codes: ["A", "B", "C", "D"],

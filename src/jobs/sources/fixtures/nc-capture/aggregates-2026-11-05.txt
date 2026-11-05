@@ -1,0 +1,39 @@
+source | open | janitorial | construction
+nc_evp | 242 | 8 | 48
+sam_gov | 48 | 0 | 10
+nc_charlotte_bonfire | 27 | 0 | 6
+nc_bidnet | 14 | 0 | 2
+nc_winston_salem | 13 | 1 | 2
+nc_brunswick_county | 6 | 0 | 0
+nc_high_point | 5 | 0 | 0
+nc | 4 | 0 | 1
+nc_apex | 4 | 0 | 0
+nc_gaston_county | 3 | 0 | 0
+va | 3 | 0 | 1
+nc_wake_county_bonfire | 3 | 0 | 0
+sc | 3 | 0 | 1
+wv | 2 | 0 | 1
+nc_gastonia | 2 | 0 | 0
+nc_pitt_county | 2 | 0 | 1
+nc_wayne_county | 2 | 0 | 0
+nh | 1 | 0 | 0
+tx | 1 | 0 | 0
+nd | 1 | 0 | 0
+dc | 1 | 0 | 1
+
+NC Other 227 re-filed: Other:211 | Construction:12 | Landscaping:2 | Security:1 | IT Services:1
+cleaning-sounding titles still Other (3):
+  RFB FOR EDGECOMBE COUNTY DETENTION CENTER POD CLEANING AND PAINTING
+  Bullet Traps Operation and Maintenance/Lead Cleaning for Breach and Shooting Houses
+  Emergency Call Center Annual Cleaning Issue
+
+NC Janitorial open (9):
+  nc_evp | Public Works, Post Office, and Town Hall Janitorial Services
+  nc_evp | 30-270070-EIPD Janitorial Services - Greenville
+  nc_evp | RFP #27-13-DSS PRESSURE WASHING & WINDOW CLEANING SERVICES
+  nc_evp | Roberson Community College RFP Janitorial Services
+  nc_evp | 30-270140-EIPD Janitorial Services - Albemarle
+  nc_winston_salem | Custodial/Floor Care Services for Meter Shop & Warehouse
+  nc_evp | RFP #27-2-CTY UNIFORM AND JANITORIAL RENTAL SERVICES
+  nc_evp | RFP 130-WTCC2304982309-26AL Janitorial and Custodial Services
+  nc_evp | 54-TJK-02-PR40715, CUSTODIAL OPERATIONS AND MAINTENANCE OF REST AREA

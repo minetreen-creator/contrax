@@ -65,6 +65,8 @@ const CAPTURED: Record<string, number> = {
   fl_tallahassee_bonfire: 6,
   fl_fau_bonfire: 1,
   fl_ucf_bonfire: 2,
+  nc_ncsu_bonfire: 4,
+  nc_wcu_bonfire: 1,
   fl_lee_schools_bonfire: 1,
   in_indygo_bonfire: 4,
   // Texas, captured 2026-11-03.
@@ -125,9 +127,9 @@ const NO_CAPTURE = new Set([
 
 describe("county Bonfire boards", () => {
   test("142 boards, unique sources and id prefixes", () => {
-    expect(COUNTY_BONFIRE_CONFIGS).toHaveLength(142);
-    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.source)).size).toBe(142);
-    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.idPrefix)).size).toBe(142);
+    expect(COUNTY_BONFIRE_CONFIGS).toHaveLength(144);
+    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.source)).size).toBe(144);
+    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.idPrefix)).size).toBe(144);
   });
 
   for (const cfg of COUNTY_BONFIRE_CONFIGS.filter((c) => !NO_CAPTURE.has(c.source))) {

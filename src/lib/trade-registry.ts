@@ -322,6 +322,12 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
       "restroom cleaning",
       "pressure washing",
       "power washing",
+      // Owner 2026-11-05 (Elite Labor, NC commercial cleaning).
+      "high dusting",
+      "floor stripping",
+      "floor waxing",
+      "floor maintenance",
+      "carpet shampoo",
     ],
     naics: ["561720"],
   },

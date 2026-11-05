@@ -67,6 +67,27 @@ export const JANITORIAL_SERVICE_PATTERNS: RegExp[] = [
   // product buys, a genuinely specialty job ("septic tank sanitation") is still
   // vetoed by isSpecialtyCleaningOnly.
   /\bsanitation\b/,
+  // Owner 2026-11-05 (Elite Labor, NC commercial cleaning: "floor care, carpet
+  // cleaning, window cleaning, high dusting, post-construction cleaning"). The
+  // Radar janitorial search already finds these phrases (trade-registry); the
+  // category did not, so "Window Washing", "Floor Stripping and Waxing",
+  // "Day Porter Services" and "Post-Construction Cleaning" were filed Other or
+  // Construction. Service phrases only — "UV disinfection system" stays out.
+  /\bcarpet (?:cleaning|shampoo|extraction)/,
+  /\bwindow (?:cleaning|washing)\b/,
+  /\bday porters?\b/,
+  /\bporter services?\b/,
+  /\bhigh dusting\b/,
+  /\bfloor (?:strip|wax|burnish|maintenance)/,
+  /\brestroom cleaning\b/,
+  /\bfacilit(?:y|ies) cleaning\b/,
+  /\bstore cleaning\b/,
+  /\bpost[- ]construction clean/,
+  /\b(?:construction final|final construction) clean/,
+  /\bfinal clean(?:ing)? services?\b/,
+  /\b(?:pressure|power) washing\b/,
+  /\bdisinfection (?:and sanitizing )?services?\b/,
+  /\bsanitizing services?\b/,
 ];
 
 /**

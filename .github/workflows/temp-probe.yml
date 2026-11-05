@@ -1,20 +1,24 @@
-name: Temp check (CT WebProcure agencies, read-only)
+name: Temp capture (Connecticut town boards, read-only)
 on:
   push:
     branches: [claude/vibrant-cray-177q1d]
     paths: [".github/probe/**"]
 permissions:
-  contents: read
+  contents: write
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    env:
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.2
-      - run: bun install --frozen-lockfile
       - run: bun .github/probe/run.ts
+      - name: Commit captures
+        run: |
+          git config user.name "contrax-probe"
+          git config user.email "probe@users.noreply.github.com"
+          git add src/jobs/sources/fixtures
+          git commit -m "Capture: Connecticut board candidates" || echo "nothing to commit"
+          git push origin HEAD:claude/vibrant-cray-177q1d

@@ -57,12 +57,15 @@ const OPEN: Record<string, number> = {
   pa_abington_township: 1, pa_luzerne_county: 12, il_rockford: 5, il_decatur: 3, il_edwardsville: 2, il_lasalle_county: 1, mo_hazelwood: 1, mo_branson: 13, ky_danville: 1, ky_newport: 3, mn_maple_grove: 3, mn_st_cloud: 1, mn_washington_county: 7, mn_sherburne_county: 2, wi_portage_county: 1, ia_dubuque: 1, wy_douglas: 1, ga_douglas: 4, ok_owasso: 3, ok_bixby: 1, ok_ponca_city: 2, ok_cleveland_county: 4, ok_comanche_county: 2, ok_rogers_county: 1, ga_brookhaven: 3, ga_hinesville: 2, ga_mcdonough: 3, ga_cartersville: 1, ga_tifton: 1, ga_walton_county: 1, ma_lowell: 5, ma_lawrence: 4, ma_framingham: 4, ma_malden: 2, ma_salem: 2, ma_westfield: 3, ma_fitchburg: 1, ma_beverly: 2, ma_braintree: 2, ma_shrewsbury: 4, ma_dartmouth: 1, ma_andover: 5, ma_franklin: 2, ma_needham: 3, ma_wellesley: 4, ma_milford: 1, ma_westford: 1, ma_dracut: 2, ma_falmouth: 1, ma_amherst: 1, ma_northampton: 3,
   // FL, OH, MI, WA, CO, OR, AL, TN, IN, captured 2026-11-05.
   fl_margate: 1, fl_north_miami: 7, oh_lorain: 4, oh_mahoning_county: 1, oh_wood_county: 1, oh_clark_county: 4, oh_gahanna: 4, oh_marysville: 5, oh_piqua: 1, oh_sidney: 2, oh_north_canton: 2, oh_hudson: 3, mi_sterling_heights: 4, mi_westland: 5, mi_saginaw: 6, mi_east_lansing: 1, mi_midland: 8, mi_jackson_county: 3, mi_jackson: 4, mi_ypsilanti: 1, wa_lake_stevens: 1, wa_arlington: 2, wa_lynden: 2, wa_port_angeles: 3, wa_bainbridge_island: 2, wa_gig_harbor: 2, co_montrose_county: 1, co_berthoud: 2, co_steamboat_springs: 1, or_grants_pass: 3, or_yamhill_county: 1, or_crook_county: 1, al_hoover: 2, al_alabaster: 3, al_opelika: 3, al_fairhope: 6, al_cullman: 3, tn_bartlett: 3, tn_hendersonville: 2, tn_williamson_county: 1,
+  // Connecticut towns, captured 2026-11-05.
+  ct_bristol: 2, ct_brooklyn: 1, ct_cheshire: 2, ct_coventry: 1, ct_enfield: 1, ct_greenwich: 3, ct_madison: 2, ct_middlefield: 1, ct_middletown: 5, ct_norwalk: 4, ct_old_saybrook: 3, ct_orange: 1, ct_rocky_hill: 1, ct_simsbury: 2, ct_south_windsor: 1, ct_sterling: 1, ct_torrington: 1, ct_trumbull: 3, ct_willington: 1, ct_windham: 1, ct_windsor: 2, ct_woodbridge: 1,
   // North Carolina, captured 2026-11-05.
   nc_orange_county: 2, nc_huntersville: 4, nc_fuquay_varina: 2, nc_davidson_county: 1, nc_moore_county: 1, nc_craven_county: 2, nc_carteret_county: 4, nc_burke_county: 2, nc_wilkes_county: 1, nc_haywood_county: 6, nc_jackson_county: 4, nc_lumberton: 2, nc_clemmons: 1,
   wa_marysville: 1, wa_redmond: 4, wa_bothell: 1, wa_puyallup: 1, wa_bremerton: 3, wa_des_moines: 2, wa_anacortes: 1, wa_yakima_county: 1, wa_franklin_county: 4, wa_cowlitz_county: 2, wa_grant_county: 1, wa_clallam_county: 1, wa_jefferson_county: 1, id_idaho_falls: 2, id_pocatello: 2, id_kootenai_county: 1,
 };
 // Real boards with nothing open at capture (scheduled so new bids flow in), so no file.
 const NO_CAPTURE = new Set([
+  "ct_bloomfield", "ct_branford", "ct_burlington", "ct_clinton", "ct_cornwall", "ct_cromwell", "ct_danbury", "ct_darien", "ct_east_haven", "ct_granby", "ct_lisbon", "ct_newington", "ct_north_branford", "ct_north_stonington", "ct_old_lyme", "ct_plainville", "ct_preston", "ct_roxbury", "ct_salem", "ct_sharon", "ct_washington", "ct_waterford", "ct_wethersfield", "ct_wolcott",
   "in_carmel", "in_hamilton_county", "in_tippecanoe_county", "in_anderson", "in_avon", "in_brownsburg",
   "mt_gallatin_county", "sc_spartanburg", "sc_mount_pleasant", "sc_summerville", "sc_fort_mill",
   "nc_new_hanover_county", "nc_burlington", "nc_iredell_county", "nc_jacksonville", "nc_rowan_county",
@@ -85,9 +88,9 @@ const NO_CAPTURE = new Set([
 
 describe("county CivicEngage boards", () => {
   test("327 boards with unique sources and id prefixes", () => {
-    expect(COUNTY_CIVICENGAGE_CONFIGS).toHaveLength(591);
-    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.source)).size).toBe(591);
-    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.idPrefix)).size).toBe(591);
+    expect(COUNTY_CIVICENGAGE_CONFIGS).toHaveLength(637);
+    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.source)).size).toBe(637);
+    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.idPrefix)).size).toBe(637);
   });
 
   for (const cfg of COUNTY_CIVICENGAGE_CONFIGS.filter((c) => !NO_CAPTURE.has(c.source))) {

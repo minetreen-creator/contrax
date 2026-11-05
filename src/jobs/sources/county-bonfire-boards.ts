@@ -191,6 +191,20 @@ const BOARDS: Board[] = [
   // North Carolina universities, captured 2026-11-05 (owner: "more bids ... in NC").
   { tenant: "ncsu", source: "nc_ncsu_bonfire", stateName: "North Carolina", place: "NC State University", buyer: "NC State University", idPrefix: "ncsubonfire", location: "Raleigh, NC" },
   { tenant: "wcu", source: "nc_wcu_bonfire", stateName: "North Carolina", place: "Western Carolina University", buyer: "Western Carolina University", idPrefix: "wcubonfire", location: "Cullowhee, NC" },
+  // Big-city, school, transit and university portals (owner 2026-11-05: janitorial across the country).
+  { tenant: "buffaloschools", source: "ny_buffalo_schools_bonfire", stateName: "New York", place: "Buffalo Public Schools", buyer: "Buffalo Public Schools", idPrefix: "buffaloschoolsbonfire", location: "Buffalo, NY" },
+  { tenant: "nfta", source: "ny_nfta_bonfire", stateName: "New York", place: "Niagara Frontier Transportation Authority", buyer: "Niagara Frontier Transportation Authority", idPrefix: "nftabonfire", location: "Buffalo, NY" },
+  { tenant: "columbus", source: "oh_columbus_bonfire", stateName: "Ohio", place: "Columbus", buyer: "City of Columbus, Ohio", idPrefix: "columbusbonfire", location: "Columbus, OH" },
+  { tenant: "detroit", source: "mi_detroit_bonfire", stateName: "Michigan", place: "Detroit", buyer: "City of Detroit, Michigan", idPrefix: "detroitbonfire", location: "Detroit, MI" },
+  { tenant: "aps", source: "ga_atlanta_schools_bonfire", stateName: "Georgia", place: "Atlanta Public Schools", buyer: "Atlanta Public Schools", idPrefix: "apsbonfire", location: "Atlanta, GA" },
+  { tenant: "pdx", source: "or_portland_state_bonfire", stateName: "Oregon", place: "Portland State University", buyer: "Portland State University", idPrefix: "pdxbonfire", location: "Portland, OR" },
+  { tenant: "ua", source: "ak_university_of_alaska_bonfire", stateName: "Alaska", place: "University of Alaska", buyer: "University of Alaska", idPrefix: "uabonfire", location: "Anchorage, AK" },
+  { tenant: "famu", source: "fl_famu_bonfire", stateName: "Florida", place: "Florida A&M University", buyer: "Florida A&M University", idPrefix: "famubonfire", location: "Tallahassee, FL" },
+  { tenant: "stonybrook", source: "ny_stony_brook_bonfire", stateName: "New York", place: "Stony Brook University", buyer: "Stony Brook University", idPrefix: "stonybrookbonfire", location: "Stony Brook, NY" },
+  { tenant: "tps", source: "oh_toledo_schools_bonfire", stateName: "Ohio", place: "Toledo Public Schools", buyer: "Toledo Public Schools", idPrefix: "tpsbonfire", location: "Toledo, OH" },
+  { tenant: "dps", source: "oh_dayton_schools_bonfire", stateName: "Ohio", place: "Dayton Public Schools", buyer: "Dayton Public Schools", idPrefix: "dpsbonfire", location: "Dayton, OH" },
+  { tenant: "grps", source: "mi_grand_rapids_schools_bonfire", stateName: "Michigan", place: "Grand Rapids Public Schools", buyer: "Grand Rapids Public Schools", idPrefix: "grpsbonfire", location: "Grand Rapids, MI" },
+  { tenant: "sou", source: "or_southern_oregon_university_bonfire", stateName: "Oregon", place: "Southern Oregon University", buyer: "Southern Oregon University", idPrefix: "soubonfire", location: "Ashland, OR" },
 ];
 
 export const COUNTY_BONFIRE_CONFIGS: readonly BonfireConfig[] = BOARDS.map(boardConfig);

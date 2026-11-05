@@ -53,6 +53,8 @@ const OPEN: Record<string, number> = {
   // New Jersey, captured 2026-11-04.
   nj_gloucester_county: 6, nj_passaic: 4, nj_freehold_township: 3, nj_orange: 13, nj_summit: 9, nj_jackson_township: 1, nj_asbury_park: 1, nj_willingboro: 3,
   // Washington, Idaho, captured 2026-11-04.
+  // FL, OH, MI, WA, CO, OR, AL, TN, IN, captured 2026-11-05.
+  fl_margate: 1, fl_north_miami: 7, oh_lorain: 4, oh_mahoning_county: 1, oh_wood_county: 1, oh_clark_county: 4, oh_gahanna: 4, oh_marysville: 5, oh_piqua: 1, oh_sidney: 2, oh_north_canton: 2, oh_hudson: 3, mi_sterling_heights: 4, mi_westland: 5, mi_saginaw: 6, mi_east_lansing: 1, mi_midland: 8, mi_jackson_county: 3, mi_jackson: 4, mi_ypsilanti: 1, wa_lake_stevens: 1, wa_arlington: 2, wa_lynden: 2, wa_port_angeles: 3, wa_bainbridge_island: 2, wa_gig_harbor: 2, co_montrose_county: 1, co_berthoud: 2, co_steamboat_springs: 1, or_grants_pass: 3, or_yamhill_county: 1, or_crook_county: 1, al_hoover: 2, al_alabaster: 3, al_opelika: 3, al_fairhope: 6, al_cullman: 3, tn_bartlett: 3, tn_hendersonville: 2, tn_williamson_county: 1,
   // North Carolina, captured 2026-11-05.
   nc_orange_county: 2, nc_huntersville: 4, nc_fuquay_varina: 2, nc_davidson_county: 1, nc_moore_county: 1, nc_craven_county: 2, nc_carteret_county: 4, nc_burke_county: 2, nc_wilkes_county: 1, nc_haywood_county: 6, nc_jackson_county: 4, nc_lumberton: 2, nc_clemmons: 1,
   wa_marysville: 1, wa_redmond: 4, wa_bothell: 1, wa_puyallup: 1, wa_bremerton: 3, wa_des_moines: 2, wa_anacortes: 1, wa_yakima_county: 1, wa_franklin_county: 4, wa_cowlitz_county: 2, wa_grant_county: 1, wa_clallam_county: 1, wa_jefferson_county: 1, id_idaho_falls: 2, id_pocatello: 2, id_kootenai_county: 1,
@@ -73,15 +75,16 @@ const NO_CAPTURE = new Set([
   "va_roanoke_county", "va_spotsylvania_county", "va_warren_county", "va_radford", "va_campbell_county", "va_amherst_county", "va_warrenton", "va_caroline_county", "va_king_william_county", "va_mecklenburg_county", "va_halifax_county", "va_cumberland_county", "va_appomattox_county", "va_madison_county", "va_grayson_county", "va_patrick_county", "va_russell_county", "va_dickenson_county", "va_ashland", "va_bedford", "va_woodstock", "va_middleburg", "va_christiansburg", "va_dinwiddie_county",
   "la_bossier_city", "la_lake_charles", "la_baton_rouge", "la_leesville", "la_sulphur", "la_st_james_parish", "la_plaquemines_parish", "la_st_bernard_parish", "la_west_baton_rouge_parish",
   "nj_burlington_county", "nj_cape_may_county", "nj_hunterdon_county", "nj_elizabeth", "nj_woodbridge", "nj_toms_river", "nj_east_orange", "nj_north_brunswick", "nj_howell", "nj_randolph", "nj_roxbury", "nj_bloomfield", "nj_rahway", "nj_union_township", "nj_berkeley_township", "nj_long_branch", "nj_red_bank", "nj_paramus", "nj_moorestown",
+  "fl_hialeah", "fl_hollywood", "fl_santa_rosa_county", "fl_st_cloud", "fl_ocoee", "fl_bartow", "fl_destin", "fl_fort_walton_beach", "fl_boynton_beach", "fl_jupiter", "fl_palm_beach_gardens", "fl_deerfield_beach", "fl_homestead", "fl_aventura", "oh_parma", "oh_canton", "oh_lucas_county", "oh_ashtabula_county", "oh_grove_city", "oh_upper_arlington", "oh_reynoldsburg", "oh_lancaster", "oh_fairfield", "oh_beavercreek", "oh_centerville", "oh_lima", "oh_barberton", "oh_shaker_heights", "oh_solon", "mi_taylor", "mi_st_clair_shores", "mi_royal_oak", "mi_battle_creek", "mi_portage", "mi_monroe_county", "mi_eaton_county", "mi_lenawee_county", "mi_holland", "mi_canton_township", "mi_walker", "mi_clinton_township", "mi_chesterfield_township", "mi_inkster", "wa_mukilteo", "wa_monroe", "co_westminster", "co_pueblo", "co_broomfield", "co_grand_junction", "co_montrose", "co_durango", "co_lafayette", "co_firestone", "co_frederick", "co_aspen", "co_greenwood_village", "or_wilsonville", "or_forest_grove", "or_lebanon", "or_la_grande", "or_central_point", "or_eagle_point", "al_dothan", "al_gadsden", "al_northport", "al_shelby_county", "al_st_clair_county", "al_orange_beach", "al_hartselle", "al_leeds", "al_muscle_shoals", "tn_clarksville", "tn_blount_county", "tn_madison_county", "tn_millington", "tn_lakeland", "in_warsaw",
   "nc_sanford", "nc_lincoln_county", "nc_nash_county", "nc_caldwell_county", "nc_pender_county", "nc_monroe", "nc_boone", "nc_indian_trail", "nc_carolina_beach", "nc_emerald_isle", "nc_lincolnton",
   "wa_spokane_valley", "wa_pasco", "wa_kennewick", "wa_mount_vernon", "wa_longview", "wa_north_bend", "wa_port_orchard", "wa_burlington", "wa_washougal", "wa_ridgefield", "wa_ellensburg", "wa_west_richland", "wa_cheney", "wa_liberty_lake", "wa_pierce_county", "wa_snohomish_county", "wa_island_county", "wa_douglas_county", "wa_adams_county", "wa_asotin_county", "id_twin_falls", "id_lewiston", "id_eagle", "wy_laramie", "wy_campbell_county", "wy_albany_county", "wy_green_river", "wy_torrington", "wy_carbon_county", "wy_goshen_county",
 ]);
 
 describe("county CivicEngage boards", () => {
   test("327 boards with unique sources and id prefixes", () => {
-    expect(COUNTY_CIVICENGAGE_CONFIGS).toHaveLength(351);
-    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.source)).size).toBe(351);
-    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.idPrefix)).size).toBe(351);
+    expect(COUNTY_CIVICENGAGE_CONFIGS).toHaveLength(468);
+    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.source)).size).toBe(468);
+    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.idPrefix)).size).toBe(468);
   });
 
   for (const cfg of COUNTY_CIVICENGAGE_CONFIGS.filter((c) => !NO_CAPTURE.has(c.source))) {

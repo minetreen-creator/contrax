@@ -435,6 +435,11 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
       "gymnasium floor",
       "polished concrete",
       "terrazzo",
+      // Owner 2026-11-04 (a $5 flooring customer, WA/ID/MT): a building's
+      // "- Tiling" bid package is floor and wall tile work.
+      "tiling",
+      "tile work",
+      "tile installation",
     ],
     naics: ["238330"],
   },
@@ -1649,6 +1654,10 @@ export function serviceTradeMismatch(titleText: string, expansion: TradeExpansio
   const codes = expansion.naicsCodes;
   // Carpet or floor CLEANING is janitorial work, not flooring (owner 2026-11-04).
   if (codes.includes("238330") && /\b(clean(ing)?|shampoo(ing)?|extraction|stripping and waxing|strip and wax|scrub(bing)?|burnish(ing)?)\b/.test(titleText) && !/\b(install(ation)?|replace(ment)?|new)\b/.test(titleText)) return true;
+  // A "walking floor" is a trailer conveyor ("Keith Walking Floor Repairs and Parts").
+  if (codes.includes("238330") && /\bwalking floors?\b/.test(titleText)) return true;
+  // Roof tile is roofing, not flooring.
+  if (codes.includes("238330") && /\broof(?:ing)? til(?:e|es|ing)\b/.test(titleText) && !/\bfloor/.test(titleText)) return true;
   const serviceTrade = codes.some((c) => c === "561730" || c === "238220" || c === "561612" || c === "238120" || c === "238910" || c.startsWith("484"));
   if (!serviceTrade) return false;
   if (codes.some((c) => c.startsWith("484")) && /\b(?:lift trucks?|forklifts?|pallet jacks?)\b/.test(titleText)) return true;

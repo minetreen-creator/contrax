@@ -498,7 +498,7 @@ export async function sendRadarMatchAlertEmail(
       from: "Contrax <hello@contrax.company>",
       replyTo: "contrax.companyllc@gmail.com",
       to: [to],
-      subject: `Contrax found ${bids.length} new opportunity${bids.length === 1 ? "" : "ies"} matching your Radar profile`,
+      subject: `Contrax found ${bids.length} new opportunit${bids.length === 1 ? "y" : "ies"} matching your Radar profile`,
       html: radarMatchAlertHtml(bids, truncatedCount, unsubscribeUrl, foundingSpots),
     });
 
@@ -574,7 +574,7 @@ export function radarMatchAlertHtml(
       <tr>
         <td style="background:linear-gradient(135deg,#2563eb,#1d4ed8);padding:32px 32px 24px;text-align:center;">
           <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;letter-spacing:-0.5px;">
-            Contrax found ${bids.length} new opportunity${bids.length === 1 ? "" : "ies"} matching your Radar profile
+            Contrax found ${bids.length} new opportunit${bids.length === 1 ? "y" : "ies"} matching your Radar profile
           </h1>
         </td>
       </tr>

@@ -779,6 +779,13 @@ export async function handleIntake(request: Request, kindOverride?: IntakeKind, 
       }
     }
 
+    // Scraper alarm (owner 2026-11-05): a burst of one-page bid visits from many
+    // addresses pushes the owner once an hour and saves a snapshot. Never throws.
+    if (kind === "page" && pagePath && pagePath.startsWith("/bid/")) {
+      const { checkScraperBurst } = await import("~/lib/scraper-alarm.server");
+      await checkScraperBurst();
+    }
+
     // Mission Control live alert (issue #788): one iPhone push per real visit.
     // Runs after the page view is stored and the bot/QA filters above; the
     // alert itself dedupes per (visitor_id, visit_id) and never throws.

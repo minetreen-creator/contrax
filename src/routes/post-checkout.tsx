@@ -162,6 +162,19 @@ const resolveCheckoutSession = createServerFn({ method: "POST" })
       await recordCheckoutPass(userId, session);
     }
 
+    // Owner 2026-11-04: a guest who paid with one email and then signs up with
+    // another in this browser keeps the pass (src/lib/pass-claim.ts).
+    if (userId != null && metadataUserId == null && session.metadata?.starter_pass === "true") {
+      try {
+        const { createPassClaim } = await import("~/lib/pass-claim.server");
+        const { PASS_CLAIM_COOKIE, PASS_CLAIM_TTL_SECONDS } = await import("~/lib/pass-claim");
+        const claim = await createPassClaim(userId);
+        setCookie(PASS_CLAIM_COOKIE, claim, { httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: PASS_CLAIM_TTL_SECONDS });
+      } catch (e) {
+        console.error("[post-checkout] pass claim not set:", (e as Error).message);
+      }
+    }
+
     // Create session token
     const token = crypto.randomUUID();
     const expiresAt = new Date(
@@ -386,8 +399,9 @@ function PostCheckoutPage() {
                 {savingsProduct && " — start scanning your bills and finding savings."}
               </p>
               {resolvedEmail && (
-                <p className="mt-2 text-xs text-gray-400">
-                  Account: {resolvedEmail}
+                <p className="mt-3 rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-900">
+                  Your {planLabel} pass is on <span className="font-semibold">{resolvedEmail}</span>. Sign in with that email
+                  next time; we emailed it a link to set your password.
                 </p>
               )}
               <p className="mt-4 text-xs text-gray-400">

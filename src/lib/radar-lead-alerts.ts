@@ -113,6 +113,12 @@ const MAX_MATCHES_PER_EMAIL = 10;
  * dedupe is per bid, so anything still open goes out in the next weekly email.
  */
 export const LEAD_ALERT_INTERVAL_DAYS = 7;
+/**
+ * Owner 2026-11-05: a 6 AM alert listed ten bids all due that same day (the
+ * query sorts soonest-due first). An alert only carries bids with at least
+ * this many days left, so every one is still worth bidding on.
+ */
+export const LEAD_ALERT_MIN_DAYS_LEFT = 3;
 /** Cap on the per-lead sent_bid_ids JSONB array (oldest half rotated when past). */
 const SENT_LIST_CAP = 512;
 
@@ -255,7 +261,7 @@ async function sendForOneLead(
     SELECT id, title, agency, category, description, location, set_aside,
            naics_code, due_date, estimated_value, source_url
     FROM bids
-    WHERE due_date > NOW()
+    WHERE due_date > NOW() + (${LEAD_ALERT_MIN_DAYS_LEFT} * INTERVAL '1 day')
       AND ${sql().unsafe(LOW_CONTENT_SQL)}
       AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
       AND NOT (${JSON.stringify(sentArr)}::jsonb ? CAST(id AS text))

@@ -188,6 +188,9 @@ const BOARDS: Board[] = [
   { tenant: "lwsd", source: "wa_lake_washington_schools_bonfire", stateName: "Washington", place: "Lake Washington School District", buyer: "Lake Washington School District", idPrefix: "lwsdbonfire", location: "Redmond, WA" },
   { tenant: "nsd", source: "wa_northshore_schools_bonfire", stateName: "Washington", place: "Northshore School District", buyer: "Northshore School District", idPrefix: "nsdbonfire", location: "Bothell, WA" },
   { tenant: "westada", source: "id_west_ada_schools_bonfire", stateName: "Idaho", place: "West Ada School District", buyer: "West Ada School District", idPrefix: "westadabonfire", location: "Meridian, ID" },
+  // North Carolina universities, captured 2026-11-05 (owner: "more bids ... in NC").
+  { tenant: "ncsu", source: "nc_ncsu_bonfire", stateName: "North Carolina", place: "NC State University", buyer: "NC State University", idPrefix: "ncsubonfire", location: "Raleigh, NC" },
+  { tenant: "wcu", source: "nc_wcu_bonfire", stateName: "North Carolina", place: "Western Carolina University", buyer: "Western Carolina University", idPrefix: "wcubonfire", location: "Cullowhee, NC" },
 ];
 
 export const COUNTY_BONFIRE_CONFIGS: readonly BonfireConfig[] = BOARDS.map(boardConfig);

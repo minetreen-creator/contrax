@@ -35,8 +35,10 @@ describe("Visitor trail: where they came from", () => {
 });
 
 describe("Industry Days in the site menu", () => {
-  test("the header links to /industry-days", () => {
-    expect(readFileSync("src/components/SiteHeader.tsx", "utf8")).toContain('href="/industry-days"');
+  // Owner 2026-11-06 ("hide the extra features"): the header is Contracts and Pricing only;
+  // /industry-days still works by direct link and search.
+  test("the header no longer links to /industry-days", () => {
+    expect(readFileSync("src/components/SiteHeader.tsx", "utf8")).not.toContain('href="/industry-days"');
   });
 });
 

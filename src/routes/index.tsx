@@ -3,9 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { readFile } from "node:fs/promises";
 import { Radar, KanbanSquare, ArrowRight, FileSearch } from "lucide-react";
 import { HomeContractFinder } from "~/components/HomeContractFinder";
-import { FoundingWall } from "~/components/FoundingWall";
 import { HomeStateMap } from "~/components/HomeStateMap";
-import { MaxAssistant } from "~/components/MaxAssistant";
 import { ExampleBrief } from "~/components/ExampleBrief";
 
 import { trackEvent } from "~/lib/track";
@@ -197,10 +195,8 @@ function Home() {
       <HowItWorks />
       {/* "Spin the map" (owner 2026-10-29: "Do 3"): tap a state, then a trade. */}
       <HomeStateMap contractMap={contractMap} />
-      {/* Max, the public AI assistant (owner 2026-10-25: "something high tech"). */}
-      <MaxAssistant />
-      {/* Founding Businesses wall (owner 2026-10-29); hidden until one is published. */}
-      <FoundingWall />
+      {/* Owner 2026-11-06 ("hide the extra features and simplify the offer"): Max and
+          the Founding wall are off the homepage: search, how it works, the map, $5. */}
       <StarterPassStrip where="closing" />
       <Footer />
     </div>

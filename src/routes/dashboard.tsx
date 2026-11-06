@@ -1,6 +1,5 @@
 import { createFileRoute, useNavigate, useLocation } from "@tanstack/react-router";
 import { DashboardCockpit } from "~/components/DashboardCockpit";
-import { LaunchpadDashboardCard } from "~/components/LaunchpadDashboardCard";
 import { TrialEndedCard } from "~/components/TrialEndedCard";
 import { BasicUpgradeBar } from "~/components/BasicUpgradeBar";
 import { createServerFn } from "@tanstack/react-start";
@@ -17,7 +16,6 @@ import { RadarLoginNotify } from "~/components/RadarLoginNotify";
 import { SavedRadarMatches } from "~/components/SavedRadarMatches";
 import { TrialChecklist } from "~/components/TrialChecklist";
 import { TrialStartCard } from "~/components/TrialStartCard";
-import { shouldShowTrialStartCard } from "~/lib/trial-start-card";
 import { isBriefMode, readRadarTopMatch, BRIEF_MODE_EVENTS } from "~/lib/brief-mode";
 import { trackEvent } from "~/lib/track";
 import { CompanyProfile, type BusinessProfile } from "~/components/CompanyProfile";
@@ -37,7 +35,6 @@ import {
   type PlanGate,
 } from "~/lib/plan-gates";
 import { checkTrial, hasUnlimitedSaves, FREE_SAVE_LIMIT, type TrialStatus } from "~/lib/trial";
-import { CERTIFICATIONS, certificationDaysRemaining, certificationStatus, fmtCertDate } from "~/lib/certifications";
 import {
   mergeFilterState,
   parseReviewParams,
@@ -838,7 +835,7 @@ function ZeroMatchesEmpty({
           Add adjacent NAICS codes
         </a>
         <a href="/onboarding" className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Edit profile</a>
-        <a href="/awards" className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Browse opportunities</a>
+        <a href="/radar" className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Search open bids</a>
       </div>
     </div>
   );
@@ -855,33 +852,6 @@ function ZeroMatchesEmpty({
  * untouched. The CTA carries its placement in ?source=dashboard (Bid Scout's
  * own source column — acquisition attribution is never touched).
  */
-function BidScoutAssistanceCard({ trial, user }: { trial: TrialStatus | null; user: AuthUser }) {
-  const { show } = shouldShowTrialStartCard(trial, user);
-  if (!show) return null;
-  return (
-    <div className="mb-8 rounded-2xl border border-blue-200 bg-gradient-to-r from-blue-50 to-white p-6 shadow-sm">
-      <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-        <div className="space-y-1.5">
-          <h2 className="text-lg font-bold text-slate-900">Bid Scout</h2>
-          <p className="text-sm text-slate-600">
-            Get five handpicked opportunities every Friday — matched to your business by a real person on our team.
-          </p>
-          <p className="text-xs text-slate-400">$99/month · Cancel anytime</p>
-        </div>
-        <a
-          href="/bid-scout?source=dashboard"
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-blue-500 active:scale-[0.98]"
-        >
-          Get five handpicked opportunities every Friday
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5-5 5M6 12h12" />
-          </svg>
-        </a>
-      </div>
-    </div>
-  );
-}
-
 function DeadlineAlertBanner({ count }: { count: number }) {
   if (count === 0) return null;
   return (
@@ -930,93 +900,6 @@ function TrialExpired() { return <div className="min-h-screen bg-slate-50 flex i
 
 // ── Component ────────────────────────────────────────────────────────────────
 // ── Certification Status Card ───────────────────────────────────────────────
-function CertificationStatusCard({ profile }: { profile: BusinessProfile }) {
-  const held = (profile.certifications ?? []).filter((c) =>
-    CERTIFICATIONS.some((m) => m.value === c),
-  );
-  const dates = profile.certification_dates ?? {};
-  const withDates = held.filter((c) => dates[c]);
-  const anyExpiring = withDates.some((c) => certificationDaysRemaining(dates[c]) <= 90);
-  return (
-    <section
-      className="mb-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
-      aria-labelledby="cert-status-heading"
-    >
-      <div className="mb-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-        <div>
-          <h2 id="cert-status-heading" className="text-xl font-bold text-slate-900">🛡️ Certification Status</h2>
-          <p className="mt-1 text-sm text-slate-500">
-            {held.length === 0
-              ? "Add your set-aside certifications so Contrax can track their renewal deadlines."
-              : withDates.length === 0
-                ? "Set expiration dates to get renewal reminders before it&apos;s too late."
-                : `${withDates.length} of ${held.length} certification${held.length !== 1 ? "s" : ""} have dates on file.`}
-          </p>
-        </div>
-        <a
-          href="/tracking?tab=certifications"
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 active:scale-[0.98] transition-all"
-        >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-          Update dates
-        </a>
-      </div>
-      {held.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-5 text-center">
-          <p className="text-sm text-slate-600">
-            No certifications on file yet.{" "}
-            <a href="/settings" className="font-semibold text-blue-600 hover:underline">Add certifications in Settings</a>{" "}
-            to start tracking renewal deadlines.
-          </p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {held.map((cert) => {
-            const date = dates[cert] ?? "";
-            const days = certificationDaysRemaining(date);
-            const status = certificationStatus(days);
-            const meta = CERTIFICATIONS.find((m) => m.value === cert);
-            return (
-              <div key={cert} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3.5">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-slate-900">{meta?.label ?? cert}</p>
-                  <p className={`mt-0.5 text-xs font-medium ${status.text}`}>
-                    {status.kind === "missing"
-                      ? "No expiration date set"
-                      : status.kind === "expired"
-                        ? `Expired ${Math.abs(days)} day${Math.abs(days) !== 1 ? "s" : ""} ago`
-                        : days === 0
-                          ? "Expires today"
-                          : `${fmtCertDate(date)} · ${days} day${days !== 1 ? "s" : ""} left`}
-                  </p>
-                </div>
-                <span className={`shrink-0 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold ${status.badge}`}>
-                  {status.label}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      )}
-      {anyExpiring && (
-        <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-          ⚠️ One or more certifications expire within 90 days. Review your renewal timeline in{" "}
-          <a href="/tracking?tab=certifications" className="font-semibold underline">Certification Tracking</a>.
-        </p>
-      )}
-    </section>
-  );
-}
-/**
- * Route wrapper: keeps the auth guard OUT of DashboardPage so its hooks always
- * run in the same order. The old guard sat before ~50 hooks — when the loader
- * result flipped between renders of the same fiber (SSR user=null → client
- * user present, or loader revalidation), React saw a different hook count and
- * threw #300/#301. The wrapper mounts the page only when the user is present,
- * and its own hooks (useLoaderData + useNavigate) are unconditional.
- */
 function DashboardRoute() {
   const { user: currentUser } = Route.useLoaderData();
   const navigate = useNavigate();
@@ -1680,12 +1563,6 @@ function DashboardPage({ user, trial, onTrialStarted }: { user: AuthUser; trial:
               )}
             </a>
             <a href="/pipeline" className="text-sm font-medium text-slate-500 hover:text-slate-700 transition-colors">⭐ Pipeline</a>
-            <a href="/workspace" className="text-sm font-medium text-slate-400 hover:text-slate-600 hidden sm:inline transition-colors">Team</a>
-            <a href="/awards" className="text-sm font-medium text-slate-400 hover:text-slate-600 hidden sm:inline transition-colors">Awards</a>
-            <a href="/trends" className="text-sm font-medium text-slate-400 hover:text-slate-600 hidden sm:inline transition-colors">📊 Trends</a>
-            <a href="/losses" className="text-sm font-medium text-slate-400 hover:text-slate-600 hidden sm:inline transition-colors">Losses</a>
-            <a href="/learnings" className="text-sm font-medium text-slate-400 hover:text-slate-600 hidden sm:inline transition-colors">🧠 Learnings</a>
-            <a href="/compliance" className="text-sm font-medium text-slate-400 hover:text-slate-600 hidden sm:inline transition-colors">Compliance</a>
               {user.is_admin && <a href="/admin/command" className="text-sm font-semibold text-amber-600 hover:text-amber-500 bg-amber-50 px-2.5 py-1 rounded-md transition-colors">⚙ Admin</a>}
             <span className="text-sm text-slate-500 hidden sm:inline">{user.email}</span>
             <button
@@ -1725,7 +1602,6 @@ function DashboardPage({ user, trial, onTrialStarted }: { user: AuthUser; trial:
 
         {/* Bid Scout assistance card — free-tier users ONLY (no active paid
             plan AND no active trial/grant entitlement). */}
-        <BidScoutAssistanceCard trial={trial} user={user} />
 
         {/* Deadline Alert Banner */}
         <DeadlineAlertBanner count={urgentTrackedCount} />
@@ -1806,18 +1682,15 @@ function DashboardPage({ user, trial, onTrialStarted }: { user: AuthUser; trial:
           </div>
         )}
         {/* Certification status — deadlines for held set-aside certifications */}
-        {profile && <CertificationStatusCard profile={profile} />}
         {/* How Contrax understands your business — collapsible profile summary */}
         {profile && <CompanyProfile profile={profile} />}
+        {/* Owner 2026-11-06 ("hide the extra features"): Red Team, competitors, losses,
+            learnings, Launchpad, Bid Scout and certification cards are off the dashboard;
+            their pages still work by direct link. */}
         {/* Owner 2026-11-06: big numbers with context, a map and a trade table for the contractor's own matches. */}
         {data?.bids && data.bids.length > 0 && <DashboardCockpit bids={data.bids} savedCount={savedBids.size} />}
         {profile && <GettingStarted hasSavedBids={(data?.savedMatches.length ?? 0) > 0} hasDrafts={(data?.drafts.length ?? 0) > 0} />}
 
-        <LaunchpadDashboardCard />
-        <a href="/evaluate" className="mb-4 block rounded-2xl border border-red-200 bg-gradient-to-r from-red-50 to-white p-5 shadow-sm transition hover:border-red-300"><div className="flex items-center justify-between gap-4"><div><div className="flex items-center gap-2"><h2 className="font-bold text-slate-900">🔴 Red Team</h2><span className="rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">Agency</span></div><p className="mt-1 text-sm text-slate-600">AI proposal auditing — find the holes before submission</p></div><span className="shrink-0 text-sm font-semibold text-red-700">Run review →</span></div></a>
-        <a href="/competitors" className="mb-4 block rounded-2xl border border-blue-100 bg-white p-5 shadow-sm transition hover:border-blue-300"><div className="flex items-center justify-between gap-4"><div><h2 className="font-bold text-slate-900">Competitor intelligence</h2><p className="mt-1 text-sm text-slate-600">Top competing firm: <b>{data?.topCompetitor?.name || "No match yet"}</b>{data?.topCompetitor ? ` (${data.topCompetitor.awards} recent awards)` : ""}</p><p className="mt-1 text-xs text-slate-500">Competition in your categories: <b>{(data?.activeAwardees || 0) > 20 ? "High" : (data?.activeAwardees || 0) > 7 ? "Medium" : "Low"}</b></p></div><span className="shrink-0 text-sm font-semibold text-blue-700">View competitors →</span></div></a>
-        <a href="/losses" className="mb-4 block rounded-2xl border border-purple-100 bg-white p-5 shadow-sm transition hover:border-purple-300"><div className="flex items-center justify-between"><div><h2 className="font-bold text-slate-900">Why You Lost</h2><p className="mt-1 text-sm text-slate-500">{data?.lossesCount || 0} lost bid{data?.lossesCount === 1 ? "" : "s"} analyzed · track recurring weaknesses</p></div><span className="text-purple-600">View losses →</span></div></a>
-        <a href="/learnings" className="mb-8 block rounded-2xl border border-green-200 bg-white p-5 shadow-sm transition hover:border-green-400"><div className="flex items-center justify-between"><div><h2 className="font-bold text-slate-900">🧠 Learning Engine</h2><p className="mt-1 text-sm text-slate-500">Win/loss patterns feed back into AI — smarter predictions with every outcome</p></div><span className="text-green-600">View learnings →</span></div></a>
 
         {/* Daily AI Digest */}
         {profile && (

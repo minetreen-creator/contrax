@@ -6332,6 +6332,14 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
   },
   // City of San Antonio's own bid list, added 2026-11-03.
   // City of Houston on Beacon, added 2026-11-03.
+  // Metro Nashville on Oracle iSupplier (owner 2026-11-06).
+  tn_nashville: {
+    class: "local",
+    city: "Nashville",
+    scopeState: "TN",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
   tx_houston_beacon: {
     class: "local",
     city: "Houston",

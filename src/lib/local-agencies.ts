@@ -868,6 +868,7 @@ export const LOCAL_AGENCIES: LocalAgency[] = [
   { source: "oh_worthington", slug: "city-of-worthington", name: "City of Worthington" },
   { source: "tx_san_antonio", slug: "city-of-san-antonio-tx", name: "City of San Antonio, Texas" },
   { source: "tx_houston_beacon", slug: "city-of-houston-tx", name: "City of Houston, Texas" },
+  { source: "tn_nashville", slug: "metro-nashville-tn", name: "Metro Nashville (Nashville and Davidson County), Tennessee" },
   { source: "oh_franklin_county", slug: "franklin-county-oh", name: "Franklin County, Ohio" },
   { source: "nj_harrison", slug: "town-of-harrison-nj", name: "Town of Harrison, New Jersey" },
   { source: "oh_dayton", slug: "city-of-dayton", name: "City of Dayton" },

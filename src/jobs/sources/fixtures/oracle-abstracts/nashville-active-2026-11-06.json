@@ -1,0 +1,68 @@
+{
+  "capturedAt": "2026-11-06T22:31:06.131Z",
+  "endpoint": "https://ibqhjb.fa.ocs.oraclecloud.com/fscmUI/faces/NegotiationAbstracts?prcBuId=300000006739049",
+  "filter": "Active",
+  "timeZone": "US Central Time",
+  "rows": [
+    [
+      "GG000123",
+      "Tourism and Convention Sales & Marketing Services",
+      "RFQ",
+      "Active",
+      "11/6/2026 9:34 AM",
+      "11/6/2026 9:34 AM",
+      "12/4/2026 2:00 PM",
+      ""
+    ],
+    [
+      "GG000106-2,2",
+      "Golf Merchandise",
+      "RFQ",
+      "Active",
+      "11/4/2026 2:13 PM",
+      "11/4/2026 2:13 PM",
+      "11/12/2026 2:00 PM",
+      ""
+    ],
+    [
+      "GG000118,1",
+      "Security Consulting Services",
+      "RFQ",
+      "Active",
+      "11/4/2026 10:00 AM",
+      "11/4/2026 10:00 AM",
+      "11/18/2026 2:00 PM",
+      ""
+    ],
+    [
+      "GG000092,5",
+      "Janitorial/Custodial Cleaning and Related Services",
+      "RFQ",
+      "Active",
+      "11/2/2026 12:58 PM",
+      "11/2/2026 12:58 PM",
+      "11/17/2026 2:00 PM",
+      ""
+    ],
+    [
+      "GG000113,2",
+      "CMAR for Hermitage Library Branch",
+      "RFQ",
+      "Active",
+      "11/2/2026 12:56 PM",
+      "11/2/2026 12:56 PM",
+      "11/17/2026 2:00 PM",
+      ""
+    ],
+    [
+      "GG000115,1",
+      "Concrete and Brick Sands",
+      "RFQ",
+      "Active",
+      "10/29/2026 8:01 PM",
+      "10/29/2026 8:01 PM",
+      "11/12/2026 2:00 PM",
+      ""
+    ]
+  ]
+}

@@ -58,7 +58,7 @@ import { fetchVaColonialHeightsBids } from "./sources/va-colonial-heights";
 import { fetchOhWorthingtonBids } from "./sources/oh-worthington";
 import { fetchTxSanAntonioBids } from "./sources/tx-san-antonio";
 import { fetchFlDestinBeaconBids, fetchTxHoustonBeaconBids } from "./sources/tx-houston-beacon";
-import { fetchTnNashvilleBids } from "./sources/tn-nashville-oracle";
+import { fetchTnChattanoogaBids, fetchTnNashvilleBids } from "./sources/oracle-abstracts";
 import { fetchOhFranklinCountyBids } from "./sources/oh-franklin-county";
 import { fetchNjHarrisonBids } from "./sources/nj-harrison";
 import { fetchVaLoudounBids } from "./sources/va-loudoun";
@@ -543,8 +543,9 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "tx_houston_beacon", fetchFn: () => fetchTxHoustonBeaconBids() },
   // City of Destin moved its bids from CivicEngage to Beacon (owner 2026-11-06).
   { name: "fl_destin_beacon", fetchFn: () => fetchFlDestinBeaconBids() },
-  // Metro Nashville's own solicitations on its Oracle iSupplier page (owner 2026-11-06).
+  // Metro Nashville and City of Chattanooga on public Oracle abstracts pages (owner 2026-11-06).
   { name: "tn_nashville", fetchFn: () => fetchTnNashvilleBids() },
+  { name: "tn_chattanooga", fetchFn: () => fetchTnChattanoogaBids() },
   { name: "oh_franklin_county", fetchFn: () => fetchOhFranklinCountyBids() },
   { name: "nj_harrison", fetchFn: () => fetchNjHarrisonBids() },
   { name: "va_loudoun", fetchFn: fetchVaLoudounBids },

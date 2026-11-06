@@ -100,16 +100,12 @@ const plans = [
 
 // Every FAQ actually rendered on the page. The render AND the FAQPage
 // structured data read this ONE array, so the markup can never drift from what
-// visitors read (8 items).
+// visitors read (4 items; owner 2026-11-06: one offer, no plan comparisons).
 const FAQS = [
-  { q: "Can I switch plans later?", a: "Yes — upgrade or downgrade anytime. Changes take effect at the start of your next billing cycle." },
-  { q: "How much does Basic cost?", a: "Basic is $0/mo and is where every new account starts until a plan is chosen. It includes 2 Radar searches per account, basic solicitations search, standard set-aside filters, and 1 saved bid, with no bid emails. Basic shows what each bid is, but the official notice link and bid documents are for members. New bids open for free accounts after a 7-day head start for paying members. Basic matches bids for one state and one trade. Upgrade to Starter ($19/mo) to open the official notice for every bid, see new bids the day they post, match every state and trade you work in, get a 6 AM Eastern email of the new bids in your trade and states every morning, save unlimited bids, see who to contact on federal bids (name, email and phone), and get your saved bids' deadlines in your calendar. AI briefs and bid scoring are part of Radar Pro (Professional), and proposal drafting plus pipeline CSV export are part of Bid Scout." },
-  { q: "Is there a free trial?", a: "Instead of a free trial, Starter costs $5 for your first 30 days, one time, with no automatic renewal. That is 30 days of the daily bid email and every state and trade, and we ask before charging $19/month. Free Basic stays free if you only want to search." },
-  { q: "Is there a yearly plan?", a: "Yes. Pay yearly and get 2 months free: Starter is $190 a year instead of $228, Professional $790 instead of $948, and Agency $1,990 instead of $2,388. Choose Yearly on the upgrade page at checkout." },
+  { q: "What do I get?", a: "Every new government bid in your trade and states, in your inbox at 6 AM Eastern every morning, plus the official notice link and documents for every bid on Contrax. City, county, state and federal bids, matched to what your business does." },
+  { q: "Is there a free trial?", a: "Instead of a free trial, Starter costs $5 for your first 30 days, one time, with no automatic renewal. That is 30 days of the daily bid email and every state and trade, and we ask before charging $19/month." },
   { q: "Can I cancel anytime?", a: "Yes. Cancel anytime and your access continues until the end of the billing period. No refunds for partial months." },
   { q: "What payment methods do you accept?", a: "We accept all major credit and debit cards through Stripe." },
-  { q: "Do nonprofits receive free access?", a: "Yes. Verified 501(c)(3) nonprofits receive free basic government grant search with no credit card, trial expiration, or monthly subscription. Apply at /nonprofit/apply. Paid government-contracting plans remain separate." },
-  { q: "Is my data secure?", a: "Yes. Data is encrypted in transit and at rest. We use Vercel, Neon PostgreSQL, and Stripe — all SOC 2 compliant. Read more on our security page." },
 ];
 
 // Structured data (owner 2026-10-19, item 4). Product offers come from the SAME
@@ -193,7 +189,8 @@ const pricingJsonLd = {
 function PricingPage() {
   // Owner 2026-10-19 (item 3): same Monthly/Yearly switch as /upgrade. The
   // displayed price swaps in place; monthly is the default.
-  const [interval, setInterval] = useState<"month" | "year">("month");
+  // Owner 2026-11-06 ("simplify the offer"): one price, monthly; no yearly toggle.
+  const interval = "month" as "month" | "year";
   // Owner 2026-10-29 ("The New York visitor visited pricing and left"): half of
   // pricing visitors left from it within seconds, and on a phone the first
   // screen had no price and no button. The hero now carries the visitor's own
@@ -267,30 +264,6 @@ function PricingPage() {
             </div>
             {/* Owner 2026-10-30 (item 4): the merchandise before the plan cards. */}
             <EmailSample />
-          </div>
-
-          {/* Billing period (owner 2026-10-19, item 3) — mirrors /upgrade. */}
-          <div className="mt-10 flex justify-center">
-            <div
-              role="radiogroup"
-              aria-label="Billing period"
-              className="inline-flex rounded-full border border-slate-200 bg-white p-1 text-sm font-semibold shadow-sm"
-            >
-              {(["month", "year"] as const).map((v) => (
-                <button
-                  key={v}
-                  type="button"
-                  role="radio"
-                  aria-checked={interval === v}
-                  onClick={() => setInterval(v)}
-                  className={`rounded-full px-4 py-1.5 transition ${
-                    interval === v ? "bg-slate-900 text-white" : "text-slate-600 hover:text-slate-900"
-                  }`}
-                >
-                  {v === "month" ? "Monthly" : "Yearly · 2 months free"}
-                </button>
-              ))}
-            </div>
           </div>
 
           {/* Plan cards. Owner 2026-11-01 ("do all"): ONE card, Starter, so the
@@ -395,7 +368,7 @@ function PricingPage() {
           <BidValueCalculator />
 
           {/* Footer notes */}
-          <p className="mt-8 text-center text-sm text-gray-500">Plans are billed monthly or yearly. Cancel anytime.</p>
+          <p className="mt-8 text-center text-sm text-gray-500">Cancel anytime.</p>
           <p className="mx-auto mt-6 max-w-2xl text-center text-sm text-gray-600">
             Not ready to pay? Keep searching on{" "}
             <a href="/signup?plan=basic" className="font-medium text-amber-600 hover:text-amber-500">free Basic</a>: one state and

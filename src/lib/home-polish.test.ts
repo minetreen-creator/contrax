@@ -50,6 +50,7 @@ describe("homepage length and the phone chat bubble", () => {
   test("the floating AI chat bubble is gone; Max is the one assistant (owner 2026-11-01)", () => {
     const root = readFileSync("src/routes/__root.tsx", "utf8");
     expect(root).not.toContain("<ChatWidget");
-    expect(readFileSync("src/routes/index.tsx", "utf8")).toContain("<MaxAssistant />");
+    // Owner 2026-11-06 ("hide the extra features"): Max is off the homepage too.
+    expect(readFileSync("src/routes/index.tsx", "utf8")).not.toContain("<MaxAssistant />");
   });
 });

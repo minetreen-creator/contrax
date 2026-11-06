@@ -474,12 +474,19 @@ const RELOCATION_MOVE_CONTEXT = /\b(?:furniture|office|household|employee|person
  * would refuse, so the same notice is classified identically whichever pass
  * (or door) picked it up.
  */
+/** IT-security wording (owner 2026-11-06): cyber, information/network/data security, SOC/MSSP, pen testing, firewalls. */
+export const IT_SECURITY_WORDS =
+  /\b(cyber[- ]?security|cyber|information security|infosec|network security|it security|data security|cloud security|endpoint (security|protection|detection)|security operations cent(er|re)|managed security services?|mssp|managed detection|penetration test(s|ing)?|pen test(s|ing)?|vulnerability (assessments?|scan(s|ning)?|management)|firewalls?|siem|intrusion (detection|prevention)|ransomware|identity and access management|zero trust)\b/;
 /** IT wording: "IT services/support/…", "information technology", software, cloud, help desk. */
 export function isItWork(full: string): boolean {
   return (
     /\bit (services?|support|consulting|staffing|solutions|infrastructure|hardware|equipment|managed services|help ?desk)\b/.test(full) ||
     /\binformation technology\b/.test(full) ||
-    /\b(software|cloud (services|hosting|computing)|cybersecurity|help ?desk|network (services|support|infrastructure))\b/.test(full)
+    /\b(software|cloud (services|hosting|computing)|cybersecurity|help ?desk|network (services|support|infrastructure))\b/.test(full) ||
+    // Owner 2026-11-06 ("cybersecurity ... that's IT"): IT-security work is IT,
+    // not a guard service. "Cyber Security Penetration Testing", "Network Security
+    // Firewall Upgrade" and "Information Security Consulting" were filed Security.
+    IT_SECURITY_WORDS.test(full)
   );
 }
 

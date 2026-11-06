@@ -1044,6 +1044,14 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   tx_houston_beacon: "TX",
   tn_nashville: "TN",
   tn_chattanooga: "TN",
+  tn_knox_county: "TN",
+  tn_tbr: "TN",
+  tn_memphis_beacon: "TN",
+  tn_alcoa_beacon: "TN",
+  tn_bradley_schools_beacon: "TN",
+  tn_mount_pleasant_beacon: "TN",
+  tn_sevierville: "TN",
+  tn_lawrenceburg: "TN",
   oh_franklin_county: "OH", // Franklin County, OH Purchasing bid board (owner 2026-10-12)
   nj_harrison: "NJ", // Town of Harrison, NJ CivicEngage bid board (owner 2026-10-12)
   oh_dayton: "OH",

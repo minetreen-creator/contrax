@@ -59,6 +59,9 @@ import { fetchOhWorthingtonBids } from "./sources/oh-worthington";
 import { fetchTxSanAntonioBids } from "./sources/tx-san-antonio";
 import { fetchFlDestinBeaconBids, fetchTxHoustonBeaconBids } from "./sources/tx-houston-beacon";
 import { fetchTnChattanoogaBids, fetchTnNashvilleBids } from "./sources/oracle-abstracts";
+import { TN_BEACON_SOURCES } from "./sources/tn-beacon";
+import { fetchTnKnoxCountyBids } from "./sources/tn-knox-county";
+import { fetchTnTbrBids } from "./sources/tn-tbr";
 import { fetchOhFranklinCountyBids } from "./sources/oh-franklin-county";
 import { fetchNjHarrisonBids } from "./sources/nj-harrison";
 import { fetchVaLoudounBids } from "./sources/va-loudoun";
@@ -546,6 +549,10 @@ export const TAIL_SOURCES: SyncSource[] = [
   // Metro Nashville and City of Chattanooga on public Oracle abstracts pages (owner 2026-11-06).
   { name: "tn_nashville", fetchFn: () => fetchTnNashvilleBids() },
   { name: "tn_chattanooga", fetchFn: () => fetchTnChattanoogaBids() },
+  // Tennessee construction coverage (owner 2026-11-06: "I want ALL construction bids in TN").
+  { name: "tn_knox_county", fetchFn: () => fetchTnKnoxCountyBids() },
+  { name: "tn_tbr", fetchFn: () => fetchTnTbrBids() },
+  ...TN_BEACON_SOURCES,
   { name: "oh_franklin_county", fetchFn: () => fetchOhFranklinCountyBids() },
   { name: "nj_harrison", fetchFn: () => fetchNjHarrisonBids() },
   { name: "va_loudoun", fetchFn: fetchVaLoudounBids },

@@ -131,8 +131,9 @@ export const CIVICENGAGE_PLACEHOLDER_TITLE =
  * 2026-11-04, Virginia boards: "Notice of sole source award - Fiber Broadband
  * Services", "Public Notice: Surplus Brick Dust Available for Sale").
  */
+// "Purchasing Policy" (Lawrenceburg, TN, 2026-11-06) is a document, not a solicitation.
 export const CIVICENGAGE_NOT_A_BID_TITLE =
-  /^\W*(?:public )?notice of (?:sole[- ]source|intent to award|award)\b|\bsole[- ]source award\b|\bsurplus\b.*\b(?:for sale|available)\b/i;
+  /^\W*(?:public )?notice of (?:sole[- ]source|intent to award|award)\b|\bsole[- ]source award\b|\bsurplus\b.*\b(?:for sale|available)\b|^\W*purchasing (?:policy|policies|manual)\W*$/i;
 
 export interface CivicEngageBoardConfig {
   /** Optional source-specific decoder for the literal published closing text. */

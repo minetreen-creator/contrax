@@ -136,6 +136,9 @@ export const COUNTY_CIVICENGAGE_CONFIGS: readonly CivicEngageBoardConfig[] = [
   board("tn_maury_county", "www.maurycounty-tn.gov", "Maury County", "Maury County, TN", "maurycountycivic"),
   board("tn_washington_county", "www.washingtoncountytn.org", "Washington County", "Washington County, TN", "washingtoncountytncivic"),
   board("tn_coffee_county", "www.coffeecountytn.gov", "Coffee County", "Coffee County, TN", "coffeecountycivic"),
+  // Owner 2026-11-06 ("I want ALL construction bids in TN"); captured fixtures/tn-civicengage.
+  board("tn_sevierville", "www.seviervilletn.org", "City of Sevierville", "Sevierville, TN", "seviervillecivic"),
+  board("tn_lawrenceburg", "www.lawrenceburgtn.gov", "City of Lawrenceburg", "Lawrenceburg, TN", "lawrenceburgtncivic"),
   // Florida (owner 2026-10-30).
   board("fl_pensacola", "www.cityofpensacola.com", "City of Pensacola", "Pensacola, FL", "pensacolacivic"),
   board("fl_florida_city", "www.floridacityfl.gov", "City of Florida City", "Florida City, FL", "floridacitycivic"),

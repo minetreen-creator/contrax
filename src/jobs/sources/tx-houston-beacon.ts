@@ -134,7 +134,7 @@ export function parseBeaconList(list: BeaconSolicitation[], a: BeaconAgency, now
       title,
       agency: a.agency,
       location: a.location,
-      description: `${a.agency} ${type || "solicitation"}${refnum ? ` ${refnum}` : ""}: ${title}. Posted on the city's Beacon procurement portal, where bidders register and download the documents.`,
+      description: `${a.agency} ${type || "solicitation"}${refnum ? ` ${refnum}` : ""}: ${title}. Posted on ${a.agency}'s Beacon procurement portal, where bidders register and download the documents.`,
       category: mapCategory("", title, ""),
       due_date: due,
       estimated_value: "",

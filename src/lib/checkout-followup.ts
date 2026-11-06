@@ -1,3 +1,4 @@
+import { TRADEMARK_LINE } from "~/lib/trademark";
 /**
  * Checkout follow-up (owner 2026-10-28, "someone opened checkout but 0
  * payments"): one short email to a person who reached the Stripe page for a
@@ -76,7 +77,7 @@ export function checkoutFollowupEmail(i: {
     "Nathaniel Minetree",
     "Owner and CEO, Contrax LLC",
   ];
-  const footer = [`Contrax LLC, ${i.postalAddress}`, `Don't want emails like this? Unsubscribe: ${i.unsubscribeUrl}`];
+  const footer = [`Contrax LLC, ${i.postalAddress} · ${TRADEMARK_LINE}`, `Don't want emails like this? Unsubscribe: ${i.unsubscribeUrl}`];
   const text = [...lines, "", ...footer].join("\n");
   const html =
     lines

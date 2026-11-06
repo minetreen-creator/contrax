@@ -1,3 +1,4 @@
+import { TRADEMARK_LINE } from "~/lib/trademark";
 /**
  * Daily bid outreach (owner 2026-10-23: "I need something that brings in leads
  * and traffic"). Each weekday morning a job finds fresh open bids, looks up
@@ -280,7 +281,7 @@ export function outreachEmail(i: OutreachEmailInput): { subject: string; text: s
     "Owner and CEO, Contrax LLC",
     "contrax.company",
     "",
-    `Contrax LLC, ${i.postalAddress}`,
+    `Contrax LLC, ${i.postalAddress} · ${TRADEMARK_LINE}`,
     `You're receiving this because ${i.business} lists this address on its website. Unsubscribe: ${i.unsubscribeUrl}`,
   ];
 

@@ -1,3 +1,4 @@
+import { TRADEMARK_LINE } from "~/lib/trademark";
 /**
  * One-time product announcements to every signed-up account (owner 2026-10-19:
  * "send email to all signed up accounts about the upgrade"). Each announcement
@@ -91,6 +92,7 @@ export function federalUpgradeEmail(unsubscribeUrl: string): { subject: string; 
       </td></tr>
       <tr><td style="padding:16px 32px 24px;border-top:1px solid #e5e7eb;color:#6b7280;font-size:12px;line-height:1.5;">
         You're getting this one-time update because you have a Contrax account. Live counts change daily as bids open and close. Questions? Reply to this email.
+        ${escapeHtml(TRADEMARK_LINE)}
         <a href="${escapeHtml(unsubscribeUrl)}" style="color:#6b7280;">Unsubscribe from Contrax updates and the weekly bid email</a>.
       </td></tr>
     </table>
@@ -104,6 +106,7 @@ export function federalUpgradeEmail(unsubscribeUrl: string): { subject: string; 
     `See what's open near you: ${URL}`,
     "Nathaniel Minetree\nOwner and CEO, Contrax LLC",
     `You're getting this one-time update because you have a Contrax account. Unsubscribe: ${unsubscribeUrl}`,
+    TRADEMARK_LINE,
   ].join("\n\n");
   return { subject: SUBJECT, html, text };
 }
@@ -140,6 +143,7 @@ export function starterPassEmail(unsubscribeUrl: string): { subject: string; htm
       </td></tr>
       <tr><td style="padding:16px 32px 24px;border-top:1px solid #e5e7eb;color:#6b7280;font-size:12px;line-height:1.5;">
         You're getting this one-time offer because you have a Contrax account. Questions? Reply to this email.
+        ${escapeHtml(TRADEMARK_LINE)}
         <a href="${escapeHtml(unsubscribeUrl)}" style="color:#6b7280;">Unsubscribe from Contrax updates and the weekly bid email</a>.
       </td></tr>
     </table>
@@ -152,6 +156,7 @@ export function starterPassEmail(unsubscribeUrl: string): { subject: string; htm
     `Start my 30 days for $5: ${PASS_URL}`,
     "Nathaniel Minetree\nOwner and CEO, Contrax LLC",
     `You're getting this one-time offer because you have a Contrax account. Unsubscribe: ${unsubscribeUrl}`,
+    TRADEMARK_LINE,
   ].join("\n\n");
   return { subject: PASS_SUBJECT, html, text };
 }

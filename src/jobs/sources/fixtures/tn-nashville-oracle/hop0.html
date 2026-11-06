@@ -1,0 +1,496 @@
+<html lang="en-US"><head><script>
+/*
+** Copyright (c) 2008, 2020, Oracle and/or its affiliates. 
+*/
+
+/**
+ * This is the loopback script to process the url before the real page loads. It introduces
+ * a separate round trip. During this first roundtrip, we currently do two things: 
+ * - check the url hash portion, this is for the PPR Navigation. 
+ * - do the new window detection
+ * the above two are both controled by parameters in web.xml
+ * 
+ * Since it's very lightweight, so the network latency is the only impact. 
+ * 
+ * here are the list of will-pass-in parameters (these will replace the param in this whole
+ * pattern: 
+ *        viewIdLength                           view Id length (characters),
+ *        loopbackIdParam                        loopback Id param name,
+ *        loopbackId                             loopback Id,
+ *        windowModeIdParam                      window mode param name,
+ *        clientWindowIdParam                    client window Id param name,
+ *        windowId                               window Id,
+ *        initPageLaunch                         initPageLaunch,
+ *        enableNewWindowDetect                  whether we want to enable new window detection
+ *        jsessionId                             session Id that needs to be appended to the redirect URL
+ *        adfHashMarker                          A string udentifying the start of PPR Navigation hash
+ *        mediaFontSize                          font size used. For em related calculations.
+ *        mediaType                              Type of media. screen, tv etc
+ *        mediaFeatureWidth                      Width of the view port
+ *        mediaFeatureHeight                     Height of the view port
+ *        mediaFeatureDeviceWidth                Width of the device
+ *        mediaFeatureDeviceHeight               Height of the device
+ *        mediaFeatureColor                      number of bits per color component of the device
+ *        mediaFeatureColorIndex                 color index media feature
+ *        mediaFeatureMonochrome                 Whether the device is monochrome
+ *        mediaFeatureResolution                 resolution of the device.
+ *        mediaFeatureGrid                       Whether device is a grid device
+ *        mediaFeatureScan                       Scanning process of television devices
+ *        mediaFeatureOrientation                Screen orientation. landscape or portrait
+ *        enablePPRNav                           whether we want to enable PPR Navigation
+ *        internalParamsObj                      an object whose keys are the names of the internal 
+ *                                               parameters and whose values evaluate as true
+ *        noLoopbackViewId                       View Id used where the page should be redirected when 
+ *                                               the session cannot be established due to the browser with 
+ *                                               disabled cookies accessing a server with URL rewriting disabled
+ *        extraParams                            a name-value map of extra query parameters that should be placed 
+ *                                               on the URL
+ */
+ 
+ 
+function _addParam(queryString, paramName, value)
+{
+  try 
+  {
+    var hasValue = (value != null && value !== '');
+
+    if (hasValue)
+    {
+      if (queryString == null || queryString === '')
+      {
+        queryString = "?";
+      }
+      else 
+      {
+        queryString += "&";
+      }
+      queryString = queryString + paramName + '=' + value;
+    }
+  }
+  catch (e)
+  {
+   //If a single param addition fails, continue 
+   //so that other params addition can be continueds
+  }
+  return queryString;
+}
+
+function _cookiesEnabled()
+{
+  return (navigator && navigator.cookieEnabled);
+}
+
+var internalParams = {'_afrLoop':1,'_afrWindowMode':1,'_afrWindowId':1,'_afrMT':1,'_afrFS':1,'_afrMFW':1,'_afrMFH':1,'_afrMFDH':1,'_afrMFDW':1,'_afrMFC':1,'_afrMFCI':1,'_afrMFM':1,'_afrMFR':1,'_afrMFG':1,'_afrMFS':1,'_afrMFO':1,'_afrRedirect':1};
+var extraParams = {'_adf.ctrl-state':'donzfpoloswz6t_1'};
+var queryParamNames = [];
+var queryParamValues = [];
+
+
+function _addQS(pname, pvalue)
+{
+  if (!internalParams[pname])
+  {
+    queryParamNames.push(pname);
+    queryParamValues.push(pvalue)
+  }    
+}
+
+function _replaceCallback(p0, pname, p2, pvalue)
+{
+  _addQS(pname, pvalue);
+}
+
+/**
+ * Finds a feature value with binary search.
+ * The search is based on window.matchmedia function call on min-feature.
+ * e.g. window.matchMedia("(min-resolution: 400dpi)").matches) will be true 
+ * when the resolution is at least 400 dpi.
+ */
+var _findWithBinarySearch = function (feature, minVal, maxVal, unit)
+{
+  if (maxVal <= minVal)
+  {
+    return minVal;
+  }
+
+  var median = Math.ceil((maxVal + minVal) / 2);
+
+  while (true)
+  {
+    if (minVal == median || maxVal == median)
+      return minVal;
+
+    if (window.matchMedia("( min-" + feature + ": " + median + unit + ")").matches)
+    {
+      minVal = median;
+    }
+    else 
+    {
+      maxVal = median;
+    }
+    
+    median = Math.ceil((maxVal + minVal) / 2);
+  }
+}
+
+/**
+ * Compute font size and add font size param
+ */
+var _addFontSizeParam = function (query)
+{
+  var fontSize = "16";
+
+  try 
+  {
+    //Check the font size so that em to px conversion can be done at server.
+    fontSize = window.getComputedStyle(document.createElement("div")).fontSize ||
+                                       window.getComputedStyle(document.documentElement).fontSize;
+    fontSize = fontSize.substring(0, fontSize.indexOf("px"));
+  }
+  catch (e)
+  {
+    //reset to default value in case of any exception
+    fontsize = "16";
+  }
+
+  query = _addParam(query, "_afrFS", fontSize);
+  return query;
+}
+
+/**
+ * Derives media type by calling window.matchmedia on a list of 
+ * possible media types and adds the matched media type as a query param 
+ */
+var _addMediaTypeParam = function (query)
+{
+  var mediaTypes = ["screen", "print", "handheld", "aural", "braille", "embossed", "tv", "projection", "tty"];
+  var agentMediaType = "all";
+
+  try 
+  {
+    for (var mt = 0;mt < mediaTypes.length;mt++)
+    {
+      var mediaQuery = mediaTypes[mt];
+
+      if (window.matchMedia(mediaQuery).matches)
+      {
+        agentMediaType = mediaTypes[mt];
+        break;
+      }
+    }
+  }
+  catch (e)
+  {
+    //reset to default value in case of any exception
+    agentMediaType = "all";
+  }
+
+  query = _addParam(query, "_afrMT", agentMediaType);
+  return query;
+}
+
+/**
+ * Adds various media features to query string based on agent properties.
+ * The input query string is the URL generated by this script and the output is the
+ * URL with appended media features as query params
+ */
+var _addMediaFeatures = function (query)
+{
+  query = _addFontSizeParam(query);
+
+  query = _addMediaTypeParam(query);
+
+  query = _addParam(query, "_afrMFW", window.innerWidth);
+
+  query = _addParam(query, "_afrMFH", window.innerHeight);
+
+  query = _addParam(query, "_afrMFDW", screen.width);
+
+  query = _addParam(query, "_afrMFDH", screen.height);
+
+  //query color on a scale of 0 - 50. 
+  var mediaFeatureColor = _findWithBinarySearch("color", 0, 50, "");
+  query = _addParam(query, "_afrMFC", mediaFeatureColor);
+
+  //query color-index on a scale of 0 - 50. 
+  var mediaFeatureColorIndex = _findWithBinarySearch("color-index", 0, 50, "");
+  query = _addParam(query, "_afrMFCI", mediaFeatureColorIndex);
+
+  //query monochrome on a scale of 0 - 20.
+  var mediaFeatureMonochrome = _findWithBinarySearch("monochrome", 0, 20, "");
+  query = _addParam(query, "_afrMFM", mediaFeatureMonochrome);
+
+  //query resolution on a scale of 0 - 1000dpi. Conversion to other usits are to be
+  //done at the server side. 
+  var mediaFeatureResolution = _findWithBinarySearch("resolution", 0, 1000, "dpi");
+  query = _addParam(query, "_afrMFR", mediaFeatureResolution);
+
+  //query whether the device supports grid. 
+  var mediaFeatureGrid = window.matchMedia("(grid)").matches;
+  query = _addParam(query, "_afrMFG", mediaFeatureGrid ? 1 : 0);
+
+  //scan returns a true only for tv media type. 
+  var mediaFeatureScan = window.matchMedia("(scan: progressive)").matches;
+  query = _addParam(query, "_afrMFS", mediaFeatureScan ? 1 : 0);
+
+  //query whether orientation is landscape or portrait 
+  var mediaFeatureOrientation = window.matchMedia("(orientation: portrait)").matches;
+  query = _addParam(query, "_afrMFO", mediaFeatureOrientation ? 1 : 0);
+
+  return query;
+}
+
+var _getTouchFeature = function()
+{
+  var touchCapability = "none";
+
+  if (navigator.maxTouchPoints)
+  {
+    // touch enabled 
+    touchCapability = (navigator.maxTouchPoints > 1) ? "multiple" : "single";
+  }
+
+  return touchCapability;
+}
+
+var _addTouchCapabilityParam = function(query)
+{
+  var touchParam = "_afrTC";
+  if(touchParam == "null")
+  {
+    var touchFeature = _getTouchFeature();
+    query = _addParam(query, "null" , touchFeature);
+  }
+  return query;
+}
+
+var id = null;
+var query = null;
+var anchor = null;
+var href = document.location.href; 
+var hashIndex = href.indexOf("#"); 
+var hash = (hashIndex > 0) ? href.substring(hashIndex + 1) : null;
+href = (hashIndex > 0) ? href.substring(0, hashIndex) : href;
+var oldUri = href;
+
+var marker = '!';
+
+/* process the hash part of the url, split the url */
+if (hashIndex > 0)
+{
+  if (hash.indexOf(marker) == 0)
+  {
+    var adfHash = decodeURIComponent(hash.substring(marker.length));
+
+    var state = adfHash.split("@");
+    var len = state.length;
+    
+    if (len >= 2)
+    {
+      id = state[1];
+    }
+    if (len >= 3)
+    {
+      query = state[2];
+    }
+    if (len >= 4)
+    {
+      anchor = state[3];
+    }
+  }
+  else 
+  {
+    anchor = decodeURIComponent(hash);
+    // Check for legacy PPR navigation Hash format
+    if ( false  && (anchor.indexOf('/') >= 0 || anchor.indexOf('@') >= 0))
+    {
+      var astate = anchor.split("@");
+      var alen = astate.length;
+      if (alen >= 1)
+      {
+        id = astate[0];
+      }
+      if (alen >= 2)
+      {
+        query = astate[1];
+      }
+      anchor = null;
+    }
+  }
+}
+
+
+
+/* process the query part */
+var queryIndex = href.indexOf("?");
+if (queryIndex > 0)
+{
+  // only when pprNav is on, we take in the query from the hash portion
+  query = (query || (id && id.length > 0)) ? query : href.substring(queryIndex);
+  href = href.substring(0, queryIndex);
+}
+
+if (query != null && query.length > 0)
+{
+  // extract all query parameters
+  query.replace(/([^?=&]+)(=([^&]*))?/g, _replaceCallback);
+  
+  query = null;
+  if (queryParamNames.length > 0)
+  {
+    query = '';
+    
+    for (var i = 0;i < queryParamNames.length;i++)
+    {
+      var n = queryParamNames[i];
+      var v = queryParamValues[i];
+      
+      // Check for overrides in the extraParams map
+      if (extraParams[n] != undefined)
+      {
+        v = extraParams[n];
+        delete extraParams[n];
+      }
+      
+      query = query + ((i == 0) ? '?' : '&') + n + '=' + ((v == null) ? '' : v);
+    }
+  }
+}
+
+var jsessionIndex = href.indexOf(';');
+if (jsessionIndex > 0)
+{
+  href = href.substring(0, jsessionIndex);
+}
+
+
+// Check whether HTTP session can be established by verifying that cookies are enabled or URL rewriting is on. 
+// If not, abort processing and redirect to an error page
+if (!'' && !_cookiesEnabled())
+{
+  window.location.replace(href.substring(0, href.length -  21 ) + '/_noloopbackerror_');
+}
+else 
+{
+  /* we will replace the viewId only when pprNav is turned on */
+  if ( false )
+  {
+    if (id != null && id.length > 0)
+    {
+      href = href.substring(0, href.length -  21 ) + id;
+    }
+  }
+
+  query = _addParam(query, "_afrLoop", "15217174161811707");
+  
+  /* below is the new window detection logic */
+  var initWindowName = "_afr_init_";// temporary window name set to a new window
+  var windowName = window.name;
+  
+  // if the window name is "_afr_init_", treat it as redirect case of a new window
+  if (( true ) && (!windowName || windowName == initWindowName || windowName != "null"))
+  {
+    /* append the _afrWindowMode param */
+    var windowMode;
+    if ( true )
+    {
+      /* this is the initial page launch case, 
+         also this could be that we couldn't detect the real windowId from the server side */
+      windowMode = 0;
+    }
+    else if ((href.indexOf("/__ADFvDlg__") > 0) || (query.indexOf("__ADFvDlg__") >= 0))
+    {
+      /* this is the dialog case */
+      windowMode = 1;
+    }
+    else 
+    {
+      /* this is the ctrl-N case */
+      windowMode = 2;
+    }
+    
+    query = _addParam(query, "_afrWindowMode", windowMode);
+  
+    /* append the _afrWindowId param */
+    var clientWindowId;
+    /* in case we couldn't detect the windowId from the server side */
+    if (!windowName || windowName == initWindowName) 
+    {
+      clientWindowId = "null";
+      
+      // set window name to an initial name so we can figure out whether a page is loaded from
+      // cache when doing Ctrl+N with IE
+      window.name = initWindowName;
+    }
+    else 
+    {
+      clientWindowId = windowName;
+    }  
+    
+    query = _addParam(query, "_afrWindowId", clientWindowId);
+    
+  }
+  
+  // Add extra query parameters
+  for (var n in extraParams)
+  {
+    query = _addParam(query, n, extraParams[n]);
+  }
+  
+  var sess = "";
+  
+  if (sess)
+  {
+    /* here we check the jsessionId, if we ask the container to send jsessionId as */
+    /* a parameter then it will look like "?jsessionid=xxx". */
+    if (sess.indexOf(";") == 0)
+    {
+      href += sess;
+    }
+    else if (sess.indexOf("?") == 0)
+    {
+      /* at this time query should already be non-empty */
+      query += "&" + sess.substr(1);
+    }
+  }
+
+  //add media features params to query string
+  if (typeof window.matchMedia === 'function')
+  {
+    query = _addMediaFeatures(query);
+  }
+  
+  // Add touch capability param
+  query = _addTouchCapabilityParam(query);
+
+  var newHref = href + ((query == null) ? '' : query);
+
+  var newHash = (anchor != null && anchor.length > 0) ? encodeURIComponent(anchor) : null;
+
+  var loc = window.location;
+
+
+  // Workaround for the Firebug bug, where the cached version of the loopback script is served
+  var isOldFirebug = false;
+
+  if (window.console != null && window.console.firebug != null)
+  {
+    var ver = parseFloat(window.console.firebug);
+    isOldFirebug = !isNaN(ver) && ver < 1.9;
+  }
+
+  // Browser won't reload the page if the base URL is the same, and the new URL has hash
+  if (newHref == oldUri && (newHash != null || isOldFirebug))
+  {
+    if (hash != newHash)
+    {
+      loc.replace(newHash == null ? "#" + marker : '#' + newHash);
+    }
+    loc.reload(true);
+  }
+  else 
+  {
+    loc.replace(newHash == null ? newHref : newHref + '#' + newHash);
+  }
+}
+</script><noscript>This page uses JavaScript and requires a JavaScript enabled browser.Your browser is not JavaScript enabled.</noscript></head></html>

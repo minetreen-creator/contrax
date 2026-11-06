@@ -1,3 +1,4 @@
+import { TRADEMARK_LINE } from "~/lib/trademark";
 /**
  * Launchpad "Email me my capability statement" (owner 2026-10-17). Pure and
  * client-safe: request validation plus the email body.
@@ -68,7 +69,7 @@ export function statementEmailHtml(profile: LaunchpadProfile, alerts: boolean): 
       </td></tr>
       <tr><td style="padding:16px 32px 24px;border-top:1px solid #e5e7eb;color:#6b7280;font-size:12px;line-height:1.5;">
         Prepared with Contrax Launchpad from the details entered on that page. Verify every claim before sharing it with a buyer.
-        This copy was requested at contrax.company/launchpad. If you didn't ask for it, you can ignore this email; you won't get another unless it's requested again.
+        This copy was requested at contrax.company/launchpad. If you didn't ask for it, you can ignore this email; you won't get another unless it's requested again.<br>${escapeHtml(TRADEMARK_LINE)}
       </td></tr>
     </table>
   </td></tr></table>

@@ -1,3 +1,4 @@
+import { TRADEMARK_LINE } from "~/lib/trademark";
 /**
  * Trial-ending emails (owner 2026-10-19). PURE (no DB, no server imports) so
  * the daily job and tests share one rule.
@@ -117,11 +118,11 @@ export function trialEmailContent(stage: TrialEmailStage, r: TrialRecap): { subj
         <p style="margin:0;"><a href="${url}" style="display:inline-block;background:#1d4ed8;color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:10px;font-weight:700;font-size:15px;">${escapeHtml(cta)} →</a></p>
       </td></tr>
       <tr><td style="padding:16px 32px 24px;border-top:1px solid #e5e7eb;color:#6b7280;font-size:12px;line-height:1.5;">
-        You're getting this account notice because you started a Contrax trial. We send at most two about your trial. Questions? Reply to this email.
+        You're getting this account notice because you started a Contrax trial. We send at most two about your trial. Questions? Reply to this email.<br>${escapeHtml(TRADEMARK_LINE)}
       </td></tr>
     </table>
   </td></tr></table>
 </body></html>`;
-  const text = [intro, ...lines.map((l) => `- ${l}`), close, `${cta}: ${url}`].join("\n\n");
+  const text = [intro, ...lines.map((l) => `- ${l}`), close, `${cta}: ${url}`, TRADEMARK_LINE].join("\n\n");
   return { subject, html, text };
 }

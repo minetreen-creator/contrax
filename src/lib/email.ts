@@ -1383,7 +1383,7 @@ export async function sendCrmFollowUpReminderEmail(
 ${rows}
     </table>
     <p style="margin:0 0 20px;"><a href="https://www.contrax.company/pipeline" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:15px;font-weight:600;">Open My Pipeline</a></p>
-    <p style="margin:0;color:#6b7280;font-size:13px;">You are receiving this because email reminders are switched on for your account. Turn them off any time in My Pipeline → Follow-up reminders.</p>
+    <p style="margin:0;color:#6b7280;font-size:13px;">You are receiving this because email reminders are switched on for your account. Turn them off any time in My Pipeline → Follow-up reminders. CONTRAX&trade; is a trademark of Contrax LLC.</p>
   </td></tr>
 </table></td></tr></table></body>`;
     const result = await resend.emails.send({
@@ -1433,10 +1433,10 @@ export async function sendBidReminderEmail(
     ${agency ? `<p style="margin:0 0 18px;font-size:14px;color:#94a3b8;">${agency}</p>` : ""}
     <p style="margin:0 0 22px;font-size:15px;line-height:1.6;">You asked me to remind you before the deadline. Check the official notice for the exact submission time and any amendments.</p>
     <a href="${url}" style="display:inline-block;background:#22d3ee;color:#020617;text-decoration:none;padding:12px 24px;border-radius:10px;font-weight:700;">Open the bid →</a>
-    <p style="margin:28px 0 0;font-size:12px;color:#64748b;">You're getting this because you asked Max for a reminder on contrax.company. <a href="${unsubscribeUrl}" style="color:#94a3b8;">Unsubscribe</a></p>
+    <p style="margin:28px 0 0;font-size:12px;color:#64748b;">You're getting this because you asked Max for a reminder on contrax.company. <a href="${unsubscribeUrl}" style="color:#94a3b8;">Unsubscribe</a><br>CONTRAX&trade; is a trademark of Contrax LLC.</p>
   </div>
 </div>`,
-      text: `Heads up: this bid closes ${bid.due}.\n\n${bid.title}${bid.agency ? `\n${bid.agency}` : ""}\n\nYou asked Max to remind you before the deadline. Check the official notice for the exact submission time and any amendments.\n\n${url}\n\nUnsubscribe: ${unsubscribeUrl}`,
+      text: `Heads up: this bid closes ${bid.due}.\n\n${bid.title}${bid.agency ? `\n${bid.agency}` : ""}\n\nYou asked Max to remind you before the deadline. Check the official notice for the exact submission time and any amendments.\n\n${url}\n\nUnsubscribe: ${unsubscribeUrl}\n\nCONTRAX™ is a trademark of Contrax LLC.`,
       headers: { "List-Unsubscribe": `<${unsubscribeUrl}>` },
     });
     return true;

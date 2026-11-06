@@ -255,7 +255,10 @@ export function evaLocation(workloc: string | null | undefined): string {
   const text = clean(workloc).slice(0, 200).trim();
   if (!text || PLACEHOLDER_WORKLOC.test(text)) return "Virginia";
   const state = resolveStateFromText(text);
-  if (state === "VA") return text;
+  // A full street address keeps only its closing "City, VA ZIP" (owner 2026-11-06:
+  // the resolver now reads the trailing ", VA" first, so these no longer take
+  // the misread-state path below).
+  if (state === "VA") return evaCityTail(text) ?? text;
   if (state) return evaCityTail(text) ?? "Virginia";
   const appended = `${text.replace(/[,;.\s]+$/, "")}, Virginia`;
   return resolveStateFromText(appended) === "VA" ? appended : "Virginia";

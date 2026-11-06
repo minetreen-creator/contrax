@@ -148,7 +148,14 @@ export function resolveStateFromText(text: string | null | undefined): string | 
   const t = String(text ?? "");
   if (!t) return null;
   const lowered = t.toLowerCase();
-  // Full names first (exact substring, case-insensitive).
+  // Owner 2026-11-06 (dashboard map lit up Washington State for "Washington, DC"):
+  // a trailing ", XX" state code (optionally with a ZIP) is the strongest signal
+  // and wins over a state name inside the place name — "Kansas City, MO",
+  // "Indiana, PA", "Delaware, OH", "Washington Township, NJ".
+  const tail = /,\s*([A-Za-z]{2})\.?(?:\s+\d{5}(?:-\d{4})?)?\s*$/.exec(t);
+  if (tail && STATE_CODES.has(tail[1].toUpperCase())) return tail[1].toUpperCase();
+  if (/\bwashington,?\s+d\.?\s?c\b/i.test(t)) return "DC";
+  // Full names next (exact substring, case-insensitive).
   for (const name of STATE_FULL_NAMES) {
     const idx = lowered.indexOf(name);
     if (idx >= 0) return STATE_NAME_TO_CODE[name];

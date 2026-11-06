@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate, useLocation } from "@tanstack/react-router";
+import { DashboardCockpit } from "~/components/DashboardCockpit";
 import { LaunchpadDashboardCard } from "~/components/LaunchpadDashboardCard";
 import { TrialEndedCard } from "~/components/TrialEndedCard";
 import { BasicUpgradeBar } from "~/components/BasicUpgradeBar";
@@ -1808,6 +1809,8 @@ function DashboardPage({ user, trial, onTrialStarted }: { user: AuthUser; trial:
         {profile && <CertificationStatusCard profile={profile} />}
         {/* How Contrax understands your business — collapsible profile summary */}
         {profile && <CompanyProfile profile={profile} />}
+        {/* Owner 2026-11-06: big numbers with context, a map and a trade table for the contractor's own matches. */}
+        {data?.bids && data.bids.length > 0 && <DashboardCockpit bids={data.bids} savedCount={savedBids.size} />}
         {profile && <GettingStarted hasSavedBids={(data?.savedMatches.length ?? 0) > 0} hasDrafts={(data?.drafts.length ?? 0) > 0} />}
 
         <LaunchpadDashboardCard />

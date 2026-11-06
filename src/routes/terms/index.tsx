@@ -46,7 +46,7 @@ function TermsPage() {
     <div className="min-h-screen bg-white">
       <div className="mx-auto max-w-3xl px-6 py-16 sm:py-24">
         <h1 className="text-3xl font-bold text-slate-900 sm:text-4xl">Terms of Service</h1>
-        <p className="mt-2 text-sm text-slate-500">Last updated: September 24, 2026</p>
+        <p className="mt-2 text-sm text-slate-500">Last updated: November 6, 2026</p>
         <div className="mt-10 space-y-8 text-slate-700 leading-relaxed">
           <section>
             <h2 className="text-xl font-semibold text-slate-900">1. Acceptance of Terms</h2>
@@ -64,13 +64,21 @@ function TermsPage() {
             <h2 className="text-xl font-semibold text-slate-900">4. Acceptable Use</h2>
             <p className="mt-3">You agree not to use the Service for any unlawful purpose, submit false information, circumvent security features, resell or scrape the Service, submit fraudulent bids, or upload malicious code.</p>
           </section>
+          {/* Owner 2026-11-06 (after the Nov 5 scrape): an explicit automated-access ban,
+              liquidated damages tied to the data license price, and fees for the winner. */}
+          <section>
+            <h2 className="text-xl font-semibold text-slate-900">4A. Automated Access and Scraping</h2>
+            <p className="mt-3">You may not access, copy, download, or collect any part of the Service or its content by automated means, including bots, scrapers, crawlers, headless browsers, or scripts, and you may not use proxies, rotating IP addresses, altered browser identities, or any other method to avoid or get around our rate limits, blocks, or other access controls. The only exceptions are (a) search engines indexing public pages as our robots.txt allows, and (b) access under a written data license from Contrax LLC. Licensed access to Contrax data is available; see <a href="/data" className="text-blue-600 hover:text-blue-500">contrax.company/data</a>.</p>
+            <p className="mt-3">Unauthorized copying of the Service causes harm that is difficult to measure precisely. If you access or copy the Service in violation of this section, you agree to pay Contrax LLC, as liquidated damages and not as a penalty, the greater of (i) $10 for each page of the Service you access or copy, or (ii) the fee Contrax would have charged under its standard data license for the period of the violation. This is a reasonable estimate of Contrax&apos;s loss and is in addition to Contrax&apos;s right to seek an injunction and any other remedy available by law.</p>
+            <p className="mt-3">In any action to enforce Section 4 or this Section 4A, the prevailing party is entitled to recover its reasonable attorneys&apos; fees and costs.</p>
+          </section>
           <section>
             <h2 className="text-xl font-semibold text-slate-900">5. AI-Generated Content</h2>
             <p className="mt-3">AI-generated content (summaries, proposals, recommendations) is provided as a starting point. Review and verify all AI output before use. We make no guarantees about accuracy or suitability. You are responsible for final content you submit using our tools.</p>
           </section>
           <section>
             <h2 className="text-xl font-semibold text-slate-900">6. Intellectual Property</h2>
-            <p className="mt-3">The Contrax platform (code, design, logos) is owned and operated by Contrax LLC. You retain ownership of content you create using the Service. By using the Service, you grant us a limited license to process your content solely to provide the Service.</p>
+            <p className="mt-3">The Contrax platform (code, design, logos) and the content Contrax creates, including bid summaries, descriptions, classifications, and the selection and arrangement of listings, are owned and operated by Contrax LLC. You retain ownership of content you create using the Service. By using the Service, you grant us a limited license to process your content solely to provide the Service.</p>
           </section>
           <section>
             <h2 className="text-xl font-semibold text-slate-900">7. Third-Party Services</h2>
@@ -86,7 +94,7 @@ function TermsPage() {
           </section>
           <section>
             <h2 className="text-xl font-semibold text-slate-900">10. Governing Law</h2>
-            <p className="mt-3">These terms are governed by the laws of the Commonwealth of Virginia, without regard to its conflict-of-laws principles. Disputes shall be resolved through binding arbitration.</p>
+            <p className="mt-3">These terms are governed by the laws of the Commonwealth of Virginia, without regard to its conflict-of-laws principles. Disputes shall be resolved through binding arbitration, except that either party may bring in court: (a) claims about unauthorized access to, scraping of, or misuse of the Service or its data, including under Sections 4 and 4A; (b) claims about infringement or misappropriation of intellectual property; and (c) requests for injunctive or other equitable relief. Either party may also ask a court for discovery or subpoenas to identify a person responsible for such conduct. You consent to the jurisdiction of the state and federal courts located in the Commonwealth of Virginia for these claims.</p>
           </section>
           <section>
             <h2 className="text-xl font-semibold text-slate-900">11. Contact</h2>

@@ -6340,6 +6340,57 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
     searchScope: "city-open-data",
     recordType: "opportunity",
   },
+  // Tennessee construction coverage (owner 2026-11-06: "I want ALL construction bids in TN").
+  tn_knox_county: {
+    class: "local",
+    city: "Knox County",
+    scopeState: "TN",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
+  tn_tbr: { class: "state", scopeState: "TN", searchScope: "state-portal", recordType: "opportunity" },
+  tn_memphis_beacon: {
+    class: "local",
+    city: "Memphis",
+    scopeState: "TN",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
+  tn_alcoa_beacon: {
+    class: "local",
+    city: "Alcoa",
+    scopeState: "TN",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
+  tn_bradley_schools_beacon: {
+    class: "local",
+    city: "Bradley County",
+    scopeState: "TN",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
+  tn_mount_pleasant_beacon: {
+    class: "local",
+    city: "Mount Pleasant",
+    scopeState: "TN",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
+  tn_sevierville: {
+    class: "local",
+    city: "Sevierville",
+    scopeState: "TN",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
+  tn_lawrenceburg: {
+    class: "local",
+    city: "Lawrenceburg",
+    scopeState: "TN",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
   // City of Chattanooga on the same public Oracle abstracts system (owner 2026-11-06).
   tn_chattanooga: {
     class: "local",

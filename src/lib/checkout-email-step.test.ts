@@ -49,3 +49,28 @@ describe("guest $5 checkout asks for an email first", () => {
     expect(m.text).toContain("nothing was charged");
   });
 });
+
+// Owner 2026-11-06: a New York visitor clicked $5 twice and closed the email box.
+describe("the email box shows real bids from the visitor's state", () => {
+  test("preview lists up to three bids, escaped, and is empty without bids", async () => {
+    const { checkoutPreviewHtml } = await import("./checkout");
+    expect(checkoutPreviewHtml(null)).toBe("");
+    expect(checkoutPreviewHtml({ stateName: "New York", bids: [] })).toBe("");
+    const html = checkoutPreviewHtml({
+      stateName: "New York",
+      bids: [1, 2, 3, 4].map((n) => ({ title: `Roof <Repair> ${n}`, place: "City of Albany · Albany, NY", due: "Nov 20" })),
+    });
+    expect(html).toContain("New this week in New York");
+    expect(html).toContain("Roof &lt;Repair&gt; 1");
+    expect(html).not.toContain("<Repair>");
+    expect(html).not.toContain("Roof &lt;Repair&gt; 4");
+    expect(html).toContain("matched to your own trade and states");
+  });
+
+  test("the checkout step loads the preview before asking", () => {
+    const src = readFileSync("src/lib/checkout.ts", "utf8");
+    expect(src).toContain("const preview = await loadCheckoutPreview();");
+    expect(src).toContain("askCheckoutEmail(undefined, preview)");
+    expect(src).toContain("${checkoutPreviewHtml(preview)}");
+  });
+});

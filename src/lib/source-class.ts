@@ -6349,6 +6349,7 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
     recordType: "opportunity",
   },
   tn_tbr: { class: "state", scopeState: "TN", searchScope: "state-portal", recordType: "opportunity" },
+  tn_ut_capital: { class: "state", scopeState: "TN", searchScope: "state-portal", recordType: "opportunity" },
   tn_memphis_beacon: {
     class: "local",
     city: "Memphis",

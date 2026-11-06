@@ -595,8 +595,10 @@ export function mapCategory(_typeValue: string, title: string, description: stri
   // "permit" and "unit", so VDOT snow-removal notices ("how to submit via …
   // Services") were labeled IT Services. Require real IT wording.
   if (isItWork(full)) return "IT Services";
-  // "Hail Guard" (an HVAC coil part, ca_bidnet 2026-10-22) is not a guard service.
-  if (full.includes("security") || full.replace(/\bhail guards?\b/g, " ").includes("guard ")) return "Security";
+  // "Hail Guard" (an HVAC coil part, ca_bidnet 2026-10-22) is not a guard service,
+  // and "guard" must be its own word: "Vanguard Academy - Employee Benefits
+  // Insurance" (ut_bonfire 2026-11-06) was filed under Security.
+  if (full.includes("security") || /\bguard\s/.test(full.replace(/\bhail guards?\b/g, " "))) return "Security";
   if (full.includes("hvac") || full.includes("heating") || full.includes("cooling") || HVAC_TITLE_WORDS.test(titleLc)) return "HVAC";
   if (full.includes("electrical") || full.includes("plumbing") || ELECTRICAL_WORDS.test(full) || ELECTRICAL_TITLE_WORDS.test(titleLc)) return "Plumbing & Electrical";
 

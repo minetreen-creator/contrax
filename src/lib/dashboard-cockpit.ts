@@ -5,7 +5,6 @@
  * a number; a bid with no state or no stated value is simply left out of that
  * figure.
  */
-import { parseStatedValue } from "~/lib/contract-map";
 import { resolveBidState } from "~/lib/location-state";
 
 export interface CockpitBid {
@@ -22,11 +21,13 @@ export interface CockpitBid {
 export interface CockpitTradeRow {
   trade: string;
   count: number;
-  /** Sum of stated values; null when no bid in the trade states one. */
-  statedValue: number | null;
-  /** Bids with a stated value (so the total is honest about its coverage). */
-  valued: number;
-  avgDaysLeft: number | null;
+  /** Open bids in this trade that close within 7 days. */
+  closing7: number;
+  /**
+   * Median days left (owner 2026-11-06: an average was pulled to 157 days by a
+   * few long federal deadlines; most bids close far sooner).
+   */
+  medianDaysLeft: number | null;
 }
 
 export interface CockpitStats {
@@ -64,17 +65,17 @@ export function cockpitStats(bids: readonly CockpitBid[], savedCount: number, no
   }
   const trades: CockpitTradeRow[] = [...groups.entries()]
     .map(([trade, list]) => {
-      const values = list.map((b) => parseStatedValue(b.estimated_value)).filter((v): v is number => v !== null && v > 0);
-      const days = list.map((b) => (Date.parse(b.due_date!) - now) / DAY);
+      const days = list.map((b) => (Date.parse(b.due_date!) - now) / DAY).sort((a, b) => a - b);
+      const mid = days.length ? (days.length % 2 ? days[(days.length - 1) / 2] : (days[days.length / 2 - 1] + days[days.length / 2]) / 2) : null;
       return {
         trade,
         count: list.length,
-        statedValue: values.length ? values.reduce((a, v) => a + v, 0) : null,
-        valued: values.length,
-        avgDaysLeft: days.length ? Math.round(days.reduce((a, d) => a + d, 0) / days.length) : null,
+        closing7: days.filter((d) => d <= 7).length,
+        medianDaysLeft: mid === null ? null : Math.max(0, Math.round(mid)),
       };
     })
-    .sort((a, b) => b.count - a.count || a.trade.localeCompare(b.trade));
+    // "Other" is not a trade: it always goes last.
+    .sort((a, b) => Number(a.trade === "Other") - Number(b.trade === "Other") || b.count - a.count || a.trade.localeCompare(b.trade));
 
   const soonest = [...open].sort((a, b) => Date.parse(a.due_date!) - Date.parse(b.due_date!))[0] ?? null;
   return {

@@ -35,6 +35,8 @@ export function SiteHeader({ user: userProp }: { user?: HeaderUser }) {
           <img src="/logo-mark.png" alt="" height={32} width={51} className="block h-8 w-auto" />
           <span className="hidden text-xl font-extrabold tracking-[0.12em] text-[#0f1f38] min-[420px]:inline">
             CONTRA<span className="text-[#1677ff]">X</span>
+            {/* Owner 2026-11-06: claim the name (™ needs no registration; the registered-mark symbol would). */}
+            <sup className="ml-0.5 align-super text-[10px] font-semibold tracking-normal text-[#56647a]">™</sup>
           </span>
         </a>
         <nav className="flex items-center gap-4 text-sm sm:gap-[26px] sm:text-[15px]">

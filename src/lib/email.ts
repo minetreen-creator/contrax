@@ -454,7 +454,7 @@ function radarLeadConfirmationHtml(confirmUrl: string, unsubscribeUrl: string): 
                 Contrax LLC · contrax.company
               </p>
               <p style="margin:0;color:#9ca3af;font-size:12px;">
-                &copy; ${new Date().getFullYear()} Contrax LLC. All rights reserved.
+                &copy; ${new Date().getFullYear()} Contrax LLC. All rights reserved. CONTRAX&trade; is a trademark of Contrax LLC.
               </p>
             </td>
           </tr>
@@ -710,7 +710,7 @@ export function welcomeEmailHtml(email: string, setPasswordToken?: string): stri
                 Contrax LLC · contrax.company
               </p>
               <p style="margin:0;color:#9ca3af;font-size:12px;">
-                &copy; ${new Date().getFullYear()} Contrax LLC. All rights reserved.
+                &copy; ${new Date().getFullYear()} Contrax LLC. All rights reserved. CONTRAX&trade; is a trademark of Contrax LLC.
               </p>
             </td>
           </tr>
@@ -786,7 +786,7 @@ function passwordResetEmailHtml(token: string): string {
                 Contrax LLC · contrax.company
               </p>
               <p style="margin:0;color:#9ca3af;font-size:12px;">
-                &copy; ${new Date().getFullYear()} Contrax LLC. All rights reserved.
+                &copy; ${new Date().getFullYear()} Contrax LLC. All rights reserved. CONTRAX&trade; is a trademark of Contrax LLC.
               </p>
             </td>
           </tr>
@@ -1083,7 +1083,7 @@ export function bidDigestHtml(
             Contrax LLC · contrax.company
           </p>
           <p style="margin:0;color:#9ca3af;font-size:12px;">
-            &copy; ${new Date().getFullYear()} Contrax LLC. All rights reserved.
+            &copy; ${new Date().getFullYear()} Contrax LLC. All rights reserved. CONTRAX&trade; is a trademark of Contrax LLC.
           </p>
           ${weekly ? `<p style="margin:8px 0 0;color:#9ca3af;font-size:12px;">
             <a href="${escapeHtml(weekly.unsubscribeUrl)}" style="color:#6b7280;">Unsubscribe from the weekly bid email</a>
@@ -1140,7 +1140,7 @@ export async function sendNonprofitApprovedEmail(
   <tr><td style="background:#f9fafb;padding:20px 32px;text-align:center;border-top:1px solid #e5e7eb;">
     <p style="margin:0 0 4px;color:#9ca3af;font-size:12px;">Questions? Write to contrax.companyllc@gmail.com.</p>
     <p style="margin:0 0 4px;color:#9ca3af;font-size:12px;">Contrax LLC · contrax.company</p>
-    <p style="margin:0;color:#9ca3af;font-size:12px;">&copy; ${new Date().getFullYear()} Contrax LLC</p>
+    <p style="margin:0;color:#9ca3af;font-size:12px;">&copy; ${new Date().getFullYear()} Contrax LLC · CONTRAX&trade; is a trademark of Contrax LLC.</p>
   </td></tr>
 </table></td></tr></table></body>`;
     const result = await resend.emails.send({
@@ -1180,7 +1180,7 @@ export async function sendNonprofitDeniedEmail(to: string, orgName: string): Pro
   </td></tr>
   <tr><td style="background:#f9fafb;padding:20px 32px;text-align:center;border-top:1px solid #e5e7eb;">
     <p style="margin:0 0 4px;color:#9ca3af;font-size:12px;">Contrax LLC · contrax.company</p>
-    <p style="margin:0;color:#9ca3af;font-size:12px;">&copy; ${new Date().getFullYear()} Contrax LLC</p>
+    <p style="margin:0;color:#9ca3af;font-size:12px;">&copy; ${new Date().getFullYear()} Contrax LLC · CONTRAX&trade; is a trademark of Contrax LLC.</p>
   </td></tr>
 </table></td></tr></table></body>`;
     const result = await resend.emails.send({

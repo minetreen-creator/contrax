@@ -6391,6 +6391,34 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
     searchScope: "city-open-data",
     recordType: "opportunity",
   },
+  tn_epb: {
+    class: "local",
+    city: "Chattanooga",
+    scopeState: "TN",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
+  tn_kingsport: {
+    class: "local",
+    city: "Kingsport",
+    scopeState: "TN",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
+  tn_portland: {
+    class: "local",
+    city: "Portland",
+    scopeState: "TN",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
+  tn_red_bank: {
+    class: "local",
+    city: "Red Bank",
+    scopeState: "TN",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
   // City of Chattanooga on the same public Oracle abstracts system (owner 2026-11-06).
   tn_chattanooga: {
     class: "local",

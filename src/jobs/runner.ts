@@ -62,6 +62,7 @@ import { fetchTnChattanoogaBids, fetchTnNashvilleBids } from "./sources/oracle-a
 import { TN_BEACON_SOURCES } from "./sources/tn-beacon";
 import { fetchTnKnoxCountyBids } from "./sources/tn-knox-county";
 import { fetchTnTbrBids } from "./sources/tn-tbr";
+import { fetchTnEpbBids, fetchTnKingsportBids } from "./sources/tn-epb-kingsport";
 import { fetchOhFranklinCountyBids } from "./sources/oh-franklin-county";
 import { fetchNjHarrisonBids } from "./sources/nj-harrison";
 import { fetchVaLoudounBids } from "./sources/va-loudoun";
@@ -553,6 +554,8 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "tn_knox_county", fetchFn: () => fetchTnKnoxCountyBids() },
   { name: "tn_tbr", fetchFn: () => fetchTnTbrBids() },
   ...TN_BEACON_SOURCES,
+  { name: "tn_epb", fetchFn: () => fetchTnEpbBids() },
+  { name: "tn_kingsport", fetchFn: () => fetchTnKingsportBids() },
   { name: "oh_franklin_county", fetchFn: () => fetchOhFranklinCountyBids() },
   { name: "nj_harrison", fetchFn: () => fetchNjHarrisonBids() },
   { name: "va_loudoun", fetchFn: fetchVaLoudounBids },

@@ -139,6 +139,8 @@ export const COUNTY_CIVICENGAGE_CONFIGS: readonly CivicEngageBoardConfig[] = [
   // Owner 2026-11-06 ("I want ALL construction bids in TN"); captured fixtures/tn-civicengage.
   board("tn_sevierville", "www.seviervilletn.org", "City of Sevierville", "Sevierville, TN", "seviervillecivic"),
   board("tn_lawrenceburg", "www.lawrenceburgtn.gov", "City of Lawrenceburg", "Lawrenceburg, TN", "lawrenceburgtncivic"),
+  board("tn_portland", "www.cityofportlandtn.gov", "City of Portland", "Portland, TN", "portlandtncivic"),
+  board("tn_red_bank", "www.redbanktn.gov", "City of Red Bank", "Red Bank, TN", "redbanktncivic"),
   // Florida (owner 2026-10-30).
   board("fl_pensacola", "www.cityofpensacola.com", "City of Pensacola", "Pensacola, FL", "pensacolacivic"),
   board("fl_florida_city", "www.floridacityfl.gov", "City of Florida City", "Florida City, FL", "floridacitycivic"),

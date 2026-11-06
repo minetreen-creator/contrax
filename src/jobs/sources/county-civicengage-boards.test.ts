@@ -73,7 +73,7 @@ const NO_CAPTURE = new Set([
   "ga_effingham_county", "ga_dawson_county", "ga_jackson_county", "ga_rome",
   "wv_vienna", "wv_weirton", "wv_morgantown",
   "tn_gallatin", "tn_cleveland", "tn_goodlettsville", "tn_white_house", "tn_springfield", "tn_wilson_county",
-  "tn_maury_county", "tn_washington_county", "tn_coffee_county", "tn_sevierville", "tn_lawrenceburg",
+  "tn_maury_county", "tn_washington_county", "tn_coffee_county", "tn_sevierville", "tn_lawrenceburg", "tn_portland", "tn_red_bank",
   "fl_florida_city", "fl_cocoa", "fl_wellington", "fl_miami_gardens", "fl_casselberry", "fl_new_smyrna_beach", "fl_levy_county",
   "in_westfield", "in_crawfordsville",
   "tx_garland", "tx_mesquite", "tx_killeen", "tx_missouri_city", "tx_baytown", "tx_pasadena", "tx_friendswood", "tx_texas_city", "tx_lake_jackson", "tx_victoria", "tx_buda", "tx_boerne", "tx_universal_city", "tx_cedar_hill", "tx_desoto", "tx_lancaster", "tx_rowlett", "tx_prosper", "tx_little_elm", "tx_the_colony", "tx_flower_mound", "tx_bedford", "tx_haltom_city", "tx_watauga", "tx_azle", "tx_weatherford", "tx_granbury", "tx_corsicana", "tx_texarkana", "tx_marshall", "tx_harker_heights", "tx_lakeway", "tx_plainview", "tx_borger", "tx_angleton", "tx_la_porte", "tx_webster", "tx_tomball", "tx_bellaire", "tx_rockport", "tx_eagle_pass", "tx_donna", "tx_san_benito", "tx_brownwood", "tx_kilgore", "tx_bexar_county", "tx_smith_county", "tx_hidalgo_county", "tx_webb_county", "tx_ellis_county", "tx_kaufman_county", "tx_rockwall_county", "tx_randall_county", "tx_midland_county", "tx_ector_county", "tx_chambers_county", "tx_bowie_county", "tx_wise_county", "tx_kendall_county",
@@ -88,9 +88,9 @@ const NO_CAPTURE = new Set([
 
 describe("county CivicEngage boards", () => {
   test("327 boards with unique sources and id prefixes", () => {
-    expect(COUNTY_CIVICENGAGE_CONFIGS).toHaveLength(638);
-    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.source)).size).toBe(638);
-    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.idPrefix)).size).toBe(638);
+    expect(COUNTY_CIVICENGAGE_CONFIGS).toHaveLength(640);
+    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.source)).size).toBe(640);
+    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.idPrefix)).size).toBe(640);
   });
 
   for (const cfg of COUNTY_CIVICENGAGE_CONFIGS.filter((c) => !NO_CAPTURE.has(c.source))) {

@@ -136,3 +136,51 @@ test("every new Tennessee source is scheduled, classified, placed in TN; local o
   }
   expect(SOURCE_CLASSES.tn_tbr?.class).toBe("state");
 });
+
+// Batch 2 (owner 2026-11-06: "Batch 2").
+describe("EPB Chattanooga and City of Kingsport", () => {
+  test("EPB: every card, timed or date-only, with no contacts stored", async () => {
+    const { parseEpbBids, epbDue } = await import("./tn-epb-kingsport");
+    const { rows, skipped } = parseEpbBids(fx("tn-epb/bids-2026-11-06.html"), now);
+    expect(skipped).toEqual({});
+    expect(rows).toHaveLength(7);
+    const trim = rows.find((r) => r.solicitation_number === "RFP-16201")!;
+    expect(trim.title).toBe("46KV Sub Transmission Line Trimming");
+    expect(trim.due_date).toBe("2026-11-30T19:00:00.000Z"); // 2:00 PM EST
+    expect(trim.description).toContain("Pre-bid: 11/10/2026");
+    const hvac = rows.find((r) => r.solicitation_number === "RFP-16171")!;
+    expect(hvac.due_date).toBe("2027-02-04T04:59:00.000Z"); // date only -> 11:59 PM Eastern
+    expect(hvac.description).toContain("no time stated");
+    expect(JSON.stringify(rows)).not.toMatch(/mailto|@epb\.net|Laura Williams/);
+    expect(epbDue("13/1/2026")).toBeNull();
+    expect(parseEpbBids(fx("tn-epb/bids-2026-11-06.html"), Date.parse("2026-12-01T00:00:00Z")).rows.map((r) => r.solicitation_number)).toEqual(["RFP-16171"]);
+  });
+
+  test("Kingsport: active cards with their solicitation PDF, Eastern closing time", async () => {
+    const { parseKingsportBids, kingsportDue } = await import("./tn-epb-kingsport");
+    const { rows, skipped } = parseKingsportBids(fx("tn-kingsport/public-bids-2026-11-06.html"), now);
+    expect(skipped).toEqual({});
+    expect(rows.map((r) => r.title)).toEqual(["Phase 2 Renovations For Bays Mountain Nature Center", "Mitchell Road Bridge Over Kendrick Creek Replacement"]);
+    expect(rows[1].due_date).toBe("2026-12-03T21:00:00.000Z");
+    expect(rows[1].category).toBe("Construction");
+    expect(rows[1].notice_type).toBe("ITB");
+    expect(rows[0].source_url).toStartWith("https://www.kingsporttn.gov/wp-content/uploads/");
+    expect(JSON.stringify(rows)).not.toMatch(/vickihousewright|4232299475|clinton@/);
+    expect(kingsportDue("Thu, July 2, 2026 • 10:30 am")).toBe("2026-07-02T14:30:00.000Z");
+    expect(() => parseKingsportBids("<html></html>", now)).toThrow();
+  });
+
+  test("Portland's board reads its bridge bid; Red Bank's board is empty today", () => {
+    expect(parseCountyCivicEngage("tn_portland", fx("tn-civicengage/portland-2026-11-06.html"), now).rows.map((r) => r.title)).toEqual(["Lindsey Kyla Ct Bridge Replacement Bid Advertisement"]);
+    expect(parseCountyCivicEngage("tn_red_bank", fx("tn-civicengage/redbank-2026-11-06.html"), now).rows).toHaveLength(0);
+  });
+
+  test("scheduled, local, in TN, with agency pages", () => {
+    for (const s of ["tn_epb", "tn_kingsport", "tn_portland", "tn_red_bank"]) {
+      expect(TAIL_SOURCES.some((t) => t.name === s)).toBe(true);
+      expect(SOURCE_CLASSES[s]?.class).toBe("local");
+      expect(SOURCE_HOME_JURISDICTIONS[s]).toBe("TN");
+      expect(LOCAL_AGENCIES.some((a) => a.source === s)).toBe(true);
+    }
+  });
+});

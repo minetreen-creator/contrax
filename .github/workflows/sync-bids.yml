@@ -94,7 +94,7 @@ jobs:
         run: |
           D="$RUNNER_TEMP/vendornet"
           mkdir -p "$D"
-          cp .github/scripts/vendornet-bids-fetch.mjs .github/scripts/virginia-beach-bids-fetch.mjs "$D/"
+          cp .github/scripts/vendornet-bids-fetch.mjs .github/scripts/virginia-beach-bids-fetch.mjs .github/scripts/oracle-abstracts-fetch.mjs "$D/"
           cd "$D"
           npm init -y >/dev/null
           npm install --no-audit --no-fund --no-save --no-package-lock puppeteer-core@24
@@ -106,6 +106,7 @@ jobs:
           # The collector executes this copy (resolveWiVendornetDriverConfig).
           WI_VENDORNET_FETCH_SCRIPT: ${{ runner.temp }}/vendornet/vendornet-bids-fetch.mjs
           VA_VIRGINIA_BEACH_FETCH_SCRIPT: ${{ runner.temp }}/vendornet/virginia-beach-bids-fetch.mjs
+          ORACLE_ABSTRACTS_FETCH_SCRIPT: ${{ runner.temp }}/vendornet/oracle-abstracts-fetch.mjs
         run: bun run sync-bids
 
       - name: Enforce 90-day raw-IP retention

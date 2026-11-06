@@ -1,0 +1,128 @@
+{
+  "capturedAt": "2026-11-06T22:31:13.688Z",
+  "endpoint": "https://fa-eqto-saasfaprod1.fa.ocs.oraclecloud.com/fscmUI/faces/NegotiationAbstracts?prcBuId=300000003584083",
+  "filter": "Active",
+  "timeZone": "US Eastern Time",
+  "rows": [
+    [
+      "201013,1",
+      "MBEC North Recycle Pump Station",
+      "Construction Bid",
+      "Active",
+      "11/6/26 1:15 PM",
+      "10/25/26 8:00 AM",
+      "12/3/26 2:00 PM",
+      ""
+    ],
+    [
+      "201030",
+      "RFP Fast Fill CNG Fueling Facility P3",
+      "Request for Proposal",
+      "Active",
+      "11/4/26 10:31 AM",
+      "11/4/26 10:31 AM",
+      "12/18/26 2:00 PM",
+      ""
+    ],
+    [
+      "201016-2",
+      "Flow and Rain Gauge Monitoring for the City of Chattanooga",
+      "Invitation for Bid",
+      "Active",
+      "11/3/26 3:39 PM",
+      "11/3/26 3:39 PM",
+      "11/9/26 2:00 PM",
+      ""
+    ],
+    [
+      "201011,2",
+      "Sanitary Sewer Installation and Repair",
+      "Construction Bid",
+      "Active",
+      "11/3/26 10:03 AM",
+      "10/11/26 8:00 AM",
+      "11/12/26 2:00 PM",
+      ""
+    ],
+    [
+      "201029",
+      "Litter Capture System at the City of Chattanooga Brainerd Golf Course",
+      "Request for Quotation",
+      "Active",
+      "11/3/26 9:52 AM",
+      "11/3/26 9:52 AM",
+      "11/13/26 4:00 PM",
+      ""
+    ],
+    [
+      "201026,1",
+      "Summit Landfill Vegetation Clearing and Groundwater Monitoring Well Installation",
+      "Construction Bid",
+      "Active",
+      "11/2/26 2:00 PM",
+      "11/1/26 8:00 AM",
+      "11/24/26 2:00 PM",
+      ""
+    ],
+    [
+      "201004,2",
+      "Stormwater Control Measure Maintenance",
+      "Invitation for Bid",
+      "Active",
+      "10/30/26 8:03 AM",
+      "10/25/26 8:00 AM",
+      "11/25/26 2:00 PM",
+      ""
+    ],
+    [
+      "201019,2",
+      "VW Media Center Fire Pump Replacement",
+      "Construction Bid",
+      "Active",
+      "10/29/26 11:54 AM",
+      "10/25/26 8:00 AM",
+      "11/12/26 2:00 PM",
+      ""
+    ],
+    [
+      "201015,1",
+      "Automated Traffic Enforcement System",
+      "Invitation for Bid",
+      "Active",
+      "10/28/26 9:31 AM",
+      "10/18/26 8:00 AM",
+      "11/16/26 2:00 PM",
+      ""
+    ],
+    [
+      "201023",
+      "Light Duty Tires and Related Tire Services",
+      "Invitation for Bid",
+      "Active",
+      "10/25/26 8:00 AM",
+      "10/25/26 8:00 AM",
+      "11/11/26 2:00 PM",
+      ""
+    ],
+    [
+      "201024",
+      "Custodial Services for the Fleet Department's Garage Locations",
+      "Invitation for Bid",
+      "Active",
+      "10/25/26 8:00 AM",
+      "10/25/26 8:00 AM",
+      "11/12/26 2:00 PM",
+      ""
+    ],
+    [
+      "201021",
+      "Mechanical Services for the City of Chattanooga Wastewater Department",
+      "Invitation for Bid",
+      "Active",
+      "10/25/26 8:00 AM",
+      "10/25/26 8:00 AM",
+      "11/10/26 2:00 PM",
+      ""
+    ]
+  ]
+}

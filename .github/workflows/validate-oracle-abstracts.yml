@@ -1,0 +1,33 @@
+name: Validate Oracle abstracts public collector
+on:
+  pull_request:
+    paths:
+      - '.github/scripts/oracle-abstracts-fetch.mjs'
+      - 'src/jobs/sources/oracle-abstracts*'
+      - '.github/workflows/validate-oracle-abstracts.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  public-read:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - name: Read and parse live public abstracts (no database)
+        run: |
+          D="$RUNNER_TEMP/oracle"
+          mkdir -p "$D"
+          cp .github/scripts/oracle-abstracts-fetch.mjs "$D/"
+          cd "$D"
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund --no-save --no-package-lock puppeteer-core@24
+          cd "$GITHUB_WORKSPACE"
+          ORACLE_ABSTRACTS_FETCH_SCRIPT="$D/oracle-abstracts-fetch.mjs" bun -e '
+            import { fetchTnNashvilleBids, fetchTnChattanoogaBids } from "./src/jobs/sources/oracle-abstracts";
+            for (const [name, f] of [["tn_nashville", fetchTnNashvilleBids], ["tn_chattanooga", fetchTnChattanoogaBids]] as const) {
+              const r = await f();
+              console.log(JSON.stringify({ name, accepted: r.rows.length, skipped: r.skipped, examples: r.rows.slice(0, 3).map((x) => ({ title: x.title, due: x.due_date })) }));
+            }'

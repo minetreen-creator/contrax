@@ -6340,6 +6340,14 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
     searchScope: "city-open-data",
     recordType: "opportunity",
   },
+  // City of Chattanooga on the same public Oracle abstracts system (owner 2026-11-06).
+  tn_chattanooga: {
+    class: "local",
+    city: "Chattanooga",
+    scopeState: "TN",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
   tx_houston_beacon: {
     class: "local",
     city: "Houston",

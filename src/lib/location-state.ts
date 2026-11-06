@@ -1225,7 +1225,7 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   fl_st_cloud: "FL",
   fl_ocoee: "FL",
   fl_bartow: "FL",
-  fl_destin: "FL",
+  fl_destin_beacon: "FL",
   fl_fort_walton_beach: "FL",
   fl_boynton_beach: "FL",
   fl_jupiter: "FL",

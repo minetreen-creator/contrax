@@ -89,3 +89,49 @@ describe("City of Houston on Beacon", () => {
     }
   });
 });
+
+describe("City of Destin on Beacon (owner 2026-11-06: fl_destin's bids.aspx moved to Beacon)", () => {
+  const destin = () =>
+    JSON.parse(readFileSync(new URL("./fixtures/fl-destin-beacon/open-2026-11-06.json", import.meta.url), "utf8"));
+  const at = Date.parse("2026-11-06T02:00:00Z");
+
+  test("the captured open list parses to Destin's one open bid", async () => {
+    const { DESTIN_BEACON, parseBeaconList } = await import("./tx-houston-beacon");
+    const { rows, skipped } = parseBeaconList(destin().data.solicitations.data, DESTIN_BEACON, at);
+    expect(skipped).toEqual({});
+    expect(rows).toHaveLength(1);
+    const r = rows[0];
+    expect(r.external_id).toMatch(/^destinbeacon-/);
+    expect(r.agency).toBe("City of Destin");
+    expect(r.location).toBe("Destin, FL");
+    expect(r.source_url).toStartWith("https://www.beaconbid.com/solicitations/city-of-destin/");
+    expect(r.solicitation_number).toBe("ITB-2026-0005");
+    expect(r.due_date).toBe("2026-11-12T20:00:00.000Z");
+  });
+
+  test("the reader asks Beacon for Destin and is scheduled, classified and placed in Florida", async () => {
+    const { fetchFlDestinBeaconBids } = await import("./tx-houston-beacon");
+    const { TAIL_SOURCES } = await import("../runner");
+    const { SOURCE_CLASSES } = await import("~/lib/source-class");
+    const { SOURCE_HOME_JURISDICTIONS } = await import("~/lib/location-state");
+    const { LOCAL_AGENCIES } = await import("~/lib/local-agencies");
+    const { COUNTY_CIVICENGAGE_CONFIGS } = await import("./county-civicengage-boards");
+    const saved = { ...houstonBeaconDeps };
+    const calls: any[] = [];
+    houstonBeaconDeps.fetch = async (_url, init) => {
+      calls.push(JSON.parse(String(init.body)));
+      return new Response(JSON.stringify(destin()), { status: 200 });
+    };
+    try {
+      expect((await fetchFlDestinBeaconBids(at)).rows).toHaveLength(1);
+      expect(calls[0].variables.agencyTag).toBe("city-of-destin");
+    } finally {
+      Object.assign(houstonBeaconDeps, saved);
+    }
+    expect(TAIL_SOURCES.some((t) => t.name === "fl_destin_beacon")).toBe(true);
+    expect(SOURCE_CLASSES.fl_destin_beacon?.class).toBe("local");
+    expect(SOURCE_HOME_JURISDICTIONS.fl_destin_beacon).toBe("FL");
+    expect(LOCAL_AGENCIES.some((a) => a.source === "fl_destin_beacon")).toBe(true);
+    expect(COUNTY_CIVICENGAGE_CONFIGS.some((c) => c.source === "fl_destin")).toBe(false);
+  });
+});

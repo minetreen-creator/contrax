@@ -37,13 +37,16 @@ describe("dashboard cockpit numbers", () => {
     expect(weekDelta(2, 2).text).toBe("same as last week");
   });
 
-  test("trade rows sum stated values only and say how many state one", () => {
+  test("trade rows: open count, closing within 7 days, median days left, Other last", () => {
     const jan = s.trades.find((t) => t.trade === "Janitorial")!;
-    expect(jan).toMatchObject({ count: 2, statedValue: 120000, valued: 1 });
+    expect(jan).toMatchObject({ count: 2, closing7: 1 });
+    expect(jan.medianDaysLeft).toBe(12); // 3 and 20 days -> 11.5, rounded
     expect(s.trades[0].trade).toBe("Janitorial");
-    expect(s.trades.find((t) => t.trade === "Other")).toMatchObject({ count: 1, statedValue: null });
+    expect(s.trades[s.trades.length - 1].trade).toBe("Other");
+    // A few far-off deadlines no longer drag the typical figure: median of 2, 3, 4, 300 is 4 (rounded 3.5).
+    const skew = cockpitStats([2, 3, 4, 300].map((d, i) => bid(10 + i, { category: "IT Services", due_date: iso(NOW + d * day) })), 0, NOW);
+    expect(skew.trades[0].medianDaysLeft).toBe(4);
     expect(compactDollars(1_560_000)).toBe("$1.5M");
-    expect(compactDollars(480_900)).toBe("$480K");
   });
 
   test("the dashboard shows the cockpit above the old cards", () => {

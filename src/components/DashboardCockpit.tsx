@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { STATE_NAMES } from "~/lib/contract-map";
-import { cockpitStats, compactDollars, weekDelta, type CockpitBid } from "~/lib/dashboard-cockpit";
+import { cockpitStats, weekDelta, type CockpitBid } from "~/lib/dashboard-cockpit";
 
 type Paths = { viewBox: { width: number; height: number }; paths: Record<string, string> };
 
@@ -101,19 +101,17 @@ export function DashboardCockpit({ bids, savedCount }: { bids: readonly CockpitB
               <tr className="text-left text-[11px] uppercase tracking-wide text-slate-500">
                 <th className="pb-2 font-semibold">Trade</th>
                 <th className="pb-2 text-right font-semibold">Open</th>
-                <th className="pb-2 text-right font-semibold">Value</th>
-                <th className="pb-2 text-right font-semibold">Days left</th>
+                <th className="pb-2 text-right font-semibold">Close in 7 days</th>
+                <th className="pb-2 text-right font-semibold" title="Half the bids close sooner, half later">Typical days left</th>
               </tr>
             </thead>
             <tbody>
               {s.trades.slice(0, 7).map((t) => (
                 <tr key={t.trade} className="border-t border-slate-100">
                   <td className="py-2 font-medium text-[#0f1f38]">{t.trade}</td>
-                  <td className="py-2 text-right tabular-nums">{t.count}</td>
-                  <td className="py-2 text-right tabular-nums text-slate-600" title={t.statedValue ? `Stated value: ${t.valued} of ${t.count} bids state one` : "No bid states a value"}>
-                    {t.statedValue ? compactDollars(t.statedValue) : "—"}
-                  </td>
-                  <td className="py-2 text-right tabular-nums text-slate-600">{t.avgDaysLeft ?? "—"}</td>
+                  <td className="py-2 text-right font-semibold tabular-nums text-[#0f1f38]">{t.count.toLocaleString("en-US")}</td>
+                  <td className={`py-2 text-right tabular-nums ${t.closing7 ? "font-semibold text-amber-600" : "text-slate-400"}`}>{t.closing7.toLocaleString("en-US")}</td>
+                  <td className="py-2 text-right tabular-nums text-slate-700">{t.medianDaysLeft ?? "—"}</td>
                 </tr>
               ))}
             </tbody>

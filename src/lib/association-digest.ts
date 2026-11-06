@@ -1,3 +1,4 @@
+import { TRADEMARK_LINE } from "~/lib/trademark";
 /**
  * Association weekly bid list (owner 2026-11-05: "Look for organizations" →
  * contractor and small-business associations that already hand-curate bid
@@ -163,6 +164,7 @@ export function renderDigest(cfg: AssociationConfig, sections: readonly DigestSe
       "",
     ]),
     `Prepared for ${cfg.name} by Contrax (https://www.contrax.company). Confirm deadlines and requirements in each agency's documents before bidding.`,
+    TRADEMARK_LINE,
   ].join("\n");
   const html = `<!doctype html><html><body style="margin:0;background:#f5f7fb;font-family:Arial,Helvetica,sans-serif;color:#0f1f38">
 <div style="max-width:680px;margin:0 auto;padding:24px 16px">
@@ -180,7 +182,7 @@ ${s.bids
 </table>`,
   )
   .join("\n")}
-<p style="margin:28px 0 0;color:#56647a;font-size:12px">Prepared for ${esc(cfg.name)} by <a href="https://www.contrax.company" style="color:#1677ff">Contrax</a>. Confirm deadlines and requirements in each agency's documents before bidding.</p>
+<p style="margin:28px 0 0;color:#56647a;font-size:12px">Prepared for ${esc(cfg.name)} by <a href="https://www.contrax.company" style="color:#1677ff">Contrax</a>. Confirm deadlines and requirements in each agency's documents before bidding.<br>${esc(TRADEMARK_LINE)}</p>
 </div></body></html>`;
   return { subject, html, text, count };
 }

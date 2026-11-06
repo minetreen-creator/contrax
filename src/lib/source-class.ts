@@ -1783,7 +1783,8 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
     searchScope: "city-open-data",
     recordType: "opportunity",
   },
-  fl_destin: {
+  // Destin moved from CivicEngage to Beacon (owner 2026-11-06).
+  fl_destin_beacon: {
     class: "local",
     city: "Destin",
     scopeState: "FL",

@@ -75,7 +75,40 @@ export interface HoustonBeaconParseResult {
   skippedRows: { id: string; reason: string }[];
 }
 
+/** One agency on Beacon (owner 2026-11-06: Destin moved its bids there too). */
+export interface BeaconAgency {
+  source: string;
+  agencyTag: string;
+  agency: string;
+  location: string;
+  idPrefix: string;
+}
+
+export const HOUSTON_BEACON: BeaconAgency = {
+  source: HOUSTON_BEACON_SOURCE,
+  agencyTag: HOUSTON_AGENCY_TAG,
+  agency: "City of Houston",
+  location: "Houston, TX",
+  idPrefix: "houstonbeacon",
+};
+
+/**
+ * City of Destin, FL (owner 2026-11-06): its CivicEngage bids.aspx now redirects
+ * to a page that sends bidders to beaconbid.com/solicitations/city-of-destin/open.
+ */
+export const DESTIN_BEACON: BeaconAgency = {
+  source: "fl_destin_beacon",
+  agencyTag: "city-of-destin",
+  agency: "City of Destin",
+  location: "Destin, FL",
+  idPrefix: "destinbeacon",
+};
+
 export function parseHoustonBeacon(list: BeaconSolicitation[], now: number = Date.now()): HoustonBeaconParseResult {
+  return parseBeaconList(list, HOUSTON_BEACON, now);
+}
+
+export function parseBeaconList(list: BeaconSolicitation[], a: BeaconAgency, now: number = Date.now()): HoustonBeaconParseResult {
   const rows: RawBid[] = [];
   const skipped: Record<string, number> = {};
   const skippedRows: { id: string; reason: string }[] = [];
@@ -97,15 +130,15 @@ export function parseHoustonBeacon(list: BeaconSolicitation[], now: number = Dat
     if (Date.parse(due) <= now) { skip(id, "closed"); continue; }
     const refnum = String(s.refnum ?? "").trim() || null;
     rows.push({
-      external_id: `houstonbeacon-${id}`,
+      external_id: `${a.idPrefix}-${id}`,
       title,
-      agency: "City of Houston",
-      location: "Houston, TX",
-      description: `City of Houston ${type || "solicitation"}${refnum ? ` ${refnum}` : ""}: ${title}. Posted on the city's Beacon procurement portal, where bidders register and download the documents.`,
+      agency: a.agency,
+      location: a.location,
+      description: `${a.agency} ${type || "solicitation"}${refnum ? ` ${refnum}` : ""}: ${title}. Posted on the city's Beacon procurement portal, where bidders register and download the documents.`,
       category: mapCategory("", title, ""),
       due_date: due,
       estimated_value: "",
-      source_url: `https://www.beaconbid.com/solicitations/${HOUSTON_AGENCY_TAG}/${encodeURIComponent(id)}`,
+      source_url: `https://www.beaconbid.com/solicitations/${a.agencyTag}/${encodeURIComponent(id)}`,
       set_aside: null,
       naics_code: null,
       psc: null,
@@ -121,19 +154,19 @@ export const houstonBeaconDeps = {
   pause: (ms: number) => new Promise((r) => setTimeout(r, ms)),
 };
 
-async function page(start: number): Promise<{ total: number; data: BeaconSolicitation[] }> {
+async function page(a: BeaconAgency, start: number): Promise<{ total: number; data: BeaconSolicitation[] }> {
   const r = await houstonBeaconDeps.fetch(BEACON_GQL, {
     method: "POST",
     headers: {
       "user-agent": UA,
       "content-type": "application/json",
       accept: "application/json",
-      referer: `https://www.beaconbid.com/solicitations/${HOUSTON_AGENCY_TAG}/open`,
+      referer: `https://www.beaconbid.com/solicitations/${a.agencyTag}/open`,
     },
     body: JSON.stringify({
       operationName: "ListSolicitations",
       query: LIST_SOLICITATIONS,
-      variables: { agencyTag: HOUSTON_AGENCY_TAG, status: "open", start, pageSize: PAGE_SIZE },
+      variables: { agencyTag: a.agencyTag, status: "open", start, pageSize: PAGE_SIZE },
     }),
     signal: AbortSignal.timeout(25000),
   });
@@ -146,18 +179,26 @@ async function page(start: number): Promise<{ total: number; data: BeaconSolicit
   return list;
 }
 
-export async function fetchTxHoustonBeaconBids(now: number = Date.now()): Promise<FetchResult> {
+export async function fetchBeaconAgency(a: BeaconAgency, now: number = Date.now()): Promise<FetchResult> {
   try {
-    const first = await page(0);
+    const first = await page(a, 0);
     const all = [...first.data];
     const pages = Math.ceil(first.total / PAGE_SIZE);
     if (pages > MAX_PAGES) throw new Error(`${first.total} open; refusing partial coverage`);
     for (let p = 1; p < pages; p++) {
       await houstonBeaconDeps.pause(3000);
-      all.push(...(await page(p * PAGE_SIZE)).data);
+      all.push(...(await page(a, p * PAGE_SIZE)).data);
     }
-    return parseHoustonBeacon(all, now);
+    return parseBeaconList(all, a, now);
   } catch (e) {
-    throw new SourceUnreachableError(HOUSTON_BEACON_SOURCE, [e instanceof Error ? e.message : String(e)]);
+    throw new SourceUnreachableError(a.source, [e instanceof Error ? e.message : String(e)]);
   }
+}
+
+export function fetchTxHoustonBeaconBids(now: number = Date.now()): Promise<FetchResult> {
+  return fetchBeaconAgency(HOUSTON_BEACON, now);
+}
+
+export function fetchFlDestinBeaconBids(now: number = Date.now()): Promise<FetchResult> {
+  return fetchBeaconAgency(DESTIN_BEACON, now);
 }

@@ -219,7 +219,7 @@ export const LOCAL_AGENCIES: LocalAgency[] = [
   { source: "fl_st_cloud", slug: "city-of-st-cloud-fl", name: "City of St. Cloud, Florida" },
   { source: "fl_ocoee", slug: "city-of-ocoee-fl", name: "City of Ocoee, Florida" },
   { source: "fl_bartow", slug: "city-of-bartow-fl", name: "City of Bartow, Florida" },
-  { source: "fl_destin", slug: "city-of-destin-fl", name: "City of Destin, Florida" },
+  { source: "fl_destin_beacon", slug: "city-of-destin-fl", name: "City of Destin, Florida" },
   { source: "fl_fort_walton_beach", slug: "city-of-fort-walton-beach-fl", name: "City of Fort Walton Beach, Florida" },
   { source: "fl_boynton_beach", slug: "city-of-boynton-beach-fl", name: "City of Boynton Beach, Florida" },
   { source: "fl_jupiter", slug: "town-of-jupiter-fl", name: "Town of Jupiter, Florida" },

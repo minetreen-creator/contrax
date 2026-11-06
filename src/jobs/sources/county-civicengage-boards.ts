@@ -400,7 +400,6 @@ export const COUNTY_CIVICENGAGE_CONFIGS: readonly CivicEngageBoardConfig[] = [
   board("fl_st_cloud", "www.stcloudfl.gov", "City of St. Cloud", "St. Cloud, FL", "stcloudflcivic"),
   board("fl_ocoee", "www.ocoee.org", "City of Ocoee", "Ocoee, FL", "ocoeeflcivic"),
   board("fl_bartow", "www.bartow.org", "City of Bartow", "Bartow, FL", "bartowflcivic"),
-  board("fl_destin", "www.cityofdestin.com", "City of Destin", "Destin, FL", "destinflcivic"),
   board("fl_fort_walton_beach", "www.fwb.org", "City of Fort Walton Beach", "Fort Walton Beach, FL", "fortwaltonbeachflcivic"),
   board("fl_boynton_beach", "www.boynton-beach.org", "City of Boynton Beach", "Boynton Beach, FL", "boyntonbeachflcivic"),
   board("fl_jupiter", "www.jupiter.fl.us", "Town of Jupiter", "Jupiter, FL", "jupiterflcivic"),

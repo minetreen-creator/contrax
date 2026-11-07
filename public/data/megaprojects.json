@@ -1867,5 +1867,26 @@
       "url": "https://www.modot.org/node/99519"
     },
     "checked": "2026-11-07"
+  },
+  {
+    "slug": "project-emerald-lexington-nc",
+    "company": "Unnamed company (\"Project Emerald\")",
+    "project": "Advanced manufacturing facility",
+    "city": "Lexington",
+    "state": "NC",
+    "sector": "manufacturing",
+    "amount": 1000000000,
+    "amountNote": "possible investment, per the city's incentive notice",
+    "jobs": 450,
+    "jobsNote": "at least 450 full-time jobs paying above the Davidson County average, a condition of the incentives",
+    "status": "Proposed: Lexington City Council public hearing on incentives in November 2026; the company has not been named and Lexington is still in the running",
+    "summary": "A possible $1 billion advanced manufacturing plant in Lexington, NC, code-named Project Emerald. The city is weighing incentives that would require at least 450 jobs paying above the county average.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "Greensboro News & Record (also reported by Triad Business Journal)",
+      "url": "https://greensboro.com/news/local/business/development/article_9bc996d5-b627-5731-8129-633b06f6be5f.html"
+    },
+    "checked": "2026-11-07"
   }
 ]

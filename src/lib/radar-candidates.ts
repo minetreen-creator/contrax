@@ -16,7 +16,7 @@ import { certMatches, sbCertFragment } from "~/lib/cert-matching";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { geoRelevant, locationConflict, resolveBidState } from "~/lib/location-state";
 import { collapseScanRows, loadNoticeDedupeKeys, runKeywordScanQuery } from "~/lib/radar-scan-query";
-import { expandTrade, isStrongTradeMatch, tradeKeywordPred, type TradeExpansion } from "~/lib/trade-registry";
+import { expandTrade, isStrongTradeMatch, naicsCodeExpansion, tradeKeywordPred, type TradeExpansion } from "~/lib/trade-registry";
 
 export interface StrictRadarRows {
   rows: any[];
@@ -42,8 +42,13 @@ export async function fetchStrictRadarRows(
   // Trade/NAICS predicate: exact NAICS equality when a 6-digit code is given,
   // otherwise the EXPANDED keyword set (trade-registry). Every term is a bound
   // parameter (injection-safe by construction).
+  // A NAICS code also matches its trade's curated phrases (naicsCodeExpansion,
+  // owner 2026-11-07); codes without any stay exact-code only.
+  const codeExpansion = isNaics ? naicsCodeExpansion(trade) : null;
   const tradeFrag = isNaics
-    ? sql()`AND LOWER(COALESCE(naics_code,'')) = ${trade.toLowerCase()}`
+    ? codeExpansion
+      ? tradeKeywordPred(sql, codeExpansion)
+      : sql()`AND LOWER(COALESCE(naics_code,'')) = ${trade.toLowerCase()}`
     : trade
       ? tradeKeywordPred(sql, expansion)
       : sql()``;
@@ -57,7 +62,10 @@ export async function fetchStrictRadarRows(
       `[radar] dedupe: ${raw.length} rows → ${collapsed.rows.length} distinct notices (${collapsed.collapsed} collapsed; keyed by ${collapsed.noticeKeyColumns ? "solicitation_number + notice_type else (title,agency,notice_type)" : "(title,agency,notice_type) — notice-key columns unavailable"})`,
     );
   }
-  return { rows: collapsed.rows, isNaics, expansion };
+  // The expansion callers use for isStrongTradeMatch: for a code with phrases, a
+  // row is strong on the exact code OR a phrase in its title (never a bare
+  // description hit), instead of "every row is strong".
+  return { rows: collapsed.rows, isNaics, expansion: codeExpansion ?? expansion };
 }
 
 /**

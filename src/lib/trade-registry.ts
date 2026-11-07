@@ -1314,6 +1314,51 @@ export interface TradeExpansion {
  *    when the whole phrase expands to nothing → each part is expanded and the
  *    results merged. A phrase the registry knows is never split.
  */
+/**
+ * Owner 2026-11-07 ("Do the NAICS code search fix"): a 6-digit NAICS search used
+ * to match ONLY rows whose stored naics_code equals it, and most state and local
+ * sources store no code (a 238150 glazing search in the 60-day log found 0-3
+ * bids). This expansion keeps the exact code and adds that trade's own curated
+ * phrases: synonyms of registry entries that name the code (narrow entries only,
+ * at most two codes, so the broad construction entry never joins) plus the
+ * code's naics-infer keywords. Short single words ("roof", "copy") and generic
+ * words are dropped. A code with no curated phrases returns null: it stays an
+ * exact-code search rather than guessing words from the NAICS title. PURE.
+ */
+/**
+ * Specific phrases for codes people searched by number in the 60-day Radar log
+ * (owner 2026-11-07) that have no registry entry or classifier keywords.
+ * Multi-word on purpose: a code search must not widen into every bid.
+ */
+const NAICS_CODE_PHRASES: Record<string, string[]> = {
+  "334516": ["analytical instrument", "laboratory instrument", "mass spectrometer", "gas chromatograph", "liquid chromatograph", "spectrophotometer"],
+  "423840": ["industrial supplies", "industrial supply", "mro supplies"],
+  "541714": ["research and development", "biotechnology research"],
+  "541715": ["research and development", "r&d services", "engineering research"],
+};
+
+/** Single words too broad to stand in for a code (they appear across unrelated bids). */
+const NAICS_PHRASE_DENY = new Set(["research"]);
+
+export function naicsCodeExpansion(code: string): TradeExpansion | null {
+  const c = String(code ?? "").trim();
+  if (!NAICS_RE.test(c)) return null;
+  const terms: string[] = [];
+  const add = (t: string) => {
+    const x = String(t ?? "").toLowerCase().trim();
+    if (!x || terms.includes(x) || GENERIC_TRADE_TERMS.has(x) || NAICS_PHRASE_DENY.has(x)) return;
+    if (!x.includes(" ") && x.length < 6) return;
+    terms.push(x);
+  };
+  for (const entry of Object.values(TRADE_ALIASES)) {
+    if (entry.naics.length <= 2 && entry.naics.includes(c)) for (const s of entry.synonyms) add(s);
+  }
+  for (const k of NAICS_INFER_MAP[c]?.keywords ?? []) add(k);
+  for (const k of NAICS_CODE_PHRASES[c] ?? []) add(k);
+  if (!terms.length) return null;
+  return { original: c, isNaics: false, terms: terms.slice(0, 40), naicsCodes: [c] };
+}
+
 export function expandTrade(original: string): TradeExpansion {
   const whole = expandTradeSingle(original);
   const lower = whole.original.toLowerCase();
@@ -1558,8 +1603,16 @@ function strongTitleVeto(titleText: string, expansion: TradeExpansion): boolean 
  * "hauling" keeps matching "BACKHAULING" (owner 09-14). The SQL side uses the
  * same rule (Postgres `\m`), so pages, Radar and provenance agree.
  */
+/**
+ * Longer words that also end other trade words, so they must start a word too:
+ * "roofing" is inside "waterproofing", "fireproofing" and "floodproofing"
+ * (owner 2026-11-07: a roofing search listed waterproofing bids).
+ */
+const ALWAYS_WORD_START = new Set(["roofing"]);
+
 export function termNeedsWordStart(term: string): boolean {
-  return (term.split(/\s+/)[0] ?? "").length <= 6;
+  const first = term.split(/\s+/)[0] ?? "";
+  return first.length <= 6 || ALWAYS_WORD_START.has(first);
 }
 
 export function termMatches(text: string, term: string): boolean {
@@ -1804,6 +1857,9 @@ export function isStrongTradeMatch(
   // Paso HVAC search showed an aircraft actuator as its top "Strong Match").
   // Service notices use letter codes ("J041--", "Z1DA--"), so they are untouched.
   if (/^\s*\d{2,4}\s*--/.test(titleText)) return false;
+  // Same for a stock-number parts order ("NSN 5640013713262; INSULATION BLOCK,
+  // THERMAL" read as insulation work, owner 2026-11-07).
+  if (/^\s*nsn[\s:#]*\d{4}-?\d{2}-?\d{3}-?\d{4}/.test(titleText)) return false;
   if (serviceTradeMismatch(titleText, expansion)) return false;
   // Construction (owner 2026-11-03, "we need more construction bids in TX"):
   // goods buys and inspection/design services are not construction jobs, and a

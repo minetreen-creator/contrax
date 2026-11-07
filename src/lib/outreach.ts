@@ -5,7 +5,7 @@ import { TRADEMARK_LINE } from "~/lib/trademark";
  * local businesses in that trade (prospect-finder), and queues one "Open bid
  * near you" email per business. Nothing is sent until the owner approves the
  * day's list on /admin/outreach. Four days after a first email, a single
- * follow-up with the Bid Scout founder offer is queued the same way.
+ * follow-up with the $5 Starter pass offer is queued the same way (Bid Scout retired 2026-11-07).
  *
  * Rules the engine keeps (CAN-SPAM and plain courtesy):
  *  - every email carries the sender's postal address and a one-click
@@ -356,9 +356,7 @@ export function outreachEmail(i: OutreachEmailInput): { subject: string; text: s
       "",
       `If you'd like new ${i.tradeLabel} bids near you every morning, Contrax Starter is $5 for your first 30 days with no automatic renewal: ${link("/pricing", i.kind, i.contactId)}`,
       "",
-      `Or, if you don't have time to dig through bids at all, Bid Scout sends you 5 handpicked for ${i.business} every Friday, each with the requirements in plain English and what to do next. First month $49 for our founding customers: ${link("/bid-scout?source=outreach", i.kind, i.contactId)}`,
-      "",
-      "Either way, good luck on the bid.",
+      "Good luck on the bid.",
     ];
   }
   const text = [...body, ...footer].join("\n");

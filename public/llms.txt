@@ -12,7 +12,6 @@ Contrax is operated by Contrax LLC (Virginia). Plans range from a free Basic pla
 - [Subcontracting opportunities](https://www.contrax.company/subcontracts): Open subcontracting notices from the SBA SUBNet board, plus directories of prime contractors that subcontract.
 - [Contrax Grants](https://www.contrax.company/grants): Search federal grants an organization may qualify for. Free for verified nonprofits.
 - [Example AI Executive Brief](https://www.contrax.company/example-brief): A real cached AI Executive Brief for a government solicitation, showing requirements, milestones and red flags with sources.
-- [Bid Scout](https://www.contrax.company/bid-scout): $99/month — five matched government opportunities every Friday with plain-English requirements, deadlines and risks.
 - [Compare Contrax](https://www.contrax.company/compare): Side-by-side comparison of Contrax with GovWin/Deltek, BidNet/Bonfire, GovSpend, manual SAM.gov searching and consultants.
 - [Contrax Launchpad](https://www.contrax.company/launchpad): Free, self-paced starting point: courses, a capability statement builder, a registration checklist and a bid plan.
 

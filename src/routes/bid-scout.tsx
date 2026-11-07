@@ -12,13 +12,18 @@
  * NO analytics events in Phase A (bid_scout_* instrumentation is Phase B).
  * This page lives OUTSIDE every existing funnel by design.
  */
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { trackEvent } from "~/lib/track";
 import { SiteHeader } from "~/components/SiteHeader";
 import { getSdvosbSample, type SampleBid } from "~/lib/sample-bids";
 
+// Retired 2026-11-07 (owner: "should we get rid of bid scout? Nobody ever uses it"): no subscriber ever;
+// the page now sends visitors to Radar. The intake code below is kept but unreachable.
 export const Route = createFileRoute("/bid-scout")({
+  beforeLoad: () => {
+    throw redirect({ to: "/radar", statusCode: 301 });
+  },
   head: () => ({
     meta: [
       {

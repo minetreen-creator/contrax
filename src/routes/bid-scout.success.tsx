@@ -6,9 +6,14 @@
  * unverified query param (the webhook is the only thing that mutates the
  * subscription row; this page is purely presentational).
  */
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
+// Retired 2026-11-07 (owner: "should we get rid of bid scout? Nobody ever uses it"): no subscriber ever;
+// the page now sends visitors to Radar. The intake code below is kept but unreachable.
 export const Route = createFileRoute("/bid-scout/success")({
+  beforeLoad: () => {
+    throw redirect({ to: "/radar", statusCode: 301 });
+  },
   head: () => ({
     meta: [
       { title: "Your Bid Scout profile is active — Contrax" },

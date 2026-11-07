@@ -125,8 +125,6 @@ export const ADMIN_TABS: { key: AdminTab; label: string; href: string; group: Ad
   { key: "stories", label: "Success Stories", href: "/admin/stories", group: "Leads & Signups" },
   { key: "customers", label: "Customers", href: "/admin/customers", group: "Revenue" },
   { key: "payments", label: "Contrax Payments", href: "/admin/payments", group: "Revenue" },
-  { key: "bid-scout", label: "Bid Scout", href: "/admin/bid-scout", group: "Revenue" },
-  { key: "founding-businesses", label: "Founding Businesses", href: "/admin/founding-businesses", group: "Revenue" },
   { key: "data-access", label: "Data API", href: "/admin/data-access", group: "Revenue" },
   { key: "bid-fit-reviews", label: "Bid Fit Reviews", href: "/admin/bid-fit-reviews", group: "Operations" },
   // Nonprofit Free phase 2 unit B — the human review queue. A review surface nobody can

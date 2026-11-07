@@ -52,11 +52,12 @@ describe("daily bid outreach (owner 2026-10-23)", () => {
     expect(m.text).toContain("new janitorial bids near you every morning");
   });
 
-  test("follow-up offers Bid Scout and threads under the first subject", () => {
+  test("follow-up offers the $5 pass (Bid Scout retired) and threads under the first subject", () => {
     const m = outreachEmail({ ...base, kind: "followup" });
     expect(m.subject).toBe("Re: Open janitorial bid from Botetourt County, Virginia, due Nov 5");
-    expect(m.text).toContain("Bid Scout");
-    expect(m.text).toContain("/bid-scout?source=outreach&utm_source=email");
+    expect(m.text).not.toContain("Bid Scout");
+    expect(m.text).not.toContain("/bid-scout");
+    expect(m.text).toContain("/pricing?");
   });
 
   test("HTML escapes business and bid text", () => {

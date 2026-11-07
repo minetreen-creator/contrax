@@ -9,6 +9,7 @@ import { US_PLACES } from "~/lib/states";
 import { BasicUpgradeBar } from "~/components/BasicUpgradeBar";
 import { NAICS_NAMES } from "~/lib/naics-names";
 import { trackEvent } from "~/lib/track";
+import { AppInstallBanner } from "~/components/AppInstallBanner";
 import { trackingIds } from "~/lib/visitor";
 import { markEmailGiven } from "~/lib/return-visitor";
 import { getTrackingUser } from "~/lib/identity";
@@ -1302,7 +1303,8 @@ export const Route = createFileRoute("/radar")({
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "Contract Radar — Find contracts you can actually win | Contrax" },
     ],
-    links: [{ rel: "canonical", href: "https://www.contrax.company/radar" }],
+    // The app manifest lets Android offer its own Install button from this page.
+    links: [{ rel: "canonical", href: "https://www.contrax.company/radar" }, { rel: "manifest", href: "/app.webmanifest" }],
   }),
 });
 
@@ -2589,6 +2591,8 @@ function RadarLanding() {
           </a>
         </nav>
       </div>
+      {/* The Contrax app install prompt for phone visitors (owner 2026-11-07). */}
+      <AppInstallBanner where="radar" />
     </main>
   );
 }

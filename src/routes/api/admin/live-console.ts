@@ -469,7 +469,7 @@ export async function loadAppStats(db: ReturnType<typeof sql>): Promise<AppStats
       iphone: `event_name = 'app_installed' AND label = 'ios' AND ${w}`,
       android: `event_name = 'app_installed' AND label = 'android' AND ${w}`,
       opened: `event_name = 'app_open' AND ${w}`,
-      linkClicks: `event_name IN ('home_app_click', 'bid_app_click') AND COALESCE(label, '') <> 'starter' AND ${w}`,
+      linkClicks: `event_name IN ('home_app_click', 'bid_app_click', 'app_banner_tap') AND COALESCE(label, '') <> 'starter' AND ${w}`,
       starterClicks: `(event_name = 'app_alerts_upgrade_click' OR (event_name = 'home_app_click' AND label = 'starter')) AND ${w}`,
     });
     const cols = Object.entries(windows).flatMap(([k, w]) =>

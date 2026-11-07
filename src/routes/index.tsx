@@ -8,6 +8,7 @@ import { ExampleBrief } from "~/components/ExampleBrief";
 
 import { trackEvent } from "~/lib/track";
 import { STARTER_PASS_NOTE } from "~/lib/starter-pass";
+import { STARTER_FIRST_MONTH_PRICE as STARTER_PRICE } from "~/lib/starter-offer";
 import { SiteHeader } from "~/components/SiteHeader";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
@@ -317,23 +318,76 @@ function HomeMegaprojects({ featured, projects, amount }: { featured: Megaprojec
   );
 }
 
-// The Contrax app: install it, get a buzz when a matching bid posts.
+// The Contrax app (owner 2026-11-07): what it does and how to install it,
+// step by step, and plainly that phone alerts need a paid plan.
+const APP_STEPS: { device: string; steps: string[] }[] = [
+  {
+    device: "iPhone",
+    steps: [
+      "Open contrax.company/app in Safari",
+      "Tap the Share button ⬆️ at the bottom of the screen",
+      "Scroll down and tap Add to Home Screen, then Add",
+      "Open Contrax from your home screen, sign in and tap Turn on bid alerts",
+    ],
+  },
+  {
+    device: "Android",
+    steps: [
+      "Open contrax.company/app in Chrome",
+      "Tap Install (or the menu ⋮, then Install app)",
+      "Open Contrax from your home screen or app drawer",
+      "Sign in and tap Turn on bid alerts",
+    ],
+  },
+];
+
 function HomeAppStrip() {
   return (
-    <section aria-label="The Contrax app" className="mx-auto max-w-[1120px] px-4 pt-6 sm:px-6">
-      <a
-        href="/app?source=home"
-        onClick={() => trackEvent("home_app_click")}
-        className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-[#0b1220] p-4 text-white transition hover:-translate-y-0.5 hover:shadow-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600 dark:border-slate-700"
-      >
-        <img src="/app-icon-192.png" alt="" width={48} height={48} className="h-12 w-12 shrink-0 rounded-xl" />
-        <span className="min-w-0">
-          <span className="block text-xs font-bold uppercase tracking-wider text-amber-300">📱 New: the Contrax app</span>
-          <span className="block text-base font-bold leading-snug">Your phone buzzes when a bid in your trade posts</span>
-          <span className="block text-sm text-slate-300">Bids near you, saved-bid reminders and winning prices. Put it on your home screen.</span>
-        </span>
-        <ArrowRight aria-hidden="true" className="ml-auto h-5 w-5 shrink-0 text-amber-300" />
-      </a>
+    <section id="app" aria-labelledby="home-app-title" className="mx-auto max-w-[1120px] px-4 pt-6 sm:px-6">
+      <div className="rounded-2xl border border-slate-200 bg-[#0b1220] p-5 text-white sm:p-6 dark:border-slate-700">
+        <div className="flex items-center gap-4">
+          <img src="/app-icon-192.png" alt="" width={56} height={56} className="h-14 w-14 shrink-0 rounded-2xl" />
+          <div className="min-w-0">
+            <p className="text-xs font-bold uppercase tracking-wider text-amber-300">📱 New: the Contrax app</p>
+            <h2 id="home-app-title" className={`${SERIF} text-[clamp(20px,2.6vw,26px)] leading-tight font-bold`}>Your phone buzzes when a bid in your trade posts</h2>
+            <p className="mt-1 text-sm text-slate-300">Bids near you, reminders before saved bids are due, and winning prices. No app store: it installs from your browser in seconds.</p>
+          </div>
+        </div>
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          {APP_STEPS.map((d) => (
+            <div key={d.device} className="rounded-xl border border-slate-700 bg-slate-900/70 p-4">
+              <p className="text-sm font-bold text-white">How to install on {d.device}</p>
+              <ol className="mt-2 space-y-2 text-sm text-slate-200">
+                {d.steps.map((step, i) => (
+                  <li key={step} className="flex gap-2">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-400 text-xs font-bold text-slate-950">{i + 1}</span>
+                    <span>{step}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          ))}
+        </div>
+        <p className="mt-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
+          🔐 <b>Phone alerts need a paid plan.</b> Anyone can install the app and browse bids near them. Bid alerts come with Starter: ${STARTER_PRICE} for your first 30 days, no automatic renewal.
+        </p>
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+          <a
+            href="/app?source=home"
+            onClick={() => trackEvent("home_app_click", "open")}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-400 px-5 py-3 text-sm font-bold text-slate-950 hover:bg-amber-300 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600"
+          >
+            Open the Contrax app <ArrowRight aria-hidden="true" className="h-4 w-4" />
+          </a>
+          <a
+            href="/upgrade?plan=starter&source=home-app"
+            onClick={() => trackEvent("home_app_click", "starter")}
+            className="inline-flex items-center justify-center rounded-xl border border-slate-600 px-5 py-3 text-sm font-semibold text-white hover:border-amber-300"
+          >
+            Get alerts with Starter, ${STARTER_PRICE}
+          </a>
+        </div>
+      </div>
     </section>
   );
 }

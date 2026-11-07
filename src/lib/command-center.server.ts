@@ -34,7 +34,11 @@ export async function commandCounts(): Promise<CommandCounts> {
       SELECT DISTINCT ON (source) source, fetched, errors FROM sync_logs
       WHERE created_at > NOW() - INTERVAL '24 hours'
       ORDER BY source, created_at DESC`) as { source: string; fetched: number; errors: string | null }[];
+    // Owner 2026-11-07: fl_destin (replaced by fl_destin_beacon) kept showing as failing from its
+    // last run. Only sources that still run count: every running label is in SOURCE_CLASSES.
+    const { SOURCE_CLASSES, RETIRED_SOURCES } = await import("~/lib/source-class");
     failingSources = rows
+      .filter((r) => r.source in SOURCE_CLASSES && !RETIRED_SOURCES.has(r.source))
       .filter((r) => Number(r.fetched) === 0 && r.errors && r.errors.trim())
       .map((r) => ({ source: r.source, cause: likelyCause(String(r.errors)) }));
   } catch {

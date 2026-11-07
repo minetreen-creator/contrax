@@ -63,6 +63,7 @@ import { TN_BEACON_SOURCES } from "./sources/tn-beacon";
 import { fetchTnKnoxCountyBids } from "./sources/tn-knox-county";
 import { fetchTnTbrBids } from "./sources/tn-tbr";
 import { fetchTnEpbBids, fetchTnKingsportBids } from "./sources/tn-epb-kingsport";
+import { fetchTnUtCapitalBids } from "./sources/tn-ut-capital";
 import { fetchOhFranklinCountyBids } from "./sources/oh-franklin-county";
 import { fetchNjHarrisonBids } from "./sources/nj-harrison";
 import { fetchVaLoudounBids } from "./sources/va-loudoun";
@@ -556,6 +557,8 @@ export const TAIL_SOURCES: SyncSource[] = [
   ...TN_BEACON_SOURCES,
   { name: "tn_epb", fetchFn: () => fetchTnEpbBids() },
   { name: "tn_kingsport", fetchFn: () => fetchTnKingsportBids() },
+  // UT capital projects: deadlines read from each Invitation to Bid PDF (owner 2026-11-06: "3").
+  { name: "tn_ut_capital", fetchFn: () => fetchTnUtCapitalBids() },
   { name: "oh_franklin_county", fetchFn: () => fetchOhFranklinCountyBids() },
   { name: "nj_harrison", fetchFn: () => fetchNjHarrisonBids() },
   { name: "va_loudoun", fetchFn: fetchVaLoudounBids },

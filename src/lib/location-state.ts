@@ -1046,6 +1046,7 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   tn_chattanooga: "TN",
   tn_knox_county: "TN",
   tn_tbr: "TN",
+  tn_ut_capital: "TN",
   tn_memphis_beacon: "TN",
   tn_alcoa_beacon: "TN",
   tn_bradley_schools_beacon: "TN",

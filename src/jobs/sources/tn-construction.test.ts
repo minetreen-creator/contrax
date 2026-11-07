@@ -184,3 +184,75 @@ describe("EPB Chattanooga and City of Kingsport", () => {
     }
   });
 });
+
+// UT capital projects (owner 2026-11-06: "3" = read UT's due dates out of its PDFs).
+describe("University of Tennessee capital projects", async () => {
+  const ut = await import("./tn-ut-capital");
+  const { readdirSync } = await import("node:fs");
+  const dir = new URL("./fixtures/tn-ut-capital/", import.meta.url);
+  const files = readdirSync(dir);
+  const entries = () => ut.UT_CAMPUSES.flatMap((c) =>
+    ut.parseUtCampusPage(c, readFileSync(new URL(`${c.slug}.html`, dir), "utf8")).map((listing) => {
+      const f = files.find((x) => x === `${c.slug}--${listing.pdf.split("/").pop()!.replace(/\.pdf$/i, "")}.txt`);
+      return { listing, pdfText: f ? readFileSync(new URL(f, dir), "utf8") : null };
+    }));
+
+  test("today only UTC Generator Installation is open; its deadline comes from the PDF", () => {
+    const { rows, skipped } = ut.collectUtBids(entries(), now);
+    expect(rows).toHaveLength(1);
+    const gen = rows[0];
+    expect(gen.title).toBe("UTC Generator Installation");
+    expect(gen.agency).toBe("University of Tennessee at Chattanooga");
+    expect(gen.location).toBe("Chattanooga, TN");
+    expect(gen.due_date).toBe("2026-12-03T19:00:00.000Z"); // "Until 2:00 p.m., local time On December 3, 2026" (EST)
+    expect(gen.solicitation_number).toBe("999/005-103-2025");
+    expect(gen.source_url).toBe("https://tennessee.edu/wp-content/uploads/2026/11/UTC-Generator-Installation-Invitation-to-Bid-FINAL.pdf");
+    expect(JSON.stringify(rows)).not.toMatch(/zoom|Password|aeedinc|423-752/i);
+    expect(skipped).toEqual({ closed: 8, no_deadline: 4, pdf_unreadable: 1 });
+  });
+
+  test("earlier in the year: Central campuses, the page's moved-opening note, contractor packages", () => {
+    const { rows } = ut.collectUtBids(entries(), Date.parse("2026-01-01T00:00:00Z"));
+    const by = (t: string) => rows.find((r) => r.title.startsWith(t))!;
+    expect(by("Fletcher Hall").due_date).toBe("2026-02-27T19:00:00.000Z"); // note: moved to Feb 27 2:00 pm ET
+    expect(by("Fletcher Hall").description).toContain("opening moved");
+    expect(by("UTM Storm Damage").due_date).toBe("2026-10-21T15:00:00.000Z"); // 10:00 a.m. Central (Martin)
+    expect(by("4-H Centers").location).toBe("Crossville, TN"); // Central even though UTIA is in Knoxville
+    expect(by("4-H Centers").due_date).toBe("2026-08-04T19:00:00.000Z");
+    expect(by("UTHSC Gross Anatomy Lab Renovation (24/25) (SP 2").location).toBe("Memphis, TN"); // not the CM's office city
+    expect(by("ARP – Broiler").due_date).toBe("2026-05-14T18:00:00.000Z"); // "2:00 pm EST" in May = Eastern local
+  });
+
+  test("deadline wording variants and the empty-list text", () => {
+    expect(ut.utPdfDeadline("Complete bids are to be emailed no later than 2:00 P.M., EST, Tuesday February 24, 2026", "America/Chicago")?.iso).toBe("2026-02-24T19:00:00.000Z");
+    expect(ut.utPdfDeadline("Until: 2:00PM Local Time On: Tuesday, March 10, 2026", "America/Chicago")?.iso).toBe("2026-03-10T19:00:00.000Z");
+    expect(ut.utPdfDeadline("no dates here", "America/Chicago")).toBeNull();
+    expect(ut.parseUtCampusPage(ut.UT_CAMPUSES[1], readFileSync(new URL("utk-bids.html", dir), "utf8"))).toEqual([]);
+    expect(() => ut.parseUtCampusPage(ut.UT_CAMPUSES[0], "<html></html>")).toThrow();
+  });
+
+  test("the reader fetches each campus page and only same-site PDFs", async () => {
+    const saved = { ...ut.utDeps };
+    const asked: string[] = [];
+    try {
+      ut.utDeps.pause = async () => {};
+      ut.utDeps.fetch = async (url: string) => {
+        asked.push(url);
+        const slug = /construction-opportunities\/([a-z-]+)\/$/.exec(url)?.[1];
+        if (slug) return new Response(readFileSync(new URL(`${slug}.html`, dir), "utf8"), { status: 200 });
+        return new Response(new Uint8Array([1]), { status: 200 });
+      };
+      ut.utDeps.pdfText = async () => "Until 2:00 p.m., local time On December 3, 2026";
+      const r = await ut.fetchTnUtCapitalBids(now);
+      expect(asked.filter((u) => u.endsWith("-bids/"))).toHaveLength(8);
+      expect(asked.every((u) => u.startsWith("https://tennessee.edu/"))).toBe(true);
+      expect(r.rows.length).toBeGreaterThan(0);
+    } finally { Object.assign(ut.utDeps, saved); }
+  });
+
+  test("scheduled and placed in TN as a statewide source", () => {
+    expect(TAIL_SOURCES.some((t) => t.name === "tn_ut_capital")).toBe(true);
+    expect(SOURCE_CLASSES.tn_ut_capital?.class).toBe("state");
+    expect(SOURCE_HOME_JURISDICTIONS.tn_ut_capital).toBe("TN");
+  });
+});

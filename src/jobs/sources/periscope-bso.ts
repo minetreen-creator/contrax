@@ -58,6 +58,13 @@ export interface BsoConfig {
   portalName: string;
   /** Standard-time UTC offset in hours (ET -5, CT -6, MT -7, PT -8); US DST applies. */
   standardOffsetHours: number;
+  /**
+   * A county or city marketplace (owner 2026-11-07, California): the buyer's name
+   * ("San Bernardino County") prefixes each department ("Public Works") and replaces
+   * "State of …"; `location` replaces the state name. Unset for state portals.
+   */
+  buyer?: string;
+  location?: string;
 }
 
 export const BSO_PAGE_SIZE = 25;
@@ -216,13 +223,18 @@ export function parseBsoRows(config: BsoConfig, rows: readonly BsoRow[], now: nu
     // The buyer is not repeated here: trade matching reads the description.
     const description =
       `Bid Solicitation ${r.number} on ${config.portalName}, ` +
-      `the ${config.stateName} public procurement marketplace. Specifications and documents are on the bid page (see source link).`;
+      `the ${config.buyer ?? config.stateName} public procurement marketplace. Specifications and documents are on the bid page (see source link).`;
+    const agency = config.buyer
+      ? r.organization
+        ? r.organization.toLowerCase().includes(config.buyer.toLowerCase()) ? r.organization : `${config.buyer} ${r.organization}`
+        : config.buyer
+      : r.organization || `State of ${config.stateName}`;
     result.rows.push({
       external_id: rowId,
       title: r.description,
-      agency: r.organization || `State of ${config.stateName}`,
+      agency,
       description,
-      location: config.stateName,
+      location: config.location ?? config.stateName,
       category: mapCategory("", r.description, description),
       due_date: due,
       estimated_value: "Not specified",

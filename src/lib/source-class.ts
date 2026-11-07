@@ -6420,6 +6420,28 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
     searchScope: "city-open-data",
     recordType: "opportunity",
   },
+  // California read directly (owner 2026-11-07: "Yes start California").
+  ca_san_bernardino_county: {
+    class: "local",
+    city: "San Bernardino County",
+    scopeState: "CA",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
+  ca_contra_costa_county: {
+    class: "local",
+    city: "Contra Costa County",
+    scopeState: "CA",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
+  ca_ebmud: {
+    class: "local",
+    city: "Oakland",
+    scopeState: "CA",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
   // City of Chattanooga on the same public Oracle abstracts system (owner 2026-11-06).
   tn_chattanooga: {
     class: "local",

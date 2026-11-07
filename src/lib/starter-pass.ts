@@ -88,24 +88,81 @@ function esc(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
-/** The one reminder email, five days before the pass ends. PURE. */
-export function passReminderEmail(endsAt: Date): { subject: string; text: string; html: string } {
+/** What the pass found for this buyer (owner 2026-11-07: the renewal email shows it). */
+export interface PassRecap {
+  /** When the pass started. */
+  since: Date;
+  /** New bids matched to the buyer's trade and states since then that are still open. */
+  newMatches: number;
+  /** Up to three of them, newest first. */
+  examples: { id: number; title: string; agency: string | null; dueDate: string | null }[];
+  /** "Construction in Tennessee", "your trade"… */
+  tradePlace: string;
+}
+
+/** "Dec 3" in Eastern time, or null. PURE. */
+function shortDue(iso: string | null): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? null : d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/New_York" });
+}
+
+const BID_URL = (id: number) => `https://www.contrax.company/bid/${id}?source=pass_reminder`;
+
+/**
+ * The one reminder email, five days before the pass ends. PURE.
+ * Owner 2026-11-07 ("2 only"): when the pass matched open bids, the email leads
+ * with them (count plus three of the newest) and the button opens the $19/month
+ * checkout in one click (`renewUrl`, a signed link). Nothing is charged unless
+ * the buyer completes that checkout.
+ */
+export function passReminderEmail(
+  endsAt: Date,
+  opts: { recap?: PassRecap | null; renewUrl?: string } = {},
+): { subject: string; text: string; html: string } {
   const day = passEndDateLabel(endsAt);
-  const subject = `Your Contrax bid emails stop on ${day}`;
+  const renew = opts.renewUrl || PASS_RENEW_URL;
+  const recap = opts.recap && opts.recap.newMatches > 0 ? opts.recap : null;
+  const n = recap?.newMatches ?? 0;
+  const bidsWord = n === 1 ? "bid" : "bids";
+  const subject = recap
+    ? `Your Contrax pass found ${n.toLocaleString("en-US")} open ${bidsWord}. It ends ${day}`
+    : `Your Contrax bid emails stop on ${day}`;
+  const started = recap ? passEndDateLabel(recap.since) : "";
+  const intro = recap
+    ? `Since your pass started on ${started}, Contrax has matched ${n.toLocaleString("en-US")} new ${bidsWord} in ${recap.tradePlace} that ${n === 1 ? "is" : "are"} still open.`
+    : null;
+  const examples = recap?.examples.slice(0, 3) ?? [];
+  const exampleLine = (b: PassRecap["examples"][number]) =>
+    [b.title, b.agency, shortDue(b.dueDate) ? `due ${shortDue(b.dueDate)}` : null].filter(Boolean).join(" · ");
+  const keep = "Want to keep the 6 AM bid emails coming? Starter is $19 a month, and you can cancel anytime with one click.";
+
   const lines = [
+    ...(intro ? [intro] : []),
+    ...(examples.length ? [`${examples.length === 1 ? "The newest" : `${examples.length} of the newest`}:`, ...examples.map((b) => `- ${exampleLine(b)}: ${BID_URL(b.id)}`)] : []),
     `Your 30 days of Contrax Starter end on ${day}.`,
-    "Want to keep the 6 AM bid emails coming? Starter is $19 a month, and you can cancel anytime with one click.",
-    `Keep my bid emails: ${PASS_RENEW_URL}`,
+    keep,
+    `Keep my bid emails ($19/month): ${renew}`,
     "If you do nothing, you won't be charged. Your account simply goes back to free Basic.",
     "Questions? Just reply to this email.",
     // Owner 2026-11-04: Share Your Success.
     `Did Contrax help you find work? I'd love to hear about it: ${SHARE_STORY_URL}`,
     "Nathaniel Minetree, Contrax",
   ];
+  const exampleHtml = examples.length
+    ? `<p style="margin-bottom:4px">${examples.length === 1 ? "The newest" : `${examples.length} of the newest`}:</p>
+<ul style="margin-top:0;padding-left:20px">${examples
+        .map((b) => {
+          const meta = [b.agency, shortDue(b.dueDate) ? `due ${shortDue(b.dueDate)}` : null].filter(Boolean).join(" · ");
+          return `<li style="margin-bottom:6px"><a href="${BID_URL(b.id)}" style="color:#1d4ed8;font-weight:bold">${esc(b.title)}</a>${meta ? `<br><span style="color:#475569;font-size:14px">${esc(meta)}</span>` : ""}</li>`;
+        })
+        .join("")}</ul>`
+    : "";
   const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.5;color:#0f172a;max-width:560px">
+${intro ? `<p>${esc(intro)}</p>\n` : ""}${exampleHtml}
 <p>Your 30 days of Contrax Starter end on <b>${esc(day)}</b>.</p>
-<p>Want to keep the 6 AM bid emails coming? Starter is $19 a month, and you can cancel anytime with one click.</p>
-<p><a href="${PASS_RENEW_URL}" style="display:inline-block;background:#f59e0b;color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 20px;border-radius:10px">Keep my bid emails</a></p>
+<p>${keep}</p>
+<p><a href="${renew}" style="display:inline-block;background:#f59e0b;color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 20px;border-radius:10px">Keep my bid emails ($19/month)</a></p>
 <p>If you do nothing, you won't be charged. Your account simply goes back to free Basic.</p>
 <p>Questions? Just reply to this email.</p>
 <p>Did Contrax help you find work? <a href="${SHARE_STORY_URL}">I'd love to hear about it.</a></p>

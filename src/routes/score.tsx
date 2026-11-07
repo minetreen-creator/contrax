@@ -918,7 +918,7 @@ function ScorePage() {
                   Draft my Technical Approach for this bid
                 </button>
                 <p className="text-[13px] font-medium text-slate-500">
-                  Proposal drafting is part of Bid Scout — $99/month.
+                  Proposal drafting comes with every paid plan. Starter is $5 for your first 30 days.
                 </p>
               </div>
               <div className="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-[13px] text-slate-500">
@@ -1052,7 +1052,7 @@ function ScorePage() {
               <p className="mx-auto mt-2 max-w-xl text-[15px] leading-relaxed text-slate-600">
                 Sign up to save this bid, get deadline alerts, compliance checks, and pricing
                 recommendations — all powered by the same engine. Proposal drafting and pipeline
-                export are part of Bid Scout.
+                export come with every paid plan.
               </p>
               <div className="mt-5 flex flex-col items-center justify-center gap-3 sm:flex-row">
                 <Link

@@ -116,12 +116,12 @@ describe("attempt-only prompts: nothing renders on view", () => {
     expect(html).toContain("Upgrade to Radar Pro →");
     expect(html).toContain("$79/mo · 7-day Professional trial · Cancel anytime");
     expect(html).toContain("Maybe later");
-    // The Bid Scout prompt links out (no Stripe tier to redirect to).
+    // The drafting/export prompt links to the paid plans (Bid Scout retired 2026-11-07).
     const b = gatePrompt("bid_scout");
     const scout = renderToStaticMarkup(
       <PremiumUpgradeModal open onClose={noop} title={b.title} message={b.body} ctaLabel={b.ctaLabel} priceNote={b.priceNote} ctaHref={b.href} />,
     );
-    expect(scout).toContain('href="/bid-scout"');
+    expect(scout).toContain('href="/pricing"');
     expect(scout).not.toContain("Maybe later&#x27;"); // sanity: copy is not escaped twice
   });
 
@@ -497,10 +497,10 @@ describe("F1: a gated DRAFTING attempt on /dashboard opens the Bid Scout prompt"
         ctaHref={p.href}
       />,
     );
-    expect(html).toContain("Bid Scout feature");
-    expect(html).toContain("Proposal drafting and pipeline CSV export are part of Bid Scout");
-    expect(html).toContain("$99/mo · Cancel anytime");
-    expect(html).toContain('href="/bid-scout"');
+    expect(html).toContain("Included with every paid plan");
+    expect(html).toContain("Proposal drafting and pipeline CSV export come with every paid Contrax plan");
+    expect(html).toContain("Starter: $5 for your first 30 days · No automatic renewal");
+    expect(html).toContain('href="/pricing"');
     expect(html).toContain("Maybe later");
     // THE DEFECT: the raw sentinel must not reach the user. Non-vacuous — the
     // string really is what the server sent.
@@ -636,7 +636,7 @@ describe("F3: no surface still sells proposal drafting on Professional", () => {
     expect(signup).toContain(
       "AI Executive Briefs, Incumbent Intelligence, and AI Match Scoring are on Professional.",
     );
-    expect(signup).toContain("Proposal drafting and pipeline CSV export are on Bid Scout.");
+    expect(signup).toContain("Proposal drafting and pipeline CSV export come with every paid plan.");
     // Owner 2026-11-01 ("do B"): the 7-day trial copy (#456) is replaced by
     // the $5 Starter line at both sites, and the badge no longer promises a trial.
     expect(
@@ -646,9 +646,9 @@ describe("F3: no surface still sells proposal drafting on Professional", () => {
     expect(signup).not.toContain("🔒 7-day trial starts today • No credit card");
   });
 
-  test("the signed-out CTA line that sold drafting now points at Bid Scout", () => {
+  test("the signed-out CTA line says drafting comes with every paid plan (Bid Scout retired)", () => {
     expect(trades).toContain(
-      "AI match scoring is on Professional. Proposal drafting is on Bid Scout.",
+      "AI match scoring is on Professional. Proposal drafting comes with every paid plan.",
     );
     expect(trades).not.toMatch(/draft(ing)? tools?[^.\n]{0,40}Professional/i);
   });

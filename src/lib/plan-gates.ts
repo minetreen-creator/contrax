@@ -4,8 +4,10 @@
  *   Radar Pro  ($79/mo = the `professional` ladder tier)  →  AI Executive Brief,
  *                                                            bid scoring,
  *                                                            incumbent intelligence
- *   Bid Scout  ($99/mo = its own recurring product)       →  proposal drafting,
+ *   Any paid plan (Starter and up, incl. the $5 pass)      →  proposal drafting,
  *                                                            pipeline CSV export
+ *     (owner 2026-11-07: Bid Scout was retired, "Unlock them with paid plans";
+ *      the gate keeps its internal key `bid_scout` so callers are unchanged)
  *
  * TWO HARD RULES this module encodes:
  *
@@ -48,6 +50,11 @@ export const BID_SCOUT_PRICE_USD_MONTHLY = 99;
 export const BID_SCOUT_PRICE_NOTE = "$99/mo · Cancel anytime";
 /** The ONE purchase path that exists for Bid Scout (intake form → checkout). */
 export const BID_SCOUT_HREF = "/bid-scout";
+
+/** Where the paid-plan prompt for drafting/export goes (owner 2026-11-07). */
+export const PAID_PLAN_HREF = "/pricing";
+/** Mirrors STARTER_FIRST_MONTH_NOTE in src/lib/starter-offer.ts (the $5 first 30 days). */
+export const PAID_PLAN_PRICE_NOTE = "Starter: $5 for your first 30 days · No automatic renewal";
 
 /** Every gated action, keyed to the product that owns it. */
 export type GateAction = "ai_brief" | "score" | "incumbent" | "draft" | "export";
@@ -109,14 +116,14 @@ export const GATE_PROMPTS: Record<PlanGate, GatePrompt> = {
     checkoutPlan: "professional",
   },
   bid_scout: {
-    title: "Bid Scout feature",
+    title: "Included with every paid plan",
     body:
-      "Proposal drafting and pipeline CSV export are part of Bid Scout, our $99/month contract-winning service.",
-    ctaLabel: "See Bid Scout →",
-    priceNote: BID_SCOUT_PRICE_NOTE,
-    href: BID_SCOUT_HREF,
+      "Proposal drafting and pipeline CSV export come with every paid Contrax plan, starting with Starter.",
+    ctaLabel: "See plans →",
+    priceNote: PAID_PLAN_PRICE_NOTE,
+    href: PAID_PLAN_HREF,
     checkout: false,
-    checkoutPlan: "professional",
+    checkoutPlan: "starter",
   },
 };
 

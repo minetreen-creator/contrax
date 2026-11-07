@@ -464,7 +464,7 @@ function RevealList({
         </a>
         <p className="mt-3 text-xs leading-relaxed text-slate-400">
           Basic is free forever — 1 saved bid, no card required.
-          AI match scoring is on Professional. Proposal drafting is on Bid Scout.
+          AI match scoring is on Professional. Proposal drafting comes with every paid plan.
         </p>
       </div>
     </div>

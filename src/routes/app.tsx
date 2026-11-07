@@ -382,8 +382,6 @@ export const Route = createFileRoute("/app")({
     meta: [
       { title: "Contrax app: public bids near you, with phone alerts" },
       { name: "description", content: "Open government bids in your trade and area. Add Contrax to your home screen and get a buzz when a new bid posts." },
-      // Owner 2026-11-07: "coming soon" — kept out of search until launch day.
-      { name: "robots", content: "noindex" },
       { name: "theme-color", content: "#0b1220" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "mobile-web-app-capable", content: "yes" },

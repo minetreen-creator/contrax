@@ -202,6 +202,8 @@ function Home() {
       {/* The $5 Starter pass, right under the search (owner 2026-10-31 funnel
           check: the homepage never mentioned the offer). */}
       <StarterPassStrip />
+      {/* The Contrax app (owner 2026-11-07: "Today is launch day"). */}
+      <HomeAppStrip />
       {/* Megaprojects (owner 2026-11-07): the big plants and highway jobs hiring local subs. */}
       {megaprojects ? <HomeMegaprojects {...megaprojects} /> : null}
       {/* Owner 2026-11-02 (design critique, "fix all"): one path down the page,
@@ -311,6 +313,27 @@ function HomeMegaprojects({ featured, projects, amount }: { featured: Megaprojec
           </li>
         ))}
       </ul>
+    </section>
+  );
+}
+
+// The Contrax app: install it, get a buzz when a matching bid posts.
+function HomeAppStrip() {
+  return (
+    <section aria-label="The Contrax app" className="mx-auto max-w-[1120px] px-4 pt-6 sm:px-6">
+      <a
+        href="/app?source=home"
+        onClick={() => trackEvent("home_app_click")}
+        className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-[#0b1220] p-4 text-white transition hover:-translate-y-0.5 hover:shadow-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600 dark:border-slate-700"
+      >
+        <img src="/app-icon-192.png" alt="" width={48} height={48} className="h-12 w-12 shrink-0 rounded-xl" />
+        <span className="min-w-0">
+          <span className="block text-xs font-bold uppercase tracking-wider text-amber-300">📱 New: the Contrax app</span>
+          <span className="block text-base font-bold leading-snug">Your phone buzzes when a bid in your trade posts</span>
+          <span className="block text-sm text-slate-300">Bids near you, saved-bid reminders and winning prices. Put it on your home screen.</span>
+        </span>
+        <ArrowRight aria-hidden="true" className="ml-auto h-5 w-5 shrink-0 text-amber-300" />
+      </a>
     </section>
   );
 }

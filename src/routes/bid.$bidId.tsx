@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { WinnerPriceLine } from "~/components/WinnerPriceLine";
+import { AreaAwardsBox } from "~/components/AreaAwardsBox";
+import type { AreaAwards } from "~/lib/area-awards";
 import { deriveWinnerPrice } from "~/lib/winner-price";
 import type { FPDSIntel } from "~/lib/fpds";
 import { STARTER_FIRST_MONTH_PRICE } from "~/lib/starter-offer";
@@ -332,6 +334,38 @@ const getBidPriceIntel = createServerFn({ method: "GET" })
     }
   });
 
+/**
+ * Federal winning prices near this bid (owner 2026-11-07): recent federal
+ * contracts for the same kind of work in the same state, from award_leads.
+ * Winners and amounts only for paid plans; everyone else gets the count.
+ */
+const getBidAreaAwards = createServerFn({ method: "GET" })
+  .validator((d: unknown) => {
+    const id = Number((d as any)?.id);
+    return Number.isInteger(id) && id > 0 ? id : -1;
+  })
+  .handler(async ({ data: id }): Promise<AreaAwards | null> => {
+    if (id <= 0) return null;
+    try {
+      const { getRequest } = await import("@tanstack/react-start/server");
+      const { checkIpLimit } = await import("~/lib/rate-limit");
+      const limit = await checkIpLimit(getRequest(), "bid-area-awards", 120, 3600);
+      if (!limit.allowed) return null;
+      const rows = (await sql()`
+        SELECT location, agency, naics_code, category FROM bids WHERE id = ${id} LIMIT 1
+      `) as { location: string | null; agency: string | null; naics_code: string | null; category: string | null }[];
+      const r = rows[0];
+      if (!r) return null;
+      const state = resolveBidState(r.location, r.agency) ?? null;
+      const { loadAreaAwards } = await import("~/lib/area-awards.server");
+      const paid = await hasPaidBidAccess(await getCurrentUser());
+      return await loadAreaAwards(state, r.naics_code, r.category, paid);
+    } catch (e) {
+      console.error("[bid/$id] area awards failed (nothing shown):", e);
+      return null;
+    }
+  });
+
 function BidDetailPage() {
   const bid = Route.useLoaderData();
   const bidId = bid?.id ?? 0;
@@ -345,6 +379,7 @@ function BidDetailPage() {
   const [checked, setChecked] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
   const [price, setPrice] = useState<{ intel: FPDSIntel | null; hasRecord: boolean } | null>(null);
+  const [areaAwards, setAreaAwards] = useState<AreaAwards | null>(null);
   // The point of contact, for paid plans only (fetched per user, never in the HTML).
   // undefined until this viewer's own check returns, so a paying member never
   // sees the locked teaser flash first.
@@ -357,7 +392,15 @@ function BidDetailPage() {
     setChecked(false);
     setContact(undefined);
     setPrice(null);
+    setAreaAwards(null);
     if (bidId > 0) {
+      getBidAreaAwards({ data: { id: bidId } })
+        .then((a) => {
+          if (!active || !a) return;
+          setAreaAwards(a);
+          trackEvent("bid_area_awards_shown", a.detail ? "full" : "teaser");
+        })
+        .catch(() => {});
       getBidPriceIntel({ data: { id: bidId } })
         .then((p) => {
           if (!active) return;
@@ -500,6 +543,8 @@ function BidDetailPage() {
                 </div>
               )}
             </article>
+
+            {areaAwards && <AreaAwardsBox data={areaAwards} stateName={bid.state_name} />}
 
             <SimilarBidsBox
               similar={bid.similar}

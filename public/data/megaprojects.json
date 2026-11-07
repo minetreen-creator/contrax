@@ -1738,5 +1738,53 @@
       "url": "https://www.costar.com/article/1753462655/nvidia-manufacturer-offered-tax-breaks-for-major-project-in-fort-worth"
     },
     "checked": "2026-11-02"
+  },
+  {
+    "slug": "exxonmobil-project-holly-port-allen-la",
+    "company": "ExxonMobil",
+    "project": "Project Holly resin manufacturing plant",
+    "city": "Port Allen",
+    "state": "LA",
+    "sector": "manufacturing",
+    "amount": 250000000,
+    "amountNote": "more than $250 million, per ExxonMobil (October 2026)",
+    "jobs": 45,
+    "jobsNote": "permanent jobs, plus roughly 600 construction jobs, per ExxonMobil",
+    "status": "Planned at the existing Port Allen Lubricants Plant; BIC Magazine reported construction estimated through December 2027",
+    "summary": "A new plant at ExxonMobil's Port Allen Lubricants Plant in West Baton Rouge Parish to make Proxima high-performance resins, with raw-material storage, blending and packaging, a warehouse, a laboratory, rail and truck loading, and new roadways.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "Baton Rouge Business Report (Oct 26, 2026)",
+      "url": "https://www.businessreport.com/exxonmobil-is-planning-a-250m-resin-manufacturing-facility-in-west-baton-rouge/"
+    },
+    "checked": "2026-11-07"
+  },
+  {
+    "slug": "modot-improve-i70-kingdom-city-warrenton-mo",
+    "company": "Missouri Department of Transportation (MoDOT)",
+    "project": "Improve I-70: Kingdom City to Warrenton",
+    "city": "Kingdom City to Warrenton",
+    "state": "MO",
+    "sector": "infrastructure",
+    "amount": 583000000,
+    "amountNote": "project cost; part of MoDOT's $2.8 billion Improve I-70 program",
+    "jobs": null,
+    "jobsNote": null,
+    "status": "Design-build team selected, contract being finalized; public meetings early 2027; construction expected to start spring/summer 2027 and finish in late 2030",
+    "summary": "A third lane in each direction and all-new full-depth concrete pavement along 44 miles of I-70 between Kingdom City and Warrenton, plus an eastbound climbing lane at Mineola Hill and bridge and interchange improvements.",
+    "generalContractor": {
+      "name": "Millstone Weber (design-build team with designer Jacobs and partner WSP)",
+      "url": "https://www.modot.org/node/99519"
+    },
+    "supplierUrl": {
+      "label": "MoDOT Improve I-70 program",
+      "url": "https://www.modot.org/improvei70"
+    },
+    "source": {
+      "name": "MoDOT news release",
+      "url": "https://www.modot.org/node/99519"
+    },
+    "checked": "2026-11-07"
   }
 ]

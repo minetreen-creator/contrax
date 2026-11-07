@@ -303,7 +303,8 @@ function computeMatch(
   // NAICS / trade alignment
   let naics = 8;
   if (input.isNaics && bid.naics_code && bid.naics_code.trim() === input.trade) naics = 30;
-  else if (!input.isNaics && input.expansion.terms.some((t) => t.length >= 2 && (title.includes(t) || category.includes(t)))) naics = 22;
+  // A NAICS search's phrase hits (naicsCodeExpansion) score as a keyword match; plain NAICS expansions carry no terms.
+  else if (input.expansion.terms.some((t) => t.length >= 2 && (title.includes(t) || category.includes(t)))) naics = 22;
 
   // Set-aside eligibility
   const hasSetAside = !!bid.set_aside && String(bid.set_aside).trim().length > 0;
@@ -640,11 +641,15 @@ export const runRadarScan = createServerFn({ method: "POST" })
     const { sql } = await import("~/db");
     let rows: any[] = [];
     let relatedRows: any[] = [];
+    // The expansion the strict query used (a NAICS code's curated phrases, owner 2026-11-07).
+    let matchExpansion: TradeExpansion = expansion;
     try {
       // Strict query + state pass + R5 dedupe: shared with the share-card page
       // (~/lib/radar-candidates) so a shared count equals these results.
       // Throws RadarScanError on failure (owner v6 — never a misleading 0).
-      rows = (await fetchStrictRadarRows(sql, { trade, state, certId })).rows;
+      const strict = await fetchStrictRadarRows(sql, { trade, state, certId });
+      rows = strict.rows;
+      matchExpansion = strict.expansion;
       // RELATED opportunities (owner v6.1): adjacent-work terms, pulled only
       // when a state is requested. Same open/low-content guards, but NO cert
       // and NO strict trade filter — deliberately: the DoD related rows
@@ -683,11 +688,11 @@ export const runRadarScan = createServerFn({ method: "POST" })
           source: r.source ? String(r.source) : null,
         };
         const { score, scoreLabel } = computeMatch(bid, {
-          trade, isNaics, expansion, state, cert: certId, sizePref: sizeId,
+          trade, isNaics, expansion: matchExpansion, state, cert: certId, sizePref: sizeId,
         });
         const bidText = `${bid.title || ""} ${bid.category || ""} ${bid.description || ""}`;
-        const tradeProvenance = tradeProvenanceFor(bidText, expansion, bid.naics_code);
-        return { bid, score, scoreLabel, tradeProvenance, strong: isStrongTradeMatch(bid.title, bid.category, bid.description, bid.naics_code, expansion) };
+        const tradeProvenance = tradeProvenanceFor(bidText, matchExpansion, bid.naics_code);
+        return { bid, score, scoreLabel, tradeProvenance, strong: isStrongTradeMatch(bid.title, bid.category, bid.description, bid.naics_code, matchExpansion) };
       })
       .sort((a, b) => b.score - a.score);
     // FIX 1 (owner 09-14): only TITLE/NAICS-corroborated rows are DEFAULT
@@ -720,7 +725,7 @@ export const runRadarScan = createServerFn({ method: "POST" })
         due_date: bid.due_date, days_remaining: suppressedDays(bid),
         score, score_label: scoreLabel,
         trade_provenance: tradeProvenance,
-        reasons: buildReasons(bid, { trade, isNaics, expansion, state, cert: certId, sizePref: sizeId, score, scoreLabel, tradeProvenance }),
+        reasons: buildReasons(bid, { trade, isNaics, expansion: matchExpansion, state, cert: certId, sizePref: sizeId, score, scoreLabel, tradeProvenance }),
         qualifications: buildQualifications(bid, { trade, isNaics, state, cert: certId }),
         requirements: buildRequirements(bid),
         next_action: buildNextAction(bid),
@@ -1135,8 +1140,10 @@ function buildReasons(
   if (days != null) reasons.push(days <= 30 ? `Closing in ${days} day${days === 1 ? "" : "s"}` : `Closing in ${days} days`);
   const ev = parseValue(bid.estimated_value);
   if (ev != null) reasons.push(`Estimated value ${money(ev)}${c.sizePref !== "any" ? " fits your size preference" : ""}`);
-  if (c.isNaics && bid.naics_code) reasons.push(`NAICS ${bid.naics_code} matches your code`);
-  else if (!c.isNaics && c.trade) {
+  // Only claim a NAICS match when the bid's code IS the searched code; a phrase hit on a
+  // NAICS search explains itself through the provenance line below (owner 2026-11-07).
+  if (c.isNaics && bid.naics_code && bid.naics_code.trim() === c.trade) reasons.push(`NAICS ${bid.naics_code} matches your code`);
+  else if (c.trade) {
     const prov = c.tradeProvenance;
     if (prov) {
       // Honest provenance: if the LITERAL original term matched, say so;

@@ -52,6 +52,10 @@ interface PayingCustomer {
   since: string | null;
 }
 
+// A $5 Starter pass also sets subscription_status = 'active' / plan_tier = 'starter'
+// for its 30 days, so pass holders are left out here (they are counted once, as
+// pass customers, below) — otherwise the app-db fallback would show them twice and
+// value each at $19 MRR (owner 2026-11-07).
 async function readDbTiers(): Promise<{ tiers: TierRow[]; customers: PayingCustomer[] }> {
   const qaExcl = qaUserExclusionSQL("");
   const tierRows: any[] = await sql()`
@@ -59,6 +63,7 @@ async function readDbTiers(): Promise<{ tiers: TierRow[]; customers: PayingCusto
     WHERE subscription_status = 'active'
       AND plan_tier IN ('starter', 'professional', 'agency')
       AND is_admin = false AND plan_tier <> 'demo'
+      AND (starter_pass_ends_at IS NULL OR starter_pass_ends_at <= NOW())
       AND ${sql().unsafe(qaExcl)}
     GROUP BY plan_tier`;
   const tiers: TierRow[] = (tierRows as any[]).map((r) => ({
@@ -73,6 +78,7 @@ async function readDbTiers(): Promise<{ tiers: TierRow[]; customers: PayingCusto
       WHERE subscription_status = 'active'
         AND plan_tier IN ('starter', 'professional', 'agency')
         AND is_admin = false AND plan_tier <> 'demo'
+        AND (starter_pass_ends_at IS NULL OR starter_pass_ends_at <= NOW())
         AND ${sql().unsafe(qaExcl)}
       ORDER BY created_at DESC LIMIT 100`;
     customers = (custRows as any[]).map((r) => ({

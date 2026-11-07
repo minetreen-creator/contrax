@@ -47,6 +47,48 @@ export async function createNotification(input: {
   await sql()`INSERT INTO notifications (user_id,type,title,message,bid_id) VALUES (${input.userId},${input.type},${input.title},${input.message},${input.bidId ?? null})`;
 }
 
+/**
+ * Insert many notifications in a few round trips (owner 2026-11-07: the sync's per-match inserts took 3
+ * queries each and pushed a 375-new-bid run past the 60-minute job limit). Same rules as
+ * createNotification: an identical alert from the last 24 hours is not repeated. Returns rows inserted.
+ */
+export async function createNotificationsBatch(
+  input: readonly { userId: number; type: Notification["type"]; title: string; message: string; bidId?: number | null }[],
+): Promise<number> {
+  const seen = new Set<string>();
+  const rows = input.filter((r) => {
+    const key = `${r.userId}|${r.type}|${r.title}|${r.bidId ?? 0}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  if (!rows.length) return 0;
+  await ensureNotificationsTable();
+  let inserted = 0;
+  for (let i = 0; i < rows.length; i += 500) {
+    const c = rows.slice(i, i + 500);
+    const out = await sql()`
+      INSERT INTO notifications (user_id, type, title, message, bid_id)
+      SELECT n.user_id, n.type, n.title, n.message, n.bid_id
+      FROM unnest(
+        ${c.map((r) => r.userId)}::int[],
+        ${c.map((r) => r.type)}::text[],
+        ${c.map((r) => r.title)}::text[],
+        ${c.map((r) => r.message)}::text[],
+        ${c.map((r) => r.bidId ?? null)}::int[]
+      ) AS n(user_id, type, title, message, bid_id)
+      WHERE NOT EXISTS (
+        SELECT 1 FROM notifications x
+        WHERE x.user_id = n.user_id AND x.type = n.type AND x.title = n.title
+          AND COALESCE(x.bid_id, 0) = COALESCE(n.bid_id, 0) AND x.created_at > NOW() - INTERVAL '24 hours'
+      )
+      RETURNING id
+    `;
+    inserted += (out as unknown[]).length;
+  }
+  return inserted;
+}
+
 // ── Fetch ────────────────────────────────────────────────────────────────────
 
 export const getNotifications = createServerFn({ method: "GET" }).handler(

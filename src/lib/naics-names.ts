@@ -20,6 +20,7 @@ export const NAICS_NAMES: Record<string, string> = {
   "238140": "Masonry Contractors",
   "238150": "Glass and Glazing Contractors",
   "238160": "Roofing Contractors",
+  "238170": "Siding Contractors",
   "238290": "Other Building Equipment Contractors",
   "238310": "Drywall and Insulation Contractors",
   "238320": "Painting and Wall Covering Contractors",

@@ -1150,6 +1150,58 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
     naics: ["561621"],
     exactOnly: true,
   },
+  // Owner 2026-11-07 ("Do 1,2"): the 60-day Radar search log showed these trades
+  // matching only their literal word ("siding", "gutters", "insulation", "well
+  // service" found 0-3 bids), and "window replacement" stemmed into janitorial
+  // (its "window cleaning"). Each now has the phrases bids actually use.
+  "siding-gutters": {
+    label: "Siding/Gutters",
+    synonyms: [
+      "siding", "vinyl siding", "siding replacement", "siding installation",
+      "gutters", "gutter", "gutter replacement", "gutter installation", "downspouts",
+      "soffit", "fascia",
+    ],
+    naics: ["238170"],
+    exactOnly: true,
+  },
+  "insulation": {
+    label: "Insulation",
+    synonyms: [
+      "insulation", "insulation contractor", "spray foam", "spray foam insulation",
+      "blown insulation", "attic insulation", "pipe insulation", "mechanical insulation",
+    ],
+    naics: ["238310"],
+    exactOnly: true,
+  },
+  "windows-doors": {
+    label: "Windows/Doors",
+    synonyms: [
+      "windows", "window replacement", "window installation", "replacement windows",
+      "windows and doors", "storefront", "storefront glazing", "curtain wall",
+    ],
+    naics: ["238150"],
+    exactOnly: true,
+  },
+  "drywall": {
+    label: "Drywall",
+    synonyms: [
+      "drywall", "drywall installation", "sheetrock", "drywall repair", "drywall finishing",
+      "gypsum board", "gypsum wallboard",
+    ],
+    naics: ["238310"],
+    exactOnly: true,
+  },
+  // Water wells. Phrase-only: water well drilling shares 237110 with every water
+  // and sewer line job.
+  "water-wells": {
+    label: "Water Wells",
+    synonyms: [
+      "well service", "well drilling", "water well", "water wells", "well pump",
+      "well pumps", "water well rehabilitation", "well abandonment", "well plugging",
+    ],
+    naics: [],
+    exactOnly: true,
+  },
   // Low-voltage and structured cabling work (data, voice, fiber). Phrase-only:
   // its NAICS (238210) is every electrical contract, which would swamp the trade.
   "low-voltage-cabling": {

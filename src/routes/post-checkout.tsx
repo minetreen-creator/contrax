@@ -404,6 +404,14 @@ function PostCheckoutPage() {
                   next time; we emailed it a link to set your password.
                 </p>
               )}
+              {!savingsProduct && (
+                <a
+                  href="/app?source=post-checkout"
+                  className="mt-3 block rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900 hover:bg-amber-100"
+                >
+                  📱 Get new bids on your phone: install the Contrax app and turn on alerts →
+                </a>
+              )}
               <p className="mt-4 text-xs text-gray-400">
                 Redirecting you automatically…
               </p>

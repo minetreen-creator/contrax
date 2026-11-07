@@ -152,6 +152,20 @@ function AppPage() {
     const isStandalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as any).standalone === true;
     setStandalone(isStandalone);
     trackEvent("app_open", isStandalone ? "installed" : "browser");
+    // Install counting (owner 2026-11-07: "Is there a way to track downloads?").
+    // Android reports a finished install (appinstalled); iPhone never does, so
+    // the first open from the home screen counts instead. One flag per phone
+    // keeps an Android install from counting twice.
+    const devicePlatform = /iPhone|iPad|iPod/.test(ua) ? "ios" : /Android/.test(ua) ? "android" : "desktop";
+    const countInstall = () => {
+      try {
+        if (localStorage.getItem("contrax-app-installed")) return;
+        localStorage.setItem("contrax-app-installed", new Date().toISOString());
+      } catch {}
+      trackEvent("app_installed", devicePlatform);
+    };
+    if (isStandalone) countInstall();
+    window.addEventListener("appinstalled", countInstall);
     const onPrompt = (e: Event) => {
       e.preventDefault();
       setInstallEvt(e);
@@ -179,7 +193,10 @@ function AppPage() {
       if (Notification.permission === "denied") return setAlerts("blocked");
       setAlerts(res.on ? "on" : "off");
     })();
-    return () => window.removeEventListener("beforeinstallprompt", onPrompt);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onPrompt);
+      window.removeEventListener("appinstalled", countInstall);
+    };
   }, []);
 
   const turnOn = async () => {

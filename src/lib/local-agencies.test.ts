@@ -65,13 +65,16 @@ describe("local agency registry", () => {
 describe("buyers inside a state portal", () => {
   test("Richmond groups its eVA buyers, matched by exact buyer name", () => {
     const rva = findPlace("virginia", "richmond");
-    expect(rva?.agencies.map((a) => a.agencyName)).toEqual([
+    const evaBuyers = rva?.agencies.filter((a) => a.agencyName) ?? [];
+    expect(evaBuyers.map((a) => a.agencyName)).toEqual([
       "City of Richmond Government",
       "City of Richmond Schools",
       "Greater Richmond Transit Company",
       "Richmond Redevelopment Housing Authority",
     ]);
-    expect(rva?.agencies.every((a) => a.source === "va_eva" && a.via)).toBe(true);
+    expect(evaBuyers.every((a) => a.source === "va_eva" && a.via)).toBe(true);
+    // GRTC's own Beacon board (owner 2026-11-07) joins the Richmond page as a whole source.
+    expect(rva?.agencies.filter((a) => !a.agencyName).map((a) => a.source)).toEqual(["va_grtc_beacon"]);
     expect(placeHref(rva!)).toBe("/bids-in/virginia/richmond");
   });
 
@@ -108,7 +111,7 @@ describe("buyers inside a state portal", () => {
 
   test("agencyScope splits whole sources from exact buyer pairs", () => {
     const scope = agencyScope(findPlace("virginia", "richmond")!.agencies);
-    expect(scope.sources).toEqual([]);
+    expect(scope.sources).toEqual(["va_grtc_beacon"]);
     expect(scope.pairSources.every((s) => s === "va_eva")).toBe(true);
     expect(scope.pairAgencies).toContain("City of Richmond Government");
     const chicago = agencyScope(findPlace("illinois", "chicago")!.agencies);

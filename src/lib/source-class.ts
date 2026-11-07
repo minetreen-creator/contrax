@@ -6420,6 +6420,56 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
     searchScope: "city-open-data",
     recordType: "opportunity",
   },
+  // Pennsylvania and Virginia (owner 2026-11-07: "Yes do Pennsylvania, Virginia and Ohio").
+  pa_montgomery_county_bonfire: {
+    class: "local",
+    city: "Montgomery County",
+    scopeState: "PA",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
+  pa_pwsa_bonfire: {
+    class: "local",
+    city: "Pittsburgh",
+    scopeState: "PA",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
+  pa_pit_airport_bonfire: {
+    class: "local",
+    city: "Pittsburgh",
+    scopeState: "PA",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
+  pa_pha_bonfire: {
+    class: "local",
+    city: "Philadelphia",
+    scopeState: "PA",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
+  va_vbcps_beacon: {
+    class: "local",
+    city: "Virginia Beach",
+    scopeState: "VA",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
+  va_grtc_beacon: {
+    class: "local",
+    city: "Richmond",
+    scopeState: "VA",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
+  pa_pittsburgh_schools_beacon: {
+    class: "local",
+    city: "Pittsburgh",
+    scopeState: "PA",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
   // California read directly (owner 2026-11-07: "Yes start California").
   ca_la_county: {
     class: "local",

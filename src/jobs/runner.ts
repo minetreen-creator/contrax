@@ -64,7 +64,7 @@ import { fetchTnKnoxCountyBids } from "./sources/tn-knox-county";
 import { fetchTnTbrBids } from "./sources/tn-tbr";
 import { fetchTnEpbBids, fetchTnKingsportBids } from "./sources/tn-epb-kingsport";
 import { fetchTnUtCapitalBids } from "./sources/tn-ut-capital";
-import { CA_DIRECT_SOURCES } from "./sources/ca-direct";
+import { CA_DIRECT_BATCH2, CA_DIRECT_SOURCES } from "./sources/ca-direct";
 import { fetchOhFranklinCountyBids } from "./sources/oh-franklin-county";
 import { fetchNjHarrisonBids } from "./sources/nj-harrison";
 import { fetchVaLoudounBids } from "./sources/va-loudoun";
@@ -562,6 +562,7 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "tn_ut_capital", fetchFn: () => fetchTnUtCapitalBids() },
   // California read directly instead of through BidNet (owner 2026-11-07: "Yes start California").
   ...CA_DIRECT_SOURCES,
+  ...CA_DIRECT_BATCH2,
   { name: "oh_franklin_county", fetchFn: () => fetchOhFranklinCountyBids() },
   { name: "nj_harrison", fetchFn: () => fetchNjHarrisonBids() },
   { name: "va_loudoun", fetchFn: fetchVaLoudounBids },

@@ -6421,6 +6421,41 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
     recordType: "opportunity",
   },
   // California read directly (owner 2026-11-07: "Yes start California").
+  ca_la_county: {
+    class: "local",
+    city: "Los Angeles County",
+    scopeState: "CA",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
+  ca_port_of_oakland: {
+    class: "local",
+    city: "Oakland",
+    scopeState: "CA",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
+  ca_berkeley: {
+    class: "local",
+    city: "Berkeley",
+    scopeState: "CA",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
+  ca_uc_berkeley: {
+    class: "local",
+    city: "Berkeley",
+    scopeState: "CA",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
+  ca_ucla_capital: {
+    class: "local",
+    city: "Los Angeles",
+    scopeState: "CA",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
   ca_san_bernardino_county: {
     class: "local",
     city: "San Bernardino County",

@@ -164,7 +164,9 @@ export async function runRelatedScanQuery(
         AND ${s.unsafe(lowContentSql)}
         AND ${acc}
       ORDER BY due_date ASC NULLS LAST
-      LIMIT 50
+      -- Nationwide rows, filtered to the searched state afterwards: 50 let other states'
+      -- earlier deadlines crowd out the searched state (owner 2026-11-07).
+      LIMIT 200
     `;
   } catch (cause) {
     throw new RadarScanError("related-scan", cause);

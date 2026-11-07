@@ -22,6 +22,10 @@ const CAPTURED: Record<string, number> = {
   ga_columbia_bonfire: 5,
   fl_monroe_bonfire: 6,
   tn_montgomery_bonfire: 2,
+  pa_montgomery_county_bonfire: 4,
+  pa_pwsa_bonfire: 5,
+  pa_pit_airport_bonfire: 2,
+  pa_pha_bonfire: 11,
   tx_hood_bonfire: 1,
   tx_parker_bonfire: 2,
   ga_alpharetta_bonfire: 2,
@@ -132,9 +136,9 @@ const NO_CAPTURE = new Set([
 
 describe("county Bonfire boards", () => {
   test("142 boards, unique sources and id prefixes", () => {
-    expect(COUNTY_BONFIRE_CONFIGS).toHaveLength(162);
-    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.source)).size).toBe(162);
-    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.idPrefix)).size).toBe(162);
+    expect(COUNTY_BONFIRE_CONFIGS).toHaveLength(166);
+    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.source)).size).toBe(166);
+    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.idPrefix)).size).toBe(166);
   });
 
   for (const cfg of COUNTY_BONFIRE_CONFIGS.filter((c) => !NO_CAPTURE.has(c.source))) {

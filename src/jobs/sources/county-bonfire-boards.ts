@@ -207,6 +207,11 @@ const BOARDS: Board[] = [
   { tenant: "sou", source: "or_southern_oregon_university_bonfire", stateName: "Oregon", place: "Southern Oregon University", buyer: "Southern Oregon University", idPrefix: "soubonfire", location: "Ashland, OR" },
   // PA, IL, KY portals, captured 2026-11-05 (owner: "add more state and local boards").
   { tenant: "alleghenycounty", source: "pa_allegheny_county_bonfire", stateName: "Pennsylvania", place: "Allegheny County", buyer: "Allegheny County, Pennsylvania", idPrefix: "alleghenycountybonfire", location: "Pittsburgh, PA" },
+  // Pennsylvania (owner 2026-11-07: "Yes do Pennsylvania, Virginia and Ohio"); captured 2026-11-07.
+  { tenant: "montcopa", source: "pa_montgomery_county_bonfire", stateName: "Pennsylvania", place: "Montgomery County", buyer: "Montgomery County, Pennsylvania", idPrefix: "montcopabonfire", location: "Montgomery County, PA" },
+  { tenant: "pgh2o", source: "pa_pwsa_bonfire", stateName: "Pennsylvania", place: "Pittsburgh Water", buyer: "Pittsburgh Water and Sewer Authority", idPrefix: "pgh2obonfire", location: "Pittsburgh, PA" },
+  { tenant: "flypittsburgh", source: "pa_pit_airport_bonfire", stateName: "Pennsylvania", place: "Pittsburgh International Airport", buyer: "Allegheny County Airport Authority (Pittsburgh International Airport)", idPrefix: "flypittsburghbonfire", location: "Pittsburgh, PA" },
+  { tenant: "pha", source: "pa_pha_bonfire", stateName: "Pennsylvania", place: "Philadelphia Housing Authority", buyer: "Philadelphia Housing Authority", idPrefix: "phabonfire", location: "Philadelphia, PA" },
   { tenant: "joliet", source: "il_joliet_bonfire", stateName: "Illinois", place: "Joliet", buyer: "City of Joliet, Illinois", idPrefix: "jolietbonfire", location: "Joliet, IL" },
   { tenant: "owensboro", source: "ky_owensboro_bonfire", stateName: "Kentucky", place: "Owensboro", buyer: "City of Owensboro, Kentucky", idPrefix: "owensborobonfire", location: "Owensboro, KY" },
   { tenant: "lexingtonky", source: "ky_lexington_bonfire", stateName: "Kentucky", place: "Lexington", buyer: "Lexington-Fayette Urban County Government", idPrefix: "lexingtonkybonfire", location: "Lexington, KY" },

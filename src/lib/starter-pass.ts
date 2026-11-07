@@ -107,6 +107,9 @@ function shortDue(iso: string | null): string | null {
   return Number.isNaN(d.getTime()) ? null : d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/New_York" });
 }
 
+/** "Construction in Tennessee" → "construction in Tennessee"; "IT Services" stays. PURE. */
+const lowerFirst = (s: string) => (/^[A-Z][a-z]/.test(s) ? s[0].toLowerCase() + s.slice(1) : s);
+
 const BID_URL = (id: number) => `https://www.contrax.company/bid/${id}?source=pass_reminder`;
 
 /**
@@ -130,7 +133,7 @@ export function passReminderEmail(
     : `Your Contrax bid emails stop on ${day}`;
   const started = recap ? passEndDateLabel(recap.since) : "";
   const intro = recap
-    ? `Since your pass started on ${started}, Contrax has matched ${n.toLocaleString("en-US")} new ${bidsWord} in ${recap.tradePlace} that ${n === 1 ? "is" : "are"} still open.`
+    ? `Since your pass started on ${started}, Contrax has matched ${n.toLocaleString("en-US")} new ${bidsWord} for ${lowerFirst(recap.tradePlace)} that ${n === 1 ? "is" : "are"} still open.`
     : null;
   const examples = recap?.examples.slice(0, 3) ?? [];
   const exampleLine = (b: PassRecap["examples"][number]) =>

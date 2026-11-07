@@ -24,7 +24,7 @@ describe("pass reminder with what the pass found", () => {
     const url = passRenewUrl(42, ends, env);
     const m = passReminderEmail(ends, { recap, renewUrl: url });
     expect(m.subject).toBe("Your Contrax pass found 37 open bids. It ends December 3");
-    expect(m.text).toContain("Since your pass started on November 3, Contrax has matched 37 new bids in Construction in Tennessee that are still open.");
+    expect(m.text).toContain("Since your pass started on November 3, Contrax has matched 37 new bids for construction in Tennessee that are still open.");
     expect(m.text).toContain("3 of the newest:");
     expect(m.text).toContain("- Lindsey Kyla Ct Bridge Replacement · City of Portland · due Nov 18: https://www.contrax.company/bid/101?source=pass_reminder");
     expect(m.text).not.toContain("A fourth one");
@@ -42,6 +42,7 @@ describe("pass reminder with what the pass found", () => {
       expect(m.text).not.toContain("Since your pass started");
       expect(m.html).toContain(PASS_RENEW_URL);
     }
+    expect(passReminderEmail(ends, { recap: { ...recap, tradePlace: "IT Services in Virginia" } }).text).toContain("for IT Services in Virginia");
     expect(passReminderEmail(ends, { recap: { ...recap, newMatches: 1, examples: [recap.examples[0]] } }).subject).toBe("Your Contrax pass found 1 open bid. It ends December 3");
   });
 });

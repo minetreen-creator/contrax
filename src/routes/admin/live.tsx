@@ -2,7 +2,8 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { afterWakeWord, bootReport, isWakePhrase, JARVIS_VISUALS, type JarvisAction, type JarvisServerStats, type JarvisSnapshot, type JarvisVisual, type SimMonth, type SimResult } from "~/lib/jarvis";
 import { announcements, isRedAlert, pageName, type Announcement, type AnnounceState } from "~/lib/hot-leads";
-import { Search, UserPlus, Timer, CreditCard, PartyPopper, Radio, Flame, DollarSign, X, Volume2, VolumeX, ScanEye, Mic, TrendingUp } from "lucide-react";
+import { Search, UserPlus, Timer, CreditCard, PartyPopper, Radio, Flame, DollarSign, X, Volume2, VolumeX, ScanEye, Mic, TrendingUp, Smartphone } from "lucide-react";
+import type { AppStats, AppWindowCounts } from "~/lib/app-stats";
 import { dollars, weekGrowthLabel, type InvestorNumbers } from "~/lib/investor-numbers";
 import { getCurrentUser } from "~/lib/auth";
 import { TRIAL_DAYS } from "~/lib/trial";
@@ -51,6 +52,8 @@ interface LiveData {
   today?: TodayStats | null;
   /** Investor numbers (owner 2026-11-04). */
   investor?: InvestorNumbers | null;
+  /** The Contrax app: installs and alerts (owner 2026-11-07). */
+  app?: AppStats | null;
 }
 
 const POLL_MS = 15_000;
@@ -558,6 +561,70 @@ function InvestorPanel({ n }: { n: InvestorNumbers }) {
           <p className="mt-0.5 text-[11px] leading-snug text-slate-500">{t.note}</p>
         </div>
       ))}
+    </div>
+  );
+}
+
+/**
+ * The App card (owner 2026-11-07: "Is there a way to track downloads of the
+ * app?"). Installs = Android's install event, or the first open from the home
+ * screen on iPhone (Apple gives no install event). Counts only.
+ */
+function AppPanel({ app }: { app: AppStats }) {
+  const cols: { key: "today" | "week" | "sinceLaunch"; label: string }[] = [
+    { key: "today", label: "Today" },
+    { key: "week", label: "7 days" },
+    { key: "sinceLaunch", label: "Since launch" },
+  ];
+  const rows: { label: string; value: (w: AppWindowCounts) => number; note?: string }[] = [
+    { label: "Installs", value: (w) => w.installs },
+    { label: "  iPhone", value: (w) => w.iphone },
+    { label: "  Android", value: (w) => w.android },
+    { label: "Opened the app page", value: (w) => w.opened },
+    { label: "Clicked an app link", value: (w) => w.linkClicks, note: "homepage section or bid page" },
+    { label: "Tapped $5 for alerts", value: (w) => w.starterClicks },
+    { label: "Turned alerts on", value: (w) => w.alertsTurnedOn },
+  ];
+  return (
+    <div>
+      <div className="grid grid-cols-2 gap-2">
+        <div className="rounded-xl border border-slate-700/60 bg-slate-900/70 p-3">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Installs</p>
+          <p className="mt-1 text-2xl font-extrabold text-amber-300">{app.sinceLaunch.installs}</p>
+          <p className="mt-0.5 text-[11px] text-slate-500">{app.today.installs} today</p>
+        </div>
+        <div className="rounded-xl border border-slate-700/60 bg-slate-900/70 p-3">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Phones with alerts on</p>
+          <p className="mt-1 text-2xl font-extrabold text-emerald-300">{app.alertsOnNow}</p>
+          <p className="mt-0.5 text-[11px] text-slate-500">paid members only</p>
+        </div>
+      </div>
+      <table className="mt-4 w-full text-sm">
+        <thead>
+          <tr className="text-left text-[11px] uppercase tracking-wide text-slate-500">
+            <th className="py-1 font-semibold" />
+            {cols.map((c) => (
+              <th key={c.key} className="py-1 text-right font-semibold">{c.label}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.label} className="border-t border-slate-800">
+              <td className={`py-1.5 ${r.label.startsWith("  ") ? "pl-4 text-slate-400" : "text-slate-200"}`}>
+                {r.label.trim()}
+                {r.note ? <span className="block text-[11px] text-slate-500">{r.note}</span> : null}
+              </td>
+              {cols.map((c) => (
+                <td key={c.key} className="py-1.5 text-right font-semibold text-white">{r.value(app[c.key])}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="mt-3 text-[11px] leading-snug text-slate-500">
+        An install is Android&apos;s install signal, or the first time Contrax opens from an iPhone home screen (Apple sends no install signal). People, not taps; bots, test traffic and your own visits are left out.
+      </p>
     </div>
   );
 }
@@ -1437,6 +1504,7 @@ function LivePage() {
   const [track, setTrack] = useState<{ vid: string; label: string } | null>(null);
   const [reload, setReload] = useState(0);
   const [panel, setPanel] = useState(false);
+  const [appPanel, setAppPanel] = useState(false);
   const openTrack = (v: OnlineVisitor) => setTrack({ vid: v.vid, label: `${v.place ?? "Unknown location"} · ${v.path}` });
   // Owner 2026-11-01: the live chat with visitors is removed; every visitor click
   // (map dot, hot-lead list, red alert) opens the visitor trail instead.
@@ -1497,10 +1565,16 @@ function LivePage() {
               <h1 className="text-2xl font-bold text-white">Mission control</h1>
               <VoiceToggle on={voice.on} onToggle={voice.toggle} supported={voice.supported} />
             </div>
-            <button type="button" onClick={() => setPanel(true)} className="live-panel-btn">
-              <DollarSign size={14} aria-hidden="true" /> Money &amp; trials
-              {data?.trials.length ? <span className="live-panel-count">{data.trials.length}</span> : null}
-            </button>
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={() => setAppPanel(true)} className="live-panel-btn">
+                <Smartphone size={14} aria-hidden="true" /> App
+                {data?.app?.sinceLaunch.installs ? <span className="live-panel-count">{data.app.sinceLaunch.installs}</span> : null}
+              </button>
+              <button type="button" onClick={() => setPanel(true)} className="live-panel-btn">
+                <DollarSign size={14} aria-hidden="true" /> Money &amp; trials
+                {data?.trials.length ? <span className="live-panel-count">{data.trials.length}</span> : null}
+              </button>
+            </div>
           </div>
 
           {error ? <SectionError message={error} /> : !data ? <SectionLoading message="Tuning in…" /> : (
@@ -1528,6 +1602,14 @@ function LivePage() {
           )}
         </section>
       </main>
+      {appPanel && data ? (
+        <SidePanel onClose={() => setAppPanel(false)}>
+          <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-300">
+            <Smartphone size={15} aria-hidden="true" /> The Contrax app
+          </h2>
+          {data.app ? <AppPanel app={data.app} /> : <p className="text-sm text-slate-400">App numbers are unavailable right now.</p>}
+        </SidePanel>
+      ) : null}
       {panel && data ? (
         <SidePanel onClose={() => setPanel(false)}>
           {data.investor ? (

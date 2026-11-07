@@ -9,6 +9,8 @@ import { dataCenterLocation, emailLinkSweep, sameMinuteClusters } from "~/lib/vi
 import { getStripe, MONTHLY_PRICE_USD } from "~/lib/stripe";
 import { monthlyRecurring, renewalRate, revenueWindows, type InvestorNumbers, type PaidSession } from "~/lib/investor-numbers";
 import { isAdminEmail } from "~/lib/admin";
+import { APP_EVENT_NAMES, appWindow, type AppStats } from "~/lib/app-stats";
+import { ensureMemberPushTables } from "~/lib/member-push.server";
 import { ensureTrackedVisitorsTable } from "~/lib/scraper-watch.server";
 import type { TrackedVisitor } from "~/lib/scraper-watch";
 import {
@@ -424,6 +426,7 @@ async function handler({ request }: { request: Request }) {
       paid48h: stripe?.count48h ?? null,
       today: await loadToday(db, stripe),
       investor: await loadInvestorNumbers(now, money?.starterPass ?? null),
+      app: await loadAppStats(db),
       map,
       onlineCount: people.length,
       scannersHidden: scanners.size,
@@ -447,6 +450,61 @@ export const Route = createFileRoute("/api/admin/live-console")({
  * customers and recurring revenue from the accounts table, revenue and weekly
  * sales from the last 30 days of Stripe checkouts. Null on any error.
  */
+/**
+ * The App card (owner 2026-11-07): installs, people who opened the app, app
+ * link clicks, "$5 for alerts" clicks and phones with alerts on, for today
+ * (Eastern), the last 7 days and since launch. Same bot / QA / admin filters
+ * as the rest of Mission Control; admins' own phones are not counted.
+ */
+export async function loadAppStats(db: ReturnType<typeof sql>): Promise<AppStats | null> {
+  try {
+    const human = `NOT ${BOT_EXCLUSION_SQL} AND ${qaFunnelExclusionSQL()} AND ${adminFunnelExclusionSQL()}`;
+    const windows: Record<"today" | "week" | "sinceLaunch", string> = {
+      today: "(created_at AT TIME ZONE 'America/New_York')::date = (NOW() AT TIME ZONE 'America/New_York')::date",
+      week: "created_at > NOW() - INTERVAL '7 days'",
+      sinceLaunch: "TRUE",
+    };
+    const metric = (w: string) => ({
+      installs: `event_name = 'app_installed' AND ${w}`,
+      iphone: `event_name = 'app_installed' AND label = 'ios' AND ${w}`,
+      android: `event_name = 'app_installed' AND label = 'android' AND ${w}`,
+      opened: `event_name = 'app_open' AND ${w}`,
+      linkClicks: `event_name IN ('home_app_click', 'bid_app_click') AND COALESCE(label, '') <> 'starter' AND ${w}`,
+      starterClicks: `(event_name = 'app_alerts_upgrade_click' OR (event_name = 'home_app_click' AND label = 'starter')) AND ${w}`,
+    });
+    const cols = Object.entries(windows).flatMap(([k, w]) =>
+      Object.entries(metric(w)).map(([m, cond]) => `COUNT(DISTINCT visitor_id) FILTER (WHERE ${cond})::int AS "${k}_${m}"`),
+    );
+    const names = APP_EVENT_NAMES.map((e) => `'${e}'`).join(", ");
+    const [ev] = (await db.query(
+      `SELECT ${cols.join(", ")} FROM funnel_events
+       WHERE event_name IN (${names}) AND visitor_id IS NOT NULL AND ${human}`,
+    )) as Record<string, number>[];
+    await ensureMemberPushTables();
+    const [al] = (await db`
+      SELECT COUNT(*)::int AS now,
+             COUNT(*) FILTER (WHERE (s.created_at AT TIME ZONE 'America/New_York')::date = (NOW() AT TIME ZONE 'America/New_York')::date)::int AS today,
+             COUNT(*) FILTER (WHERE s.created_at > NOW() - INTERVAL '7 days')::int AS week
+      FROM member_push_subscriptions s JOIN users u ON u.id = s.user_id
+      WHERE NOT COALESCE(u.is_admin, false)
+    `) as { now: number; today: number; week: number }[];
+    const pick = (k: string, turnedOn: number) =>
+      appWindow({
+        ...Object.fromEntries(Object.keys(metric("TRUE")).map((m) => [m, ev?.[`${k}_${m}`] ?? 0])),
+        alertsTurnedOn: turnedOn,
+      });
+    return {
+      today: pick("today", al?.today ?? 0),
+      week: pick("week", al?.week ?? 0),
+      sinceLaunch: pick("sinceLaunch", al?.now ?? 0),
+      alertsOnNow: al?.now ?? 0,
+    };
+  } catch (e) {
+    console.error("[api/admin/live-console] app stats unavailable:", e);
+    return null;
+  }
+}
+
 async function loadInvestorNumbers(
   now: number,
   pass: { continued: number; ended: number } | null,

@@ -101,6 +101,9 @@ jobs:
           cd "$GITHUB_WORKSPACE"
           git diff --exit-code -- package.json bun.lock
 
+      - name: Note when this sync started (for IndexNow)
+        run: echo "SYNC_STARTED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
+
       - name: Run bid sync
         env:
           # The collector executes this copy (resolveWiVendornetDriverConfig).
@@ -111,6 +114,13 @@ jobs:
 
       - name: Enforce 90-day raw-IP retention
         run: bun run purge-network-identifiers
+
+      # Tell Bing (IndexNow) about the bid pages this sync created, so new bids
+      # can show up in Bing and ChatGPT search while they are still open
+      # (owner 2026-11-07). Never fails the sync.
+      - name: Submit new bid pages to IndexNow
+        continue-on-error: true
+        run: bun run src/jobs/indexnow-submit.ts
 
       # Emails (the bid digest and Radar match alerts) are no longer sent after
       # each sync. They go out once each morning from daily-emails.yml.

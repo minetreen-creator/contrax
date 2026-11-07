@@ -65,6 +65,7 @@ const SEO_LANDING_PATHS = [
  */
 const PRODUCT_PATHS = [
   ["/radar", "daily", "0.9"],
+  ["/app", "weekly", "0.8"],
   ["/bid-fit-review", "monthly", "0.8"],
   ["/grants", "daily", "0.8"],
   ["/state-grants", "weekly", "0.7"],

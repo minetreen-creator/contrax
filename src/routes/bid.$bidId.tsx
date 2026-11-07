@@ -565,6 +565,18 @@ function BidDetailPage() {
 
             <BidAlertCapture naicsCode={bid.naics_code} stateCode={bid.state_code} />
 
+            <a
+              href="/app?source=bid"
+              onClick={() => trackEvent("bid_app_click", String(bid.id))}
+              className="mt-4 flex items-center gap-3 rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm hover:border-amber-400"
+            >
+              <img src="/app-icon-192.png" alt="" width={36} height={36} className="h-9 w-9 rounded-lg" />
+              <span>
+                <span className="block font-semibold text-white">📱 Get bids like this on your phone</span>
+                <span className="block text-xs text-slate-400">The Contrax app buzzes you when a new one posts.</span>
+              </span>
+            </a>
+
             {/* The AI brief is a member feature; a visitor deciding on $5 does not
                 get a $79/mo pitch (owner 2026-11-02, design critique). */}
             {checked && signedIn && (

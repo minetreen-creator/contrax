@@ -132,8 +132,9 @@ export const CIVICENGAGE_PLACEHOLDER_TITLE =
  * Services", "Public Notice: Surplus Brick Dust Available for Sale").
  */
 // "Purchasing Policy" (Lawrenceburg, TN, 2026-11-06) is a document, not a solicitation.
+// "2024 Bid Tabulations" (Jonesboro, AR, 2026-11-07) is a results archive page.
 export const CIVICENGAGE_NOT_A_BID_TITLE =
-  /^\W*(?:public )?notice of (?:sole[- ]source|intent to award|award)\b|\bsole[- ]source award\b|\bsurplus\b.*\b(?:for sale|available)\b|^\W*purchasing (?:policy|policies|manual)\W*$/i;
+  /^\W*(?:public )?notice of (?:sole[- ]source|intent to award|award)\b|\bsole[- ]source award\b|\bsurplus\b.*\b(?:for sale|available)\b|^\W*purchasing (?:policy|policies|manual)\W*$|^\W*(?:(?:19|20)\d{2}\s+)?bid (?:tabulations?|tabs|results)\W*$/i;
 
 export interface CivicEngageBoardConfig {
   /** Optional source-specific decoder for the literal published closing text. */

@@ -61,3 +61,13 @@ describe("Command Center", () => {
     expect(readFileSync("src/routes/dashboard.tsx", "utf8")).toContain('<a href="/admin/command"');
   });
 });
+
+// Owner 2026-11-07: fl_destin (replaced by fl_destin_beacon on 2026-11-06) kept showing as failing.
+test("the failing-sources card ignores sources that no longer run", async () => {
+  const { readFileSync } = await import("node:fs");
+  const server = readFileSync("src/lib/command-center.server.ts", "utf8");
+  expect(server).toContain(".filter((r) => r.source in SOURCE_CLASSES && !RETIRED_SOURCES.has(r.source))");
+  const { SOURCE_CLASSES } = await import("~/lib/source-class");
+  expect("fl_destin" in SOURCE_CLASSES).toBe(false);
+  expect("fl_destin_beacon" in SOURCE_CLASSES).toBe(true);
+});

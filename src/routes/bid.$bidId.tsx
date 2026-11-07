@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { WinnerPriceLine } from "~/components/WinnerPriceLine";
 import { AreaAwardsBox } from "~/components/AreaAwardsBox";
+import { AppInstallBanner } from "~/components/AppInstallBanner";
 import type { AreaAwards } from "~/lib/area-awards";
 import { deriveWinnerPrice } from "~/lib/winner-price";
 import type { FPDSIntel } from "~/lib/fpds";
@@ -592,6 +593,8 @@ function BidDetailPage() {
           </>
         )}
       </div>
+      {/* The Contrax app install prompt for phone visitors (owner 2026-11-07). */}
+      {bid && <AppInstallBanner where="bid" />}
     </main>
   );
 }
@@ -712,7 +715,7 @@ export const Route = createFileRoute("/bid/$bidId")({
         { property: "og:url", content: url },
         { property: "og:type", content: "website" },
       ],
-      links: [{ rel: "canonical", href: url }],
+      links: [{ rel: "canonical", href: url }, { rel: "manifest", href: "/app.webmanifest" }],
     };
   },
   component: BidDetailPage,

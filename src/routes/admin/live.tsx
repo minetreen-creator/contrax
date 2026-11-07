@@ -581,7 +581,7 @@ function AppPanel({ app }: { app: AppStats }) {
     { label: "  iPhone", value: (w) => w.iphone },
     { label: "  Android", value: (w) => w.android },
     { label: "Opened the app page", value: (w) => w.opened },
-    { label: "Clicked an app link", value: (w) => w.linkClicks, note: "homepage section or bid page" },
+    { label: "Clicked an app link", value: (w) => w.linkClicks, note: "homepage, bid page or phone banner" },
     { label: "Tapped $5 for alerts", value: (w) => w.starterClicks },
     { label: "Turned alerts on", value: (w) => w.alertsTurnedOn },
   ];

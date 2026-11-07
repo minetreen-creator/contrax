@@ -10,7 +10,7 @@ export interface AppWindowCounts {
   android: number;
   /** People who opened the app page at all (browser or installed). */
   opened: number;
-  /** People who clicked an app link on the homepage or a bid page. */
+  /** People who clicked an app link (homepage, bid page, or the phone install banner). */
   linkClicks: number;
   /** People who tapped a "$5 Starter for alerts" button (app page or homepage). */
   starterClicks: number;
@@ -26,7 +26,7 @@ export interface AppStats {
   alertsOnNow: number;
 }
 
-export const APP_EVENT_NAMES = ["app_installed", "app_open", "home_app_click", "bid_app_click", "app_alerts_upgrade_click"] as const;
+export const APP_EVENT_NAMES = ["app_installed", "app_open", "home_app_click", "bid_app_click", "app_banner_tap", "app_alerts_upgrade_click"] as const;
 
 /** Fold per-window SQL rows into the card's numbers. PURE. */
 export function appWindow(r: Partial<Record<keyof AppWindowCounts, number | string | null>> | undefined): AppWindowCounts {

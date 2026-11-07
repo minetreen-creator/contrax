@@ -6421,6 +6421,27 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
     recordType: "opportunity",
   },
   // Pennsylvania and Virginia (owner 2026-11-07: "Yes do Pennsylvania, Virginia and Ohio").
+  oh_butler_county: {
+    class: "local",
+    city: "Butler County",
+    scopeState: "OH",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
+  pa_lackawanna_county: {
+    class: "local",
+    city: "Lackawanna County",
+    scopeState: "PA",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
+  tn_smyrna: {
+    class: "local",
+    city: "Smyrna",
+    scopeState: "TN",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
   pa_montgomery_county_bonfire: {
     class: "local",
     city: "Montgomery County",

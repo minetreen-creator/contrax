@@ -185,16 +185,16 @@ describe("plan gates: the attempt prompt copy", () => {
     });
   });
 
-  test("the Bid Scout prompt is the exact string and links to the intake page", () => {
+  test("the drafting/export prompt points to the paid plans (Bid Scout retired 2026-11-07)", () => {
     expect(GATE_PROMPTS.bid_scout).toEqual({
-      title: "Bid Scout feature",
+      title: "Included with every paid plan",
       body:
-        "Proposal drafting and pipeline CSV export are part of Bid Scout, our $99/month contract-winning service.",
-      ctaLabel: "See Bid Scout →",
-      priceNote: "$99/mo · Cancel anytime",
-      href: "/bid-scout",
+        "Proposal drafting and pipeline CSV export come with every paid Contrax plan, starting with Starter.",
+      ctaLabel: "See plans →",
+      priceNote: "Starter: $5 for your first 30 days · No automatic renewal",
+      href: "/pricing",
       checkout: false,
-      checkoutPlan: "professional",
+      checkoutPlan: "starter",
     });
   });
 
@@ -207,7 +207,8 @@ describe("plan gates: the attempt prompt copy", () => {
       expect(text.toLowerCase()).not.toContain("unlimited");
       // Every price mentioned is the product's real price (no invented figure).
       const prices = new Set(text.match(/\$[\d,]+/g) ?? []);
-      expect([...prices]).toEqual([gate === "radar_pro" ? "$79" : "$99"]);
+      // Radar Pro is $79/mo; the drafting/export prompt names the $5 Starter first 30 days.
+      expect([...prices]).toEqual([gate === "radar_pro" ? "$79" : "$5"]);
       expect(text).not.toContain("free forever");
     }
   });
@@ -397,7 +398,7 @@ describe("plan gates: hasBidScoutAccess = an active subscription + the bypasses"
     expect(await hasBidScoutAccess(7, {}, stores({ trialStatus: trialStore(trial({ planTier: "basic" })), bidScout: subStore(true) }))).toBe(true);
   });
 
-  test("no active row = DENIED (nothing else is consulted as a fallback)", async () => {
+  test("free Basic with no active row = DENIED (the legacy subscription table is the only fallback)", async () => {
     expect(await hasBidScoutAccess(7, {}, stores({ trialStatus: trialStore(trial({ planTier: "basic" })), bidScout: subStore(false) }))).toBe(false);
     // A stopped/cancelled subscription is not an active row.
     let asked: number | null = null;
@@ -407,7 +408,7 @@ describe("plan gates: hasBidScoutAccess = an active subscription + the bypasses"
         return false;
       },
     };
-    expect(await hasBidScoutAccess(7, {}, stores({ trialStatus: trialStore(trial({ planTier: "starter" })), bidScout: cancelled }))).toBe(false);
+    expect(await hasBidScoutAccess(7, {}, stores({ trialStatus: trialStore(trial({ planTier: "basic" })), bidScout: cancelled }))).toBe(false);
     expect(asked).toBe(7);
   });
 
@@ -430,14 +431,16 @@ describe("plan gates: hasBidScoutAccess = an active subscription + the bypasses"
     ).toBe(true);
   });
 
-  test("the ladder tier alone is NOT a Bid Scout entitlement (its own product)", async () => {
-    // Same rule the shipped pricing copy states: proposal drafting and pipeline
-    // CSV export are part of Bid Scout, not of the Professional plan.
+  test("every paid plan unlocks drafting and export (owner 2026-11-07, Bid Scout retired)", async () => {
     for (const planTier of ["starter", "professional", "agency"]) {
       expect(
-        await hasBidScoutAccess(7, {}, stores({ trialStatus: trialStore(trial({ planTier })), bidScout: subStore(false) })),
-      ).toBe(false);
+        await hasBidScoutAccess(7, {}, stores({ trialStatus: trialStore(trial({ planTier })), bidScout: unreadableSubStore })),
+      ).toBe(true);
     }
+    // An expired paid tier does not.
+    expect(
+      await hasBidScoutAccess(7, {}, stores({ trialStatus: trialStore(trial({ planTier: "starter", expired: true })), bidScout: subStore(false) })),
+    ).toBe(false);
   });
 
   test("FAIL-CLOSED: a missing row, an unreadable store and a throwing lookup all deny", async () => {
@@ -458,12 +461,12 @@ describe("plan gates: loadGateEntitlements", () => {
     ).toEqual({ radarPro: false, bidScout: false });
   });
 
-  test("a Professional user gets Radar Pro but NOT Bid Scout", async () => {
+  test("a Professional user gets Radar Pro and drafting + export", async () => {
     expect(
       await loadGateEntitlements(7, { id: 7 }, {
         stores: { trialStatus: trialStore(trial({ planTier: "professional" })), bidScout: subStore(false) },
       }),
-    ).toEqual({ radarPro: true, bidScout: false });
+    ).toEqual({ radarPro: true, bidScout: true });
   });
 
   test("a Bid Scout customer gets drafting + export even on Basic", async () => {

@@ -25,7 +25,7 @@
  * src/lib/plan-gates.ts.
  */
 import { sql } from "~/db";
-import { hasProfessionalAccess, loadUserTrialStatus, type TrialStatus } from "~/lib/trial";
+import { hasProfessionalAccess, hasUnlimitedSaves, loadUserTrialStatus, type TrialStatus } from "~/lib/trial";
 
 /** Minimal shape of the caller we need (AuthUser satisfies it structurally). */
 export interface GateUser {
@@ -123,6 +123,9 @@ export async function hasBidScoutAccess(
     const trial: TrialStatus = await stores.trialStatus.load(userId);
     if (trial.fullAccess) return true;
     if (trial.planTier === "demo" && !trial.expired) return true;
+    // Owner 2026-11-07 ("Unlock them with paid plans"): Bid Scout is retired, so drafting and
+    // export come with any paid plan, Starter and up (the $5 pass is Starter).
+    if (hasUnlimitedSaves(trial, user)) return true;
     return await stores.bidScout.hasActiveSubscription(userId);
   } catch (err) {
     console.error(

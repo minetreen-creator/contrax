@@ -11,6 +11,7 @@
  *    days before the end, then the account returns to free Basic once the pass
  *    has ended without a subscription. Nothing is ever charged automatically.
  */
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { Resend } from "resend";
 import { sql } from "~/db";
 import {
@@ -22,8 +23,73 @@ import {
   starterCheckoutKind,
   starterPassEligibleRequest,
   starterPassEndsAt,
+  type PassRecap,
   type StarterCheckoutKind,
 } from "~/lib/starter-pass";
+
+// ── One-click renewal link (owner 2026-11-07, "2 only") ─────────────────────
+// The reminder's button is a signed link naming one account and an expiry
+// (14 days after the pass ends). It only opens a $19/month Starter checkout for
+// that account; nothing is charged unless the buyer completes Stripe's page.
+
+export const RENEW_LINK_GRACE_DAYS = 14;
+const RENEW_PATH = "https://www.contrax.company/api/renew-pass";
+
+function renewKey(env: Record<string, string | undefined> = process.env): Buffer {
+  const secret = env.CRON_SECRET || env.OUTREACH_SECRET || env.RESEND_API_KEY;
+  if (!secret) throw new Error("No secret available to sign pass renewal links");
+  return createHmac("sha256", "contrax-pass-renew").update(secret).digest();
+}
+
+export function passRenewToken(userId: number, endsAt: Date, env?: Record<string, string | undefined>): string {
+  const exp = Math.floor(endsAt.getTime() / 1000) + RENEW_LINK_GRACE_DAYS * 86_400;
+  const body = `${userId}.${exp}`;
+  const sig = createHmac("sha256", renewKey(env)).update(body).digest("base64url").slice(0, 32);
+  return `${Buffer.from(body).toString("base64url")}.${sig}`;
+}
+
+/** The account id a valid, unexpired token names, or null. */
+export function verifyPassRenewToken(token: string, now: number = Date.now(), env?: Record<string, string | undefined>): number | null {
+  const [b64, sig] = String(token ?? "").split(".");
+  if (!b64 || !sig) return null;
+  let body: string;
+  try {
+    body = Buffer.from(b64, "base64url").toString("utf8");
+  } catch {
+    return null;
+  }
+  const m = /^(\d+)\.(\d+)$/.exec(body);
+  if (!m) return null;
+  const expected = createHmac("sha256", renewKey(env)).update(body).digest("base64url").slice(0, 32);
+  const a = Buffer.from(sig);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
+  if (Number(m[2]) * 1000 < now) return null;
+  return Number(m[1]);
+}
+
+export function passRenewUrl(userId: number, endsAt: Date, env?: Record<string, string | undefined>): string {
+  return `${RENEW_PATH}?t=${encodeURIComponent(passRenewToken(userId, endsAt, env))}`;
+}
+
+/** What the pass matched for this account since it started (live bids only); null when unknown. */
+async function loadPassRecap(userId: number, since: Date): Promise<PassRecap | null> {
+  try {
+    const { loadUpgradePitch } = await import("~/lib/upgrade-pitch.server");
+    const { tradePlace } = await import("~/lib/upgrade-pitch");
+    const pitch = await loadUpgradePitch(userId, since.toISOString());
+    if (!pitch) return null;
+    return {
+      since,
+      newMatches: pitch.newMatches,
+      examples: pitch.examples.map((b) => ({ id: b.id, title: b.title, agency: b.agency, dueDate: b.dueDate })),
+      tradePlace: tradePlace(pitch),
+    };
+  } catch (e) {
+    console.error(`[starter-pass] recap for user ${userId} failed:`, (e as Error).message);
+    return null;
+  }
+}
 
 let ensured = false;
 export async function ensureStarterPassColumns(): Promise<void> {
@@ -99,17 +165,25 @@ export async function runStarterPassJobs(): Promise<{ reminded: number; failed: 
   let failed = 0;
   const key = process.env.RESEND_API_KEY;
   const due = (await sql()`
-    SELECT id, email, starter_pass_ends_at FROM users
+    SELECT id, email, starter_pass_ends_at, starter_pass_bought_at FROM users
     WHERE starter_pass_ends_at IS NOT NULL
       AND starter_pass_reminded_at IS NULL
       AND starter_pass_ends_at > NOW()
       AND starter_pass_ends_at <= NOW() + ${`${STARTER_PASS_REMIND_DAYS} days`}::interval
-  `) as { id: number; email: string; starter_pass_ends_at: string | Date }[];
+  `) as { id: number; email: string; starter_pass_ends_at: string | Date; starter_pass_bought_at: string | Date | null }[];
   if (due.length && !key) console.warn("[starter-pass] RESEND_API_KEY not set; reminders not sent");
   if (key) {
     const resend = new Resend(key);
     for (const u of due) {
-      const mail = passReminderEmail(new Date(u.starter_pass_ends_at));
+      const endsAt = new Date(u.starter_pass_ends_at);
+      const since = u.starter_pass_bought_at ? new Date(u.starter_pass_bought_at) : new Date(endsAt.getTime() - 30 * 86_400_000);
+      let renewUrl: string | undefined;
+      try {
+        renewUrl = passRenewUrl(u.id, endsAt);
+      } catch (e) {
+        console.error("[starter-pass] renew link unavailable:", (e as Error).message);
+      }
+      const mail = passReminderEmail(endsAt, { recap: await loadPassRecap(u.id, since), renewUrl });
       try {
         const { error } = await resend.emails.send({
           from: "Contrax <hello@contrax.company>",

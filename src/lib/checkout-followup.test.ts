@@ -31,8 +31,8 @@ describe("checkoutFollowupEmail", () => {
     expect(m.text).toContain("Unsubscribe: https://x/u?t=1");
     expect(m.html).toContain('href="https://x/u?t=1"');
   });
-  test("founding checkouts go back to the founding page", () => {
-    expect(returnLink({ plan_tier: "starter", founding_member: "true" })).toStartWith("https://www.contrax.company/founding-businesses?");
+  test("founding checkouts go back to Pricing (Founding Businesses retired 2026-11-07)", () => {
+    expect(returnLink({ plan_tier: "starter", founding_member: "true" })).toStartWith("https://www.contrax.company/pricing?");
     expect(checkoutFollowupEmail({ metadata: { plan_tier: "starter", founding_member: "true" }, postalAddress: "a", unsubscribeUrl: "u" }).text).toContain("the Founding Business plan");
   });
 });

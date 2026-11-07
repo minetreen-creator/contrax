@@ -43,7 +43,7 @@ const PLAN_NAMES: Record<string, string> = {
 export function returnLink(metadata: Record<string, string> | null): string {
   const tier = metadata?.plan_tier ?? "starter";
   const utm = "utm_source=email&utm_medium=checkout_followup";
-  if (metadata?.founding_member === "true") return `https://www.contrax.company/founding-businesses?${utm}`;
+  if (metadata?.founding_member === "true") return `https://www.contrax.company/pricing?${utm}`;
   return `https://www.contrax.company/upgrade?plan=${encodeURIComponent(tier)}&${utm}`;
 }
 

@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import {
@@ -39,7 +39,12 @@ const ownMembership = createServerFn({ method: "GET" }).handler(async () => {
     await import("~/lib/founding-business.server");
   return getOwnFoundingBusiness(user.id);
 });
+// Retired 2026-11-07 (owner: "and the founding businesses too"): 10 reservations, none paid; the page now
+// sends visitors to Pricing. The page code below is kept but unreachable.
 export const Route = createFileRoute("/founding-businesses")({
+  beforeLoad: () => {
+    throw redirect({ to: "/pricing", statusCode: 301 });
+  },
   loader: () => getPage(),
   head: () => ({
     meta: [

@@ -82,13 +82,16 @@ describe("state + trade SEO pages", () => {
 
   test("the sitemap generator lists product pages and state + trade pages", () => {
     const script = readFileSync(new URL("../scripts/generate-sitemap.mjs", import.meta.url), "utf8");
-    for (const p of ["/radar", "/bid-scout", "/bid-fit-review", "/grants"]) {
+    for (const p of ["/radar", "/bid-fit-review", "/grants"]) {
       expect(script).toContain(`["${p}",`);
     }
+    // Bid Scout was retired 2026-11-07 (no subscriber ever); its page redirects to Radar.
+    expect(script).not.toContain(`["/bid-scout",`);
     expect(script).toContain("SEO_TRADES");
     expect(script).toContain("...tradeBlocks,");
     const sitemap = readFileSync(new URL("../public/sitemap.xml", import.meta.url), "utf8");
-    for (const p of ["/radar", "/bid-scout", "/bid-fit-review", "/grants"]) {
+    expect(sitemap).not.toContain("/bid-scout</loc>");
+    for (const p of ["/radar", "/bid-fit-review", "/grants"]) {
       expect(sitemap).toContain(`<loc>https://www.contrax.company${p}</loc>`);
     }
   });

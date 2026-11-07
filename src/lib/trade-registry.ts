@@ -217,8 +217,18 @@ export const RELATED_TRADE_TERMS: Record<string, string[]> = {
     "warehousing",
     "storage and distribution",
     "equipment relocation",
+    // Owner 2026-11-07: VDOT's M7B snow contracts hire trucks with plows, often from
+    // owner-operators; towing is adjacent hauling work. Related only, never a default
+    // trucking match. ("debris removal" was left out: it pulled in grass-cutting jobs.)
+    "m7b",
+    "m-7b",
+    "snow removal equipment",
+    "emergency towing",
+    "towing services",
   ],
 };
+// "hauling" is the other word trucking contractors search with.
+RELATED_TRADE_TERMS.hauling = RELATED_TRADE_TERMS.trucking;
 
 /**
  * GENERIC industry-keyed expansion registry — seeded with the
@@ -252,6 +262,15 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
       // a real PSC V112 notice we hold: "Justification & Approval for Drayage
       // Services in Germany").
       "drayage",
+      // Owner 2026-11-07 ("Recent search only showed 6 trucking bids in VA"): hauling work
+      // that public buyers word without "trucking" (VDOT "Delivered Aggregate", "Roll-Off
+      // Dumpster Rentals", biosolids). "...hauling" titles already match "hauling". A truck or
+      // dumpster BUY stays out via serviceTradeMismatch / isProductBuy.
+      "delivered aggregate",
+      "dump truck",
+      "roll-off",
+      "roll off",
+      "biosolids",
     ],
     // Owner 09-13 breadth expansion: full trucking-adjacent NAICS family. All
     // codes are present in NAICS_NAMES (module-load validation enforces it).
@@ -1822,6 +1841,8 @@ export function serviceTradeMismatch(titleText: string, expansion: TradeExpansio
   // A truck for sale or a chassis upfit is a vehicle buy, not hauling work
   // ("2011 Freightliner Coronado", "Upfit of two (2) 2026 Freightliner Chassis").
   if (codes.some((c) => c.startsWith("484")) && /\b(?:upfit|chassis|(?:19|20)\d{2}\s+(?:freightliner|peterbilt|kenworth|mack|volvo|international|western star))\b/.test(titleText)) return true;
+  // Buying or leasing a truck is a vehicle buy too ("Dump Truck Purchase", owner 2026-11-07).
+  if (codes.some((c) => c.startsWith("484")) && /\btrucks?\b/.test(titleText) && /\b(?:purchase|procurement|acquisition|lease|leasing|surplus|auction|for sale)\b/.test(titleText) && !/\b(?:hauling|services?|rental with operator|delivery|transport(?:ation)?)\b/.test(titleText)) return true;
   // Welding machines, guns, wire and gear are an equipment buy, not welding work
   // (owner 2026-11-02: "Welders and Guns for Livingston", "Welding Supplies &
   // Equipment" were the top welding matches).

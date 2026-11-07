@@ -452,50 +452,97 @@ export const getVisitorStateHint = createServerFn({ method: "GET" }).handler(asy
 });
 
 /**
- * Up to 3 open bids from the visitor's approximate state, plus that state's open
- * count, for the first Radar screen (owner 2026-10-06: ad visitors left before
- * seeing a single bid). Real rows only, same open / low-content / award guards as
- * every opportunity surface; no state or no rows → nothing is shown. Does not
- * touch the Radar preview allowance.
+ * Bids first (owner 2026-11-07, "Yes build it"): 82% of Radar visitors left
+ * before searching, so the first screen shows live open bids for the visitor's
+ * state right away, with tabs for the four trades people search most. State
+ * comes from Vercel's IP geolocation (or the picker); real rows only, with the
+ * same open / low-content / award guards as every opportunity surface. Does
+ * not touch the Radar preview allowance.
  */
-export const getLiveStateBids = createServerFn({ method: "GET" }).handler(
-  async (): Promise<{ state: string; total: number; bids: { id: number; title: string; agency: string; due_date: string | null }[] }> => {
+export const BIDS_FIRST_TABS = [
+  { id: "construction", label: "Construction", trade: "construction" },
+  { id: "landscaping", label: "Landscaping", trade: "landscaping" },
+  { id: "janitorial", label: "Janitorial", trade: "janitorial" },
+  { id: "security", label: "Security guards", trade: "security guard" },
+] as const;
+export type BidsFirstTab = (typeof BIDS_FIRST_TABS)[number]["id"];
+type BidsFirstBid = { id: number; title: string; agency: string; due_date: string | null };
+export type BidsFirstData = { state: string; total: number; counts: Record<BidsFirstTab, number>; bids: Record<BidsFirstTab, BidsFirstBid[]> };
+const BIDS_FIRST_PER_TAB = 6;
+/** Per-instance cache: the landing panel is the same for everyone in a state for a few minutes. */
+const bidsFirstCache = new Map<string, { at: number; data: BidsFirstData | null }>();
+const BIDS_FIRST_TTL_MS = 10 * 60_000;
+
+export const getBidsFirst = createServerFn({ method: "GET" })
+  .validator((d: unknown) => {
+    const s = String((d as { state?: unknown } | undefined)?.state ?? "").toUpperCase();
+    return /^[A-Z]{2}$/.test(s) ? s : "";
+  })
+  .handler(async ({ data }): Promise<BidsFirstData | null> => {
     try {
-      const { getRequest } = await import("@tanstack/react-start/server");
-      const h = getRequest().headers;
-      const state = stateFromGeoHeaders(h.get("x-vercel-ip-country"), h.get("x-vercel-ip-country-region"));
-      if (!state) return { state: "", total: 0, bids: [] };
-      const { sql } = await import("~/db");
-      const { AWARD_EXCLUSION_SQL } = await import("~/lib/source-class");
-      const s = sql();
-      const [rows, count] = await Promise.all([
-        // Notices of intent to award / sole source are announcements nobody can
-        // bid on, so the proof box leaves them out (owner 2026-10-20 audit).
-        // Owner 2026-10-26: it led with "30--GEAR SECTOR,SPUR" and "O Ring"; parts
-        // buys (numeric supply-class prefix) and bare part names are left out too.
-        s`SELECT id, title, agency, due_date FROM bids
-          WHERE normalized_state = ${state} AND due_date > NOW() + INTERVAL '3 days'
-            AND ${s.unsafe(LOW_CONTENT_SQL)} AND ${s.unsafe(AWARD_EXCLUSION_SQL)}
-            AND title !~* '(intent to (sole[ -]source|award)|sole[ -]source)'
-            AND title !~ '^[0-9]{2}--' AND length(title) >= 15
-          ORDER BY created_at DESC LIMIT 3`,
-        s`SELECT COUNT(*)::int AS n FROM bids
-          WHERE normalized_state = ${state} AND due_date > NOW()
-            AND ${s.unsafe(LOW_CONTENT_SQL)} AND ${s.unsafe(AWARD_EXCLUSION_SQL)}`,
-      ]);
-      const bids = (rows as Record<string, unknown>[]).map((r) => ({
-        id: Number(r.id),
-        title: String(r.title ?? ""),
-        agency: String(r.agency ?? ""),
-        due_date: r.due_date ? new Date(r.due_date as string).toISOString() : null,
-      }));
-      return { state, total: Number((count as { n: number }[])[0]?.n ?? 0), bids };
+      let state = data;
+      if (!state) {
+        const { getRequest } = await import("@tanstack/react-start/server");
+        const h = getRequest().headers;
+        state = stateFromGeoHeaders(h.get("x-vercel-ip-country"), h.get("x-vercel-ip-country-region"));
+      }
+      return await loadBidsFirst(state);
     } catch (err) {
-      console.error("[radar] live state bids failed:", err);
-      return { state: "", total: 0, bids: [] };
+      console.error("[radar] bids-first failed:", err);
+      return null;
     }
-  },
-);
+  });
+
+/**
+ * The bids-first rows for one state; null when the state is unknown or has no
+ * open bids. Each tab uses Radar's own strong-match test (isStrongTradeMatch)
+ * over the state's open bids only. A live Radar search per tab took up to 20 s
+ * and its nationwide pass pulled in other states' bids.
+ */
+export async function loadBidsFirst(state: string, now: number = Date.now()): Promise<BidsFirstData | null> {
+  if (!state || !/^[A-Z]{2}$/.test(state) || !STATE_NAMES[state]) return null;
+  const hit = bidsFirstCache.get(state);
+  if (hit && now - hit.at < BIDS_FIRST_TTL_MS) return hit.data;
+  const { sql } = await import("~/db");
+  const { AWARD_EXCLUSION_SQL } = await import("~/lib/source-class");
+  const s = sql();
+  // Notices of intent to award / sole source are announcements nobody can bid
+  // on; parts buys (numeric supply-class prefix) and bare part names are left
+  // out too (owner 2026-10-20 / 10-26). `state` is a checked two-letter code.
+  const rows = (await s`
+    SELECT id, title, agency, due_date, naics_code FROM bids
+    WHERE ${s.unsafe(
+      `normalized_state = '${state}' AND due_date > NOW() + INTERVAL '2 days' AND ${LOW_CONTENT_SQL} AND ${AWARD_EXCLUSION_SQL}
+       AND title !~* '(intent to (sole[ -]source|award)|sole[ -]source)' AND title !~ '^[0-9]{2}--' AND length(title) >= 15`,
+    )}
+    ORDER BY created_at DESC
+  `) as { id: number; title: string | null; agency: string | null; due_date: string | null; naics_code: string | null }[];
+  const out: BidsFirstData = {
+    state,
+    total: rows.length,
+    counts: { construction: 0, landscaping: 0, janitorial: 0, security: 0 },
+    bids: { construction: [], landscaping: [], janitorial: [], security: [] },
+  };
+  for (const t of BIDS_FIRST_TABS) {
+    const expansion = expandTrade(t.trade);
+    const seen = new Set<string>();
+    for (const r of rows) {
+      const title = String(r.title ?? "");
+      if (!isStrongTradeMatch(title, null, null, r.naics_code, expansion)) continue;
+      // The same notice is often listed twice under slightly different agency names.
+      const key = title.toLowerCase().replace(/\s+/g, " ").trim();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.counts[t.id]++;
+      if (out.bids[t.id].length < BIDS_FIRST_PER_TAB) {
+        out.bids[t.id].push({ id: Number(r.id), title, agency: String(r.agency ?? ""), due_date: r.due_date ? new Date(r.due_date).toISOString() : null });
+      }
+    }
+  }
+  const data = out.total > 0 ? out : null;
+  bidsFirstCache.set(state, { at: now, data });
+  return data;
+}
 
 /** True when the visit came from a paid ad click (Google Ads ids or a paid utm_medium). PURE. */
 /** "23" or "100+" (the scan caps how many rows it reads). PURE. */
@@ -1820,6 +1867,12 @@ function RadarLanding() {
               Tap your trade to see open bids. Free to search, no signup.
             </p>
 
+            {/* Bids first (owner 2026-11-07): live bids before any questions. */}
+            {!hasDeepLink && <BidsFirst />}
+            {!hasDeepLink && (
+              <p className="mt-5 text-xs font-semibold uppercase tracking-widest text-slate-400">Or search your exact trade</p>
+            )}
+
             {/* FIRST-SEARCH GUIDANCE (owner rework 2026-09-26, PR-A, item 2):
                 ONE clear sentence + the two inputs the scan asks for + the note
                 that search is free. Sits ABOVE the unchanged scan form; gone
@@ -2014,10 +2067,6 @@ function RadarLanding() {
               <p className="text-center text-xs text-slate-500">
                 Scans live federal, state and local solicitations.
               </p>
-              {/* Below the form (owner 2026-10-20, phone audit): above it, the box
-                  arrived ~4s after the page and pushed the trade buttons and
-                  "See my matches" off a phone screen (layout shift 0.225). */}
-              {!hasDeepLink && <LiveStateBids />}
             </div>
           </section>
         )}
@@ -3831,19 +3880,29 @@ export function MatchAlertsCard({
  * before filling anything in. Renders nothing until loaded, and nothing at all
  * when the state is unknown or has no open bids.
  */
-function LiveStateBids() {
-  const [data, setData] = useState<Awaited<ReturnType<typeof getLiveStateBids>> | null>(null);
+function BidsFirst() {
+  const [data, setData] = useState<BidsFirstData | null | undefined>(undefined);
+  const [tab, setTab] = useState<BidsFirstTab>("construction");
+  const load = (state: string) => {
+    getBidsFirst({ data: { state } })
+      .then((d) => {
+        setData(d);
+        if (d) trackEvent("radar_bids_first_shown", d.state);
+      })
+      .catch(() => setData(null));
+  };
   useEffect(() => {
-    let alive = true;
-    getLiveStateBids()
-      .then((d) => alive && setData(d))
-      .catch(() => {});
-    return () => {
-      alive = false;
-    };
+    load("");
   }, []);
-  if (!data || !data.state || data.bids.length === 0) return null;
+  // Space is held while loading so the form below never jumps (owner
+  // 2026-10-20 phone audit: the old box pushed the trade buttons down).
+  if (data === undefined) {
+    return <div className="mt-5 h-[23rem] animate-pulse rounded-2xl border border-slate-800 bg-slate-900/60" aria-hidden="true" />;
+  }
+  if (data === null) return null;
   const stateName = STATE_NAMES[data.state] ?? data.state;
+  const active = BIDS_FIRST_TABS.find((t) => t.id === tab) ?? BIDS_FIRST_TABS[0];
+  const list = data.bids[tab];
   // The year shows when it isn't this year: "due Sep 8" for Sep 8 next year read as long past.
   const due = (iso: string | null) => {
     if (!iso) return null;
@@ -3852,28 +3911,93 @@ function LiveStateBids() {
     return d.toLocaleDateString("en-US", { month: "short", day: "numeric", ...(otherYear ? { year: "numeric" } : {}), timeZone: "UTC" });
   };
   return (
-    <div className="mt-4 rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3">
-      <p className="text-xs font-semibold uppercase tracking-widest text-emerald-400">
-        Open now in {stateName}
-        {data.total > data.bids.length ? ` · ${data.total.toLocaleString("en-US")} bids` : ""}
-      </p>
-      <ul className="mt-2 divide-y divide-slate-800">
-        {data.bids.map((b) => (
-          <li key={b.id} className="py-2">
-            <a
-              href={`/bid/${b.id}`}
-              onClick={() => trackEvent("radar_live_bid_click", String(b.id))}
-              className="block text-sm font-semibold leading-snug text-white hover:text-amber-300"
-            >
-              <span className="line-clamp-1">{b.title}</span>
-            </a>
-            <p className="line-clamp-1 text-xs text-slate-400">
-              {[b.agency, due(b.due_date) && `due ${due(b.due_date)}`].filter(Boolean).join(" · ")}
-            </p>
-          </li>
+    <div className="mt-5 rounded-2xl border border-emerald-500/40 bg-slate-900 px-4 py-4">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs font-semibold uppercase tracking-widest text-emerald-400">
+          🟢 Open now in {stateName} · {data.total.toLocaleString("en-US")} bids
+        </p>
+        <select
+          aria-label="Change state"
+          value={data.state}
+          onChange={(e) => {
+            trackEvent("radar_bids_first_state", e.target.value);
+            load(e.target.value);
+          }}
+          className="max-w-[7.5rem] rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-xs text-white"
+        >
+          {Object.entries(STATE_NAMES)
+            .sort((a, b) => a[1].localeCompare(b[1]))
+            .map(([code, name]) => (
+              <option key={code} value={code}>
+                {name}
+              </option>
+            ))}
+        </select>
+      </div>
+      <div className="mt-3 flex gap-1.5 overflow-x-auto pb-1" role="tablist" aria-label="Trades">
+        {BIDS_FIRST_TABS.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            role="tab"
+            aria-selected={tab === t.id}
+            onClick={() => {
+              setTab(t.id);
+              trackEvent("radar_bids_first_tab", t.id);
+            }}
+            className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+              tab === t.id ? "border-amber-500 bg-amber-500/15 text-amber-300" : "border-slate-700 text-slate-300 hover:border-slate-500"
+            }`}
+          >
+            {t.label} <span className="text-slate-400">{data.counts[t.id].toLocaleString("en-US")}</span>
+          </button>
         ))}
-      </ul>
-      <p className="mt-1 text-xs text-slate-400">Pick your trade above to see the ones that fit your business.</p>
+      </div>
+      {list.length ? (
+        <ul className="mt-2 divide-y divide-slate-800">
+          {list.map((b) => (
+            <li key={b.id} className="py-2">
+              <a
+                href={`/bid/${b.id}`}
+                onClick={() => trackEvent("radar_bids_first_click", tab)}
+                className="block text-sm font-semibold leading-snug text-white hover:text-amber-300"
+              >
+                <span className="line-clamp-2">{b.title}</span>
+              </a>
+              <p className="line-clamp-1 text-xs text-slate-400">
+                {[b.agency, due(b.due_date) && `due ${due(b.due_date)}`].filter(Boolean).join(" · ")}
+              </p>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-3 text-sm text-slate-400">
+          No open {active.label.toLowerCase()} bids in {stateName} right now. Try another trade or state, or search below.
+        </p>
+      )}
+      <a
+        href={`/radar?trade=${encodeURIComponent(active.trade)}&state=${data.state}`}
+        onClick={() => trackEvent("radar_bids_first_see_all", tab)}
+        className="mt-2 block rounded-xl bg-amber-500 px-4 py-3 text-center text-sm font-bold text-slate-950 hover:bg-amber-400"
+      >
+        See every {active.label.toLowerCase()} match for {stateName} →
+      </a>
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <a
+          href="/app?source=radar"
+          onClick={() => trackEvent("radar_bids_first_app")}
+          className="rounded-xl border border-slate-700 px-3 py-2.5 text-center text-xs font-semibold text-white hover:border-amber-400"
+        >
+          📱 Get these on your phone
+        </a>
+        <a
+          href="/upgrade?plan=starter&source=radar-first"
+          onClick={() => trackEvent("radar_bids_first_starter")}
+          className="rounded-xl border border-emerald-500/50 px-3 py-2.5 text-center text-xs font-semibold text-emerald-300 hover:border-emerald-400"
+        >
+          📧 Daily bid email · $5 Starter
+        </a>
+      </div>
     </div>
   );
 }

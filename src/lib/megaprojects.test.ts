@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { MEGA_SECTORS, megaMoney, megaStateCounts, megaTotals, sortMegaprojects, type Megaproject } from "./megaprojects";
+import { featuredMegaprojects, MEGA_SECTORS, megaMoney, megaStateCounts, megaTotals, sortMegaprojects, type Megaproject } from "./megaprojects";
 import { US_STATES } from "./states";
 
 const base: Megaproject = {
@@ -82,5 +82,20 @@ describe("megaprojects data", () => {
       expect(p.summary.length).toBeGreaterThan(20);
       if (p.amount != null) expect(p.amount).toBeGreaterThan(1e6);
     }
+  });
+});
+
+describe("homepage highlight and the 2026-11-07 additions", () => {
+  test("newest entries lead the homepage highlight; the two new projects are listed with their sources", () => {
+    const top = featuredMegaprojects(MEGAPROJECTS, 4);
+    expect(top).toHaveLength(4);
+    const slugs = top.map((p) => p.slug);
+    expect(slugs).toContain("exxonmobil-project-holly-port-allen-la");
+    expect(slugs).toContain("modot-improve-i70-kingdom-city-warrenton-mo");
+    const i70 = MEGAPROJECTS.find((p) => p.slug === "modot-improve-i70-kingdom-city-warrenton-mo")!;
+    expect([i70.amount, i70.sector, i70.source.url]).toEqual([583000000, "infrastructure", "https://www.modot.org/node/99519"]);
+    expect(MEGA_SECTORS.infrastructure.label).toBe("Highways & infrastructure");
+    const xom = MEGAPROJECTS.find((p) => p.slug === "exxonmobil-project-holly-port-allen-la")!;
+    expect([xom.amount, xom.jobs, xom.state]).toEqual([250000000, 45, "LA"]);
   });
 });

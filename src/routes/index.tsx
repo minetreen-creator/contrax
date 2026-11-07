@@ -21,6 +21,7 @@ import {
   type ContractMapAggregate,
 } from "~/lib/contract-map";
 import { getEverydaySample } from "~/lib/sample-bids";
+import { featuredMegaprojects, MEGA_SECTORS, megaMoney, megaTotals, type Megaproject } from "~/lib/megaprojects";
 
 // ── Server Functions ──────────────────────────────────────────────────────────
 
@@ -97,8 +98,21 @@ const getBidStats = async (): Promise<{ activeCount: number; agencyCount: number
 // NO SESSION READ (owner 2026-10-02): the navbar resolves the viewer in the
 // browser (SiteHeader without a `user` prop), so this render is identical for
 // every visitor and can be served from the edge cache.
+// Homepage megaprojects highlight (owner 2026-11-07: "we need to highlight megaprojects on the main
+// page"): the newest and biggest entries from the same list /megaprojects shows. Null on any failure,
+// so the section simply hides.
+const getMegaprojectsHighlight = async (): Promise<{ featured: Megaproject[]; projects: number; amount: number } | null> => {
+  try {
+    const { default: list } = (await import("../../public/data/megaprojects.json")) as { default: Megaproject[] };
+    const totals = megaTotals(list);
+    return { featured: featuredMegaprojects(list, 4), projects: totals.projects, amount: totals.amount };
+  } catch {
+    return null;
+  }
+};
+
 const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
-  const [businessName, bidStats, contractMap] = await Promise.all([
+  const [businessName, bidStats, contractMap, megaprojects] = await Promise.all([
     (async () => {
       try {
         const cfg = JSON.parse(await readFile("site.json", "utf8")) as {
@@ -111,8 +125,9 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
     })(),
     getBidStats(),
     getContractMapAggregate(),
+    getMegaprojectsHighlight(),
   ]);
-  return { businessName, bidStats, contractMap };
+  return { businessName, bidStats, contractMap, megaprojects };
 });
 
 // ── Route ─────────────────────────────────────────────────────────────────────
@@ -161,7 +176,7 @@ const SERIF = "[font-family:Charter,'Iowan_Old_Style',Georgia,serif]";
 
 function Home() {
 
-  const { contractMap } = Route.useLoaderData();
+  const { contractMap, megaprojects } = Route.useLoaderData();
   const { sample } = Route.useLoaderData();
 
   const jsonLd = {
@@ -187,6 +202,8 @@ function Home() {
       {/* The $5 Starter pass, right under the search (owner 2026-10-31 funnel
           check: the homepage never mentioned the offer). */}
       <StarterPassStrip />
+      {/* Megaprojects (owner 2026-11-07): the big plants and highway jobs hiring local subs. */}
+      {megaprojects ? <HomeMegaprojects {...megaprojects} /> : null}
       {/* Owner 2026-11-02 (design critique, "fix all"): one path down the page,
           sized for a small trade business: search, the $5 pass, how it works,
           the state map, Max, sub leads, and the $5 pass again to close. The
@@ -253,6 +270,47 @@ function HowItWorks() {
           </p>
         </div>
       </details>
+    </section>
+  );
+}
+
+// Megaprojects highlight: newest and biggest projects from public/data/megaprojects.json.
+function HomeMegaprojects({ featured, projects, amount }: { featured: Megaproject[]; projects: number; amount: number }) {
+  if (!featured.length) return null;
+  return (
+    <section aria-labelledby="home-mega-title" className="mx-auto max-w-[1120px] px-4 pt-12 sm:px-6">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">🏗️ Megaprojects</p>
+          <h2 id="home-mega-title" className={`${SERIF} mt-1 text-[clamp(24px,3vw,30px)] leading-[1.15] font-bold`}>Big projects hiring local subcontractors</h2>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+            {projects} plants, factories and highway jobs{megaMoney(amount) ? ` worth ${megaMoney(amount)}` : ""}: who's building them and how to get on the sub list.
+          </p>
+        </div>
+        <a href="/megaprojects?source=home" onClick={() => trackEvent("home_megaprojects_click", "all")} className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-blue-700 hover:text-blue-600 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600 dark:text-blue-300">
+          See all {projects} <ArrowRight aria-hidden="true" className="h-4 w-4" />
+        </a>
+      </div>
+      <ul className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {featured.map((p) => (
+          <li key={p.slug}>
+            <a
+              href={`/megaprojects?source=home#${p.slug}`}
+              onClick={() => trackEvent("home_megaprojects_click", p.slug)}
+              className="group flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-5 transition hover:-translate-y-1 hover:border-amber-400 hover:shadow-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600 dark:border-slate-700 dark:bg-slate-900"
+            >
+              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                {MEGA_SECTORS[p.sector]?.icon} {MEGA_SECTORS[p.sector]?.label} · {p.city}, {p.state}
+              </p>
+              <p className="mt-2 text-base font-bold leading-snug">{p.company}</p>
+              <p className="text-sm text-slate-700 dark:text-slate-300">{p.project}</p>
+              {megaMoney(p.amount) ? <p className="mt-3 text-2xl font-extrabold text-emerald-700 dark:text-emerald-400">{megaMoney(p.amount)}</p> : null}
+              {p.jobs ? <p className="text-xs text-slate-500 dark:text-slate-400">{p.jobs.toLocaleString("en-US")} jobs</p> : null}
+              <p className="mt-auto pt-3 text-sm font-semibold text-blue-700 group-hover:text-blue-600 dark:text-blue-300">How to get on the sub list →</p>
+            </a>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }

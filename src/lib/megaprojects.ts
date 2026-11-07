@@ -10,7 +10,7 @@
  * is estimated. A field the source doesn't give stays null and the page says
  * nothing about it.
  */
-export type MegaSector = "semiconductors" | "tech" | "manufacturing" | "automotive" | "pharma" | "aerospace-defense" | "battery" | "metals" | "energy" | "food" | "entertainment";
+export type MegaSector = "semiconductors" | "tech" | "manufacturing" | "automotive" | "pharma" | "aerospace-defense" | "battery" | "metals" | "energy" | "food" | "entertainment" | "infrastructure";
 
 export interface Megaproject {
   slug: string;
@@ -46,6 +46,7 @@ export const MEGA_SECTORS: Record<MegaSector, { label: string; icon: string }> =
   energy: { label: "Energy", icon: "☀️" },
   food: { label: "Food & beverage", icon: "🥤" },
   entertainment: { label: "Entertainment venues", icon: "🎤" },
+  infrastructure: { label: "Highways & infrastructure", icon: "🛣️" },
 };
 
 /** The kinds of local work a site like this typically buys (general guidance, not a promise from the company). */
@@ -97,6 +98,14 @@ export function megaTotals(list: readonly Megaproject[]): { projects: number; am
     amount: list.reduce((s, p) => s + (p.amount ?? 0), 0),
     jobs: list.reduce((s, p) => s + (p.jobs ?? 0), 0),
   };
+}
+
+/**
+ * Homepage highlight (owner 2026-11-07: "we need to highlight megaprojects on the main page"):
+ * the most recently checked projects first, then the biggest. PURE.
+ */
+export function featuredMegaprojects(list: readonly Megaproject[], n = 4): Megaproject[] {
+  return [...list].sort((a, b) => b.checked.localeCompare(a.checked) || (b.amount ?? -1) - (a.amount ?? -1)).slice(0, n);
 }
 
 export function megaprojectsIn(list: readonly Megaproject[], state: string): Megaproject[] {

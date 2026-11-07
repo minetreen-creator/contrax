@@ -191,12 +191,39 @@ async function handler({ request }: { request: Request }) {
     console.error("[api/admin/finance] live Stripe read failed, using app-db fallback:", (err as Error)?.message ?? err);
   }
 
+  // Owner 2026-11-07 (header read "Customers: 0" with two paid $5 passes): a
+  // Starter pass is a one-time payment, so it adds no MRR, but its buyer IS a
+  // paying customer while the pass runs. A subscription clears any pass, so the
+  // two groups never overlap.
+  let passCustomers = 0;
+  try {
+    const passRows: any[] = await sql()`
+      SELECT email, starter_pass_bought_at FROM users
+      WHERE starter_pass_ends_at > NOW()
+        AND is_admin = false
+        AND ${sql().unsafe(qaUserExclusionSQL(""))}
+      ORDER BY starter_pass_bought_at DESC NULLS LAST LIMIT 100`;
+    passCustomers = passRows.length;
+    customers = [
+      ...customers,
+      ...passRows.map((r) => ({
+        email: String(r.email),
+        planTier: "starter_pass",
+        since: r.starter_pass_bought_at ? new Date(r.starter_pass_bought_at).toISOString() : null,
+      })),
+    ];
+  } catch (err) {
+    console.error("[api/admin/finance] starter-pass count failed (continuing):", err);
+  }
+  customerCount += passCustomers;
+
   return Response.json({
     // mrrCents stays the TRUE TOTAL (existing plans + Bid Scout) so the MRR
     // card keeps showing the whole picture; the split below is forward-
     // compatible analytics surface (both present even when 0).
     mrrCents,
     customerCount,
+    passCustomers,
     existingPlanMrr,
     bidScoutMrr,
     totalMrr,

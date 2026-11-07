@@ -33,7 +33,10 @@ export function AdminHeader({ scoreboard }: { scoreboard?: ReactNode }) {
 // ── MRR scoreboard (top-right, live from /api/admin/finance) ─────────────────
 export interface FinanceResult {
   mrrCents: number;
+  /** Paying customers: active subscriptions plus active $5 Starter passes. */
   customerCount: number;
+  /** Of customerCount, buyers whose one-time $5 pass is still running (no MRR). */
+  passCustomers?: number;
   /** MRR of existing Contrax plans ONLY (Bid Scout excluded — never
    *  double-counted; owner 2026-09-11). */
   existingPlanMrr: number;
@@ -97,7 +100,8 @@ export function MrrScoreboard() {
       title={fin.source === "stripe-live" ? `Live Stripe read (${fin.fetchedAt ? new Date(fin.fetchedAt).toLocaleString() : "just now"})${fin.truncated ? " — over 100 active subscriptions, totals capped" : ""}` : "Live app-database read (Stripe unreachable — subscription rows the webhook maintains)"}
     >
       <span className="text-emerald-600">●</span>
-      MRR: {moneyWhole(fin.mrrCents)}{grew ? " ↑" : ""} · Customers: {fin.customerCount}
+      MRR: {moneyWhole(fin.mrrCents)}{fin.mrrCents > 0 ? " ↑" : ""} · Customers: {fin.customerCount}
+      {fin.passCustomers ? <span className="font-medium opacity-80">({fin.passCustomers} on $5 pass)</span> : null}
     </span>
   );
 }

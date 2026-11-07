@@ -1,0 +1,2431 @@
+{
+ "capturedAt": "2026-11-07T03:21:30.922Z",
+ "depts": [
+  {
+   "DeptNbr": "36",
+   "DeptName": "Affirmative Action & Compliance"
+  },
+  {
+   "DeptNbr": "51",
+   "DeptName": "Aging and Disabilities"
+  },
+  {
+   "DeptNbr": "6",
+   "DeptName": "Agricultural Comm/Weights-Measures"
+  },
+  {
+   "DeptNbr": "35",
+   "DeptName": "Animal Care & Control"
+  },
+  {
+   "DeptNbr": "45",
+   "DeptName": "Arts & Culture"
+  },
+  {
+   "DeptNbr": "39",
+   "DeptName": "Assessor"
+  },
+  {
+   "DeptNbr": "7",
+   "DeptName": "Auditor-Controller"
+  },
+  {
+   "DeptNbr": "8",
+   "DeptName": "Beaches and Harbors"
+  },
+  {
+   "DeptNbr": "34",
+   "DeptName": "Board of Supervisors"
+  },
+  {
+   "DeptNbr": "9",
+   "DeptName": "Chief Executive Office"
+  },
+  {
+   "DeptNbr": "37",
+   "DeptName": "Chief Information Office"
+  },
+  {
+   "DeptNbr": "5",
+   "DeptName": "Child Support Services"
+  },
+  {
+   "DeptNbr": "10",
+   "DeptName": "Children & Family Services / Adoption"
+  },
+  {
+   "DeptNbr": "2",
+   "DeptName": "Consumer and Business Affairs"
+  },
+  {
+   "DeptNbr": "40",
+   "DeptName": "Coroner"
+  },
+  {
+   "DeptNbr": "26",
+   "DeptName": "Department of Public Health"
+  },
+  {
+   "DeptNbr": "50",
+   "DeptName": "Economic Opportunity"
+  },
+  {
+   "DeptNbr": "15",
+   "DeptName": "Fire Department"
+  },
+  {
+   "DeptNbr": "16",
+   "DeptName": "Health Services"
+  },
+  {
+   "DeptNbr": "52",
+   "DeptName": "Homeless Services and Housing"
+  },
+  {
+   "DeptNbr": "17",
+   "DeptName": "Housing Authority (L.A County)"
+  },
+  {
+   "DeptNbr": "18",
+   "DeptName": "Human Relations"
+  },
+  {
+   "DeptNbr": "19",
+   "DeptName": "Human Resources"
+  },
+  {
+   "DeptNbr": "1",
+   "DeptName": "Internal Services Department"
+  },
+  {
+   "DeptNbr": "48",
+   "DeptName": "Justice, Care and Opportunities"
+  },
+  {
+   "DeptNbr": "12",
+   "DeptName": "LA County Development Authority"
+  },
+  {
+   "DeptNbr": "46",
+   "DeptName": "LA-RICS Joint Powers Authority"
+  },
+  {
+   "DeptNbr": "47",
+   "DeptName": "LACERA"
+  },
+  {
+   "DeptNbr": "38 ",
+   "DeptName": "LACFF Prop 10 Commission"
+  },
+  {
+   "DeptNbr": "20",
+   "DeptName": "Mental Health"
+  },
+  {
+   "DeptNbr": "21",
+   "DeptName": "Military & Veteran Affairs"
+  },
+  {
+   "DeptNbr": "44",
+   "DeptName": "Museum of Art"
+  },
+  {
+   "DeptNbr": "22",
+   "DeptName": "Museum of Natural History"
+  },
+  {
+   "DeptNbr": "13",
+   "DeptName": "Office of County Counsel"
+  },
+  {
+   "DeptNbr": "14",
+   "DeptName": "Office of District Attorney"
+  },
+  {
+   "DeptNbr": "23",
+   "DeptName": "Office of Education"
+  },
+  {
+   "DeptNbr": "24",
+   "DeptName": "Office of Public Safety"
+  },
+  {
+   "DeptNbr": "25",
+   "DeptName": "Parks and Recreation"
+  },
+  {
+   "DeptNbr": "4",
+   "DeptName": "Probation"
+  },
+  {
+   "DeptNbr": "41",
+   "DeptName": "Public Defender"
+  },
+  {
+   "DeptNbr": "27",
+   "DeptName": "Public Library"
+  },
+  {
+   "DeptNbr": "28",
+   "DeptName": "Public Social Services"
+  },
+  {
+   "DeptNbr": "29",
+   "DeptName": "Public Works"
+  },
+  {
+   "DeptNbr": "30",
+   "DeptName": "Regional Planning"
+  },
+  {
+   "DeptNbr": "31",
+   "DeptName": "Registrar-Recorder"
+  },
+  {
+   "DeptNbr": "3",
+   "DeptName": "Sheriff"
+  },
+  {
+   "DeptNbr": "32",
+   "DeptName": "Superior Court"
+  },
+  {
+   "DeptNbr": "33",
+   "DeptName": "Treasurer and Tax Collector"
+  },
+  {
+   "DeptNbr": "11",
+   "DeptName": "Workforce Development, Aging and Community Services"
+  },
+  {
+   "DeptNbr": "49",
+   "DeptName": "Youth Development"
+  }
+ ],
+ "all": {
+  "1": {
+   "name": "Internal Services Department",
+   "status": 200,
+   "data": [
+    {
+     "Bid#": "ITS-I10800-S",
+     "BidRefNbr": "420239230866",
+     "Title": "On Demand Interpretation and Translation Services Master Agreement",
+     "Type": "Service",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2028-09-11T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "RFB-IS-27200263",
+     "BidRefNbr": "26101715400030",
+     "Title": "BUILDING MATERIALS - THREE (3) YEAR AGREEMENT",
+     "Type": "Commodity / Service",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2026-12-04T12:00:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "RFB-IS-27200287",
+     "BidRefNbr": "26102315715037",
+     "Title": "SPRINGSHARE PATRON POINT RENEWAL - BRAND SPECIFIC",
+     "Type": "Commodity / Service",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2026-11-10T12:00:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "RFB-IS-27200290",
+     "BidRefNbr": "26102715597105",
+     "Title": "15744F- Car Wash System- Eastern Ave AMD 01 SOW, Q&A",
+     "Type": "Commodity / Service",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2026-11-09T12:00:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "RFB-IS-27200273",
+     "BidRefNbr": "26102915520970",
+     "Title": "27-00240 TRAFFIC PLAN SOW",
+     "Type": "Commodity / Service",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2026-11-16T12:00:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "RFB-IS-27200299",
+     "BidRefNbr": "26103115912004",
+     "Title": "589484, 589988 - SAPC DELL PRECISION 5 LAPTOPS",
+     "Type": "Commodity / Service",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2026-11-13T12:00:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "RFB-IS-27200307",
+     "BidRefNbr": "2611415805448",
+     "Title": "1093888 - Beyond Trust Software License Annual Renewal",
+     "Type": "Commodity / Service",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2026-11-12T12:00:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "RFB-IS-27200300",
+     "BidRefNbr": "2611515356888",
+     "Title": "STARLINK SATELLITE EQUIPMENT AND DATA PLANS - 3-YEAR AGREEME",
+     "Type": "Commodity / Service",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2026-11-19T12:00:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "GCS-I10681-C",
+     "BidRefNbr": "426222902483",
+     "Title": "Energy Support Services Master Agreement (ESSMA) Request for Statement of Qualifications (RFSQ)",
+     "Type": "Service",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2022-04-27T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "RFSQ # 10605-S",
+     "BidRefNbr": "102620474368",
+     "Title": "AS-NEEDED TRANSPORTATION SERVICES",
+     "Type": "Service",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2026-01-01T17:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "GCS-10637-S",
+     "BidRefNbr": "331266406355",
+     "Title": "REQUEST FOR STATEMENT OF QUALIFICATIONS (RFSQ) FOR RECORDS MANAGEMENT SERVICES",
+     "Type": "Service",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2026-05-07T14:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "GCS-10621-S",
+     "BidRefNbr": "67238871056",
+     "Title": "Request for Statement of Qualifications for Energy Services",
+     "Type": "Service",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2032-01-01T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "ITS-I10602-S",
+     "BidRefNbr": "32122808959",
+     "Title": "INSTALLATION AND OPERATION OF COMMUNITY BROADBAND NETWORKS TO DELIVER RESIDENTIAL SERVICES",
+     "Type": "Commodity / Service",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2032-03-21T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "RFB-IS-27200281",
+     "BidRefNbr": "26102215815264",
+     "Title": "BUILDING WINDOW CLEANING INTERIOR/EXTERIOR - JOB WALK AMD#01",
+     "Type": "Commodity / Service",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2026-11-13T12:00:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "RFB-IS-27200261",
+     "BidRefNbr": "26102414355828",
+     "Title": "EMERGENCY SACK LUNCHES",
+     "Type": "Commodity / Service",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2026-11-13T12:00:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "RFB-IS-27200292",
+     "BidRefNbr": "26102715771587",
+     "Title": "7636 - SOFTWARE SERVICES - F5 TAP  (BRAND ONLY)",
+     "Type": "Commodity / Service",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2026-11-09T12:00:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "RFB-IS-27200293",
+     "BidRefNbr": "26102915695453",
+     "Title": "WATER METERS HIGH PRESSURE 3 YEAR AGREEMENT",
+     "Type": "Commodity / Service",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2026-11-18T12:00:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "RFB-IS-27200302",
+     "BidRefNbr": "2611317209642",
+     "Title": "DIGITAL COLLECTOR RENEWAL (BRAND ONLY)",
+     "Type": "Commodity / Service",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2026-11-17T12:00:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "RFB-IS-27200308",
+     "BidRefNbr": "2611415979931",
+     "Title": "15715P-SHR- CANOPIES - BRAND SPECIFIC",
+     "Type": "Commodity / Service",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2026-11-25T12:00:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "RFB-IS-27200309",
+     "BidRefNbr": "2611515531370",
+     "Title": "733058-SOFTWARE- SAAS - IDENTITY MNGMT - OKTA (BRAND ONLY)",
+     "Type": "Commodity / Service",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2026-11-18T12:00:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "104574",
+     "BidRefNbr": "518174175885",
+     "Title": "TESMA - Telecommunications Equipment and Services Master Agreement",
+     "Type": "Service",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2020-07-30T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "LA-RICS 031",
+     "BidRefNbr": "11426302323",
+     "Title": "LA-RICS Telecommunication Project Management and General Consulting Services",
+     "Type": "Service",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2027-02-08T16:00:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "GCS-I10636-S",
+     "BidRefNbr": "71261403011",
+     "Title": "Energy Efficiency Project Services Master Agreement (EEPMA) Request for Statement of Qualifications (RFSQ)",
+     "Type": "Commodity",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2026-08-12T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "I104559",
+     "BidRefNbr": "322176901702",
+     "Title": "Energy Efficiency Project Services Master Agreement (EEPMA) RFSQ",
+     "Type": "Service",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2020-07-01T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "RFQ-IS-27260217",
+     "BidRefNbr": "26101715225548",
+     "Title": "937043 REPAIR CORROSION ON CHILLER END BELLS",
+     "Type": "Commodity / Service",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2026-11-06T12:00:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "RFB-IS-27200283",
+     "BidRefNbr": "26102315253354",
+     "Title": "27-3071 / BUSINESS WRITING AND DOCUMENT PRODUCTION TRAININGS",
+     "Type": "Commodity / Service",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2026-11-09T12:00:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "RFB-IS-27200244",
+     "BidRefNbr": "26102715422622",
+     "Title": "AIRCRAFT DETAILING SERVICE-SPECS-CONTRACT",
+     "Type": "Commodity / Service",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2026-11-09T12:00:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "RFB-IS-27200294",
+     "BidRefNbr": "26102915301812",
+     "Title": "SHOKZ Headsets, DMH",
+     "Type": "Commodity / Service",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2026-11-11T12:00:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "RFB-IS-27200298",
+     "BidRefNbr": "26103115315661",
+     "Title": "High Speed Desktop Document Scanner",
+     "Type": "Commodity / Service",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2026-11-13T12:00:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "RFB-IS-27200301",
+     "BidRefNbr": "2611317935159",
+     "Title": "Red Hat License Renewal - Brand Specific",
+     "Type": "Commodity / Service",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2026-11-18T12:00:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "RFB-IS-27200311",
+     "BidRefNbr": "2611515312212",
+     "Title": "CASEGUARD STUDIO STANDARD LICENSE RENEWAL",
+     "Type": "Commodity / Service",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2026-11-25T12:00:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "LA-RICS 018",
+     "BidRefNbr": "41723678973",
+     "Title": "Request for Information for Portable Radios to be Used on the Los Angeles Regional Interoperable Communications System (LA-RICS)  Land Mobile Radio (LMR) System",
+     "Type": "Commodity",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2023-06-26T17:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "GCS-10635-S",
+     "BidRefNbr": "224263235504",
+     "Title": "Disaster and Emergency Services Master Agreement (DESMA) RFSQ",
+     "Type": "Service",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2026-04-09T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "ITS-I10604-S",
+     "BidRefNbr": "728224400895",
+     "Title": "Enterprise Services Master Agreement (ESMA) Request for Statement of Qualifications (RFSQ)",
+     "Type": "Service",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2027-07-28T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "GCS-10639-S",
+     "BidRefNbr": "916265471079",
+     "Title": "RFSQ for Facility Ancillary Services Master Agreement (FASMA)",
+     "Type": "Service",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2026-10-27T23:59:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "104569",
+     "BidRefNbr": "413173236913",
+     "Title": "Facility Ancillary Services Master Agreement (FASMA) RFSQ",
+     "Type": "Commodity",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2017-05-15T14:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "RFIC-IS-CMS23000002",
+     "BidRefNbr": "2341522263845",
+     "Title": "RFSQ GCS-10621-S  - Energy Services",
+     "Type": "Commodity / Service",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2031-11-01T12:00:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "RFB-IS-27200276",
+     "BidRefNbr": "26102215859940",
+     "Title": "GRANICUS SUBSCRIPTION - BRAND SPECIFIC- AMENDMENT# 1 (PG 19)",
+     "Type": "Commodity / Service",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2026-11-09T12:00:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "RFB-IS-27200289",
+     "BidRefNbr": "26102415614809",
+     "Title": "TABLEAU RENEWAL (BRAND ONLY)",
+     "Type": "Commodity / Service",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2026-11-10T12:00:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "RFB-IS-27200274",
+     "BidRefNbr": "26102815406893",
+     "Title": "55631S - IWF - ISB - EXERCISE EQUIPMENT AMD01",
+     "Type": "Commodity / Service",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2026-11-23T12:00:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "RFB-IS-27200291",
+     "BidRefNbr": "26103115141179",
+     "Title": "27-3072 / TIME MANAGEMENT TRAININGS",
+     "Type": "Commodity / Service",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2026-11-18T12:00:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "RFB-IS-27200303",
+     "BidRefNbr": "2611317716001",
+     "Title": "MONDAY.COM ENTERPRISE SUBSCRIPTION RENEWAL (BRAND ONLY)",
+     "Type": "Commodity / Service",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2026-11-17T12:00:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "RFB-IS-27200310",
+     "BidRefNbr": "2611515137729",
+     "Title": "589994 - SOFTWARE SUBSCRIPTION - DATA - DELPHIX (BRAND ONLY)",
+     "Type": "Commodity / Service",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2026-11-17T12:00:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "RFB-IS-27200268",
+     "BidRefNbr": "2611615679152",
+     "Title": "PEXIP INFINITY PLATFORM - 3 YEAR AGREEMENT - BRAND SPECIFIC",
+     "Type": "Commodity / Service",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2026-12-03T12:00:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "RFI No. LA-RICS 027",
+     "BidRefNbr": "616255300489",
+     "Title": "Request for Information for Mobile Radios to be used on the LA-RICS LMR System",
+     "Type": "Service",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2027-06-11T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "ITS-I10611-S",
+     "BidRefNbr": "219264005132",
+     "Title": "Telecommunications Services RFSQ 2026",
+     "Type": "Commodity / Service",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2036-02-18T14:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "10604-S",
+     "BidRefNbr": "713203477967",
+     "Title": "As-needed Elevator and Escalator Maintenance Services",
+     "Type": "Commodity / Service",
+     "DeptName": "Internal Services Department",
+     "ClosingDate": "2026-04-08T13:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    }
+   ]
+  },
+  "2": {
+   "name": "Consumer and Business Affairs",
+   "status": 200,
+   "data": []
+  },
+  "3": {
+   "name": "Sheriff",
+   "status": 200,
+   "data": [
+    {
+     "Bid#": "710-SH",
+     "BidRefNbr": "117239430628",
+     "Title": "WATER WELL SYSTEMS MAINTENANCE SERVICES",
+     "Type": "Service",
+     "DeptName": "Sheriff",
+     "ClosingDate": "2023-02-01T15:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "RFSQ 694-SH",
+     "BidRefNbr": "723214503101",
+     "Title": "RFSQ - Transcription Services",
+     "Type": "Service",
+     "DeptName": "Sheriff",
+     "ClosingDate": "2021-09-03T15:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "RFSQ 744-SH",
+     "BidRefNbr": "92258706529",
+     "Title": "Polygraph Examination Services",
+     "Type": "Service",
+     "DeptName": "Sheriff",
+     "ClosingDate": "2025-10-02T15:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "713-SH",
+     "BidRefNbr": "122122830475",
+     "Title": "PSYCHOLOGICAL AND/OR PSYCHIATRIC SERVICES",
+     "Type": "Service",
+     "DeptName": "Sheriff",
+     "ClosingDate": "2023-01-19T15:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "719-SH",
+     "BidRefNbr": "58246700202",
+     "Title": "RFSQ - Airplane Maintenance, Engineering, and Repair Services",
+     "Type": "Service",
+     "DeptName": "Sheriff",
+     "ClosingDate": "2024-06-13T15:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "614-SH",
+     "BidRefNbr": "822176203521",
+     "Title": "RFSQ - PSYCHOLOGICAL AND/OR PSYCHIATRIC SERVICES",
+     "Type": "Service",
+     "DeptName": "Sheriff",
+     "ClosingDate": "2017-09-21T15:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "554-SH",
+     "BidRefNbr": "129157337065",
+     "Title": "RFSQ - FIREARMS AND TOOL MARK EXAMINATION AND/OR TRAINING SERVICES",
+     "Type": "Service",
+     "DeptName": "Sheriff",
+     "ClosingDate": "2015-12-29T16:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "671-SH",
+     "BidRefNbr": "1110214009804",
+     "Title": "RFSQ - DNA Laboratory Services",
+     "Type": "Service",
+     "DeptName": "Sheriff",
+     "ClosingDate": "2021-12-17T15:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "RFSQ  676-SH",
+     "BidRefNbr": "55213578824",
+     "Title": "PSYCHOLOGICAL SERVICES",
+     "Type": "Service",
+     "DeptName": "Sheriff",
+     "ClosingDate": "2021-05-27T15:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "640-SH",
+     "BidRefNbr": "91208331328",
+     "Title": "High Voltage Electric Repair and Maintenance Services",
+     "Type": "Service",
+     "DeptName": "Sheriff",
+     "ClosingDate": "2020-09-30T15:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "703-SH",
+     "BidRefNbr": "214237036365",
+     "Title": "Fuel Dispensing and Storage Equipment Inspection, Compliance, and Repair Services",
+     "Type": "Service",
+     "DeptName": "Sheriff",
+     "ClosingDate": "2023-03-10T15:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "293-SH",
+     "BidRefNbr": "69068173483",
+     "Title": "Psychological and Psychiatric Services - RFSQ",
+     "Type": "Service",
+     "DeptName": "Sheriff",
+     "ClosingDate": "2006-07-27T15:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "743-SH",
+     "BidRefNbr": "123256739981",
+     "Title": "RFSQ - Elevator and Escalator Maintenance Service",
+     "Type": "Service",
+     "DeptName": "Sheriff",
+     "ClosingDate": "2025-03-07T15:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "711-SH",
+     "BidRefNbr": "72823303607",
+     "Title": "Helicopter Maintenance, Engineering and Repair Services",
+     "Type": "Service",
+     "DeptName": "Sheriff",
+     "ClosingDate": "2023-09-14T15:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "RFSQ 694 - SH",
+     "BidRefNbr": "1030262634614",
+     "Title": "RFSQ - TRANSCRIPTION SERVICES",
+     "Type": "Service",
+     "DeptName": "Sheriff",
+     "ClosingDate": "2026-10-30T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "693-SH",
+     "BidRefNbr": "41924170193",
+     "Title": "RFSQ - Architectural, Engineering, and Related Services",
+     "Type": "Service",
+     "DeptName": "Sheriff",
+     "ClosingDate": "2024-06-07T15:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "540-SH",
+     "BidRefNbr": "828142003196",
+     "Title": "TRAILING BLOODHOUND CANINE & HANDLER INVESTIGATIVE SERVICES",
+     "Type": "Service",
+     "DeptName": "Sheriff",
+     "ClosingDate": "2014-10-03T15:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "457-SH",
+     "BidRefNbr": "12512438106",
+     "Title": "RFSQ - Water Well System Maintenance Services",
+     "Type": "Service",
+     "DeptName": "Sheriff",
+     "ClosingDate": "2012-03-01T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "684-SH",
+     "BidRefNbr": "920194807916",
+     "Title": "Vessel Removal and Disposal Services",
+     "Type": "Service",
+     "DeptName": "Sheriff",
+     "ClosingDate": "2019-10-25T15:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "RFSQ 661-SH",
+     "BidRefNbr": "110205808001",
+     "Title": "Trailing Bloodhound Canine and Handler Investigative Services",
+     "Type": "Service",
+     "DeptName": "Sheriff",
+     "ClosingDate": "2020-02-14T15:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "631-SH",
+     "BidRefNbr": "718175831142",
+     "Title": "RFSI - Alternative Programs for Adult Offenders in Los Angeles County Jails",
+     "Type": "Service",
+     "DeptName": "Sheriff",
+     "ClosingDate": "2017-08-14T15:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "617-SH",
+     "BidRefNbr": "227176737128",
+     "Title": "RFSQ - AIRPLANE MAINTENANCE, ENGINEERING AND REPAIR SERVICES",
+     "Type": "Service",
+     "DeptName": "Sheriff",
+     "ClosingDate": "2017-04-04T16:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "314-SH",
+     "BidRefNbr": "725085602243",
+     "Title": "Sewing Shop Equipment Repair and Maintenance Services",
+     "Type": "Service",
+     "DeptName": "Sheriff",
+     "ClosingDate": "2008-08-26T15:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "411-SH",
+     "BidRefNbr": "122210578466",
+     "Title": "RFSQ - Trailing Bloodhound Canine and Handler Investigative Services",
+     "Type": "Service",
+     "DeptName": "Sheriff",
+     "ClosingDate": "2015-02-01T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "613-SH",
+     "BidRefNbr": "72117505755",
+     "Title": "RFSQ - WATER WELL SYSTEM MAINTENANCE SERVICES",
+     "Type": "Service",
+     "DeptName": "Sheriff",
+     "ClosingDate": "2017-08-24T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "712 SH",
+     "BidRefNbr": "101262031691",
+     "Title": "RFP - Integrated Justice Information System",
+     "Type": "Commodity / Service",
+     "DeptName": "Sheriff",
+     "ClosingDate": "2026-12-04T15:00:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "473-SH",
+     "BidRefNbr": "38121608996",
+     "Title": "RFSQ - Psychiatric and Psychological Services",
+     "Type": "Service",
+     "DeptName": "Sheriff",
+     "ClosingDate": "2012-03-29T15:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    }
+   ]
+  },
+  "4": {
+   "name": "Probation",
+   "status": 200,
+   "data": [
+    {
+     "Bid#": "6402102",
+     "BidRefNbr": "47213731081",
+     "Title": "AS NEEDED POLYGRAPH EXAMINATION SERVICES FOR ADULT SEX OFFENDERS AND POST CONVICTION SEX OFFENDERS",
+     "Type": "Service",
+     "DeptName": "Probation",
+     "ClosingDate": "2023-12-31T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "6401706",
+     "BidRefNbr": "69173634114",
+     "Title": "RFSQ FOR JUVENILE JUSTICE SOCIAL PROGRAMS SERVICES",
+     "Type": "Service",
+     "DeptName": "Probation",
+     "ClosingDate": "2017-07-14T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    }
+   ]
+  },
+  "5": {
+   "name": "Child Support Services",
+   "status": 200,
+   "data": []
+  },
+  "6": {
+   "name": "Agricultural Comm/Weights-Measures",
+   "status": 200,
+   "data": []
+  },
+  "7": {
+   "name": "Auditor-Controller",
+   "status": 200,
+   "data": [
+    {
+     "Bid#": "2017 A-C MA RFSQ",
+     "BidRefNbr": "121316879358",
+     "Title": "Request for Statement of Qualifications - Master Agreement for As-Needed Contract Studies and Audits",
+     "Type": "Service",
+     "DeptName": "Auditor-Controller",
+     "ClosingDate": "2020-06-01T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "2017 AC MA RFSQ",
+     "BidRefNbr": "1213164637001",
+     "Title": "Request for Statement of Qualifications - Master Agreement for As-Needed Contract Studies and Audits",
+     "Type": "Service",
+     "DeptName": "Auditor-Controller",
+     "ClosingDate": "2020-06-30T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    }
+   ]
+  },
+  "8": {
+   "name": "Beaches and Harbors",
+   "status": 200,
+   "data": [
+    {
+     "Bid#": "DBH88",
+     "BidRefNbr": "62526435541",
+     "Title": "AS-NEEDED HAZARDOUS WASTE REMOVAL SERVICES - RFSQ",
+     "Type": "Service",
+     "DeptName": "Beaches and Harbors",
+     "ClosingDate": "2029-07-23T17:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "DBH85",
+     "BidRefNbr": "1121247779451",
+     "Title": "AS-NEEDED SEPTIC TANK MAINTENANCE SERVICES - RFSQ",
+     "Type": "Service",
+     "DeptName": "Beaches and Harbors",
+     "ClosingDate": "2032-06-30T17:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "DBH77c",
+     "BidRefNbr": "1019226139196",
+     "Title": "As-Needed Professional Design and Photography Services",
+     "Type": "Service",
+     "DeptName": "Beaches and Harbors",
+     "ClosingDate": "2022-11-17T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "DBH-72",
+     "BidRefNbr": "79201705874",
+     "Title": "As-Needed Commercial Real Property Appraisal Services RFSQ",
+     "Type": "Service",
+     "DeptName": "Beaches and Harbors",
+     "ClosingDate": "2020-08-06T14:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "DBH-73B",
+     "BidRefNbr": "22217931624",
+     "Title": "As-Needed Economic Consultant Services RFSQ",
+     "Type": "Service",
+     "DeptName": "Beaches and Harbors",
+     "ClosingDate": "2021-03-03T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "DBH-65",
+     "BidRefNbr": "1018178005493",
+     "Title": "REQUEST FOR QUALIFICATIONS - AS-NEEDED ENVIRONMENTAL CONSULTING SERVICES",
+     "Type": "Service",
+     "DeptName": "Beaches and Harbors",
+     "ClosingDate": "2017-11-22T14:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "DBH84",
+     "BidRefNbr": "1023243576718",
+     "Title": "AS-NEEDED ENVIRONMENTAL CONSULTING SERVICES - RFSQ",
+     "Type": "Service",
+     "DeptName": "Beaches and Harbors",
+     "ClosingDate": "2032-04-09T17:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "DBH86",
+     "BidRefNbr": "128257075439",
+     "Title": "AS-NEEDED CALIFORNIA COASTAL COMMISSION CONSULTANT SERVICES - RFSQ",
+     "Type": "Service",
+     "DeptName": "Beaches and Harbors",
+     "ClosingDate": "2028-01-28T17:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "DBH-74",
+     "BidRefNbr": "630217339706",
+     "Title": "As-Needed Tree Maintenance and Removal Services Request For Statement of Qualifications",
+     "Type": "Service",
+     "DeptName": "Beaches and Harbors",
+     "ClosingDate": "2021-07-23T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "DBH77a",
+     "BidRefNbr": "1019225409135",
+     "Title": "As-Needed Professional Design and Photography Services",
+     "Type": "Service",
+     "DeptName": "Beaches and Harbors",
+     "ClosingDate": "2022-11-17T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "DBH#71A",
+     "BidRefNbr": "416208604632",
+     "Title": "As-Needed Harbor Engineering and Architectural Design Consultants",
+     "Type": "Service",
+     "DeptName": "Beaches and Harbors",
+     "ClosingDate": "2020-05-14T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "DBH-73A",
+     "BidRefNbr": "22219400246",
+     "Title": "As-Needed Economic Consultant Services RFSQ",
+     "Type": "Service",
+     "DeptName": "Beaches and Harbors",
+     "ClosingDate": "2021-03-03T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "DBH77b",
+     "BidRefNbr": "1019223105638",
+     "Title": "As-Needed Professional Design and Photography Services",
+     "Type": "Service",
+     "DeptName": "Beaches and Harbors",
+     "ClosingDate": "2022-11-17T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "DBH76",
+     "BidRefNbr": "929224906685",
+     "Title": "As-Needed Temporary Personnel Services",
+     "Type": "Service",
+     "DeptName": "Beaches and Harbors",
+     "ClosingDate": "2022-10-27T17:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "DBH#71B",
+     "BidRefNbr": "416204501873",
+     "Title": "As-Needed Harbor Engineering and Architectural Design Consultants",
+     "Type": "Service",
+     "DeptName": "Beaches and Harbors",
+     "ClosingDate": "2020-05-14T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    }
+   ]
+  },
+  "9": {
+   "name": "Chief Executive Office",
+   "status": 200,
+   "data": [
+    {
+     "Bid#": "CEO-RFSQ-RELD-23(c)",
+     "BidRefNbr": "23233073537",
+     "Title": "RFSQ for On-Call Real Estate Services and Specialized Support Services",
+     "Type": "Service",
+     "DeptName": "Chief Executive Office",
+     "ClosingDate": "2023-03-16T17:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "CEO-RFSQ-RELD-23(b)",
+     "BidRefNbr": "2323132179",
+     "Title": "RFSQ for On-Call Real Estate Services and Specialized Support Services",
+     "Type": "Service",
+     "DeptName": "Chief Executive Office",
+     "ClosingDate": "2023-03-16T17:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "CEO-RFSQ-AO-25-01",
+     "BidRefNbr": "813258402112",
+     "Title": "Strategic Plan and Support Services (StratPlan 2026 RFSQ)",
+     "Type": "Service",
+     "DeptName": "Chief Executive Office",
+     "ClosingDate": "2025-09-10T17:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "CEO-RFSQ-Comms-2023",
+     "BidRefNbr": "29237708896",
+     "Title": "Request for Statement of Qualifications for Communications Services",
+     "Type": "Service",
+     "DeptName": "Chief Executive Office",
+     "ClosingDate": "2031-12-01T17:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "CEO-RFSQ-RELD-23(a)",
+     "BidRefNbr": "23232701506",
+     "Title": "RFSQ for On-Call Real Estate Services and Specialized Support Services",
+     "Type": "Service",
+     "DeptName": "Chief Executive Office",
+     "ClosingDate": "2023-03-16T17:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "RFSQ CAC 2016-01",
+     "BidRefNbr": "622164807215",
+     "Title": "Risk Management and Insurance Consulting Services",
+     "Type": "Commodity / Service",
+     "DeptName": "Chief Executive Office",
+     "ClosingDate": "2026-12-31T12:00:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "CEO-RFSQ-RISK-25-01",
+     "BidRefNbr": "311256731704",
+     "Title": "Request for Statement of Qualifications for Insurance Brokers Program",
+     "Type": "Service",
+     "DeptName": "Chief Executive Office",
+     "ClosingDate": "2025-04-01T15:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "RFSQ-ARP-2022-01",
+     "BidRefNbr": "429222100349",
+     "Title": "American Rescue Plan Master Agreement",
+     "Type": "Service",
+     "DeptName": "Chief Executive Office",
+     "ClosingDate": "2026-12-31T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "CEO-RFSQ-RISK-25-02",
+     "BidRefNbr": "1210253032405",
+     "Title": "Request for Statement of Qualifications for Risk Consulting Services",
+     "Type": "Commodity / Service",
+     "DeptName": "Chief Executive Office",
+     "ClosingDate": "2026-01-21T15:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    }
+   ]
+  },
+  "10": {
+   "name": "Children & Family Services / Adoption",
+   "status": 200,
+   "data": [
+    {
+     "Bid#": "21-0072",
+     "BidRefNbr": "81237506721",
+     "Title": "Emergency Shelter Care (ESC)",
+     "Type": "Service",
+     "DeptName": "Children & Family Services / Adoption",
+     "ClosingDate": "2028-09-30T12:00:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "26-0065",
+     "BidRefNbr": "929269008676",
+     "Title": "Request for Proposals for Caregiver and Youth Support Services (RFP #26-0065)",
+     "Type": "Service",
+     "DeptName": "Children & Family Services / Adoption",
+     "ClosingDate": "2026-12-28T12:00:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "25-0047",
+     "BidRefNbr": "101261872501",
+     "Title": "Partnerships for Families Services Request for Proposals #25-0047",
+     "Type": "Service",
+     "DeptName": "Children & Family Services / Adoption",
+     "ClosingDate": "2026-12-18T12:00:00.000Z",
+     "OpenContinuous": ""
+    }
+   ]
+  },
+  "11": {
+   "name": "Workforce Development, Aging and Community Services",
+   "status": 200,
+   "data": [
+    {
+     "Bid#": "DRP-1924-3",
+     "BidRefNbr": "25199105958",
+     "Title": "Los Angeles County Dispute Resolution Program (LACDRP) RFP",
+     "Type": "Service",
+     "DeptName": "Workforce Development, Aging and Community Services",
+     "ClosingDate": "2019-03-05T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "DRP-1924-2",
+     "BidRefNbr": "25198300065",
+     "Title": "Los Angeles County Dispute Resolution Program (LACDRP) RFP",
+     "Type": "Service",
+     "DeptName": "Workforce Development, Aging and Community Services",
+     "ClosingDate": "2019-03-05T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "DRP-1924-1",
+     "BidRefNbr": "25195202818",
+     "Title": "Los Angeles County Dispute Resolution Program (LACDRP) RFP",
+     "Type": "Service",
+     "DeptName": "Workforce Development, Aging and Community Services",
+     "ClosingDate": "2019-03-05T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    }
+   ]
+  },
+  "12": {
+   "name": "LA County Development Authority",
+   "status": 200,
+   "data": [
+    {
+     "Bid#": "LACDA26-102",
+     "BidRefNbr": "114269834193",
+     "Title": "Senior Grant Program Construction Rehabilitation Services-345",
+     "Type": "Service",
+     "DeptName": "LA County Development Authority",
+     "ClosingDate": "2026-11-12T15:00:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "LACDA26-103",
+     "BidRefNbr": "115267530905",
+     "Title": "Senior Grant Program SG22-326",
+     "Type": "Service",
+     "DeptName": "LA County Development Authority",
+     "ClosingDate": "2026-11-12T15:00:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "LACDA26-105",
+     "BidRefNbr": "115266872487",
+     "Title": "Senior Grant Program Construction Rehabilitation Services-335",
+     "Type": "Service",
+     "DeptName": "LA County Development Authority",
+     "ClosingDate": "2026-11-12T15:00:00.000Z",
+     "OpenContinuous": ""
+    }
+   ]
+  },
+  "13": {
+   "name": "Office of County Counsel",
+   "status": 200,
+   "data": [
+    {
+     "Bid#": "RFB-CC-2023-1",
+     "BidRefNbr": "518232373546",
+     "Title": "LEGAL SERVICES - COUNTY COUNSEL",
+     "Type": "Service",
+     "DeptName": "Office of County Counsel",
+     "ClosingDate": "2023-07-31T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    }
+   ]
+  },
+  "14": {
+   "name": "Office of District Attorney",
+   "status": 200,
+   "data": [
+    {
+     "Bid#": "RFP-DA-IT01",
+     "BidRefNbr": "929267433673",
+     "Title": "Case Management System (CMS) Solution",
+     "Type": "Commodity / Service",
+     "DeptName": "Office of District Attorney",
+     "ClosingDate": "2026-12-07T17:00:00.000Z",
+     "OpenContinuous": ""
+    }
+   ]
+  },
+  "15": {
+   "name": "Fire Department",
+   "status": 200,
+   "data": [
+    {
+     "Bid#": "FS-0267",
+     "BidRefNbr": "1124082508741",
+     "Title": "Paramedic Training",
+     "Type": "Service",
+     "DeptName": "Fire Department",
+     "ClosingDate": "2008-12-02T17:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "FDC-HEMARS2027",
+     "BidRefNbr": "1019265877267",
+     "Title": "Heavy Equipment Maintenance and Repair Services",
+     "Type": "Service",
+     "DeptName": "Fire Department",
+     "ClosingDate": "2026-11-17T13:00:00.000Z",
+     "OpenContinuous": ""
+    }
+   ]
+  },
+  "16": {
+   "name": "Health Services",
+   "status": 200,
+   "data": [
+    {
+     "Bid#": "HS-1138",
+     "BidRefNbr": "118232671398",
+     "Title": "Equipment Maintenance and Repair (EMARS) - Radiation Therapy Systems RFR",
+     "Type": "Service",
+     "DeptName": "Health Services",
+     "ClosingDate": "2028-06-30T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "HS-1108",
+     "BidRefNbr": "81198931832",
+     "Title": "Equipment Maintenance and Repair (EMARS) - Neurodiagnostic Equipment (RFR)",
+     "Type": "Service",
+     "DeptName": "Health Services",
+     "ClosingDate": "2019-08-09T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "HASMA-DHS-001",
+     "BidRefNbr": "103235501719",
+     "Title": "Request Applications for Reference Medical Laboratory Services",
+     "Type": "Service",
+     "DeptName": "Health Services",
+     "ClosingDate": "2023-12-07T11:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "HS-1130",
+     "BidRefNbr": "420222470263",
+     "Title": "Equipment Maintenance and Repair (EMARS) - Laboratory Equipment (RFR)",
+     "Type": "Service",
+     "DeptName": "Health Services",
+     "ClosingDate": "2026-06-30T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "HS-1137",
+     "BidRefNbr": "1122224170208",
+     "Title": "Equipment Maintenance and Repair (EMARS) - Radiology Injection Systems (RFR)",
+     "Type": "Service",
+     "DeptName": "Health Services",
+     "ClosingDate": "2026-06-30T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "HS-1133",
+     "BidRefNbr": "97224333638",
+     "Title": "Equipment Maintenance and Repair (EMARS) - Fire Alarm, Detection and Security System (RFR)",
+     "Type": "Service",
+     "DeptName": "Health Services",
+     "ClosingDate": "2028-06-30T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "HS-1089",
+     "BidRefNbr": "424189606872",
+     "Title": "Equipment Maintenance and Repair (EMARS) - Electrical Distribution (RFR)",
+     "Type": "Service",
+     "DeptName": "Health Services",
+     "ClosingDate": "2018-05-04T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "HS-1119",
+     "BidRefNbr": "514209103916",
+     "Title": "Equipment Maintenance and Repair (EMARS) - Automated Medication Packaging Equipment (RFR)",
+     "Type": "Service",
+     "DeptName": "Health Services",
+     "ClosingDate": "2020-05-22T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "HS-1107",
+     "BidRefNbr": "81199976008",
+     "Title": "Equipment Maintenance and Repair (EMARS) - Dialysis Equipment (RFR)",
+     "Type": "Service",
+     "DeptName": "Health Services",
+     "ClosingDate": "2019-08-09T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "HS-1127",
+     "BidRefNbr": "1214201574818",
+     "Title": "Equipment Maintenance and Repair (EMARS) - Respiratory Equipment (RFR)",
+     "Type": "Service",
+     "DeptName": "Health Services",
+     "ClosingDate": "2020-12-22T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "HS-1090",
+     "BidRefNbr": "52185133604",
+     "Title": "Equipment Maintenance and Repair (EMARS) - Endoscopes (RFR)",
+     "Type": "Service",
+     "DeptName": "Health Services",
+     "ClosingDate": "2018-05-09T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "HS1041",
+     "BidRefNbr": "45128534722",
+     "Title": "REQUEST FOR STATEMENT OF QUALIFICATIONS (RFSQ) FOR SUPPORTIVE AND/OR HOUSING SERVICES",
+     "Type": "Service",
+     "DeptName": "Health Services",
+     "ClosingDate": "2012-05-03T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "HS-1171",
+     "BidRefNbr": "1029263074704",
+     "Title": "Epic Electronic Health Records System (EPIC EHR) Implementation and Support Services RFP",
+     "Type": "Service",
+     "DeptName": "Health Services",
+     "ClosingDate": "2026-12-24T12:00:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "HS-1106",
+     "BidRefNbr": "81192702233",
+     "Title": "Equipment Maintenance and Repair (EMARS) - Cardiology Equipment (RFR)",
+     "Type": "Service",
+     "DeptName": "Health Services",
+     "ClosingDate": "2019-08-09T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "HS-1149",
+     "BidRefNbr": "830238274797",
+     "Title": "Equipment Maintenance and Repair (EMARS) - Mammography (RFR)",
+     "Type": "Service",
+     "DeptName": "Health Services",
+     "ClosingDate": "2023-09-15T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "HS-1151",
+     "BidRefNbr": "103233536905",
+     "Title": "Request for Qualifications For Healthcare Ancillary Services Master Agreement",
+     "Type": "Service",
+     "DeptName": "Health Services",
+     "ClosingDate": "2023-12-07T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "HS-1128",
+     "BidRefNbr": "28216232023",
+     "Title": "SUSPENDED- Teleradiology Services",
+     "Type": "Service",
+     "DeptName": "Health Services",
+     "ClosingDate": "2024-08-29T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "HS-1169",
+     "BidRefNbr": "911252575973",
+     "Title": "Transportation Overflow Services Master Agreement",
+     "Type": "Service",
+     "DeptName": "Health Services",
+     "ClosingDate": "2028-09-11T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "HS-1129",
+     "BidRefNbr": "819215403934",
+     "Title": "Equipment Maintenance and Repair (EMARS) - Automated Pharmacy Workflow System (RFR)\t",
+     "Type": "Service",
+     "DeptName": "Health Services",
+     "ClosingDate": "2021-08-26T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "HS-1150",
+     "BidRefNbr": "1018237709226",
+     "Title": "Equipment Maintenance and Repair (EMARS) - Medical Imaging Equipment (Canon) (RFR)",
+     "Type": "Service",
+     "DeptName": "Health Services",
+     "ClosingDate": "2023-10-31T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "HS-1146",
+     "BidRefNbr": "710233970491",
+     "Title": "Equipment Maintenance and Repair (EMARS) - Automated Medication Dispensing Cabinets (RFR)",
+     "Type": "Service",
+     "DeptName": "Health Services",
+     "ClosingDate": "2023-07-24T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "PATSMA",
+     "BidRefNbr": "828195131153",
+     "Title": "Professional and Technical Services Master Agreement  (PATSMA)",
+     "Type": "Service",
+     "DeptName": "Health Services",
+     "ClosingDate": "2021-12-31T11:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "HS-1155",
+     "BidRefNbr": "22924875135",
+     "Title": "Request for Qualification (RFQ) for Equipment Maintenance and Repair Services (EMARS)",
+     "Type": "Service",
+     "DeptName": "Health Services",
+     "ClosingDate": "2028-06-30T12:00:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "HS-1110",
+     "BidRefNbr": "821193939694",
+     "Title": "SUSPENDED - Healthcare Ancillary Services (HASMA) - Prosthetic and Orthotic Appliances Services (RSASQ)",
+     "Type": "Service",
+     "DeptName": "Health Services",
+     "ClosingDate": "2019-12-31T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "SHSMA-WOS_CBS-041",
+     "BidRefNbr": "517241238321",
+     "Title": "SUSPENDED: SHSMA Work Order Solicitation for Capacity Building Services In-Services In-Home Caregiving",
+     "Type": "Service",
+     "DeptName": "Health Services",
+     "ClosingDate": "2024-06-05T11:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    }
+   ]
+  },
+  "17": {
+   "name": "Housing Authority (L.A County)",
+   "status": 200,
+   "data": []
+  },
+  "18": {
+   "name": "Human Relations",
+   "status": 200,
+   "data": []
+  },
+  "19": {
+   "name": "Human Resources",
+   "status": 200,
+   "data": [
+    {
+     "Bid#": "#RFSQ-HM-2026-0225",
+     "BidRefNbr": "225264005026",
+     "Title": "Request for Statement of Qualifications (RFSQ) for Investigation Services",
+     "Type": "Service",
+     "DeptName": "Human Resources",
+     "ClosingDate": "2026-04-01T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "RFSQ #HM2023-0901",
+     "BidRefNbr": "91239374843",
+     "Title": "RFSQ Dispute Resolution, Mediation and Related Services",
+     "Type": "Service",
+     "DeptName": "Human Resources",
+     "ClosingDate": "2026-09-01T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    }
+   ]
+  },
+  "20": {
+   "name": "Mental Health",
+   "status": 200,
+   "data": [
+    {
+     "Bid#": "DMH021121B1",
+     "BidRefNbr": "211219509111",
+     "Title": "Request for Statement of Qualifications #DMH021121B1 Eating Disorders Services Services",
+     "Type": "Service",
+     "DeptName": "Mental Health",
+     "ClosingDate": "2029-06-30T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "DMH10262026B1",
+     "BidRefNbr": "1026269171559",
+     "Title": "CAPACITY BUILDING SUPPORT SERVICES THROUGH THE BEHAVIORAL HEALTH SERVICES ACT",
+     "Type": "Service",
+     "DeptName": "Mental Health",
+     "ClosingDate": "2033-06-30T12:00:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "DMH051220B1",
+     "BidRefNbr": "512203238694",
+     "Title": "RFSQ for Student Professional Development Program",
+     "Type": "Commodity / Service",
+     "DeptName": "Mental Health",
+     "ClosingDate": "2020-06-15T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "DMH12192023B1",
+     "BidRefNbr": "1219231077543",
+     "Title": "RFSQ for As Needed Psychiatry Services",
+     "Type": "Service",
+     "DeptName": "Mental Health",
+     "ClosingDate": "2027-06-30T12:00:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "DMH091521B1",
+     "BidRefNbr": "915213006799",
+     "Title": "Request for Applications - 24-Hour Residential Treatment Contract and Acute Psychiatric Inpatient Contract",
+     "Type": "Service",
+     "DeptName": "Mental Health",
+     "ClosingDate": "2031-06-30T12:00:00.000Z",
+     "OpenContinuous": ""
+    }
+   ]
+  },
+  "21": {
+   "name": "Military & Veteran Affairs",
+   "status": 200,
+   "data": []
+  },
+  "22": {
+   "name": "Museum of Natural History",
+   "status": 200,
+   "data": []
+  },
+  "23": {
+   "name": "Office of Education",
+   "status": 200,
+   "data": []
+  },
+  "24": {
+   "name": "Office of Public Safety",
+   "status": 200,
+   "data": []
+  },
+  "25": {
+   "name": "Parks and Recreation",
+   "status": 200,
+   "data": [
+    {
+     "Bid#": "DPR-FUEL-2017",
+     "BidRefNbr": "817172709061",
+     "Title": "Fuel Tank Testing, Inspecting, and Maintenance Services",
+     "Type": "Service",
+     "DeptName": "Parks and Recreation",
+     "ClosingDate": "2020-08-16T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "DPR-GOLFc-2019",
+     "BidRefNbr": "228194235169",
+     "Title": "As Needed Golf Course Services",
+     "Type": "Commodity / Service",
+     "DeptName": "Parks and Recreation",
+     "ClosingDate": "2020-02-29T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "DPR-AQUATIC-2023C",
+     "BidRefNbr": "822233037217",
+     "Title": "Request For Statement of Qualifications for As-needed Aquatic Maintenance Services",
+     "Type": "Service",
+     "DeptName": "Parks and Recreation",
+     "ClosingDate": "2039-01-31T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "DPR-AQUATIC-2018d",
+     "BidRefNbr": "917181177679",
+     "Title": "As Needed Aquatic Growth Control Services",
+     "Type": "Service",
+     "DeptName": "Parks and Recreation",
+     "ClosingDate": "2018-09-18T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "DPR-GOLFe-2019",
+     "BidRefNbr": "228199408929",
+     "Title": "As Needed Golf Course Services",
+     "Type": "Commodity / Service",
+     "DeptName": "Parks and Recreation",
+     "ClosingDate": "2020-02-29T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "DPR-AQUATIC-2023B",
+     "BidRefNbr": "822237502801",
+     "Title": "Request For Statement of Qualifications for As-needed Aquatic Maintenance Services",
+     "Type": "Service",
+     "DeptName": "Parks and Recreation",
+     "ClosingDate": "2039-01-31T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "DPR-SPECIALEVENTS-2018a",
+     "BidRefNbr": "1181805311",
+     "Title": "Statement of Qualifications for Special Events Services",
+     "Type": "Service",
+     "DeptName": "Parks and Recreation",
+     "ClosingDate": "2018-12-13T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "DPR-AQUATIC-2018c",
+     "BidRefNbr": "917186703281",
+     "Title": "As Needed Aquatic Growth Control Services",
+     "Type": "Service",
+     "DeptName": "Parks and Recreation",
+     "ClosingDate": "2018-09-18T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "DPR-SPECIALEVENTS-2018b",
+     "BidRefNbr": "118185834896",
+     "Title": "Statement of Qualifications for Special Events Services",
+     "Type": "Service",
+     "DeptName": "Parks and Recreation",
+     "ClosingDate": "2018-12-13T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "DPR-GOLFa-2019",
+     "BidRefNbr": "228192135193",
+     "Title": "As Needed Golf Course Services",
+     "Type": "Commodity / Service",
+     "DeptName": "Parks and Recreation",
+     "ClosingDate": "2020-02-01T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "DPR-AQUATIC-2023D",
+     "BidRefNbr": "822232100143",
+     "Title": "Request For Statement of Qualifications for As-needed Aquatic Maintenance Services",
+     "Type": "Service",
+     "DeptName": "Parks and Recreation",
+     "ClosingDate": "2039-01-31T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "DPR-AQUATIC-2018a",
+     "BidRefNbr": "917187406716",
+     "Title": "As Needed Aquatic Growth Control Services",
+     "Type": "Service",
+     "DeptName": "Parks and Recreation",
+     "ClosingDate": "2018-09-17T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "DPR-GOLFb-2019",
+     "BidRefNbr": "228197734335",
+     "Title": "As Needed Golf Course Services",
+     "Type": "Commodity / Service",
+     "DeptName": "Parks and Recreation",
+     "ClosingDate": "2019-02-28T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "DPR-AQUATIC-2023A",
+     "BidRefNbr": "822236301542",
+     "Title": "Request For Statement of Qualifications for As-needed Aquatic Maintenance Services",
+     "Type": "Service",
+     "DeptName": "Parks and Recreation",
+     "ClosingDate": "2039-01-31T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "DPR-AQUATIC-2018b",
+     "BidRefNbr": "917185770295",
+     "Title": "As Needed Aquatic Growth Control Services",
+     "Type": "Service",
+     "DeptName": "Parks and Recreation",
+     "ClosingDate": "2018-09-01T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "DPR-RFSQ-ASNC-2025",
+     "BidRefNbr": "723257502757",
+     "Title": "Request for Statement of Qualifications for As-Needed Consultant Services",
+     "Type": "Commodity / Service",
+     "DeptName": "Parks and Recreation",
+     "ClosingDate": "2031-10-17T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    }
+   ]
+  },
+  "26": {
+   "name": "Department of Public Health",
+   "status": 200,
+   "data": [
+    {
+     "Bid#": "2025-002",
+     "BidRefNbr": "321257900278",
+     "Title": "Request for Statement of Qualifications (RFSQ) for Substance Use Supportive Services",
+     "Type": "Service",
+     "DeptName": "Department of Public Health",
+     "ClosingDate": "2025-04-28T15:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "DPH-RFP-2026-007",
+     "BidRefNbr": "112263003697",
+     "Title": "Request for Proposals (RFP) for Comprehensive HIV and STD Prevention Services in Los Angeles County",
+     "Type": "Service",
+     "DeptName": "Department of Public Health",
+     "ClosingDate": "2026-12-14T23:59:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "2025-001",
+     "BidRefNbr": "319251872998",
+     "Title": "Request for Statement of Qualifications (RFSQ) for As-Needed Substance Use Disorder Treatment Services at County Behavioral Health Facilities",
+     "Type": "Service",
+     "DeptName": "Department of Public Health",
+     "ClosingDate": "2025-04-24T15:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "2018-013",
+     "BidRefNbr": "1221183371768",
+     "Title": "Request for Statement of Qualifications (RFSQ) for Evaluation Services",
+     "Type": "Service",
+     "DeptName": "Department of Public Health",
+     "ClosingDate": "2019-02-08T16:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "2024-012",
+     "BidRefNbr": "112124530067",
+     "Title": "Request for Statement of Qualifications (RFSQ) for As-Needed Language Assistance Services",
+     "Type": "Service",
+     "DeptName": "Department of Public Health",
+     "ClosingDate": "2025-03-05T15:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "2019-004",
+     "BidRefNbr": "723193407749",
+     "Title": "Request for Statement of Qualifications (RFSQ) for Community Engagement and Related Services",
+     "Type": "Service",
+     "DeptName": "Department of Public Health",
+     "ClosingDate": "2019-09-04T16:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "DPH-IFB-2026-008 ",
+     "BidRefNbr": "113265702713",
+     "Title": "IFB for Motor Vehicle Safety Training Services",
+     "Type": "Service",
+     "DeptName": "Department of Public Health",
+     "ClosingDate": "2026-11-24T23:59:00.000Z",
+     "OpenContinuous": ""
+    }
+   ]
+  },
+  "27": {
+   "name": "Public Library",
+   "status": 200,
+   "data": []
+  },
+  "28": {
+   "name": "Public Social Services",
+   "status": 200,
+   "data": [
+    {
+     "Bid#": "RFSQ #CSBG24-01",
+     "BidRefNbr": "1010246033276",
+     "Title": "Request for Statement of Qualifications for Community Services Block Grant Program Services",
+     "Type": "Service",
+     "DeptName": "Public Social Services",
+     "ClosingDate": "2024-12-19T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    }
+   ]
+  },
+  "29": {
+   "name": "Public Works",
+   "status": 200,
+   "data": [
+    {
+     "Bid#": "BRC0000699",
+     "BidRefNbr": "1020268379177",
+     "Title": "Fire Station 163 Bell Privacy and Access Refurbishment Project",
+     "Type": "Construction",
+     "DeptName": "Public Works",
+     "ClosingDate": "2026-11-19T10:00:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "BRC0000472",
+     "BidRefNbr": "514253833254",
+     "Title": "RFSQ - Graffiti Removal Services",
+     "Type": "Service",
+     "DeptName": "Public Works",
+     "ClosingDate": "2025-06-11T17:30:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "BRC0000471",
+     "BidRefNbr": "514258671449",
+     "Title": "NOTICE OF REQUEST FOR STATEMENT OF QUALIFICATIONS FOR ON-CALL CHANNEL CLEARING SERVICES (BRC0000471)",
+     "Type": "Service",
+     "DeptName": "Public Works",
+     "ClosingDate": "2025-06-11T17:30:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "PW-BRCD027",
+     "BidRefNbr": "59199134627",
+     "Title": "On-Call Community Based Organization Services Program",
+     "Type": "Service",
+     "DeptName": "Public Works",
+     "ClosingDate": "2019-10-07T17:30:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "BRC0000209",
+     "BidRefNbr": "426216102845",
+     "Title": "On-Call Vehicle and Equipment Repair and Towing Services Program",
+     "Type": "Service",
+     "DeptName": "Public Works",
+     "ClosingDate": "2026-12-31T17:30:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "BRC0000661",
+     "BidRefNbr": "924269874664",
+     "Title": "On-Call Geotechnical Professional and Technical Services for Federally Funded and Non-Federally Funded Projects",
+     "Type": "Service",
+     "DeptName": "Public Works",
+     "ClosingDate": "2026-11-10T17:30:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "BRC0000687",
+     "BidRefNbr": "101263502216",
+     "Title": "On-Call Labor Compliance Consultant Services",
+     "Type": "Service",
+     "DeptName": "Public Works",
+     "ClosingDate": "2026-11-17T17:30:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "BRC0000470",
+     "BidRefNbr": "514255802772",
+     "Title": "RFSQ for Street Sweeping Services (BRC0000470)",
+     "Type": "Service",
+     "DeptName": "Public Works",
+     "ClosingDate": "2025-05-14T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "PW-RMO-235",
+     "BidRefNbr": "113264131381",
+     "Title": "Commercial Driver Evaluations",
+     "Type": "Service",
+     "DeptName": "Public Works",
+     "ClosingDate": "2026-11-17T17:00:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "BRC0000682",
+     "BidRefNbr": "1021261901619",
+     "Title": "Agricultural Commissioner/Weights and Measures South Gate Meter Pit Repurpose Project",
+     "Type": "Construction",
+     "DeptName": "Public Works",
+     "ClosingDate": "2026-11-24T10:00:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "BRC0000478",
+     "BidRefNbr": "514254902998",
+     "Title": "Request for Statement of Qualifications for Landscape and Grounds Maintenance Services",
+     "Type": "Service",
+     "DeptName": "Public Works",
+     "ClosingDate": "2035-12-31T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "BRC0000667",
+     "BidRefNbr": "105266079044",
+     "Title": "On-Call Commercial and Institutional Recycling Program",
+     "Type": "Service",
+     "DeptName": "Public Works",
+     "ClosingDate": "2026-11-24T17:30:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "PW-BRCD990",
+     "BidRefNbr": "1211178532771",
+     "Title": "AS-NEEDED TRANSPORTATION SERVICES (2017-SQAN002)",
+     "Type": "Service",
+     "DeptName": "Public Works",
+     "ClosingDate": "2017-12-11T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "BRC0000475",
+     "BidRefNbr": "514256500948",
+     "Title": "Fixed Route and Dial-A-Ride Transit Services (BRC0000475)",
+     "Type": "Service",
+     "DeptName": "Public Works",
+     "ClosingDate": "2025-06-11T17:30:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "PW-RMO-236",
+     "BidRefNbr": "113264575458",
+     "Title": "Commercial Driver Safety Meetings",
+     "Type": "Service",
+     "DeptName": "Public Works",
+     "ClosingDate": "2026-11-17T17:00:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "PW-BRCD068",
+     "BidRefNbr": "1123219233025",
+     "Title": "On-Call Charter Bus Transportation Services Program",
+     "Type": "Service",
+     "DeptName": "Public Works",
+     "ClosingDate": "2022-01-04T17:30:00.000Z",
+     "OpenContinuous": "Continuous"
+    }
+   ]
+  },
+  "30": {
+   "name": "Regional Planning",
+   "status": 200,
+   "data": [
+    {
+     "Bid#": "RFSQ-DRP-53826",
+     "BidRefNbr": "47255977642",
+     "Title": "As-Needed On-Call Contract Planning Services",
+     "Type": "Commodity",
+     "DeptName": "Regional Planning",
+     "ClosingDate": "2025-04-21T13:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "RFSQ-DRP-53830",
+     "BidRefNbr": "715265776833",
+     "Title": "As-Needed Planning Consultant Services",
+     "Type": "Commodity",
+     "DeptName": "Regional Planning",
+     "ClosingDate": "2026-08-12T13:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "SSOQ-DRP-0315",
+     "BidRefNbr": "310159533915",
+     "Title": "Solicitation For Statements Of Qualifications For Placement On Prequalified Environmental Consultant List",
+     "Type": "Commodity",
+     "DeptName": "Regional Planning",
+     "ClosingDate": "2015-05-01T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    }
+   ]
+  },
+  "31": {
+   "name": "Registrar-Recorder",
+   "status": 200,
+   "data": [
+    {
+     "Bid#": "RRCC-RFSQ-21-004",
+     "BidRefNbr": "118215707104",
+     "Title": "Request for Statement of Qualifications for Voting Solutions for All People (VSAP) Enhancements and Support Services",
+     "Type": "Service",
+     "DeptName": "Registrar-Recorder",
+     "ClosingDate": "2027-02-28T15:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "RRCC-RFSQ-19-003",
+     "BidRefNbr": "531191430102",
+     "Title": "As-Needed Temporary Staffing Services",
+     "Type": "Service",
+     "DeptName": "Registrar-Recorder",
+     "ClosingDate": "2027-03-02T15:00:00.000Z",
+     "OpenContinuous": ""
+    }
+   ]
+  },
+  "32": {
+   "name": "Superior Court",
+   "status": 200,
+   "data": []
+  },
+  "33": {
+   "name": "Treasurer and Tax Collector",
+   "status": 200,
+   "data": [
+    {
+     "Bid#": "TTC_RFSQ_2026-01_RPIS",
+     "BidRefNbr": "33264631744",
+     "Title": "Real Property Insurance Services (RPIS)",
+     "Type": "Service",
+     "DeptName": "Treasurer and Tax Collector",
+     "ClosingDate": "2026-03-24T17:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "TTC-RFSQ-2024-01-MAS",
+     "BidRefNbr": "229242036034",
+     "Title": "Municipal Advisory Services",
+     "Type": "Service",
+     "DeptName": "Treasurer and Tax Collector",
+     "ClosingDate": "2024-03-28T17:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "TTC RFSQ 2024-02 TRS",
+     "BidRefNbr": "1127243974648",
+     "Title": "Trash Removal Services",
+     "Type": "Service",
+     "DeptName": "Treasurer and Tax Collector",
+     "ClosingDate": "2024-12-30T17:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "TTC RFSQ 2017-01 PA MS",
+     "BidRefNbr": "124175474931",
+     "Title": "Mortuary Services",
+     "Type": "Service",
+     "DeptName": "Treasurer and Tax Collector",
+     "ClosingDate": "2024-12-05T17:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    }
+   ]
+  },
+  "34": {
+   "name": "Board of Supervisors",
+   "status": 200,
+   "data": [
+    {
+     "Bid#": "RFS CAPSMA-EO-001-GRTF",
+     "BidRefNbr": "1014253872359",
+     "Title": "Request for Services for as needed Public Sector Strategy Consulting Services: CAPSMA-EO-001",
+     "Type": "Service",
+     "DeptName": "Board of Supervisors",
+     "ClosingDate": "2025-10-29T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "ERCOM Hearing Officer 2024",
+     "BidRefNbr": "32238732614",
+     "Title": "ERCOM Hearing Officer Services",
+     "Type": "Service",
+     "DeptName": "Board of Supervisors",
+     "ClosingDate": "2023-04-06T17:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "CEOP Panel Member Services 2025",
+     "BidRefNbr": "926251304199",
+     "Title": "County Equity Oversight Panel (CEOP) Member Services RFSQ",
+     "Type": "Service",
+     "DeptName": "Board of Supervisors",
+     "ClosingDate": "2025-10-31T17:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "RFS CAPSMA EO-008 - CSO",
+     "BidRefNbr": "106261335639",
+     "Title": "Request for Services for Policy and Research Service",
+     "Type": "Service",
+     "DeptName": "Board of Supervisors",
+     "ClosingDate": "2026-10-28T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "CSC Hearing Officers 2022",
+     "BidRefNbr": "622222507594",
+     "Title": "Civil Service Commission Hearing Officer Services",
+     "Type": "Service",
+     "DeptName": "Board of Supervisors",
+     "ClosingDate": "2022-07-20T17:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "RFS CAPSMA EO-006-ETHICS",
+     "BidRefNbr": "615265200663",
+     "Title": "Request for Services for Ethics Commission and Ethics Office Development and Strategic Advisory Consulting Services",
+     "Type": "Service",
+     "DeptName": "Board of Supervisors",
+     "ClosingDate": "2026-06-25T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    }
+   ]
+  },
+  "35": {
+   "name": "Animal Care & Control",
+   "status": 200,
+   "data": [
+    {
+     "Bid#": "RFSQ 2023-01",
+     "BidRefNbr": "531235900384",
+     "Title": "DACC - Request for Statement of Qualifications (RFSQ) for As Needed On-Site Veterinarian Services",
+     "Type": "Service",
+     "DeptName": "Animal Care & Control",
+     "ClosingDate": "2029-06-30T17:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "DACC-RFSQ-2018-02",
+     "BidRefNbr": "814194009442",
+     "Title": "RFSQ for Emergency and After-Hours Veterinary Services",
+     "Type": "Service",
+     "DeptName": "Animal Care & Control",
+     "ClosingDate": "2022-08-14T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    }
+   ]
+  },
+  "36": {
+   "name": "Affirmative Action & Compliance",
+   "status": 200,
+   "data": []
+  },
+  "37": {
+   "name": "Chief Information Office",
+   "status": 200,
+   "data": []
+  },
+  "39": {
+   "name": "Assessor",
+   "status": 200,
+   "data": []
+  },
+  "40": {
+   "name": "Coroner",
+   "status": 200,
+   "data": [
+    {
+     "Bid#": "1702008ES",
+     "BidRefNbr": "1114088770959",
+     "Title": "AS-NEEDED CREMATION SERVICES",
+     "Type": "Service",
+     "DeptName": "Coroner",
+     "ClosingDate": "2008-12-11T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "340-2021-01",
+     "BidRefNbr": "914188903319",
+     "Title": "As-Needed Forensic Pathology Services",
+     "Type": "Service",
+     "DeptName": "Coroner",
+     "ClosingDate": "2020-09-01T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "340-2017-01",
+     "BidRefNbr": "621172802183",
+     "Title": "As-Needed Alcohol Testing Services",
+     "Type": "Service",
+     "DeptName": "Coroner",
+     "ClosingDate": "2017-06-01T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "1012008ES",
+     "BidRefNbr": "124086407674",
+     "Title": "AS-NEEDED NEUROPATHOLOGY SERVICES RFSQ",
+     "Type": "Service",
+     "DeptName": "Coroner",
+     "ClosingDate": "2008-02-28T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    }
+   ]
+  },
+  "41": {
+   "name": "Public Defender",
+   "status": 200,
+   "data": [
+    {
+     "Bid#": "RFSQ-PD-2024-001",
+     "BidRefNbr": "624241608930",
+     "Title": "As Needed Legal Immigration Representation Services",
+     "Type": "Service",
+     "DeptName": "Public Defender",
+     "ClosingDate": "2026-06-30T17:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    }
+   ]
+  },
+  "44": {
+   "name": "Museum of Art",
+   "status": 200,
+   "data": []
+  },
+  "45": {
+   "name": "Arts & Culture",
+   "status": 200,
+   "data": []
+  },
+  "46": {
+   "name": "LA-RICS Joint Powers Authority",
+   "status": 200,
+   "data": []
+  },
+  "47": {
+   "name": "LACERA",
+   "status": 200,
+   "data": []
+  },
+  "48": {
+   "name": "Justice, Care and Opportunities",
+   "status": 200,
+   "data": [
+    {
+     "Bid#": "JC-110424-J1",
+     "BidRefNbr": "114244402284",
+     "Title": "REQUEST FOR STATEMENT OF QUALIFICATIONS (RFSQ) FOR A JUSTICE SUPPORT SERVICES MASTER AGREEMENT (JSSMA)",
+     "Type": "Service",
+     "DeptName": "Justice, Care and Opportunities",
+     "ClosingDate": "2035-06-30T17:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    }
+   ]
+  },
+  "49": {
+   "name": "Youth Development",
+   "status": 200,
+   "data": []
+  },
+  "50": {
+   "name": "Economic Opportunity",
+   "status": 200,
+   "data": [
+    {
+     "Bid#": "RFSQ-CMD-01-16",
+     "BidRefNbr": "119231677464",
+     "Title": "Social Enterprise Employment and Training Program Services",
+     "Type": "Service",
+     "DeptName": "Economic Opportunity",
+     "ClosingDate": "2028-06-30T17:00:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "RFSQ-GPM-2526",
+     "BidRefNbr": "1029251773342",
+     "Title": "General and Project Management Consulting Services - Capital Development",
+     "Type": "Service",
+     "DeptName": "Economic Opportunity",
+     "ClosingDate": "2030-09-30T12:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    },
+    {
+     "Bid#": "RFSQ-CEO01-999",
+     "BidRefNbr": "116238779679",
+     "Title": "Economic Development Services",
+     "Type": "Service",
+     "DeptName": "Economic Opportunity",
+     "ClosingDate": "2028-06-30T17:00:00.000Z",
+     "OpenContinuous": ""
+    }
+   ]
+  },
+  "51": {
+   "name": "Aging and Disabilities",
+   "status": 200,
+   "data": [
+    {
+     "Bid#": "AAA-LTCOP-2728 RFI",
+     "BidRefNbr": "1027265232511",
+     "Title": "Long-Term Care Ombudsman Program Request for Letter of Intent",
+     "Type": "Service",
+     "DeptName": "Aging and Disabilities",
+     "ClosingDate": "2026-11-30T17:00:00.000Z",
+     "OpenContinuous": ""
+    },
+    {
+     "Bid#": "APS-CMS-2728RFP",
+     "BidRefNbr": "1023269939373",
+     "Title": "Adult Protective Services (APS) Case Management System and Related Services",
+     "Type": "Commodity / Service",
+     "DeptName": "Aging and Disabilities",
+     "ClosingDate": "2026-12-16T17:00:00.000Z",
+     "OpenContinuous": ""
+    }
+   ]
+  },
+  "52": {
+   "name": "Homeless Services and Housing",
+   "status": 200,
+   "data": [
+    {
+     "Bid#": "RFQ-DH-100127",
+     "BidRefNbr": "84266501485",
+     "Title": "Request for Qualifications (RFQ) for Affordable Housing Development",
+     "Type": "Construction",
+     "DeptName": "Homeless Services and Housing",
+     "ClosingDate": "2026-09-01T11:00:00.000Z",
+     "OpenContinuous": "Continuous"
+    }
+   ]
+  },
+  "38 ": {
+   "name": "LACFF Prop 10 Commission",
+   "status": 200,
+   "data": []
+  }
+ }
+}

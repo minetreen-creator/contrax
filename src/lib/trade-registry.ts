@@ -1127,6 +1127,52 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
     naics: [],
     exactOnly: true,
   },
+  // Owner 2026-11-07 ("Zero results for a few bids"): a Virginia contractor's
+  // "camera installation", "low voltage" and "cable installation" Radar searches
+  // found nothing, though "cctv" / "access control" did. Plain-English camera
+  // phrases now reach the same security-systems family (561621, NAICS for
+  // security system installers). exactOnly, so "security guard" never stems in.
+  "security-cameras": {
+    label: "Security Cameras/Access Control",
+    synonyms: [
+      "security cameras",
+      "security camera",
+      "camera installation",
+      "camera installations",
+      "camera system",
+      "camera systems",
+      "surveillance cameras",
+      "surveillance camera",
+      "video surveillance",
+      "access control",
+      "cctv",
+    ],
+    naics: ["561621"],
+    exactOnly: true,
+  },
+  // Low-voltage and structured cabling work (data, voice, fiber). Phrase-only:
+  // its NAICS (238210) is every electrical contract, which would swamp the trade.
+  "low-voltage-cabling": {
+    label: "Low Voltage/Structured Cabling",
+    synonyms: [
+      "low voltage",
+      "low-voltage",
+      "low voltage cabling",
+      "low voltage wiring",
+      "structured cabling",
+      "data cabling",
+      "network cabling",
+      "cable installation",
+      "cabling",
+      "fiber optic cabling",
+      "fiber optic installation",
+      "telecommunications cabling",
+      "voice and data cabling",
+      "cat6",
+    ],
+    naics: [],
+    exactOnly: true,
+  },
 };
 
 /** 6-digit NAICS code (strict, per the existing /^\d{6}$/ convention). */

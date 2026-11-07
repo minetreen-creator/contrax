@@ -94,6 +94,7 @@ function CommandCenter() {
           <div className="mt-5 grid gap-5 xl:grid-cols-2">
             <Attention data={data} />
             <Jarvis />
+            <EmptySearches data={data} />
             <Operations data={data} />
             <Notes data={data} reload={load} />
             <TraceCopy />
@@ -225,6 +226,42 @@ function Jarvis() {
         <button type="submit" disabled={busy || !q.trim()} className="rounded-xl border border-emerald-400/50 px-4 py-2 text-sm font-bold text-emerald-300 disabled:opacity-40">Send</button>
       </form>
     </Panel>
+  );
+}
+
+/**
+ * Step 3 (owner 2026-11-07): this week's Radar searches that found nothing, so a
+ * vocabulary gap gets fixed while it is fresh. Terms and counts only.
+ */
+function EmptySearches({ data }: { data: CommandData | null }) {
+  const rows = data?.counts.emptySearches ?? [];
+  return (
+    <div id="empty-searches">
+      <Panel title="Searches that found nothing · 7 days" icon="∅">
+        <p className="-mt-1 mb-3 text-xs text-slate-400">
+          Radar searches that never found more than one bid. Ask Claude to add the words that trade's bids use, or more sources in that state.
+        </p>
+        {!data ? (
+          <p className="text-sm text-slate-400">Loading…</p>
+        ) : rows.length === 0 ? (
+          <p className="text-sm text-emerald-300">Every search this week found bids.</p>
+        ) : (
+          <ul className="divide-y divide-white/10">
+            {rows.map((r) => (
+              <li key={r.term} className="flex items-baseline justify-between gap-3 py-2.5">
+                <div className="min-w-0">
+                  <p className="truncate font-bold text-white">“{r.term}”</p>
+                  <p className="text-xs text-slate-400">{r.states.length ? r.states.join(", ") : "no state"} · best result {r.bestMatched}</p>
+                </div>
+                <p className="shrink-0 text-right text-xs text-slate-300">
+                  {r.people} {r.people === 1 ? "person" : "people"} · {r.searches} {r.searches === 1 ? "search" : "searches"}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Panel>
+    </div>
   );
 }
 

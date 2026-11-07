@@ -71,3 +71,30 @@ test("the failing-sources card ignores sources that no longer run", async () => 
   expect("fl_destin" in SOURCE_CLASSES).toBe(false);
   expect("fl_destin_beacon" in SOURCE_CLASSES).toBe(true);
 });
+
+// Owner 2026-11-07 (step 3): this week's empty Radar searches, terms and counts only.
+describe("searches that found nothing", async () => {
+  const { isSearchNoise } = await import("./command-center");
+  test("typing that is not a trade is filtered out; trades and NAICS codes stay", () => {
+    for (const junk of ["someone@example.com", "6511eastlauracircle", "aaaaaaaaaaaaaa", "https://x.com", "x", "a".repeat(61), "bcdfg"]) expect(isSearchNoise(junk)).toBe(true);
+    for (const real of ["siding", "low voltage", "camera installation", "238150", "423840 423850", "hvac", "snow & ice removal"]) expect(isSearchNoise(real)).toBe(false);
+  });
+  test("a non-empty list becomes a Fix item naming the top terms and states", () => {
+    const items = attentionItems({ ...base, emptySearches: [
+      { term: "siding", searches: 2, people: 2, bestMatched: 0, states: ["VA"] },
+      { term: "gutters", searches: 1, people: 1, bestMatched: 0, states: ["IN"] },
+    ] });
+    const item = items.find((i) => i.key === "empty-searches")!;
+    expect(item.kind).toBe("fix");
+    expect(item.label).toBe("2 searches found nothing this week");
+    expect(item.detail).toBe('"siding" (VA) · "gutters" (IN)');
+    expect(attentionItems({ ...base, emptySearches: [] }).some((i) => i.key === "empty-searches")).toBe(false);
+  });
+  test("wired: the server reads terms and counts only, and the page shows the panel", () => {
+    const server = readFileSync("src/lib/command-center.server.ts", "utf8");
+    expect(server).toContain("FROM radar_search_log");
+    expect(server).toContain(".filter((r) => !isSearchNoise(r.term))");
+    expect(server).not.toMatch(/SELECT[^;]*\b(email|user_email|ip)\b[^;]*FROM radar_search_log/);
+    expect(readFileSync("src/routes/admin/command.tsx", "utf8")).toContain("<EmptySearches data={data} />");
+  });
+});

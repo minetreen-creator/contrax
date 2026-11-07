@@ -33,6 +33,35 @@ export interface CommandCounts {
   /** Association Partners ($149/month) who subscribed in the last 7 days. */
   partnersNew: number;
   partnersActive: number;
+  /** Radar searches in the last 7 days that never found more than one bid (owner 2026-11-07, step 3). */
+  emptySearches?: EmptySearch[];
+}
+
+/** One thin Radar search term. No visitor or account data: the term, where, how often. */
+export interface EmptySearch {
+  term: string;
+  searches: number;
+  people: number;
+  /** The most bids any of these searches found (0 or 1). */
+  bestMatched: number;
+  states: string[];
+}
+
+/**
+ * Typing that is not a trade (owner 2026-11-07): an email address or URL, a street
+ * address glued together, key-mashing, or something too long to be a trade. A
+ * 6-digit NAICS code (or a list of them) is kept. PURE.
+ */
+export function isSearchNoise(term: string): boolean {
+  const t = String(term ?? "").trim().toLowerCase();
+  if (t.length < 2 || t.length > 60) return true;
+  if (/^\d{6}([\s,;/]+\d{6})*$/.test(t)) return false;
+  if (/[@<>]|https?:|www\./.test(t)) return true;
+  if (/(.)\1{4,}/.test(t)) return true;
+  if (t.split(/\s+/).some((w) => w.length > 20)) return true;
+  if (/\d/.test(t) && /[a-z]/.test(t) && !/\s/.test(t)) return true; // "6511eastlauracircle"
+  if (!/[aeiouy]/.test(t.replace(/[^a-z]/g, "")) && !/^\d+$/.test(t)) return true;
+  return t.split(/\s+/).length > 8;
 }
 
 export interface AttentionItem {
@@ -51,6 +80,15 @@ export function attentionItems(c: CommandCounts): AttentionItem[] {
   const items: AttentionItem[] = [];
   if (c.partnersNew > 0)
     items.push({ key: "partners", kind: "money", label: `${plural(c.partnersNew, "new Association Partner")} ($149/month)`, detail: "Send their first weekly bid list within one business day, as the checkout promised.", href: "/admin/command" });
+  const empty = c.emptySearches ?? [];
+  if (empty.length > 0)
+    items.push({
+      key: "empty-searches",
+      kind: "fix",
+      label: `${plural(empty.length, "search", "searches")} found nothing this week`,
+      detail: empty.slice(0, 3).map((e) => `"${e.term}"${e.states.length ? ` (${e.states.slice(0, 2).join(", ")})` : ""}`).join(" · "),
+      href: "#empty-searches",
+    });
   if (c.dataFeedRequestsNew > 0)
     items.push({ key: "data-feed", kind: "money", label: `${plural(c.dataFeedRequestsNew, "data feed request")}`, detail: "A business asked for the $299–$799/mo bid data feed. Reply the same day.", href: "/admin/data-access" });
   if (c.bidFitReviewsOpen > 0)

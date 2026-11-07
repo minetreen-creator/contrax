@@ -66,6 +66,7 @@ import { fetchTnEpbBids, fetchTnKingsportBids } from "./sources/tn-epb-kingsport
 import { fetchTnUtCapitalBids } from "./sources/tn-ut-capital";
 import { CA_DIRECT_BATCH2, CA_DIRECT_SOURCES } from "./sources/ca-direct";
 import { PAVA_BEACON_SOURCES } from "./sources/pava-beacon";
+import { REVIZE_SOURCES } from "./sources/revize-bids";
 import { fetchOhFranklinCountyBids } from "./sources/oh-franklin-county";
 import { fetchNjHarrisonBids } from "./sources/nj-harrison";
 import { fetchVaLoudounBids } from "./sources/va-loudoun";
@@ -566,6 +567,8 @@ export const TAIL_SOURCES: SyncSource[] = [
   ...CA_DIRECT_BATCH2,
   // Pennsylvania and Virginia buyers on Beacon (owner 2026-11-07).
   ...PAVA_BEACON_SOURCES,
+  // Revize "Bid Postings" boards (owner 2026-11-07).
+  ...REVIZE_SOURCES,
   { name: "oh_franklin_county", fetchFn: () => fetchOhFranklinCountyBids() },
   { name: "nj_harrison", fetchFn: () => fetchNjHarrisonBids() },
   { name: "va_loudoun", fetchFn: fetchVaLoudounBids },

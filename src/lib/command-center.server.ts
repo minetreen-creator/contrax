@@ -1,6 +1,6 @@
 import { sql } from "~/db";
 import { likelyCause } from "~/jobs/source-alerts";
-import type { CommandCounts } from "~/lib/command-center";
+import { isSearchNoise, type CommandCounts, type EmptySearch } from "~/lib/command-center";
 
 /** Each read is separate and fail-soft: a missing table reads as zero, never as an invented number. */
 async function n(q: () => Promise<unknown>): Promise<number> {
@@ -56,6 +56,27 @@ export async function commandCounts(): Promise<CommandCounts> {
     last(() => db`SELECT MAX(created_at) AS at FROM sync_logs`),
     last(() => db`SELECT MAX(fetched_at) AS at FROM local_award_snapshots`),
   ]);
+  // Step 3 (owner 2026-11-07): this week's Radar searches that found 0-1 bids.
+  // Terms and counts only; who searched is never read.
+  let emptySearches: EmptySearch[] = [];
+  try {
+    const rows = (await db`
+      SELECT LOWER(TRIM(trade)) AS term, COUNT(*)::int AS searches,
+             COUNT(DISTINCT COALESCE(visitor_id, user_id::text))::int AS people,
+             MAX(matched)::int AS best, ARRAY_REMOVE(ARRAY_AGG(DISTINCT NULLIF(TRIM(state), '')), NULL) AS states
+      FROM radar_search_log
+      WHERE created_at > NOW() - INTERVAL '7 days'
+      GROUP BY 1
+      HAVING MAX(matched) <= 1
+      ORDER BY 3 DESC, 2 DESC
+      LIMIT 40`) as { term: string; searches: number; people: number; best: number; states: string[] | null }[];
+    emptySearches = rows
+      .filter((r) => !isSearchNoise(r.term))
+      .slice(0, 10)
+      .map((r) => ({ term: r.term, searches: Number(r.searches), people: Number(r.people), bestMatched: Number(r.best), states: (r.states ?? []).map(String).sort() }));
+  } catch {
+    emptySearches = [];
+  }
   const { partnerCounts } = await import("~/lib/association-partner.server");
   const partners = await partnerCounts();
   return {
@@ -75,6 +96,7 @@ export async function commandCounts(): Promise<CommandCounts> {
     lastSyncAt,
     federalFiguresFailing,
     federalFiguresLastAt,
+    emptySearches,
   };
 }
 

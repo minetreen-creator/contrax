@@ -68,6 +68,7 @@ import { CA_DIRECT_BATCH2, CA_DIRECT_SOURCES } from "./sources/ca-direct";
 import { PAVA_BEACON_SOURCES } from "./sources/pava-beacon";
 import { REVIZE_SOURCES } from "./sources/revize-bids";
 import { FL_DIRECT_SOURCES } from "./sources/fl-direct";
+import { AR_IONWAVE_SOURCES } from "./sources/ar-ionwave";
 import { fetchOhFranklinCountyBids } from "./sources/oh-franklin-county";
 import { fetchNjHarrisonBids } from "./sources/nj-harrison";
 import { fetchVaLoudounBids } from "./sources/va-loudoun";
@@ -572,6 +573,8 @@ export const TAIL_SOURCES: SyncSource[] = [
   ...REVIZE_SOURCES,
   // Florida read directly: FDOT lettings, Polk, Lee, Tampa construction (owner 2026-11-07: "Yes do the Florida batch").
   ...FL_DIRECT_SOURCES,
+  // Arkansas IonWave boards (owner 2026-11-07).
+  ...AR_IONWAVE_SOURCES,
   { name: "oh_franklin_county", fetchFn: () => fetchOhFranklinCountyBids() },
   { name: "nj_harrison", fetchFn: () => fetchNjHarrisonBids() },
   { name: "va_loudoun", fetchFn: fetchVaLoudounBids },

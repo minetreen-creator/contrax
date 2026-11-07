@@ -686,6 +686,16 @@ export const COUNTY_CIVICENGAGE_CONFIGS: readonly CivicEngageBoardConfig[] = [
   board("ct_windsor", "www.windsorct.gov", "Town of Windsor", "Windsor, CT", "windsorctcivic"),
   board("ct_wolcott", "www.wolcottct.org", "Town of Wolcott", "Wolcott, CT", "wolcottctcivic"),
   board("ct_woodbridge", "www.woodbridgect.org", "Town of Woodbridge", "Woodbridge, CT", "woodbridgectcivic"),
+  // Arkansas, captured 2026-11-07 (owner: "Add Arkansas city and county boards").
+  board("ar_jonesboro", "www.jonesboroar.gov", "City of Jonesboro", "Jonesboro, AR", "jonesboroarcivic"),
+  board("ar_siloam_springs", "www.siloamsprings.gov", "City of Siloam Springs", "Siloam Springs, AR", "siloamspringsarcivic"),
+  board("ar_rogers", "www.rogersar.gov", "City of Rogers", "Rogers, AR", "rogersarcivic"),
+  board("ar_bentonville", "www.bentonville.ar.gov", "City of Bentonville", "Bentonville, AR", "bentonvillearcivic"),
+  board("ar_russellville", "www.russellvillearkansas.org", "City of Russellville", "Russellville, AR", "russellvillearcivic"),
+  board("ar_cabot", "www.cabotar.gov", "City of Cabot", "Cabot, AR", "cabotarcivic"),
+  board("ar_maumelle", "www.maumelle.gov", "City of Maumelle", "Maumelle, AR", "maumellearcivic"),
+  board("ar_west_memphis", "www.westmemphisar.gov", "City of West Memphis", "West Memphis, AR", "westmemphisarcivic"),
+  board("ar_garland_county", "www.garlandcounty.org", "Garland County", "Garland County, AR", "garlandcountyarcivic"),
 ];
 
 export function countyCivicEngageConfig(source: string): CivicEngageBoardConfig {

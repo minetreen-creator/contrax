@@ -84,3 +84,6 @@ bonfire | sutter | Sutter County | open=4 | same=true
 bonfire | ventura | County of Ventura | open=3 | same=true
 bonfire | egusd | Elk Grove Unified School District | open=1 | same=true
 bonfire | alamedacounty, yolocounty, cityofirvine, oaklandca (Capital Contracts Division), cityofwestminster | open=0 | same=true
+
+Arkansas, captured 2026-11-07 by the same job pattern (owner: "Add Arkansas city and county boards"):
+bonfire | littlerock | title=Portal — Open Opportunities - City of Little Rock | open=8 | same=true | sha=0cd9911ee5fd4b6c

@@ -61,6 +61,8 @@ const OPEN: Record<string, number> = {
   ct_bristol: 2, ct_brooklyn: 1, ct_cheshire: 2, ct_coventry: 1, ct_enfield: 1, ct_greenwich: 3, ct_madison: 2, ct_middlefield: 1, ct_middletown: 5, ct_norwalk: 4, ct_old_saybrook: 3, ct_orange: 1, ct_rocky_hill: 1, ct_simsbury: 2, ct_south_windsor: 1, ct_sterling: 1, ct_torrington: 1, ct_trumbull: 3, ct_willington: 1, ct_windham: 1, ct_windsor: 2, ct_woodbridge: 1,
   // North Carolina, captured 2026-11-05.
   nc_orange_county: 2, nc_huntersville: 4, nc_fuquay_varina: 2, nc_davidson_county: 1, nc_moore_county: 1, nc_craven_county: 2, nc_carteret_county: 4, nc_burke_county: 2, nc_wilkes_county: 1, nc_haywood_county: 6, nc_jackson_county: 4, nc_lumberton: 2, nc_clemmons: 1,
+  // Arkansas, captured 2026-11-07 (Jonesboro's yearly "Bid Tabulations" pages are skipped as not bids).
+  ar_jonesboro: 2, ar_siloam_springs: 2, ar_rogers: 1,
   wa_marysville: 1, wa_redmond: 4, wa_bothell: 1, wa_puyallup: 1, wa_bremerton: 3, wa_des_moines: 2, wa_anacortes: 1, wa_yakima_county: 1, wa_franklin_county: 4, wa_cowlitz_county: 2, wa_grant_county: 1, wa_clallam_county: 1, wa_jefferson_county: 1, id_idaho_falls: 2, id_pocatello: 2, id_kootenai_county: 1,
 };
 // Real boards with nothing open at capture (scheduled so new bids flow in), so no file.
@@ -83,14 +85,15 @@ const NO_CAPTURE = new Set([
   "fl_hialeah", "fl_hollywood", "fl_santa_rosa_county", "fl_st_cloud", "fl_ocoee", "fl_bartow", "fl_fort_walton_beach", "fl_boynton_beach", "fl_jupiter", "fl_palm_beach_gardens", "fl_deerfield_beach", "fl_homestead", "fl_aventura", "oh_parma", "oh_canton", "oh_lucas_county", "oh_ashtabula_county", "oh_grove_city", "oh_upper_arlington", "oh_reynoldsburg", "oh_lancaster", "oh_fairfield", "oh_beavercreek", "oh_centerville", "oh_lima", "oh_barberton", "oh_shaker_heights", "oh_solon", "mi_taylor", "mi_st_clair_shores", "mi_royal_oak", "mi_battle_creek", "mi_portage", "mi_monroe_county", "mi_eaton_county", "mi_lenawee_county", "mi_holland", "mi_canton_township", "mi_walker", "mi_clinton_township", "mi_chesterfield_township", "mi_inkster", "wa_mukilteo", "wa_monroe", "co_westminster", "co_pueblo", "co_broomfield", "co_grand_junction", "co_montrose", "co_durango", "co_lafayette", "co_firestone", "co_frederick", "co_aspen", "co_greenwood_village", "or_wilsonville", "or_forest_grove", "or_lebanon", "or_la_grande", "or_central_point", "or_eagle_point", "al_dothan", "al_gadsden", "al_northport", "al_shelby_county", "al_st_clair_county", "al_orange_beach", "al_hartselle", "al_leeds", "al_muscle_shoals", "tn_clarksville", "tn_blount_county", "tn_madison_county", "tn_millington", "tn_lakeland", "in_warsaw",
   "pa_lancaster_county", "pa_york_county", "pa_cumberland_county", "pa_butler_county", "pa_centre_county", "il_normal", "il_dekalb", "il_kankakee_county", "ky_independence", "mn_st_joseph", "mo_wildwood", "mo_webster_groves", "mo_republic", "mo_clay_county", "mo_cole_county", "ky_henderson", "oh_berea", "ky_kenton_county", "ky_hardin_county", "ky_boyd_county", "mn_blaine", "mn_lakeville", "mn_maplewood", "mn_cottage_grove", "mn_richfield", "mn_andover", "mn_oakdale", "mn_chaska", "mn_prior_lake", "mn_elk_river", "mn_red_wing", "mn_brainerd", "mn_anoka_county", "mn_wright_county", "wi_green_bay", "wi_eau_claire", "wi_brookfield", "wi_greenfield", "wi_oak_creek", "wi_superior", "wi_fitchburg", "wi_germantown", "wi_walworth_county", "wi_ozaukee_county", "wi_chippewa_county", "ia_johnston", "az_sahuarita", "az_cottonwood", "ok_edmond", "ok_lawton", "ok_stillwater", "ks_shawnee", "ok_yukon", "ok_duncan", "ok_sand_springs", "ok_el_reno", "ok_tahlequah", "ok_pottawatomie_county", "sc_beaufort", "sc_lancaster_county", "ga_marietta", "ga_stonecrest", "ga_peachtree_corners", "ga_dalton", "ga_columbia_county", "ga_camden_county", "ma_pittsfield", "al_chelsea", "ma_chelmsford", "de_milford", "ma_lexington", "ma_wakefield",
   "nc_sanford", "nc_lincoln_county", "nc_nash_county", "nc_caldwell_county", "nc_pender_county", "nc_monroe", "nc_boone", "nc_indian_trail", "nc_carolina_beach", "nc_emerald_isle", "nc_lincolnton",
+  "ar_bentonville", "ar_russellville", "ar_cabot", "ar_maumelle", "ar_west_memphis", "ar_garland_county",
   "wa_spokane_valley", "wa_pasco", "wa_kennewick", "wa_mount_vernon", "wa_longview", "wa_north_bend", "wa_port_orchard", "wa_burlington", "wa_washougal", "wa_ridgefield", "wa_ellensburg", "wa_west_richland", "wa_cheney", "wa_liberty_lake", "wa_pierce_county", "wa_snohomish_county", "wa_island_county", "wa_douglas_county", "wa_adams_county", "wa_asotin_county", "id_twin_falls", "id_lewiston", "id_eagle", "wy_laramie", "wy_campbell_county", "wy_albany_county", "wy_green_river", "wy_torrington", "wy_carbon_county", "wy_goshen_county",
 ]);
 
 describe("county CivicEngage boards", () => {
   test("327 boards with unique sources and id prefixes", () => {
-    expect(COUNTY_CIVICENGAGE_CONFIGS).toHaveLength(640);
-    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.source)).size).toBe(640);
-    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.idPrefix)).size).toBe(640);
+    expect(COUNTY_CIVICENGAGE_CONFIGS).toHaveLength(649);
+    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.source)).size).toBe(649);
+    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.idPrefix)).size).toBe(649);
   });
 
   for (const cfg of COUNTY_CIVICENGAGE_CONFIGS.filter((c) => !NO_CAPTURE.has(c.source))) {

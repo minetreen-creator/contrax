@@ -212,6 +212,8 @@ const BOARDS: Board[] = [
   { tenant: "pgh2o", source: "pa_pwsa_bonfire", stateName: "Pennsylvania", place: "Pittsburgh Water", buyer: "Pittsburgh Water and Sewer Authority", idPrefix: "pgh2obonfire", location: "Pittsburgh, PA" },
   { tenant: "flypittsburgh", source: "pa_pit_airport_bonfire", stateName: "Pennsylvania", place: "Pittsburgh International Airport", buyer: "Allegheny County Airport Authority (Pittsburgh International Airport)", idPrefix: "flypittsburghbonfire", location: "Pittsburgh, PA" },
   { tenant: "pha", source: "pa_pha_bonfire", stateName: "Pennsylvania", place: "Philadelphia Housing Authority", buyer: "Philadelphia Housing Authority", idPrefix: "phabonfire", location: "Philadelphia, PA" },
+  // Arkansas (owner 2026-11-07: "Add Arkansas city and county boards").
+  { tenant: "littlerock", source: "ar_little_rock_bonfire", stateName: "Arkansas", place: "Little Rock", buyer: "City of Little Rock", idPrefix: "littlerockbonfire", location: "Little Rock, AR" },
   { tenant: "joliet", source: "il_joliet_bonfire", stateName: "Illinois", place: "Joliet", buyer: "City of Joliet, Illinois", idPrefix: "jolietbonfire", location: "Joliet, IL" },
   { tenant: "owensboro", source: "ky_owensboro_bonfire", stateName: "Kentucky", place: "Owensboro", buyer: "City of Owensboro, Kentucky", idPrefix: "owensborobonfire", location: "Owensboro, KY" },
   { tenant: "lexingtonky", source: "ky_lexington_bonfire", stateName: "Kentucky", place: "Lexington", buyer: "Lexington-Fayette Urban County Government", idPrefix: "lexingtonkybonfire", location: "Lexington, KY" },

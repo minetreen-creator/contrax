@@ -64,7 +64,8 @@ jobs:
     # 60 (was 30, 2026-10-22): a full run took ~20 min before the BidNet
     # groups were added; NY/FL/NC/TX/OH/PA add ~4–5 min (the first run with
     # them reached the 30-minute cap) and the 38 remaining groups ~10 more.
-    timeout-minutes: 60
+    # 1,000+ sources now take ~55 minutes to read (owner 2026-11-07: a run was cut off at 60).
+    timeout-minutes: 90
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}

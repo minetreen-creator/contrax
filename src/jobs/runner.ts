@@ -208,7 +208,7 @@ import type { RawBid } from "./sources/sam-gov";
 import { CITY_SOURCES } from "../lib/city-procurement";
 import { isAwardTypeSource, resolveSourceClass } from "../lib/source-class";
 import { type NewBidSummary } from "../lib/email";
-import { createNotification } from "../lib/notifications";
+import { createNotificationsBatch } from "../lib/notifications";
 import { generateBidAlerts } from "../lib/bid-alerts";
 import { inferNaics } from "../lib/naics-infer";
 import {
@@ -1965,7 +1965,7 @@ export async function runSync(): Promise<SyncResult> {
   if (opportunityNewBids.length > 0) {
     try {
       const profiles = await sql`SELECT user_id, industry, locations, service_categories, certifications FROM business_profiles WHERE user_id IS NOT NULL` as any[];
-      let notified = 0;
+      const pending: Parameters<typeof createNotificationsBatch>[0][number][] = [];
       for (const bid of opportunityNewBids) {
         const text = `${bid.title} ${bid.agency} ${bid.location || ""}`.toLowerCase();
         for (const profile of profiles) {
@@ -1985,12 +1985,13 @@ export async function runSync(): Promise<SyncResult> {
             ? profileCertifications.some((cert) => setAside.includes(cert.toLowerCase()) || cert.toLowerCase().includes(setAside))
             : !industry || text.includes(industry) || services.some((s: unknown) => text.includes(String(s).toLowerCase())) || locations.some((l: unknown) => text.includes(String(l).toLowerCase()));
           if (matches) {
-            await createNotification({ userId: Number(profile.user_id), type: "new_bid_match", title: "New bid matches your profile", message: `"${bid.title}" from ${bid.agency} matches your business profile.`, bidId: bid.bid_id });
-            notified++;
+            pending.push({ userId: Number(profile.user_id), type: "new_bid_match", title: "New bid matches your profile", message: `"${bid.title}" from ${bid.agency} matches your business profile.`, bidId: bid.bid_id });
           }
         }
       }
-      console.log(`🔔 Created ${notified} bid match notification(s)`);
+      // One batched insert, not three queries per match (owner 2026-11-07: a 375-new-bid run timed out here).
+      const notified = await createNotificationsBatch(pending);
+      console.log(`🔔 Created ${notified} bid match notification(s) (${pending.length} matches)`);
     } catch (err) {
       console.error("🔔 Failed to create bid match notifications:", (err as Error).message);
     }

@@ -43,12 +43,20 @@ export interface ScanQueryFrags {
  * STATE PASS (owner 2026-10-03, "only 5 matches?"): the 100 soonest rows are
  * nationwide, so for a common trade a single state kept only a handful after
  * the JS state filter (a Newport, NC janitorial scan showed 5). With a
- * `stateCode`, a second pass with the same filters also pulls up to 100 rows
+ * `stateCode`, a second pass with the same filters also pulls up to IN_STATE_SCAN_LIMIT rows
  * whose location or agency text mentions that state (full name, or the code as
  * a standalone token: the same rule as resolveStateFromText). The hint is a
  * SUPERSET only; the caller's JS geography check stays the single authority.
  * Results are merged, de-duplicated by id and returned in due-date order.
  */
+/**
+ * Rows the state pass may read (owner 2026-11-07, "Do the same check for other trades"): at 100, the
+ * pass filled up with description-only keyword rows before reaching real title matches, so a common
+ * trade lost a third or more of its in-state matches (HVAC/CA showed 40 of 75, landscaping/TX 35 of 55).
+ * The JS strong-match and geography checks still decide what is shown.
+ */
+export const IN_STATE_SCAN_LIMIT = 2000;
+
 export async function runKeywordScanQuery(
   sqlFactory: unknown,
   frags: ScanQueryFrags,
@@ -85,7 +93,7 @@ export async function runKeywordScanQuery(
              OR COALESCE(location,'') ~* ${hint.token}
              OR COALESCE(agency,'') ~* ${hint.token})
       ORDER BY due_date ASC NULLS LAST
-      LIMIT 100
+      LIMIT ${IN_STATE_SCAN_LIMIT}
     `;
     return mergeScanRows(nationwide, inState);
   } catch (cause) {

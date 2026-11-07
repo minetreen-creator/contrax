@@ -530,6 +530,8 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
       "refrigeration",
       "building automation",
       "geothermal",
+      // Owner 2026-11-07: "Computer Room Air Conditioner (CRAC) System Replacement".
+      "air conditioner",
     ],
     naics: ["238220"],
   },
@@ -573,6 +575,17 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
       "tree removal",
       "tree replacement",
       "brush removal",
+      // Owner 2026-11-07 (trade search check): grounds work worded without "landscap"/"lawn".
+      "irrigation system",
+      "irrigation maintenance",
+      "irrigation repair",
+      "irrigation services",
+      "herbicide",
+      "turf management",
+      "athletic field maintenance",
+      "litter removal",
+      "litter pickup",
+      "litter abatement",
       "vegetation management",
       "debrushing",
     ],
@@ -623,6 +636,9 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
       "armed guards",
       "unarmed guard",
       "badge guard",
+      // Owner 2026-11-07: "Unarmed Security Services", "24 Hour Armed Security Services".
+      "armed security",
+      "unarmed security",
     ],
     naics: ["561612"],
   },
@@ -778,6 +794,11 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
       "refuse",
       "refuse collection",
       "rubbish",
+      // Owner 2026-11-07: container service worded without "waste".
+      "roll-off",
+      "roll off",
+      "dumpster",
+      "recycling collection",
     ],
     naics: ["562111"],
   },
@@ -1173,6 +1194,41 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
   // matching only their literal word ("siding", "gutters", "insulation", "well
   // service" found 0-3 bids), and "window replacement" stemmed into janitorial
   // (its "window cleaning"). Each now has the phrases bids actually use.
+  // Owner 2026-11-07 (trade search check): electrical, plumbing and painting searches only had their
+  // NAICS infer words, so generator, lighting, signal, backflow, water heater and recoating jobs were
+  // missed. Phrase-only (exactOnly) so a stem never widens them.
+  "electrical-contracting": {
+    label: "Electrical",
+    synonyms: [
+      "electrical", "electrician", "electrical contractor", "electrical services", "electrical repairs",
+      "electrical wiring", "wiring", "electrical systems",
+      "generator installation", "generator repair", "generator replacement", "generator maintenance",
+      "generator inspection", "emergency generator", "standby generator", "diesel generator",
+      "transformer replacement", "switchgear", "street lighting", "lighting retrofit", "lighting upgrade",
+      "lighting improvements", "led lighting", "traffic signal", "signalization",
+    ],
+    naics: ["238210"],
+    exactOnly: true,
+  },
+  "plumbing-contracting": {
+    label: "Plumbing",
+    synonyms: [
+      "plumbing", "plumber", "plumbing services", "plumbing repairs", "backflow", "water heater",
+      "pipe repair", "pipe replacement", "pipe and valve", "valve replacement", "fixture replacement",
+      "drain cleaning", "sewer line repair",
+    ],
+    naics: ["238220"],
+    exactOnly: true,
+  },
+  "painting-coatings": {
+    label: "Painting/Coatings",
+    synonyms: [
+      "painting", "painter", "paint", "coatings", "recoating", "protective coating", "floor coating",
+      "tank coating", "sandblasting", "abrasive blasting", "wall covering",
+    ],
+    naics: ["238320"],
+    exactOnly: true,
+  },
   "siding-gutters": {
     label: "Siding/Gutters",
     synonyms: [
@@ -1834,13 +1890,16 @@ export function serviceTradeMismatch(titleText: string, expansion: TradeExpansio
   if (codes.includes("238330") && /\bwalking floors?\b/.test(titleText)) return true;
   // Roof tile is roofing, not flooring.
   if (codes.includes("238330") && /\broof(?:ing)? til(?:e|es|ing)\b/.test(titleText) && !/\bfloor/.test(titleText)) return true;
-  const serviceTrade = codes.some((c) => c === "561730" || c === "238220" || c === "561612" || c === "238120" || c === "238910" || c.startsWith("484"));
+  const serviceTrade = codes.some((c) => c === "561730" || c === "238220" || c === "561612" || c === "238120" || c === "238910" || c === "238210" || c === "238320" || c === "562111" || c.startsWith("484"));
   if (!serviceTrade) return false;
   if (codes.some((c) => c.startsWith("484")) && /\b(?:lift trucks?|forklifts?|pallet jacks?)\b/.test(titleText)) return true;
   if (codes.includes("561612") && /\bkitchen patrol\b/.test(titleText)) return true;
   // A truck for sale or a chassis upfit is a vehicle buy, not hauling work
   // ("2011 Freightliner Coronado", "Upfit of two (2) 2026 Freightliner Chassis").
   if (codes.some((c) => c.startsWith("484")) && /\b(?:upfit|chassis|(?:19|20)\d{2}\s+(?:freightliner|peterbilt|kenworth|mack|volvo|international|western star))\b/.test(titleText)) return true;
+  // Bags, carts, containers, pumps or a truck bought for trash are goods, not collection work
+  // ("Trash Bags", "Diesel Powered Trash Pump", owner 2026-11-07).
+  if (codes.includes("562111") && /\b(?:bags?|liners?|carts?|cans?|containers?|pumps?|compactors?|trucks?|vehicles?)\b/.test(titleText) && !/\b(?:services?|collection|hauling|removal|disposal|pick-?up|rental|rentals)\b/.test(titleText)) return true;
   // Buying or leasing a truck is a vehicle buy too ("Dump Truck Purchase", owner 2026-11-07).
   if (codes.some((c) => c.startsWith("484")) && /\btrucks?\b/.test(titleText) && /\b(?:purchase|procurement|acquisition|lease|leasing|surplus|auction|for sale)\b/.test(titleText) && !/\b(?:hauling|services?|rental with operator|delivery|transport(?:ation)?)\b/.test(titleText)) return true;
   // Welding machines, guns, wire and gear are an equipment buy, not welding work

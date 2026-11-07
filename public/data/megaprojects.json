@@ -151,7 +151,10 @@
     "status": "Announced October 2026; operations expected in 2027",
     "summary": "Over a million square feet at AllianceTexas making commercial chillers for data centers, hospitals, schools and industry.",
     "generalContractor": null,
-    "supplierUrl": null,
+    "supplierUrl": {
+      "label": "Carrier supplier information",
+      "url": "https://www.carrier.com/us/en/suppliers/"
+    },
     "source": {
       "name": "Carrier press release, Oct 2026",
       "url": "https://www.carrier.com/us/en/news/corporate/2026/carrierto-invest-more-than-600-million-to-expand-advanced-us-manufacturing-and-engineering-capacity/"
@@ -436,7 +439,10 @@
     "status": "Under construction since March 2026; production late 2027",
     "summary": "A plant making central computers for software-defined vehicles.",
     "generalContractor": null,
-    "supplierUrl": null,
+    "supplierUrl": {
+      "label": "Valeo supplier portal",
+      "url": "https://suppliers.valeo.com/suppliers/"
+    },
     "source": {
       "name": "Valeo press release, Mar 2026",
       "url": "https://www.barchart.com/story/news/932442/valeo-breaks-ground-on-225-million-high-tech-plant-in-mcallen-texas-for-software-defined-vehicle-technology"
@@ -549,8 +555,14 @@
     "jobsNote": "cut from 2,500 originally",
     "status": "Started making LFP battery cells in June 2026",
     "summary": "Lithium-iron-phosphate battery cells for a Ford midsize EV pickup and for home energy storage.",
-    "generalContractor": null,
-    "supplierUrl": null,
+    "generalContractor": {
+      "name": "Walbridge",
+      "url": "https://choosemarshall.com/news/event-in-marshall-attracts-hundreds-of-local-companies-interested-in-helping-build-blueoval-battery-park-michigan/"
+    },
+    "supplierUrl": {
+      "label": "Ford supplier diversity",
+      "url": "https://corporate.ford.com/careers/inclusive-hiring/diversity/supplier-diversity-and-inclusion/"
+    },
     "source": {
       "name": "Bridge Michigan, Dec 2025",
       "url": "https://bridgemi.com/business-watch/ford-retreats-from-evs-after-michigan-spends-big-on-subsidies-for-battery-plants/"
@@ -571,7 +583,10 @@
     "status": "First facility started up November 2025",
     "summary": "Recycles used lithium-ion batteries into lithium, cobalt, nickel and copper on a 600-acre Berkeley County campus.",
     "generalContractor": null,
-    "supplierUrl": null,
+    "supplierUrl": {
+      "label": "Redwood Materials supplier interest form (SC Commerce)",
+      "url": "https://scbizdev.sccommerce.com/suppliers/active-requests/redwood"
+    },
     "source": {
       "name": "Recycling Today, Nov 2025",
       "url": "https://www.recyclingtoday.com/news/redwood-starts-up-south-carolina-operations"
@@ -661,7 +676,10 @@
     "status": "Completed and in full production in 2026",
     "summary": "An electric arc furnace flat-rolled steel mill next to the original Big River Steel Works.",
     "generalContractor": null,
-    "supplierUrl": null,
+    "supplierUrl": {
+      "label": "Doing business with U.S. Steel",
+      "url": "https://www.ussteel.com/doing-business-with-u.-s.-steel"
+    },
     "source": {
       "name": "Arkansas Business, 2026",
       "url": "https://www.arkansasbusiness.com/article/land-of-steel-expands-osceola-big-river-steel-direct-reduced-iron/"
@@ -682,7 +700,10 @@
     "status": "Broke ground fall 2026; under construction",
     "summary": "A new plant on the same Big River Steel campus making direct reduced iron to feed the steel furnaces. Separate from the Big River 2 mill.",
     "generalContractor": null,
-    "supplierUrl": null,
+    "supplierUrl": {
+      "label": "Doing business with U.S. Steel",
+      "url": "https://www.ussteel.com/doing-business-with-u.-s.-steel"
+    },
     "source": {
       "name": "U.S. Steel, Apr 2026",
       "url": "https://www.ussteel.com/media/newsroom/-/blogs/u-s-steel-announces-first-of-its-kind-in-the-united-states-dri-facility-at-big-river-steel-works"
@@ -723,7 +744,10 @@
     "jobsNote": "new jobs across both sites",
     "status": "Ramping up production in 2026",
     "summary": "Solar ingots, wafers, cells and panels at a new Cartersville plant and an expanded Dalton plant.",
-    "generalContractor": null,
+    "generalContractor": {
+      "name": "Gray Construction",
+      "url": "https://www.gray.com/projects/q-cells/"
+    },
     "supplierUrl": null,
     "source": {
       "name": "Office of Georgia Gov. Brian Kemp, Jan 2023",
@@ -817,7 +841,10 @@
     "status": "Announced March 2026; design and construction over about 5 to 7 years",
     "summary": "The Belgian drugmaker's first U.S. biologics plant, 460,000 square feet on about 79 acres.",
     "generalContractor": null,
-    "supplierUrl": null,
+    "supplierUrl": {
+      "label": "Become a UCB supplier",
+      "url": "https://www.ucb.com/our-company/Suppliers/become-our-supplier"
+    },
     "source": {
       "name": "Gwinnett County, Mar 2026",
       "url": "https://www.gwinnettcounty.com/-/news-events/news-releases/news-details/gwinnett-county-announces-2-billion-ucb-manufacturing-facility-at-rowen"
@@ -838,7 +865,10 @@
     "status": "First plant under construction (operating around 2028); second plant announced January 2026",
     "summary": "Biologic medicines, with a second plant for cancer and neurology drugs.",
     "generalContractor": null,
-    "supplierUrl": null,
+    "supplierUrl": {
+      "label": "J&J supplier inclusion",
+      "url": "https://www.jnj.com/suppliers/supplier-diversity-registration-portal"
+    },
     "source": {
       "name": "NC Commerce, Oct 2024",
       "url": "https://www.commerce.nc.gov/news/press-releases/2024/10/01/governor-cooper-announces-2-billion-wilson-county-investment-johnson-johnson-new-manufacturing"
@@ -925,7 +955,10 @@
     "status": "Operating since September 2024",
     "summary": "Thin-film solar panels, 3.5 gigawatts a year.",
     "generalContractor": null,
-    "supplierUrl": null,
+    "supplierUrl": {
+      "label": "First Solar supplier form",
+      "url": "https://www.firstsolar.com/About-Us/Contact-Us/Form---Supplier"
+    },
     "source": {
       "name": "First Solar, Sep 2024",
       "url": "https://investor.firstsolar.com/news/news-details/2024/First-Solar-Inaugurates-1.1-Billion-Alabama-Facility-Adds-3.5-GW-of-Vertically-Integrated-American-Solar-Manufacturing-Capacity/default.aspx"
@@ -945,8 +978,14 @@
     "jobsNote": "more than",
     "status": "Operating since November 2025",
     "summary": "Thin-film solar panels, 3.5 gigawatts a year at full output.",
-    "generalContractor": null,
-    "supplierUrl": null,
+    "generalContractor": {
+      "name": "Rudolph Libbe",
+      "url": "https://investor.firstsolar.com/news/news-details/2023/First-Solar-Breaks-Ground-on-1.1-Billion-3.5-GW-Louisiana-Manufacturing-Facility/default.aspx"
+    },
+    "supplierUrl": {
+      "label": "First Solar supplier form",
+      "url": "https://www.firstsolar.com/About-Us/Contact-Us/Form---Supplier"
+    },
     "source": {
       "name": "First Solar (Business Wire), Nov 2025",
       "url": "https://www.businesswire.com/news/home/20251121295144/en"
@@ -967,7 +1006,10 @@
     "status": "Operating since March 2025",
     "summary": "Vaccines, including Gardasil.",
     "generalContractor": null,
-    "supplierUrl": null,
+    "supplierUrl": {
+      "label": "Merck: what we buy",
+      "url": "https://www.merck.com/company-overview/suppliers/what-we-buy/"
+    },
     "source": {
       "name": "Merck U.S. investment fact sheet, Apr 2025",
       "url": "https://www.merck.com/wp-content/uploads/sites/124/2025/04/MerckUSCapitalInvestmentFactSheet.pdf"
@@ -988,7 +1030,10 @@
     "status": "Under construction since April 2025; labs in 2028, production by 2030",
     "summary": "A 470,000 square foot biologics plant at Chestnut Run, planned as the future U.S. home of Keytruda production.",
     "generalContractor": null,
-    "supplierUrl": null,
+    "supplierUrl": {
+      "label": "Merck: what we buy",
+      "url": "https://www.merck.com/company-overview/suppliers/what-we-buy/"
+    },
     "source": {
       "name": "Contract Pharma, Apr 2025",
       "url": "https://www.contractpharma.com/breaking-news/merck-breaks-ground-on-1b-biologics-center-of-excellence-in-wilmington-de/"
@@ -1057,7 +1102,10 @@
       "name": "Gilbane-led team (early site work)",
       "url": "https://enr.com/articles/54198-intel-picks-gilbane-for-phase-one-of-20b-ohio-chip-plants"
     },
-    "supplierUrl": null,
+    "supplierUrl": {
+      "label": "Intel potential suppliers",
+      "url": "https://www.intel.com/content/www/us/en/supplier/potential-suppliers.html"
+    },
     "source": {
       "name": "CNBC, Oct 2026",
       "url": "https://www.cnbc.com/2026/10/21/intel-hits-construction-milestone-at-delayed-ohio-chip-fab-.html"
@@ -1077,8 +1125,14 @@
     "jobsNote": "permanent, per the 2021 announcement",
     "status": "Fab 52 in high-volume production since 2025",
     "summary": "Leading-edge chip fabs making Intel's 18A processors.",
-    "generalContractor": null,
-    "supplierUrl": null,
+    "generalContractor": {
+      "name": "Hoffman Construction (Fab 52)",
+      "url": "https://www.enr.com/articles/62647-offsite-assembly-high-velocity-design-help-deliver-fab-plant"
+    },
+    "supplierUrl": {
+      "label": "Intel potential suppliers",
+      "url": "https://www.intel.com/content/www/us/en/supplier/potential-suppliers.html"
+    },
     "source": {
       "name": "Intel press kit, Sep 2021",
       "url": "https://www.intel.com/content/www/us/en/newsroom/resources/press-kit-intel-builds-arizona.html"
@@ -1141,7 +1195,10 @@
     "status": "Expanding; part of GlobalFoundries' $16 billion New York and Vermont plan",
     "summary": "Expanding a chip foundry near Saratoga Springs and adding an advanced packaging center.",
     "generalContractor": null,
-    "supplierUrl": null,
+    "supplierUrl": {
+      "label": "GlobalFoundries supplier information",
+      "url": "https://gf.com/about-gf/suppliers/"
+    },
     "source": {
       "name": "Office of NY Gov. Kathy Hochul, 2024",
       "url": "https://regionalcouncils.ny.gov/press-release/governor-hochul-celebrates-globalfoundries-116-billion-investment-expand"
@@ -1270,7 +1327,10 @@
       "name": "Walbridge",
       "url": "https://www.enr.com/articles/53494-ford-picks-walbridge-as-general-contractor-for-56b-tennessee-plant"
     },
-    "supplierUrl": null,
+    "supplierUrl": {
+      "label": "Walbridge BlueOval City subcontractor site",
+      "url": "https://www.walbridgeblueoval.com"
+    },
     "source": {
       "name": "Tennessee Lookout, Jul 2026",
       "url": "https://tennesseelookout.com/2026/07/23/what-to-know-about-fords-blueoval-city-plant-5-years-later/"
@@ -1311,8 +1371,14 @@
     "jobsNote": null,
     "status": "Producing since 2025; the company restructured in 2025",
     "summary": "Grows silicon carbide crystals and makes 200mm wafers in Chatham County.",
-    "generalContractor": null,
-    "supplierUrl": null,
+    "generalContractor": {
+      "name": "Whiting-Turner",
+      "url": "https://enr.com/articles/56693-southeast-pulse-july-2023"
+    },
+    "supplierUrl": {
+      "label": "Wolfspeed supplier information form",
+      "url": "https://www.wolfspeed.com/company/suppliers-contractors/supplier-information-form"
+    },
     "source": {
       "name": "Wolfspeed facility page",
       "url": "https://www.wolfspeed.com/company/about/chatham-county-materials-facility"
@@ -1353,7 +1419,10 @@
     "jobsNote": "planned over about a decade",
     "status": "Broke ground June 2026; first assembly line targeted for 2029",
     "summary": "A factory for JetZero's blended-wing passenger jet at Piedmont Triad airport.",
-    "generalContractor": null,
+    "generalContractor": {
+      "name": "HITT Contracting (first phase)",
+      "url": "https://www.hitt.com/?p=27050"
+    },
     "supplierUrl": null,
     "source": {
       "name": "ENR, Jun 2026",
@@ -1375,7 +1444,10 @@
     "status": "Modernizing with CHIPS Act support",
     "summary": "Upgrading the Essex Junction fab to make gallium nitride chips.",
     "generalContractor": null,
-    "supplierUrl": null,
+    "supplierUrl": {
+      "label": "GlobalFoundries supplier information",
+      "url": "https://gf.com/about-gf/suppliers/"
+    },
     "source": {
       "name": "VTDigger, Mar 2024",
       "url": "https://vtdigger.org/2024/03/01/globalfoundries-state-officials-celebrate-funding-for-essex-junction-chip-plant/"
@@ -1395,7 +1467,10 @@
     "jobsNote": "projected",
     "status": "Opened July 2025; full output delayed",
     "summary": "Cylindrical EV battery cells, mainly for Tesla.",
-    "generalContractor": null,
+    "generalContractor": {
+      "name": "Turner and Yates (joint venture)",
+      "url": "https://na.panasonic.com/news/panasonic-awards-turner-yates-contract-to-build-ev-battery-plant"
+    },
     "supplierUrl": null,
     "source": {
       "name": "Battery Technology, Jul 2025",
@@ -1459,7 +1534,10 @@
     "status": "Operating since January 2024",
     "summary": "High-volume 3D chip packaging.",
     "generalContractor": null,
-    "supplierUrl": null,
+    "supplierUrl": {
+      "label": "Intel potential suppliers",
+      "url": "https://www.intel.com/content/www/us/en/supplier/potential-suppliers.html"
+    },
     "source": {
       "name": "Intel Newsroom, Jan 2024",
       "url": "https://newsroom.intel.com/corporate/intel-opens-fab-9-in-new-mexico"
@@ -1563,7 +1641,10 @@
     "jobsNote": "permanent jobs; about 500 construction jobs",
     "status": "Broke ground May 6, 2026; production expected in 2029",
     "summary": "A 250,000-square-foot plant in the Bellwether District making a cancer-therapy isotope, with about 500 construction jobs.",
-    "generalContractor": null,
+    "generalContractor": {
+      "name": "Gilbane (preconstruction, core and shell)",
+      "url": "https://www.gilbaneco.com/about/whats-new/news/gilbane-celebrates-groundbreaking-of-terrapower-isotopes-cgmp-manufacturing-facility-in-philadelphia/"
+    },
     "supplierUrl": null,
     "source": {
       "name": "TerraPower",

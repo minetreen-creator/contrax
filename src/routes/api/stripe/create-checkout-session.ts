@@ -4,7 +4,7 @@ import {
   resolveUserIdFromCookie,
   type PlanTier,
 } from "~/lib/stripe";
-import { GUEST_EMAIL_REQUIRED, guestCheckoutAllowed, guestCheckoutEmail, guestNeedsEmail } from "~/lib/starter-offer";
+import { guestCheckoutAllowed, guestCheckoutEmail } from "~/lib/starter-offer";
 
 /**
  * POST /api/stripe/create-checkout-session
@@ -66,9 +66,6 @@ async function handler({ request }: { request: Request }) {
         { error: "Sign in to choose a Contrax plan." },
         { status: 401 },
       );
-    }
-    if (guestNeedsEmail(userId, body)) {
-      return Response.json({ error: GUEST_EMAIL_REQUIRED, needEmail: true }, { status: 400 });
     }
 
     if (!body.planTier || !(VALID_TIERS as string[]).includes(body.planTier)) {

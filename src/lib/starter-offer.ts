@@ -55,22 +55,18 @@ export function guestCheckoutAllowed(body: {
 }
 
 /**
- * The guest's email, asked for before Stripe (owner 2026-11-04: "yes add the
- * email step"). Guests who left the Stripe page never typed one, so the hourly
- * checkout follow-up had no one to write to. It is also where the 6 AM bid
- * emails go, and Stripe receives it pre-filled. PURE.
+ * A guest's email, when we already have one, pre-fills Stripe's own email box.
+ * Owner 2026-11-07 ("Trace it and build it"): the separate "where should we
+ * send your 6 AM emails?" box we showed before Stripe (added 2026-11-04) lost
+ * every real guest who saw it in 30 days (3 of 3, all on phones), so guests now
+ * go straight to Stripe, which collects the email itself. The account is still
+ * created from the paid checkout (pay first, account after). PURE.
  */
-export const GUEST_EMAIL_REQUIRED = "Enter the email where your 6 AM bid emails should go.";
 const GUEST_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 export function guestCheckoutEmail(body: { email?: unknown }): string | null {
   const e = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
   return e.length <= 200 && GUEST_EMAIL_RE.test(e) ? e : null;
-}
-
-/** A guest $5 checkout with no usable email (the daily path check is exempt). */
-export function guestNeedsEmail(userId: unknown, body: { email?: unknown; probe?: string }): boolean {
-  return userId == null && body.probe !== "path-check" && guestCheckoutEmail(body) === null;
 }
 
 export type PostCheckoutAccess =

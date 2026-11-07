@@ -83,16 +83,12 @@ async function handleCreateCheckoutSession(req: Request): Promise<Response> {
     };
     // Except the monthly Starter checkout: pay first, account after (CEO
     // 2026-10-22, src/lib/starter-offer.ts guestCheckoutAllowed).
-    const { GUEST_EMAIL_REQUIRED, guestCheckoutAllowed, guestCheckoutEmail, guestNeedsEmail } = await import("./src/lib/starter-offer.ts");
+    const { guestCheckoutAllowed, guestCheckoutEmail } = await import("./src/lib/starter-offer.ts");
     if (userId == null && !guestCheckoutAllowed(body)) {
       return new Response(
         JSON.stringify({ error: "Sign in to choose a Contrax plan." }),
         { status: 401, headers: jsonHeaders },
       );
-    }
-    // Owner 2026-11-04: a guest gives an email before Stripe.
-    if (guestNeedsEmail(userId, body)) {
-      return new Response(JSON.stringify({ error: GUEST_EMAIL_REQUIRED, needEmail: true }), { status: 400, headers: jsonHeaders });
     }
 
     const validTiers = ["starter", "professional", "agency", "savings_premium"];

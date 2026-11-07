@@ -97,7 +97,7 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // + 41 Bonfire and 83 CivicEngage Texas boards, 2026-11-03 (413 → 537).
     // + City of San Antonio, 2026-11-03 (537 → 538).
     // + City of Houston (Beacon), 2026-11-03 (538 → 539).
-    expect(Object.keys(SOURCE_CLASSES).length).toBe(1050);
+    expect(Object.keys(SOURCE_CLASSES).length).toBe(1053);
   });
 
   test("every registry label is classified (no collector is unclassified)", () => {
@@ -188,7 +188,7 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // + City of San Antonio, 2026-11-03 (455 → 456).
     // + City of Houston (Beacon), 2026-11-03 (456 → 457); − tn_cpo and
     // il_chicago_dps, retired 2026-11-03 (their sites refuse the sync) → 455.
-    expect(TAIL_SOURCES.length).toBe(966);
+    expect(TAIL_SOURCES.length).toBe(969);
   });
 
   test("every city registry entry the product fetches is LOCAL with a city name", () => {

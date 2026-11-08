@@ -45,4 +45,22 @@ describe("Radar state pass (owner 2026-10-03: only 5 NC janitorial matches)", ()
     expect((await runKeywordScanQuery(fake, { certFrag: "", tradeFrag: "" }, "TRUE", "NC")).map((r) => r.id)).toEqual([9, 1]);
     expect(calls).toBe(2);
   });
+
+  test("with a state, a slow nationwide pass is dropped and the in-state rows still come back", async () => {
+    const fake: any = (strings: TemplateStringsArray) => {
+      const text = strings.join("?");
+      return text.includes("LIKE")
+        ? Promise.resolve([{ id: 9, due_date: "2026-10-04" }])
+        : new Promise((r) => setTimeout(() => r([{ id: 1, due_date: "2026-10-30" }]), 200));
+    };
+    fake.unsafe = (x: string) => x;
+    const t0 = Date.now();
+    const rows = await runKeywordScanQuery(fake, { certFrag: "", tradeFrag: "" }, "TRUE", "NC", { nationwideBudgetMs: 20 });
+    expect(rows.map((r) => r.id)).toEqual([9]);
+    expect(Date.now() - t0).toBeLessThan(150);
+    // A fast nationwide pass is kept.
+    expect((await runKeywordScanQuery(fake, { certFrag: "", tradeFrag: "" }, "TRUE", "NC", { nationwideBudgetMs: 1000 })).map((r) => r.id)).toEqual([9, 1]);
+    // Without a state there is nothing to fall back to: the nationwide pass runs to the end.
+    expect((await runKeywordScanQuery(fake, { certFrag: "", tradeFrag: "" }, "TRUE")).map((r) => r.id)).toEqual([1]);
+  });
 });

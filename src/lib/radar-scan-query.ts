@@ -57,17 +57,30 @@ export interface ScanQueryFrags {
  */
 export const IN_STATE_SCAN_LIMIT = 2000;
 
+/**
+ * How long a state search waits for the NATIONWIDE pass (owner 2026-11-08: Radar
+ * searches from Facebook links timed out; completion fell from 19 of 20 on Nov 3
+ * to 2 of 6 on Nov 7). With 100+ construction terms that pass took 10-20 s while
+ * the in-state pass took 0.2-2 s, and the browser gives up at 15 s. The two
+ * passes now run side by side, and when a state was chosen a slow nationwide
+ * pass is dropped: the in-state rows (what the visitor asked for) always come
+ * back. A search with no state still runs the nationwide pass to the end.
+ */
+export const NATIONWIDE_PASS_BUDGET_MS = 6000;
+const NATIONWIDE_TIMED_OUT = Symbol("nationwide-timed-out");
+
 export async function runKeywordScanQuery(
   sqlFactory: unknown,
   frags: ScanQueryFrags,
   lowContentSql: string,
   stateCode?: string | null,
+  opts: { nationwideBudgetMs?: number } = {},
 ): Promise<any[]> {
   const s = (sqlFactory as any)?.unsafe
     ? (sqlFactory as any)
     : (sqlFactory as any)();
   try {
-    const nationwide: any[] = await s`
+    const nationwideQuery = (): Promise<any[]> => s`
       SELECT id, title, agency, description, location, category, due_date,
              estimated_value, naics_code, source_url, source, set_aside
       FROM bids
@@ -79,8 +92,16 @@ export async function runKeywordScanQuery(
       LIMIT 100
     `;
     const hint = stateHintPatterns(stateCode);
-    if (!hint) return nationwide;
-    const inState: any[] = await s`
+    if (!hint) return await nationwideQuery();
+    const budget = opts.nationwideBudgetMs ?? NATIONWIDE_PASS_BUDGET_MS;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const nationwidePass = Promise.race([
+      nationwideQuery(),
+      new Promise<typeof NATIONWIDE_TIMED_OUT>((resolve) => {
+        timer = setTimeout(() => resolve(NATIONWIDE_TIMED_OUT), budget);
+      }),
+    ]);
+    const inStatePass: Promise<any[]> = s`
       SELECT id, title, agency, description, location, category, due_date,
              estimated_value, naics_code, source_url, source, set_aside
       FROM bids
@@ -95,7 +116,16 @@ export async function runKeywordScanQuery(
       ORDER BY due_date ASC NULLS LAST
       LIMIT ${IN_STATE_SCAN_LIMIT}
     `;
-    return mergeScanRows(nationwide, inState);
+    try {
+      const [nationwide, inState] = await Promise.all([nationwidePass, inStatePass]);
+      if (nationwide === NATIONWIDE_TIMED_OUT) {
+        console.warn(`[radar] nationwide pass over ${budget}ms for state ${stateCode}; showing in-state rows`);
+        return mergeScanRows([], inState);
+      }
+      return mergeScanRows(nationwide, inState);
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
   } catch (cause) {
     throw new RadarScanError("keyword-scan", cause);
   }

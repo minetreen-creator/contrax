@@ -1147,13 +1147,23 @@ async function insertBidsBatch(
        -- empty overwrite would be a visible regression on the Radar cards.
        description = COALESCE(NULLIF(EXCLUDED.description, ''), bids.description),
        estimated_value = EXCLUDED.estimated_value,
-       naics_code = COALESCE(EXCLUDED.naics_code, bids.naics_code),
+       -- A code WE inferred is re-inferred from the current text on every sync
+       -- (owner 2026-11-08: a corrected rule must clear old wrong tags, e.g.
+       -- 611310 on road projects). Authoritative codes are never touched, and
+       -- a code with no provenance label keeps the old COALESCE behavior.
+       naics_code = CASE
+         WHEN EXCLUDED.naics_code_source = 'authoritative' THEN EXCLUDED.naics_code
+         WHEN bids.naics_code_source = 'inferred' THEN EXCLUDED.naics_code
+         ELSE COALESCE(EXCLUDED.naics_code, bids.naics_code)
+       END,
        -- Track whichever code is actually retained: when the incoming code
        -- wins (incl. an inferred fill of a NULL), label it; when an existing
        -- code is kept, preserve its existing provenance label. This can never
        -- overwrite an authoritative provenance with 'inferred' because an
        -- authoritative source always supplies a non-NULL EXCLUDED code.
        naics_code_source = CASE
+         WHEN EXCLUDED.naics_code_source = 'authoritative' THEN EXCLUDED.naics_code_source
+         WHEN bids.naics_code_source = 'inferred' THEN EXCLUDED.naics_code_source
          WHEN EXCLUDED.naics_code IS NOT NULL THEN EXCLUDED.naics_code_source
          ELSE bids.naics_code_source
        END,
@@ -1385,8 +1395,15 @@ async function insertBid(
       -- same never-erase guard against an empty detail parse.
       description = COALESCE(NULLIF(EXCLUDED.description, ''), bids.description),
       estimated_value = EXCLUDED.estimated_value,
-      naics_code = COALESCE(EXCLUDED.naics_code, bids.naics_code),
+      -- Same refresh of inferred codes as the batch path (owner 2026-11-08).
+      naics_code = CASE
+        WHEN EXCLUDED.naics_code_source = 'authoritative' THEN EXCLUDED.naics_code
+        WHEN bids.naics_code_source = 'inferred' THEN EXCLUDED.naics_code
+        ELSE COALESCE(EXCLUDED.naics_code, bids.naics_code)
+      END,
       naics_code_source = CASE
+        WHEN EXCLUDED.naics_code_source = 'authoritative' THEN EXCLUDED.naics_code_source
+        WHEN bids.naics_code_source = 'inferred' THEN EXCLUDED.naics_code_source
         WHEN EXCLUDED.naics_code IS NOT NULL THEN EXCLUDED.naics_code_source
         ELSE bids.naics_code_source
       END,

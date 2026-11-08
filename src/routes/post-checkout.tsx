@@ -17,6 +17,7 @@ import type Stripe from "stripe";
 import { setCookie } from "@tanstack/react-start/server";
 import { useEffect, useState, useCallback } from "react";
 import { hashPassword } from "~/lib/password";
+import { clearCheckoutStarted } from "~/lib/checkout-resume";
 
 const SESSION_TTL_DAYS = 30;
 const SESSION_COOKIE = "contrax_session";
@@ -300,6 +301,8 @@ function PostCheckoutPage() {
         if (cancelled) return;
         setResolvedPlan(result.plan);
         setResolvedEmail(result.email);
+        // Paid: stop offering to resume this checkout (owner 2026-11-08).
+        clearCheckoutStarted();
         if (result.signInRequired) {
           setStatus("signin");
           return;

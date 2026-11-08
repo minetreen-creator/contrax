@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { WinnerPriceLine } from "~/components/WinnerPriceLine";
 import { IntelTeaserCard } from "~/components/IntelTeaserCard";
+import { RedFlagScanner } from "~/components/RedFlagScanner";
 import { intelTeaser, recompeteLine, type IntelTeaser } from "~/lib/intel-teaser";
 import { AreaAwardsBox } from "~/components/AreaAwardsBox";
 import { AppInstallBanner } from "~/components/AppInstallBanner";
@@ -544,6 +545,9 @@ function BidDetailPage() {
                 </div>
               )}
             </article>
+
+            {/* Red-flag scanner (owner 2026-11-08). */}
+            <RedFlagScanner noticeText={bid.description} bidId={bid.id} />
 
             {areaAwards && <AreaAwardsBox data={areaAwards} stateName={bid.state_name} />}
 

@@ -65,7 +65,10 @@ describe("state + trade SEO pages", () => {
     expect(isStrongTradeMatch("Freight Hauling Services", null, null, null, trucking)).toBe(true);
     expect(isStrongTradeMatch("Office Move", null, null, "484210", trucking)).toBe(true);
     const src = readFileSync(new URL("../src/lib/seo-landing.tsx", import.meta.url), "utf8");
-    expect(src).toContain(".filter((r) => isStrongTradeMatch(r.title, null, r.description, r.naics_code, expansion))");
+    // Since 2026-11-08 the page lists exactly Radar's default matches in the state (one count everywhere),
+    // and Radar's default matches are the strong-trade-match rows.
+    expect(src).toContain("await stateRadarMatches(sql, { trade: trade!.radarTerm, state: code! })");
+    expect(readFileSync(new URL("../src/lib/radar-candidates.ts", import.meta.url), "utf8")).toContain("isStrongTradeMatch(");
   });
 
   test("filterBidsToState keeps only that state's bids, soonest deadline first", () => {

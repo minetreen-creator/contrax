@@ -43,7 +43,6 @@ import {
 import { trackEvent } from "~/lib/track";
 import { redirectToCheckout } from "~/lib/checkout";
 import { STARTER_FIRST_MONTH_PRICE } from "~/lib/starter-offer";
-import { expandTrade, isStrongTradeMatch, tradeKeywordPred } from "~/lib/trade-registry";
 import { resolveBidState } from "~/lib/location-state";
 import { RELATED_SEO_TRADES, SEO_TRADES, SEO_TRADE_BY_SLUG } from "~/lib/seo-trades";
 import { SiteHeader } from "~/components/SiteHeader";
@@ -337,40 +336,20 @@ export const getRegionTradeData = createServerFn({ method: "GET" })
     let bids: SeoBid[] = [];
     if (valid) {
       const { sql } = await import("~/db");
-      const expansion = expandTrade(trade!.radarTerm);
-      // Owner 2026-11-03 ("we need more construction bids in TX"): the 5,000
-      // row limit applied NATIONWIDE before the state filter, so a big trade's
-      // in-state rows could be cut. Narrow to rows that mention the state (its
-      // name or its code as a word, in the location or the buyer) first — a
-      // superset of resolveBidState, which still decides below.
-      const stateRe = `(^|[[:space:],/()])${code}($|[[:space:],.)/])`;
-      const stateLike = `%${String(STATE_NAMES[code!] ?? code).toLowerCase()}%`;
       try {
-        const rows = await sql()`
-          SELECT id, title, agency, description, due_date, estimated_value,
-                 naics_code, location, set_aside, source_url, source, created_at
-          FROM (
-            SELECT DISTINCT ON (${sql().unsafe(noticeKeySql("bids"))})
-                   id, title, agency, description, due_date, estimated_value,
-                   naics_code, location, set_aside, source_url, source, created_at
-            FROM bids
-            WHERE due_date > NOW() AND ${sql().unsafe(LOW_CONTENT_SQL)}
-              AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
-              ${tradeKeywordPred(sql, expansion)}
-              AND (COALESCE(location,'') ~* ${stateRe} OR LOWER(COALESCE(location,'')) LIKE ${stateLike}
-                   OR COALESCE(agency,'') ~* ${stateRe} OR LOWER(COALESCE(agency,'')) LIKE ${stateLike})
-            ORDER BY ${sql().unsafe(noticeKeySql("bids"))}, created_at DESC NULLS LAST
-          ) t
-          LIMIT 5000
-        `;
-        // Owner 2026-10-19: the page says it uses Radar's trade search, so keep
-        // only Radar's default matches (trade word in the title, or the trade's
-        // NAICS). "Custom Shipping Container Offices" matched trucking on a
-        // "Freight And Cargo Containers" code in its description.
+        // One count everywhere (owner 2026-11-08: Massachusetts janitorial read 5 here, 4 in Radar
+        // and 8 on the share link). This page now lists exactly Radar's default matches in the
+        // state: the same strict query, duplicate rule and trade test, nationwide rows left out.
+        const { stateRadarMatches } = await import("~/lib/radar-candidates");
+        const { local } = await stateRadarMatches(sql, { trade: trade!.radarTerm, state: code! });
+        // Radar rows carry no posted date; the cards need it for the members' head start.
+        const ids = local.map((r: any) => Number(r.id)).filter((n: number) => Number.isFinite(n));
+        const posted = ids.length
+          ? ((await sql()`SELECT id, created_at FROM bids WHERE id = ANY(${ids})`) as { id: number; created_at: unknown }[])
+          : [];
+        const createdById = new Map(posted.map((p) => [Number(p.id), p.created_at]));
         bids = filterBidsToState(
-          (rows as any[])
-            .filter((r) => isStrongTradeMatch(r.title, null, r.description, r.naics_code, expansion))
-            .map(mapSeoBid),
+          local.map((r: any) => mapSeoBid({ ...r, created_at: createdById.get(Number(r.id)) ?? null })),
           code!,
         );
       } catch (e) {

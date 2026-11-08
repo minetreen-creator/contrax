@@ -22,7 +22,7 @@ import {
   type ContractMapAggregate,
 } from "~/lib/contract-map";
 import { getEverydaySample } from "~/lib/sample-bids";
-import { featuredMegaprojects, MEGA_SECTORS, megaMoney, megaTotals, type Megaproject } from "~/lib/megaprojects";
+import { featuredMegaprojects, MEGA_SECTORS, megaMoney, megaprojectHref, megaTotals, type Megaproject } from "~/lib/megaprojects";
 
 // ── Server Functions ──────────────────────────────────────────────────────────
 
@@ -298,7 +298,7 @@ function HomeMegaprojects({ featured, projects, amount }: { featured: Megaprojec
         {featured.map((p) => (
           <li key={p.slug}>
             <a
-              href={`/megaprojects?source=home#${p.slug}`}
+              href={`${megaprojectHref(p)}?source=home`}
               onClick={() => trackEvent("home_megaprojects_click", p.slug)}
               className="group flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-5 transition hover:-translate-y-1 hover:border-amber-400 hover:shadow-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600 dark:border-slate-700 dark:bg-slate-900"
             >

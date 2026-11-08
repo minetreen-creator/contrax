@@ -18,6 +18,8 @@ async function handler() {
       ...RESOLVED_AGENCIES.filter((a) => (counts[a.slug] ?? 0) > 0).map(agencyHref),
       "/mega-projects",
       ...MEGA_PROJECTS.map(megaProjectHref),
+      // Private megaprojects: the list, one page per state and per project (owner 2026-11-08).
+      ...(await (await import("~/lib/megaprojects-pages")).megaprojectSitemapPaths()),
     ];
     return new Response(buildLocalSitemapXml(paths), {
       status: 200,

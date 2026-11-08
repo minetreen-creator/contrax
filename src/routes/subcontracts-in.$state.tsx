@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { SiteHeader } from "~/components/SiteHeader";
 import { BidAlertCapture } from "~/components/BidAlertCapture";
-import { MEGAPROJECTS_URL, type Megaproject } from "~/lib/megaprojects";
+import { MEGAPROJECTS_URL, megaStateHref, type Megaproject } from "~/lib/megaprojects";
+import { STATE_CODE_TO_NAME } from "~/lib/location-state";
 import { getStateSubcontracts, type StateSubcontractsData } from "~/lib/subcontracts/state-data";
 import { moneyText, PRIMES_SHOWN, searchPrimes, titleCase, WINNER_DAYS, WINNERS_SHOWN } from "~/lib/subcontracts/state-page";
 import { trackEvent } from "~/lib/track";
@@ -93,7 +94,7 @@ function StateSubcontractsPage() {
           <a href="#winners" className="rounded-full bg-white/10 px-4 py-2">🏆 {d.winnersTotal} recent winner{d.winnersTotal === 1 ? "" : "s"}</a>
           <a href="#primes" className="rounded-full bg-white/10 px-4 py-2">🏢 {d.primesTotal} prime{d.primesTotal === 1 ? "" : "s"} with sub plans</a>
           {megaCount ? (
-            <a href={`/megaprojects?state=${code}`} className="rounded-full bg-amber-400/20 px-4 py-2 text-amber-200">
+            <a href={megaStateHref(code, STATE_CODE_TO_NAME) ?? `/megaprojects?state=${code}`} className="rounded-full bg-amber-400/20 px-4 py-2 text-amber-200">
               🏗️ {megaCount} megaproject{megaCount === 1 ? "" : "s"} hiring local subs
             </a>
           ) : null}

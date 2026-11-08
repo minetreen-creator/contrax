@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { SiteHeader } from "~/components/SiteHeader";
 import { BidAlertCapture } from "~/components/BidAlertCapture";
-import { LOCAL_WORK, MEGA_SECTORS, MEGAPROJECTS_URL, megaMoney, megaStateCounts, megaTotals, sortMegaprojects, type Megaproject } from "~/lib/megaprojects";
+import { LOCAL_WORK, megaMoney, megaStateCounts, megaStateHref, megaTotals } from "~/lib/megaprojects";
+import { getMegaprojectList } from "~/lib/megaprojects-pages";
+import { MegaprojectCard } from "~/components/MegaprojectCard";
 import { STATE_CODE_TO_NAME } from "~/lib/location-state";
 import { trackEvent } from "~/lib/track";
 
@@ -26,24 +28,13 @@ export const Route = createFileRoute("/megaprojects")({
       links: [{ rel: "canonical", href: "https://www.contrax.company/megaprojects" }],
     };
   },
+  // Server-rendered (owner 2026-11-08): the projects are in the HTML, so search engines index them.
+  loader: () => getMegaprojectList(),
   component: MegaprojectsPage,
 });
 
-function checkedLabel(d: string): string {
-  return new Date(`${d}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
-}
-
 function MegaprojectsPage() {
-  // The list loads from /data/megaprojects.json (kept out of the server bundle).
-  const [list, setList] = useState<Megaproject[] | null>(null);
-  const [failed, setFailed] = useState(false);
-  useEffect(() => {
-    fetch(MEGAPROJECTS_URL)
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      .then((d: Megaproject[]) => setList(Array.isArray(d) ? d : []))
-      .catch(() => setFailed(true));
-  }, []);
-  const all = useMemo(() => sortMegaprojects(list ?? []), [list]);
+  const all = Route.useLoaderData();
   const [state, setState] = useState("");
   // /megaprojects?state=TX (links from the state pages) opens on that state.
   useEffect(() => {
@@ -65,7 +56,7 @@ function MegaprojectsPage() {
           Chip fabs, factories and pharma campuses are going up across the country. They aren&apos;t government bids, but every one hires local small businesses for construction, services and supplies. Here&apos;s where they are, who&apos;s building them, and how to get on the list.
         </p>
         <div className="mx-auto mt-8 flex max-w-xl flex-wrap justify-center gap-6 text-left">
-          <Stat big={list ? String(totals.projects) : "…"} label={`project${totals.projects === 1 ? "" : "s"}${stateName ? ` in ${stateName}` : ""}`} />
+          <Stat big={String(totals.projects)} label={`project${totals.projects === 1 ? "" : "s"}${stateName ? ` in ${stateName}` : ""}`} />
           {totals.amount ? <Stat big={megaMoney(totals.amount) ?? ""} label="announced investment" /> : null}
           {totals.jobs ? <Stat big={totals.jobs.toLocaleString("en-US")} label="promised jobs" /> : null}
         </div>
@@ -94,19 +85,29 @@ function MegaprojectsPage() {
           </select>
         </div>
 
-        {failed ? (
-          <p className="rounded-xl bg-white p-4 text-sm text-slate-600">The project list couldn&apos;t load just now. Please refresh in a moment.</p>
-        ) : list === null ? (
-          <p className="rounded-xl bg-white p-4 text-sm text-slate-600">Loading projects…</p>
-        ) : shown.length === 0 ? (
+        {shown.length === 0 ? (
           <p className="rounded-xl bg-white p-4 text-sm text-slate-600">No megaprojects listed here yet. We add them as they&apos;re announced.</p>
         ) : (
           <ul className="space-y-4">
             {shown.map((p) => (
-              <ProjectCard key={p.slug} p={p} />
+              <MegaprojectCard key={p.slug} p={p} />
             ))}
           </ul>
         )}
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-6">
+          <h2 className="text-xl font-extrabold text-slate-900">Megaprojects by state</h2>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {states.map((s) => {
+              const href = megaStateHref(s.code, STATE_CODE_TO_NAME);
+              return href ? (
+                <a key={s.code} href={href} className="rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-blue-800 hover:bg-slate-200">
+                  {STATE_CODE_TO_NAME[s.code] ?? s.code} ({s.count})
+                </a>
+              ) : null;
+            })}
+          </div>
+        </section>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-6">
           <h2 className="text-xl font-extrabold text-slate-900">How to get on a megaproject&apos;s sub list</h2>
@@ -172,68 +173,5 @@ function Stat({ big, label }: { big: string; label: string }) {
       <p className="text-3xl font-extrabold text-amber-300">{big}</p>
       <p className="text-sm text-blue-100">{label}</p>
     </div>
-  );
-}
-
-function ProjectCard({ p }: { p: Megaproject }) {
-  const sector = MEGA_SECTORS[p.sector];
-  const money = megaMoney(p.amount);
-  return (
-    <li id={p.slug} className="scroll-mt-20 rounded-2xl border border-slate-200 bg-white p-5">
-      <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
-        {sector.icon} {sector.label} · {p.city}, {STATE_CODE_TO_NAME[p.state] ?? p.state}
-      </p>
-      <p className="mt-1 text-xl font-extrabold text-slate-900">
-        {p.company}: {p.project}
-      </p>
-      <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm">
-        {money ? (
-          <span className="font-bold text-emerald-700">
-            💰 {money}
-            {p.amountNote ? <span className="font-normal text-slate-500"> ({p.amountNote})</span> : null}
-          </span>
-        ) : null}
-        {p.jobs ? (
-          <span className="font-bold text-blue-800">
-            👷 {p.jobs.toLocaleString("en-US")} jobs
-            {p.jobsNote ? <span className="font-normal text-slate-500"> ({p.jobsNote})</span> : null}
-          </span>
-        ) : null}
-        <span className="text-slate-600">🏗️ {p.status}</span>
-      </div>
-      <p className="mt-3 text-slate-700">{p.summary}</p>
-      <div className="mt-3 rounded-xl bg-amber-50 p-3 text-sm text-slate-800">
-        <p className="font-bold">How to get on the sub list</p>
-        <p className="mt-1">
-          {p.generalContractor ? (
-            <>
-              Built by{" "}
-              {p.generalContractor.url ? (
-                <a href={p.generalContractor.url} target="_blank" rel="noopener noreferrer" className="font-semibold text-blue-700 underline">
-                  {p.generalContractor.name}
-                </a>
-              ) : (
-                <b>{p.generalContractor.name}</b>
-              )}
-              . Register with them as a subcontractor.{" "}
-            </>
-          ) : (
-            <>The general contractor hasn&apos;t been announced publicly; watch local news and county permits. </>
-          )}
-          {p.supplierUrl ? (
-            <a href={p.supplierUrl.url} target="_blank" rel="noopener noreferrer" onClick={() => trackEvent("megaprojects_supplier_click", p.slug)} className="font-semibold text-blue-700 underline">
-              {p.supplierUrl.label} →
-            </a>
-          ) : null}
-        </p>
-      </div>
-      <p className="mt-3 text-xs text-slate-500">
-        Source:{" "}
-        <a href={p.source.url} target="_blank" rel="noopener noreferrer" className="underline">
-          {p.source.name}
-        </a>{" "}
-        · checked {checkedLabel(p.checked)}
-      </p>
-    </li>
   );
 }

@@ -36,8 +36,11 @@ describe("construction finds the jobs Texas buyers post", () => {
   });
 
   test("the state + trade page narrows to the state before its row limit", () => {
+    // Since 2026-11-08 the page uses Radar's matches, whose in-state pass reads up to
+    // IN_STATE_SCAN_LIMIT rows of the requested state before any nationwide limit.
     const seo = readFileSync("src/lib/seo-landing.tsx", "utf8");
-    expect(seo).toContain("OR COALESCE(agency,'') ~* ${stateRe} OR LOWER(COALESCE(agency,'')) LIKE ${stateLike})");
+    expect(seo).toContain("await stateRadarMatches(");
+    expect(readFileSync("src/lib/radar-scan-query.ts", "utf8")).toContain("LIMIT ${IN_STATE_SCAN_LIMIT}");
     expect(readFileSync("src/lib/trade-registry.ts", "utf8")).toContain("if (isConstructionExpansion(expansion)) clauses.push(s`category = 'Construction'`);");
   });
 });

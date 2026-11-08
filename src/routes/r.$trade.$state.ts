@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { sql } from "~/db";
-import { defaultRadarMatches } from "~/lib/radar-candidates";
+import { stateRadarMatches } from "~/lib/radar-candidates";
 import { RADAR_MATCH_CAP } from "~/lib/radar-config";
 import { parseShareParams, shareHtml } from "~/lib/radar-share";
 
@@ -17,7 +17,8 @@ async function handler({ params }: { params: Record<string, string> }) {
   let count: number | null = null;
   let closestDue: string | null = null;
   try {
-    const rows = await defaultRadarMatches(sql, { trade: parsed.trade, state: parsed.state });
+    // The count in the state only (owner 2026-11-08): nationwide rows are not "in Massachusetts".
+    const { local: rows } = await stateRadarMatches(sql, { trade: parsed.trade, state: parsed.state });
     count = rows.length;
     const first = rows.find((r) => r.due_date);
     closestDue = first ? new Date(first.due_date).toISOString() : null;

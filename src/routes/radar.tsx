@@ -1409,6 +1409,11 @@ function RadarLanding() {
   // so count from its real total; otherwise every scan read "Found 3" and the
   // locked card never showed. Restored browser results fall back to the list.
   const totalMatches = scan.status === "done" ? Math.max(scan.totalMatched ?? 0, scan.matches.length) : 0;
+  // One count everywhere (owner 2026-11-08): in a state search the headline counts the bids IN that
+  // state, the same number the state page and share link show; nationwide rows are named apart.
+  const localKnown = scan.status === "done" && typeof scan.localMatched === "number";
+  const localMatches = localKnown ? Math.min(scan.localMatched ?? 0, totalMatches) : totalMatches;
+  const nationwideMatches = Math.max(totalMatches - localMatches, 0);
   const emailUnlocked = scan.status === "done" && scan.emailUnlocked === true;
   const visibleCount = emailUnlocked ? scan.matches.length : Math.min(totalMatches, FREE_ANONYMOUS_RADAR_RESULTS);
   /**
@@ -2097,7 +2102,7 @@ function RadarLanding() {
                 {isAnonymous && (
                   <p className="mt-1 text-xs font-semibold text-amber-300">
                     {locked > 0
-                      ? `${totalMatches} open bids found. ${FREE_ANONYMOUS_RADAR_RESULTS === 1 ? "Your best one is" : `Your best ${FREE_ANONYMOUS_RADAR_RESULTS} are`} free below.`
+                      ? `${state && localKnown ? `${localMatches} open bids in ${STATE_NAMES[state] ?? state}${nationwideMatches ? ` (+${nationwideMatches} nationwide)` : ""}` : `${totalMatches} open bids found`}. ${FREE_ANONYMOUS_RADAR_RESULTS === 1 ? "Your best one is" : `Your best ${FREE_ANONYMOUS_RADAR_RESULTS} are`} free below.`
                       : `Without an account: ${FREE_RADAR_PREVIEW_SCANS === 1 ? "1 search" : `${FREE_RADAR_PREVIEW_SCANS} searches a day`}, ${FREE_ANONYMOUS_RADAR_RESULTS === 1 ? "your top match" : `up to ${FREE_ANONYMOUS_RADAR_RESULTS} matches`}.`}
                   </p>
                 )}
@@ -2120,7 +2125,9 @@ function RadarLanding() {
                 </span>
               ) : (
                 <span className="text-xs font-semibold text-amber-400">
-                  {totalMatches} found
+                  {state && localKnown
+                    ? `${localMatches} in ${STATE_NAMES[state] ?? state}${nationwideMatches ? ` · ${nationwideMatches} nationwide` : ""}`
+                    : `${totalMatches} found`}
                 </span>
               )}
             </div>

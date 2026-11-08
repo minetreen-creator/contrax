@@ -112,3 +112,38 @@ export function megaprojectsIn(list: readonly Megaproject[], state: string): Meg
   const st = state.toUpperCase();
   return sortMegaprojects(list.filter((p) => p.state === st));
 }
+
+// ── Indexable pages (owner 2026-11-08: "each project and state … a clean, server-rendered,
+// indexable landing page", not a list that only appears after the browser loads it) ──
+
+const NAME_SLUG = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+/** "/megaprojects/micron-clay-ny". PURE. */
+export function megaprojectHref(p: { slug: string }): string {
+  return `/megaprojects/${p.slug}`;
+}
+
+/** "/megaprojects-in/new-york" for a state code, or null for an unknown code. PURE. */
+export function megaStateHref(code: string, names: Record<string, string>): string | null {
+  const name = names[String(code).toUpperCase()];
+  return name ? `/megaprojects-in/${NAME_SLUG(name)}` : null;
+}
+
+/** The state code for a "/megaprojects-in/{slug}" slug, or null. PURE. */
+export function megaStateFromSlug(slug: string, names: Record<string, string>): string | null {
+  const want = String(slug ?? "").toLowerCase();
+  for (const [code, name] of Object.entries(names)) if (NAME_SLUG(name) === want) return code;
+  return null;
+}
+
+/** The page title a contractor searches for. PURE. */
+export function megaprojectTitle(p: Pick<Megaproject, "company" | "project" | "city" | "state">): string {
+  return `Subcontracting opportunities: ${p.company} ${p.project} in ${p.city}, ${p.state}`;
+}
+
+/** One-sentence page description from the sourced facts only. PURE. */
+export function megaprojectDescription(p: Megaproject, stateName: string): string {
+  const money = megaMoney(p.amount);
+  const gc = p.generalContractor ? ` General contractor: ${p.generalContractor.name}.` : "";
+  return `${p.company}'s ${money ? `${money} ` : ""}${p.project.toLowerCase()} in ${p.city}, ${stateName}: status, who's building it, and how local subcontractors and suppliers get on the list.${gc}`.slice(0, 300);
+}

@@ -17,7 +17,7 @@ import type Stripe from "stripe";
 import { setCookie } from "@tanstack/react-start/server";
 import { useEffect, useState, useCallback } from "react";
 import { hashPassword } from "~/lib/password";
-import { clearCheckoutStarted } from "~/lib/checkout-resume";
+import { checkoutBidToOpen, clearCheckoutBid, clearCheckoutStarted } from "~/lib/checkout-resume";
 
 const SESSION_TTL_DAYS = 30;
 const SESSION_COOKIE = "contrax_session";
@@ -303,6 +303,8 @@ function PostCheckoutPage() {
         setResolvedEmail(result.email);
         // Paid: stop offering to resume this checkout (owner 2026-11-08).
         clearCheckoutStarted();
+        // Started from a bid's "Open this bid: $5"? Land back on that bid, unlocked (owner 2026-11-08).
+        const bidToOpen = result.signInRequired ? null : checkoutBidToOpen();
         if (result.signInRequired) {
           setStatus("signin");
           return;
@@ -311,6 +313,11 @@ function PostCheckoutPage() {
 
         // Auto-redirect after 1.5s
         redirectTimer = setTimeout(() => {
+          if (bidToOpen) {
+            clearCheckoutBid();
+            navigate({ to: "/bid/$bidId", params: { bidId: String(bidToOpen) }, search: { source: "checkout" } as never });
+            return;
+          }
           navigate({ to: getRedirectTarget(result.plan) });
         }, 1500);
       } catch (err) {

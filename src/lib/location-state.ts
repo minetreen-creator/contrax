@@ -1047,6 +1047,7 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   tn_knox_county: "TN",
   tn_tbr: "TN",
   tn_ut_capital: "TN",
+  pa_philadelphia_phlcontracts: "PA",
   ca_san_bernardino_county: "CA",
   ca_contra_costa_county: "CA",
   ca_ebmud: "CA",

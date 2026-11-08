@@ -17,7 +17,7 @@
  *                appear as soon as they are posted]
  */
 import type { FetchResult } from "../runner";
-import { fetchBsoBids, type BsoConfig } from "./periscope-bso";
+import { CONTRAXBOT_USER_AGENT, fetchBsoBids, type BsoConfig } from "./periscope-bso";
 
 const ET = -5;
 const CT = -6;
@@ -32,6 +32,19 @@ export const PERISCOPE_STATES: Record<string, BsoConfig> = {
   ar_arbuy: { source: "ar_arbuy", origin: "https://arbuy.arkansas.gov", idPrefix: "arbuy", stateName: "Arkansas", portalName: "ARBuy", standardOffsetHours: CT },
 };
 
+/**
+ * City marketplaces on the same software (owner 2026-11-08, "yes, check Philadelphia").
+ *
+ *   pa_philadelphia_phlcontracts  PHLContracts, the City of Philadelphia's own
+ *                portal: Public Works, Water, Streets, Parks, Aviation and the
+ *                other city departments. Its open-bids search is public (checked
+ *                2026-11-08 as ContraxBot, no sign-in; the reCAPTCHA guards the
+ *                login and registration forms only).
+ */
+export const PERISCOPE_CITIES: Record<string, BsoConfig> = {
+  pa_philadelphia_phlcontracts: { source: "pa_philadelphia_phlcontracts", origin: "https://www.phlcontracts.phila.gov", idPrefix: "phlcontracts", stateName: "Pennsylvania", portalName: "PHLContracts", standardOffsetHours: ET, buyer: "City of Philadelphia", location: "Philadelphia, PA", userAgent: CONTRAXBOT_USER_AGENT },
+};
+
 /** USPS code for each Periscope source (registration + jurisdiction pins). */
 export const PERISCOPE_STATE_CODES: Record<string, string> = {
   ma_commbuys: "MA",
@@ -42,6 +55,7 @@ export const PERISCOPE_STATE_CODES: Record<string, string> = {
   ar_arbuy: "AR",
 };
 
-export const PERISCOPE_TAIL_SOURCES: { name: string; fetchFn: () => Promise<FetchResult> }[] = Object.values(
-  PERISCOPE_STATES,
-).map((config) => ({ name: config.source, fetchFn: () => fetchBsoBids(config) }));
+export const PERISCOPE_TAIL_SOURCES: { name: string; fetchFn: () => Promise<FetchResult> }[] = [
+  ...Object.values(PERISCOPE_STATES),
+  ...Object.values(PERISCOPE_CITIES),
+].map((config) => ({ name: config.source, fetchFn: () => fetchBsoBids(config) }));

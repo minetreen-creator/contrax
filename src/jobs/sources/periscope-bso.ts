@@ -65,7 +65,16 @@ export interface BsoConfig {
    */
   buyer?: string;
   location?: string;
+  /**
+   * The User-Agent to send. Boards added from 2026-11-08 on send Contrax's own
+   * honest name (ContraxBot), as every newer Contrax reader does; the boards
+   * registered before keep the reader's original value.
+   */
+  userAgent?: string;
 }
+
+/** Contrax's own honest bot name (owner: "Keep ContraxBot"). */
+export const CONTRAXBOT_USER_AGENT = "Mozilla/5.0 (compatible; ContraxBot/1.0; +https://www.contrax.company)";
 
 export const BSO_PAGE_SIZE = 25;
 export const BSO_MAX_PAGES = 120;
@@ -295,7 +304,7 @@ export async function fetchBsoBids(config: BsoConfig, now: number = Date.now()):
   const rows: BsoRow[] = [];
   let total = 0;
   try {
-    const first = await fetch(url, { headers: { "User-Agent": BSO_USER_AGENT, Accept: "text/html,*/*" }, signal: AbortSignal.timeout(60000) });
+    const first = await fetch(url, { headers: { "User-Agent": config.userAgent ?? BSO_USER_AGENT, Accept: "text/html,*/*" }, signal: AbortSignal.timeout(60000) });
     keepCookies(first);
     if (first.status !== 200) fail(httpFailureDetail(first.status, url));
     const html = await first.text();
@@ -315,7 +324,7 @@ export async function fetchBsoBids(config: BsoConfig, now: number = Date.now()):
       const resp = await fetch(postUrl, {
         method: "POST",
         headers: {
-          "User-Agent": BSO_USER_AGENT,
+          "User-Agent": config.userAgent ?? BSO_USER_AGENT,
           "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
           "Faces-Request": "partial/ajax",
           "X-Requested-With": "XMLHttpRequest",

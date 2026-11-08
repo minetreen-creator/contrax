@@ -6697,6 +6697,13 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
     searchScope: "city-open-data",
     recordType: "opportunity",
   },
+  pa_philadelphia_phlcontracts: {
+    class: "local",
+    city: "Philadelphia",
+    scopeState: "PA",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
   ca_san_bernardino_county: {
     class: "local",
     city: "San Bernardino County",

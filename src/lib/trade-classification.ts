@@ -576,9 +576,12 @@ const VA_CONSTRUCTION_TITLE =
  *  own trades). Also: "Exterior Repairs", "Final Clarifier Repairs", "Library
  *  Improvements", "Storm Improvements", "Elevator Addition", "Sinkhole Repairs",
  *  "Trail Development", "Recreational Building", "Catch Basin and Inlet
- *  Replacement", "Accessible Front Entrance", "Fire-Rated Double Doors". */
+ *  Replacement", "Accessible Front Entrance", "Fire-Rated Double Doors".
+ *  Philadelphia (PHLContracts): "Relay of Water Mains in …", and "PW Bid
+ *  3958ECMS" (a job let through PennDOT's Engineering and Construction
+ *  Management System, ECMS, is a construction contract). */
 const PA_CONSTRUCTION_TITLE =
-  /\s[-–]\s*["“]?general( construction| contract(or)?| trades?)?["”]?\s*$|\bexterior (repairs?|improvements?|renovations?|restoration)\b|\bclarifiers?\b[^.]{0,20}\b(repairs?|rehabilitation|replacement|improvements?)\b|\b(library|park|building|facility|manor|hall|school|center|station|office|bathroom|restroom|campus|plant) (interior )?improvements?\b|\binterior improvements? project\b|\bstorm(water)? (replacement|improvements?)\b|\b(elevator|building|classroom|garage) addition\b|\bsinkholes? (repairs?|remediation)\b|\btrail development\b|\brecreation(al)? building\b|\bcatch basins? (and inlets? )?(replacement|repairs?|rehabilitation|reconstruction|installation)\b|\breplace[^.]{0,20}\bcatch basins?\b|\binlets? replacement\b|\baccessible (front |main )?entrances?\b|\bfire[- ]rated\b[^.]{0,20}\bdoors?\b|\bsecurity wall\b|\brepair\b[^.]{0,30}\bwater tanks?\b|\bcemetery expansion\b|\bbrick [a-z]+ repairs?\b/;
+  /\s[-–]\s*["“]?general( construction| contract(or)?| trades?)?["”]?\s*$|\bexterior (repairs?|improvements?|renovations?|restoration)\b|\bclarifiers?\b[^.]{0,20}\b(repairs?|rehabilitation|replacement|improvements?)\b|\b(library|park|building|facility|manor|hall|school|center|station|office|bathroom|restroom|campus|plant) (interior )?improvements?\b|\binterior improvements? project\b|\bstorm(water)? (replacement|improvements?)\b|\b(elevator|building|classroom|garage) addition\b|\bsinkholes? (repairs?|remediation)\b|\btrail development\b|\brecreation(al)? building\b|\bcatch basins? (and inlets? )?(replacement|repairs?|rehabilitation|reconstruction|installation)\b|\breplace[^.]{0,20}\bcatch basins?\b|\binlets? replacement\b|\baccessible (front |main )?entrances?\b|\bfire[- ]rated\b[^.]{0,20}\bdoors?\b|\bsecurity wall\b|\brepair\b[^.]{0,30}\bwater tanks?\b|\bcemetery expansion\b|\bbrick [a-z]+ repairs?\b|\brelay of water mains?\b|\bwater mains? (relay|replacement|installation)\b|(?:\b|\d)ecms\b|\bgreen stormwater infrastructure\b|\bwith gsi\b/;
 
 export function isConstructionTitle(title: string): boolean {
   const t = (title || "").toLowerCase();

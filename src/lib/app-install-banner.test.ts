@@ -14,6 +14,8 @@ test("the banner is phones only, skips installed phones, shows once, and says al
   const src = readFileSync("src/components/AppInstallBanner.tsx", "utf8");
   expect(src).toContain('/iPhone|iPad|iPod/.test(ua) ? "ios" : /Android/.test(ua) ? "android" : null');
   expect(src).toContain('(display-mode: standalone)');
-  expect(src).toContain('localStorage.getItem("contrax-app-installed")');
+  // Installed phones are skipped via the shared install flag (src/lib/app-install.ts).
+  expect(src).toContain("localStorage.getItem(APP_INSTALLED_KEY)");
+  expect(readFileSync("src/lib/app-install.ts", "utf8")).toContain('APP_INSTALLED_KEY = "contrax-app-installed"');
   expect(src).toContain("Phone alerts need a paid plan.");
 });

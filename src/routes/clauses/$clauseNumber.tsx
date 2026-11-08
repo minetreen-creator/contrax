@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { sql } from "~/db";
 import { ClauseCtaCard } from "~/components/ClauseCtaCard";
+import { StickyOfferBar } from "~/components/StickyOfferBar";
 import { ClausePartPage } from "~/components/ClausePartPage";
 import { buildClauseMetaDescription } from "~/lib/clause-meta";
 import { makeClauseTitle, makePartTitle } from "~/lib/seo-titles";
@@ -342,6 +343,7 @@ function ClausePageInner({ d }: { d: ClausePageData }) {
         )}
         <ClauseCtaCard />
       </main>
+      <StickyOfferBar text={`Bidding on contracts with ${sourceLabel} ${clause.clause_number}? Get new bids in your trade emailed every morning`} source="clause-bar" />
     </div>
   );
 }

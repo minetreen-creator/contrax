@@ -47,6 +47,7 @@ import { expandTrade, isStrongTradeMatch, tradeKeywordPred } from "~/lib/trade-r
 import { resolveBidState } from "~/lib/location-state";
 import { RELATED_SEO_TRADES, SEO_TRADES, SEO_TRADE_BY_SLUG } from "~/lib/seo-trades";
 import { SiteHeader } from "~/components/SiteHeader";
+import { StickyOfferBar } from "~/components/StickyOfferBar";
 import { HeadStartLock } from "~/components/HeadStartLock";
 import { applyHeadStart } from "~/lib/head-start";
 import type { FederalTradeFactsData } from "~/components/FederalTradeFacts";
@@ -601,6 +602,16 @@ export function SeoLanding(props: {
 
       {/* Real content */}
       <div className="mx-auto max-w-6xl px-6 py-10">{props.children}</div>
+
+      {/* Daily-email offer worded for this page (owner 2026-11-08). */}
+      <StickyOfferBar
+        text={
+          props.signupState && STATE_NAMES[props.signupState]
+            ? `Get new ${STATE_NAMES[props.signupState]} bids in your trade emailed every morning`
+            : "Get new government bids in your trade emailed every morning"
+        }
+        source={props.signupState ? `seo-bar-${props.signupState}` : "seo-bar"}
+      />
 
       {/* Footer */}
       <footer className="border-t border-gray-800 bg-slate-900 py-10 text-gray-300">

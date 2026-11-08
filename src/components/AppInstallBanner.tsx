@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { trackEvent } from "~/lib/track";
+import { APP_INSTALLED_KEY, markAppInstalled } from "~/lib/app-install";
 
 /**
  * Install prompt for the Contrax app (owner 2026-11-07, "1"): phone visitors on
@@ -30,7 +31,7 @@ export function AppInstallBanner({ where }: { where: "radar" | "bid" }) {
     const standalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as any).standalone === true;
     let seen = false;
     try {
-      seen = !!localStorage.getItem(SEEN_KEY) || !!localStorage.getItem("contrax-app-installed");
+      seen = !!localStorage.getItem(SEEN_KEY) || !!localStorage.getItem(APP_INSTALLED_KEY);
     } catch {
       seen = true; // storage blocked: we can't remember a dismissal, so don't nag
     }
@@ -41,6 +42,13 @@ export function AppInstallBanner({ where }: { where: "radar" | "bid" }) {
       setInstallEvt(e);
     };
     window.addEventListener("beforeinstallprompt", onPrompt);
+    // Android finished the install (from this banner or Chrome's own menu): count it here too,
+    // not only when the app is first opened from the home screen.
+    const onInstalled = () => {
+      markAppInstalled(ua);
+      setVisible(false);
+    };
+    window.addEventListener("appinstalled", onInstalled);
     const t = window.setTimeout(() => {
       setVisible(true);
       trackEvent("app_banner_shown", `${where}:${p}`);
@@ -48,6 +56,7 @@ export function AppInstallBanner({ where }: { where: "radar" | "bid" }) {
     return () => {
       window.clearTimeout(t);
       window.removeEventListener("beforeinstallprompt", onPrompt);
+      window.removeEventListener("appinstalled", onInstalled);
     };
   }, [where]);
 
@@ -72,7 +81,10 @@ export function AppInstallBanner({ where }: { where: "radar" | "bid" }) {
     const choice = await installEvt.userChoice.catch(() => null);
     trackEvent("app_banner_install", `${where}:${choice?.outcome ?? "unknown"}`);
     setInstallEvt(null);
-    if (choice?.outcome === "accepted") setVisible(false);
+    if (choice?.outcome === "accepted") {
+      markAppInstalled();
+      setVisible(false);
+    }
   };
 
   return (

@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { markAppInstalled } from "~/lib/app-install";
 import { createServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { STATE_CODE_TO_NAME } from "~/lib/location-state";
@@ -117,13 +118,8 @@ function AppPage() {
     // Android reports a finished install (appinstalled); iPhone never does, so
     // the first open from the home screen counts instead. One flag per phone
     // keeps an Android install from counting twice.
-    const devicePlatform = /iPhone|iPad|iPod/.test(ua) ? "ios" : /Android/.test(ua) ? "android" : "desktop";
     const countInstall = () => {
-      try {
-        if (localStorage.getItem("contrax-app-installed")) return;
-        localStorage.setItem("contrax-app-installed", new Date().toISOString());
-      } catch {}
-      trackEvent("app_installed", devicePlatform);
+      markAppInstalled(ua);
     };
     if (isStandalone) countInstall();
     window.addEventListener("appinstalled", countInstall);
@@ -214,6 +210,7 @@ function AppPage() {
     installEvt.prompt();
     const choice = await installEvt.userChoice.catch(() => null);
     trackEvent("app_install_prompt", choice?.outcome ?? "unknown");
+    if (choice?.outcome === "accepted") markAppInstalled();
     setInstallEvt(null);
   };
 

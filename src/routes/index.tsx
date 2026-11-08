@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { HomeMaxProof } from "~/components/HomeMaxProof";
 import { createServerFn } from "@tanstack/react-start";
 import { readFile } from "node:fs/promises";
 import { Radar, KanbanSquare, ArrowRight, FileSearch } from "lucide-react";
@@ -204,6 +205,8 @@ function Home() {
       {/* The $5 Starter pass, right under the search (owner 2026-10-31 funnel
           check: the homepage never mentioned the offer). */}
       <StarterPassStrip />
+      {/* Before/after proof (owner 2026-11-08): a real bid's notice next to Max's real answer. */}
+      <HomeMaxProof />
       {/* The Contrax app (owner 2026-11-07: "Today is launch day"). */}
       <HomeAppStrip />
       {/* Megaprojects (owner 2026-11-07): the big plants and highway jobs hiring local subs. */}

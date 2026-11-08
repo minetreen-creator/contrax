@@ -118,6 +118,7 @@ const CAPTURED: Record<string, number> = {
   nj_hmfa_bonfire: 2, nj_sussex_county_bonfire: 6, nj_ocean_county_college_bonfire: 1, md_howard_schools_bonfire: 3, nv_clark_county_schools_bonfire: 1,
   // Washington and Idaho, captured 2026-11-04.
   wa_vancouver_bonfire: 1, id_ada_county_bonfire: 1,
+  nm_albuquerque_bonfire: 1,
 };
 // Real tenants with nothing open at capture (portal title confirmed), so no file.
 const NO_CAPTURE = new Set([
@@ -132,14 +133,15 @@ const NO_CAPTURE = new Set([
   "nj_mcua_bonfire", "nj_raritan_valley_cc_bonfire", "nj_rcbc_bonfire",
   "fl_famu_bonfire", "ny_stony_brook_bonfire", "oh_toledo_schools_bonfire", "oh_dayton_schools_bonfire", "mi_grand_rapids_schools_bonfire", "or_southern_oregon_university_bonfire",
   "ky_lexington_bonfire", "ky_covington_bonfire",
+  "nm_mckinley_county_bonfire",
   "wa_clark_county_bonfire", "wa_renton_bonfire", "wa_port_of_everett_bonfire", "wa_tacoma_schools_bonfire", "wa_lake_washington_schools_bonfire", "wa_northshore_schools_bonfire", "id_west_ada_schools_bonfire",
 ]);
 
 describe("county Bonfire boards", () => {
   test("142 boards, unique sources and id prefixes", () => {
-    expect(COUNTY_BONFIRE_CONFIGS).toHaveLength(167);
-    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.source)).size).toBe(167);
-    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.idPrefix)).size).toBe(167);
+    expect(COUNTY_BONFIRE_CONFIGS).toHaveLength(169);
+    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.source)).size).toBe(169);
+    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.idPrefix)).size).toBe(169);
   });
 
   for (const cfg of COUNTY_BONFIRE_CONFIGS.filter((c) => !NO_CAPTURE.has(c.source))) {

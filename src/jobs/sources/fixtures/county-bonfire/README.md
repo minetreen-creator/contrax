@@ -87,3 +87,5 @@ bonfire | alamedacounty, yolocounty, cityofirvine, oaklandca (Capital Contracts 
 
 Arkansas, captured 2026-11-07 by the same job pattern (owner: "Add Arkansas city and county boards"):
 bonfire | littlerock | title=Portal — Open Opportunities - City of Little Rock | open=8 | same=true | sha=0cd9911ee5fd4b6c
+bonfire | cabq | title=Portal — Open Opportunities - City of Albuquerque | open=1 | same=true | captured 2026-11-08 (New Mexico)
+bonfire | mckinleycounty | title=Portal — Open Opportunities - McKinley County, NM | open=0 | same=true | captured 2026-11-08 (New Mexico)

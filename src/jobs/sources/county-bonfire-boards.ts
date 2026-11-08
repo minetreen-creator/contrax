@@ -80,6 +80,9 @@ const BOARDS: Board[] = [
   { tenant: "cochise", source: "az_cochise_county_bonfire", stateName: "Arizona", place: "Cochise County", buyer: "Cochise County, Arizona", idPrefix: "cochisebonfire" },
   { tenant: "bannockcounty", source: "id_bannock_county_bonfire", stateName: "Idaho", place: "Bannock County", buyer: "Bannock County, Idaho", idPrefix: "bannockcountybonfire" },
   { tenant: "bernco", source: "nm_bernalillo_county_bonfire", stateName: "New Mexico", place: "Bernalillo County", buyer: "Bernalillo County, New Mexico", idPrefix: "berncobonfire" },
+  // New Mexico (owner 2026-11-08: "need new construction jobs in NM"), captured 2026-11-08.
+  { tenant: "cabq", source: "nm_albuquerque_bonfire", stateName: "New Mexico", place: "Albuquerque", buyer: "City of Albuquerque", idPrefix: "cabqbonfire", location: "Albuquerque, NM" },
+  { tenant: "mckinleycounty", source: "nm_mckinley_county_bonfire", stateName: "New Mexico", place: "McKinley County", buyer: "McKinley County, New Mexico", idPrefix: "mckinleycountybonfire" },
   { tenant: "rocklandgov", source: "ny_rockland_county_bonfire", stateName: "New York", place: "Rockland County", buyer: "Rockland County, New York", idPrefix: "rocklandgovbonfire" },
   { tenant: "alleghenycountydhs", source: "pa_allegheny_dhs_bonfire", stateName: "Pennsylvania", place: "Allegheny County", buyer: "Allegheny County Department of Human Services", idPrefix: "alleghenycountydhsbonfire", location: "Allegheny County, PA" },
   { tenant: "cobbk12", source: "ga_cobb_schools_bonfire", stateName: "Georgia", place: "Cobb County School District", buyer: "Cobb County School District", idPrefix: "cobbk12bonfire", location: "Cobb County, GA" },

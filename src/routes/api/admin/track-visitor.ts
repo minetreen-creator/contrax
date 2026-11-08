@@ -235,8 +235,21 @@ async function POST({ request }: { request: Request }) {
         if (ip === getClientIp(request)) {
           return Response.json({ error: "That's your own IP, so it wasn't blocked" }, { status: 400 });
         }
+        // Never block an address a member uses (owner 2026-11-08): phone carriers and
+        // offices share one address among many people, and blocking it locks them out too.
+        const [use] = (await db`
+          SELECT COUNT(DISTINCT user_id)::int AS members, COUNT(DISTINCT visitor_id)::int AS visitors
+          FROM page_views WHERE ip = ${ip} AND created_at > NOW() - INTERVAL '30 days'
+        `) as { members: number; visitors: number }[];
+        if ((use?.members ?? 0) > 0) {
+          return Response.json(
+            { error: "A signed-in Contrax account used this address in the last 30 days (likely a shared phone or office address), so it wasn't blocked." },
+            { status: 409 },
+          );
+        }
+        // Re-blocking restarts the BLOCK_DAYS clock.
         await db`INSERT INTO blocked_ips (ip, visitor_id, note) VALUES (${ip}, ${vid}, ${note})
-          ON CONFLICT (ip) DO NOTHING`;
+          ON CONFLICT (ip) DO UPDATE SET blocked_at = NOW(), visitor_id = EXCLUDED.visitor_id, note = EXCLUDED.note`;
         // Blocked visitors stay on the tracked list so you can see if they try a new IP.
         await ensureTrackedVisitorsTable();
         await db`INSERT INTO tracked_visitors (visitor_id, note) VALUES (${vid}, ${note ?? "blocked"})

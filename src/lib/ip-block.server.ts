@@ -7,11 +7,15 @@ import { BLOCKED_IPS } from "./request-ip";
  * vercel-entry.ts refuses every function request from a listed IP with a 403.
  *
  * Exact match only, like BLOCKED_IPS in request-ip.ts (those stay blocked
- * too). The list is cached per function instance for 60 seconds so the
+ * too). A console block lasts BLOCK_DAYS (owner 2026-11-08): phone carriers and
+ * offices put many people on one address, and a block that never ends keeps
+ * refusing whoever gets that address next. The list is cached per function instance for 60 seconds so the
  * check costs one query a minute, not one per request. Any database error
  * fails open: a broken blocklist must never take the site down.
  */
 const TTL_MS = 60_000;
+/** A console block ends on its own after this many days. */
+export const BLOCK_DAYS = 30;
 let cache: { ips: Set<string>; at: number } | null = null;
 
 export async function ensureBlockedIpsTable(): Promise<void> {
@@ -29,7 +33,7 @@ async function blockedSet(): Promise<Set<string>> {
   try {
     if (process.env.DATABASE_URL) {
       await ensureBlockedIpsTable();
-      const rows = (await sql()`SELECT ip FROM blocked_ips`) as { ip: string }[];
+      const rows = (await sql()`SELECT ip FROM blocked_ips WHERE blocked_at > NOW() - make_interval(days => ${BLOCK_DAYS})`) as { ip: string }[];
       for (const r of rows) ips.add(r.ip);
     }
   } catch (e) {

@@ -31,7 +31,7 @@ import { anonHintClearCookie, issuesSession } from "./src/lib/anon-hint";
 import { isIpBlocked } from "./src/lib/ip-block.server";
 import { blockedUserAgent } from "./src/lib/blocked-user-agents";
 // US-only access (owner 2026-11-05: "Block non-US"; src/lib/geo-block.ts).
-import { GEO_BLOCK_MESSAGE, geoBlocked } from "./src/lib/geo-block";
+import { ACCESS_BLOCK_MESSAGE, GEO_BLOCK_MESSAGE, geoBlocked } from "./src/lib/geo-block";
 
 // ── Client asset references for the static SEO pages ─────────────────────────
 // The entry chunk / CSS / preload filenames come from vercel-entry.assets.json,
@@ -916,7 +916,7 @@ export default async function vercelHandler(
       res.statusCode = 403;
       res.setHeader("content-type", "text/plain; charset=utf-8");
       res.setHeader("cache-control", "no-store");
-      res.end("Access denied.");
+      res.end(ACCESS_BLOCK_MESSAGE);
       return;
     }
 

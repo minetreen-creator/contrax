@@ -23,7 +23,13 @@ export const ALLOWED_COUNTRIES: ReadonlySet<string> = new Set(["US", "PR", "GU",
 
 const EXEMPT_PATH = /^\/(?:api\/stripe\/|api\/webhooks\/|api\/cron\/|robots\.txt$|sitemap[^/]*\.xml$|\.well-known\/)/;
 
-export const GEO_BLOCK_MESSAGE = "Contrax lists U.S. government bids and is available in the United States only.";
+export const GEO_BLOCK_MESSAGE =
+  "Contrax lists U.S. government bids and is available in the United States only. On a VPN? Turn it off or choose a U.S. location. Think this is a mistake? Email contrax.companyllc@gmail.com.";
+
+/** What a blocked address or browser sees (owner 2026-11-08: a real contractor on a shared phone
+ *  or office address must have a way to reach us, not a dead end). */
+export const ACCESS_BLOCK_MESSAGE =
+  "Access denied. If you're a contractor and think this is a mistake, email contrax.companyllc@gmail.com with your city, and we'll fix it.";
 
 export function geoBlocked(args: { country: string | null | undefined; pathname: string }): boolean {
   const country = String(args.country ?? "").trim().toUpperCase();

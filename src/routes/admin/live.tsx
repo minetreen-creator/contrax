@@ -339,7 +339,7 @@ function TrackDrawer({ vid, label, onClose, onChanged }: { vid: string; label: s
 
   const block = async () => {
     if (!trail || saving) return;
-    if (!trail.ipBlocked && !window.confirm(`Block ${trail.ip ?? "this IP"} from the whole site? Anyone on that address gets "Access denied." Takes effect within a minute.`)) return;
+    if (!trail.ipBlocked && !window.confirm(`Block ${trail.ip ?? "this IP"} from the whole site? Anyone on that address is refused for 30 days (they see an email address to reach you). Takes effect within a minute. Addresses a signed-in member uses can't be blocked.`)) return;
     setSaving(true);
     try {
       const res = await fetch("/api/admin/track-visitor", {

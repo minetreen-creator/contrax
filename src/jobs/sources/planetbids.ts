@@ -5,7 +5,8 @@
  * portal page in a real browser (as ContraxBot, never signed in) and records the "Bidding" stage
  * bids the page itself lists. This module validates that payload and maps it to bids.
  *
- *   `oh_toledo_planetbids`: City of Toledo (company id 22576).
+ *   `oh_toledo_planetbids`: City of Toledo (company id 22576), plus the City of San Diego, the San
+ *   Diego airport and port, Valley Water, Sacramento RT and Metroparks Toledo (see PLANETBIDS_BOARDS).
  *
  * Skipped: invitation-only bids (`by_invitation`), RFIs (`not_a_solicitation`), anything not in
  * the Bidding stage (`not_bidding`) or already past due (`closed`). Due times are the agency's
@@ -32,6 +33,14 @@ export interface PlanetbidsBoard {
 
 export const PLANETBIDS_BOARDS: readonly PlanetbidsBoard[] = [
   { source: "oh_toledo_planetbids", cid: 22576, agency: "City of Toledo", location: "Toledo, OH", idPrefix: "toledoplanetbids" },
+  // Owner 2026-11-08 ("yes"): agencies PlanetBids' own state pages list, IDs taken from each
+  // agency's purchasing page and checked with the browser driver the same day.
+  { source: "ca_san_diego_planetbids", cid: 17950, agency: "City of San Diego", location: "San Diego, CA", idPrefix: "sandiegoplanetbids" },
+  { source: "ca_san_diego_airport_planetbids", cid: 16725, agency: "San Diego County Regional Airport Authority", location: "San Diego, CA", idPrefix: "sanplanetbids" },
+  { source: "ca_port_of_san_diego_planetbids", cid: 13982, agency: "Port of San Diego", location: "San Diego, CA", idPrefix: "portsandiegoplanetbids" },
+  { source: "ca_valley_water_planetbids", cid: 48397, agency: "Santa Clara Valley Water District", location: "San Jose, CA", idPrefix: "valleywaterplanetbids" },
+  { source: "ca_sacrt_planetbids", cid: 39480, agency: "Sacramento Regional Transit District", location: "Sacramento, CA", idPrefix: "sacrtplanetbids" },
+  { source: "oh_metroparks_toledo_planetbids", cid: 59805, agency: "Metroparks Toledo", location: "Toledo, OH", idPrefix: "metroparkstoledoplanetbids" },
 ];
 
 export interface PlanetbidsBid {

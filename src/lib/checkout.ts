@@ -6,6 +6,7 @@
  */
 
 import { trackEvent } from "~/lib/track";
+import { rememberCheckoutStarted } from "~/lib/checkout-resume";
 
 type PlanTier = "starter" | "professional" | "agency" | "savings_premium";
 
@@ -173,6 +174,8 @@ export async function redirectToCheckout(
       const { url } = (await response.json()) as { url: string };
       if (url) {
         trackEvent("plan_checkout_redirected", label);
+        // Remember it, so a person who backs out and signs up is offered it again (owner 2026-11-08).
+        rememberCheckoutStarted(planTier);
         window.location.href = url;
         return;
       }

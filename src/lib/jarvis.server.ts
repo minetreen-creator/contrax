@@ -1,3 +1,4 @@
+import { speakable } from "~/lib/speakable";
 import { sql } from "~/db";
 import { fetchOpenAIWithRetry, sanitizeLogString } from "~/lib/ai";
 import { BOT_EXCLUSION_SQL } from "~/lib/bot-exclusion";
@@ -345,10 +346,13 @@ export async function askJarvis(input: { question: string; snapshot: unknown; hi
 }
 
 const TTS_URL = "https://api.openai.com/v1/audio/speech";
-/** A British-sounding voice; JARVIS_VOICE picks another (alloy, ash, echo, onyx, sage…). */
-const TTS_VOICE = process.env.JARVIS_VOICE || "fable";
+/**
+ * Mission Control's voice (owner 2026-11-08: "the voice of a sexy sounding female"; before: "too
+ * robotic"): a warm, smooth woman's voice. JARVIS_VOICE picks another (alloy, coral, nova, sage…).
+ */
+const TTS_VOICE = process.env.JARVIS_VOICE || "shimmer";
 const TTS_STYLE =
-  "Voice: a refined British AI butler, like J.A.R.V.I.S. from Iron Man. Calm, warm, quietly confident, crisp diction, a hint of dry humour. Measured pace, never rushed.";
+  "Voice: a confident, warm woman with a smooth, low, velvety tone and a relaxed, unhurried delivery. Natural and human, never robotic: soft emphasis, a slight smile in the voice, gentle pauses between thoughts. Clear diction; say place names fully.";
 export const MAX_TTS_CHARS = 800;
 
 /**
@@ -371,7 +375,8 @@ export async function speechWithStatus(
   text: string,
   voice: { voice?: string; style?: string } = {},
 ): Promise<{ audio: ArrayBuffer | null; status: number | null }> {
-  const input = text.trim().slice(0, MAX_TTS_CHARS);
+  // "Hampton, VA" → "Hampton, Virginia" (owner 2026-11-08: the voice "doesn't pronounce state names").
+  const input = speakable(text.trim()).slice(0, MAX_TTS_CHARS);
   if (!input || !process.env.OPENAI_API_KEY) return { audio: null, status: null };
   const call = (body: Record<string, unknown>) =>
     fetchOpenAIWithRetry(TTS_URL, {

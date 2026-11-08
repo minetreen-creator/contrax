@@ -2,6 +2,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { afterWakeWord, bootReport, isWakePhrase, JARVIS_VISUALS, type JarvisAction, type JarvisServerStats, type JarvisSnapshot, type JarvisVisual, type SimMonth, type SimResult } from "~/lib/jarvis";
 import { announcements, isRedAlert, pageName, type Announcement, type AnnounceState } from "~/lib/hot-leads";
+import { speakable } from "~/lib/speakable";
 import { Search, UserPlus, Timer, CreditCard, PartyPopper, Radio, Flame, DollarSign, X, Volume2, VolumeX, ScanEye, Mic, TrendingUp, Smartphone } from "lucide-react";
 import type { AppStats, AppWindowCounts } from "~/lib/app-stats";
 import { dollars, weekGrowthLabel, type InvestorNumbers } from "~/lib/investor-numbers";
@@ -766,10 +767,9 @@ function useVoiceAnnouncer() {
       if (audio.current.state === "suspended") audio.current.resume().catch(() => {});
       playTone(audio.current, line.tone);
     }
-    const u = new SpeechSynthesisUtterance(line.text);
-    u.rate = 1.05;
-    u.onend = u.onerror = () => setTimeout(next, 400);
-    setTimeout(() => window.speechSynthesis.speak(u), 350);
+    setTimeout(() => {
+      speakNatural(line.text).then(() => setTimeout(next, 400));
+    }, 350);
   };
 
   const say = (lines: Announcement[]) => {
@@ -923,15 +923,59 @@ function makeRecognizer(): Recognizer | null {
   return r;
 }
 
-/** A British male voice when the browser has one, for the full J.A.R.V.I.S. effect. */
+/**
+ * The browser's own voice, used only when the AI voice can't play: the most natural English
+ * female voice it has (owner 2026-11-08: "the voice of a sexy sounding female"). "Natural"/"Online"
+ * voices (Edge) and Samantha/Ava (Apple) sound far less robotic than the defaults.
+ */
 function jarvisVoice(): SpeechSynthesisVoice | null {
-  const voices = window.speechSynthesis.getVoices();
+  const voices = window.speechSynthesis.getVoices().filter((v) => v.lang.startsWith("en"));
   return (
-    voices.find((v) => /daniel|google uk english male|arthur|george|ryan.*(uk|gb)/i.test(v.name)) ??
-    voices.find((v) => v.lang === "en-GB") ??
-    voices.find((v) => v.lang.startsWith("en")) ??
+    voices.find((v) => /(aria|jenny|michelle|ava|emma|sonia|libby).*(natural|online)/i.test(v.name)) ??
+    voices.find((v) => /^(ava|samantha|allison|susan|serena|karen|moira|tessa)\b/i.test(v.name)) ??
+    voices.find((v) => /google us english|google uk english female|zira|female/i.test(v.name)) ??
+    voices.find((v) => v.lang === "en-US") ??
+    voices[0] ??
     null
   );
+}
+
+/**
+ * Say one line in Mission Control's AI voice (/api/admin/jarvis-voice), else in the browser's own
+ * voice (owner 2026-11-08: the activity announcer used the browser default and "sounds too
+ * robotic"). State codes are spelled out either way ("Hampton, VA" → "Hampton, Virginia").
+ */
+async function speakNatural(text: string, rate = 1): Promise<void> {
+  const words = speakable(text);
+  let src = "";
+  try {
+    const res = await fetch("/api/admin/jarvis-voice", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text: words }) });
+    if (res.ok) src = URL.createObjectURL(await res.blob());
+  } catch {
+    /* fall back below */
+  }
+  const browserVoice = () =>
+    new Promise<void>((done) => {
+      if (!("speechSynthesis" in window)) return done();
+      const u = new SpeechSynthesisUtterance(words);
+      const v = jarvisVoice();
+      if (v) u.voice = v;
+      u.rate = rate;
+      u.onend = u.onerror = () => done();
+      window.speechSynthesis.speak(u);
+    });
+  if (!src) return browserVoice();
+  const audio = new Audio(src);
+  await new Promise<void>((done) => {
+    audio.onended = audio.onerror = () => {
+      URL.revokeObjectURL(src);
+      done();
+    };
+    audio.play().catch(() => {
+      URL.revokeObjectURL(src);
+      browserVoice().then(done);
+    });
+  });
 }
 
 /**
@@ -1222,11 +1266,10 @@ function Jarvis({ data, now, onChat }: { data: LiveData; now: number; onChat: (v
   const speakBrowser = (text: string) =>
     new Promise<void>((done) => {
       if (!("speechSynthesis" in window)) return done();
-      const u = new SpeechSynthesisUtterance(text);
+      const u = new SpeechSynthesisUtterance(speakable(text));
       const v = jarvisVoice();
       if (v) u.voice = v;
-      u.rate = 1.02;
-      u.pitch = 0.9;
+      u.rate = 1;
       u.onend = u.onerror = () => done();
       window.speechSynthesis.speak(u);
     });

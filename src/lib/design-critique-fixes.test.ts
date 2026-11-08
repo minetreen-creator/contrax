@@ -86,7 +86,8 @@ describe("radar results", () => {
   test("anonymous visitors see the free card once, the real total, and the $5 price", () => {
     const radar = read("src/routes/radar.tsx");
     expect(radar).toContain("{state !== \"\" && !(isAnonymous && (scan.sections?.local ?? []).length > 0) && (");
-    expect(radar).toContain("total={visibleCount + locked}");
+    // Owner 2026-11-08: cards count against the search's real total, not the 25-card list.
+    expect(radar).toContain("total={totalMatches}");
     expect(radar).toContain('trackEvent("radar_anon_pass_offer_click"');
     expect(radar).toContain("{isAnonymous && scan.matches.length > 0 && locked === 0 && (\n              <SaveMatchesCard");
     expect(radar).toContain("(scan.sections?.related ?? []).length > 0 && (");

@@ -31,7 +31,8 @@ describe("a signed-in free account sees its own count with the $5 offer", () => 
   test("Radar returns paidMember and the in-state count, and shows the banner only to free accounts", () => {
     const radar = read("src/routes/radar.tsx");
     expect(radar).toContain("paidMember: subscribed,");
-    expect(radar).toContain("localMatched: state ? local.length : matches.length,");
+    // Owner 2026-11-08: the in-state count is taken before the 25-card list cap.
+    expect(radar).toContain("localMatched: strongLocalTotal,");
     expect(radar).toContain("{!isAnonymous && scan.paidMember === false && (scan.localMatched ?? 0) > 0 && (");
   });
   test("counts read naturally", () => {

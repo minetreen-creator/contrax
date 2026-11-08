@@ -71,6 +71,7 @@ import {
   type RadarScanRace,
 } from "~/lib/radar-scan-runner";
 import { fetchStrictRadarRows, radarRowPasses } from "~/lib/radar-candidates";
+import { collapseScanRows, loadNoticeDedupeKeys, stateHintPatterns } from "~/lib/radar-scan-query";
 import { radarShareUrl } from "~/lib/radar-share";
 import { closingSoonLast, roomToBidFirst } from "~/lib/radar-closing-soon";
 import { ADDRESS_TIP, isKnownTrade, looksLikeAddress, notATradeLine } from "~/lib/trade-input";
@@ -496,48 +497,76 @@ export const getBidsFirst = createServerFn({ method: "GET" })
 
 /**
  * The bids-first rows for one state; null when the state is unknown or has no
- * open bids. Each tab uses Radar's own strong-match test (isStrongTradeMatch)
- * over the state's open bids only. A live Radar search per tab took up to 20 s
- * and its nationwide pass pulled in other states' bids.
+ * open bids. Counts follow a Radar search's own rules (owner 2026-11-08: the
+ * panel said 111 Florida construction bids while the search said 25), so a tab
+ * count equals the "found" count of the search it links to: the same in-state
+ * candidates (location/agency mentions the state), Radar's strong-match test,
+ * small-business set-aside rule and location checks (radarRowPasses), the local
+ * bucket (matchGeographyBucket) and the same duplicate collapse. The list then
+ * shows only bids that are still worth opening (2+ days left, no award notices,
+ * no parts orders). A live search per tab took up to 20 s, so this runs over the
+ * state's open bids in one query, cached per state for 10 minutes.
  */
 export async function loadBidsFirst(state: string, now: number = Date.now()): Promise<BidsFirstData | null> {
   if (!state || !/^[A-Z]{2}$/.test(state) || !STATE_NAMES[state]) return null;
   const hit = bidsFirstCache.get(state);
   if (hit && now - hit.at < BIDS_FIRST_TTL_MS) return hit.data;
+  const hint = stateHintPatterns(state);
+  if (!hint) return null;
   const { sql } = await import("~/db");
   const { AWARD_EXCLUSION_SQL } = await import("~/lib/source-class");
   const s = sql();
-  // Notices of intent to award / sole source are announcements nobody can bid
-  // on; parts buys (numeric supply-class prefix) and bare part names are left
-  // out too (owner 2026-10-20 / 10-26). `state` is a checked two-letter code.
+  // Same open + low-content rule and the same in-state hint as Radar's state pass.
   const rows = (await s`
-    SELECT id, title, agency, due_date, naics_code FROM bids
-    WHERE ${s.unsafe(
-      `normalized_state = '${state}' AND due_date > NOW() + INTERVAL '2 days' AND ${LOW_CONTENT_SQL} AND ${AWARD_EXCLUSION_SQL}
-       AND title !~* '(intent to (sole[ -]source|award)|sole[ -]source)' AND title !~ '^[0-9]{2}--' AND length(title) >= 15`,
-    )}
+    SELECT id, title, agency, location, set_aside, source, naics_code, due_date, created_at,
+           (${s.unsafe(AWARD_EXCLUSION_SQL)}) AS listable
+    FROM bids
+    WHERE due_date > NOW() AND ${s.unsafe(LOW_CONTENT_SQL)}
+      AND (LOWER(COALESCE(location,'')) LIKE ${hint.name}
+           OR LOWER(COALESCE(agency,'')) LIKE ${hint.name}
+           OR COALESCE(location,'') ~* ${hint.token}
+           OR COALESCE(agency,'') ~* ${hint.token})
     ORDER BY created_at DESC
-  `) as { id: number; title: string | null; agency: string | null; due_date: string | null; naics_code: string | null }[];
+  `) as Record<string, any>[];
+  const local = rows.filter((r) => matchGeographyBucket(state, r.location, r.agency) === "local");
+  const strongByTab = new Map<BidsFirstTab, Record<string, any>[]>();
+  for (const t of BIDS_FIRST_TABS) {
+    const expansion = expandTrade(t.trade);
+    strongByTab.set(t.id, local.filter((r) => isStrongTradeMatch(String(r.title ?? ""), null, null, r.naics_code, expansion)));
+  }
+  // For the strong rows only: the description (radarRowPasses reads it: a place
+  // named there can contradict the state) and a flag per tab for the search's
+  // own SQL filters, its keyword predicate and the small-business set-aside
+  // fragment. A row the search's query would never fetch is never counted here.
+  const { tradeKeywordPred } = await import("~/lib/trade-registry");
+  const { sbCertFragment } = await import("~/lib/cert-matching");
+  const certFrag = sbCertFragment(sql);
+  const ids = [...new Set([...strongByTab.values()].flat().map((r) => Number(r.id)))];
+  const flags = BIDS_FIRST_TABS.map((t) => s`(TRUE ${certFrag} ${tradeKeywordPred(sql, expandTrade(t.trade))}) AS ${s.unsafe(`q_${t.id}`)}`);
+  const flagList = flags.reduce((acc, f, i) => (i === 0 ? f : s`${acc}, ${f}`));
+  const extra = ids.length ? ((await s`SELECT id, description, ${flagList} FROM bids WHERE id = ANY(${ids})`) as Record<string, any>[]) : [];
+  const extraById = new Map(extra.map((d) => [Number(d.id), d]));
   const out: BidsFirstData = {
     state,
-    total: rows.length,
+    total: local.length,
     counts: { construction: 0, landscaping: 0, janitorial: 0, security: 0 },
     bids: { construction: [], landscaping: [], janitorial: [], security: [] },
   };
+  const day = 86_400_000;
   for (const t of BIDS_FIRST_TABS) {
-    const expansion = expandTrade(t.trade);
-    const seen = new Set<string>();
-    for (const r of rows) {
+    type Row = { id: number; title: string | null; agency: string | null; location: string | null; source: string | null; due_date: string | null; listable: boolean; description: string | null };
+    const passing: Row[] = (strongByTab.get(t.id) ?? [])
+      .filter((r) => extraById.get(Number(r.id))?.[`q_${t.id}`] === true)
+      .map((r) => ({ ...r, id: Number(r.id), description: extraById.get(Number(r.id))?.description ?? null }) as Row)
+      .filter((r) => radarRowPasses(r, "sb", state));
+    const collapsed = await collapseScanRows(passing, (rowIds) => loadNoticeDedupeKeys(sql, rowIds));
+    out.counts[t.id] = collapsed.rows.length;
+    for (const r of collapsed.rows) {
+      if (out.bids[t.id].length >= BIDS_FIRST_PER_TAB) break;
       const title = String(r.title ?? "");
-      if (!isStrongTradeMatch(title, null, null, r.naics_code, expansion)) continue;
-      // The same notice is often listed twice under slightly different agency names.
-      const key = title.toLowerCase().replace(/\s+/g, " ").trim();
-      if (seen.has(key)) continue;
-      seen.add(key);
-      out.counts[t.id]++;
-      if (out.bids[t.id].length < BIDS_FIRST_PER_TAB) {
-        out.bids[t.id].push({ id: Number(r.id), title, agency: String(r.agency ?? ""), due_date: r.due_date ? new Date(r.due_date).toISOString() : null });
-      }
+      const due = r.due_date ? new Date(r.due_date).getTime() : 0;
+      if (!r.listable || due < now + 2 * day || title.length < 15 || /intent to (sole[ -]source|award)|sole[ -]source/i.test(title)) continue;
+      out.bids[t.id].push({ id: Number(r.id), title, agency: String(r.agency ?? ""), due_date: r.due_date ? new Date(r.due_date).toISOString() : null });
     }
   }
   const data = out.total > 0 ? out : null;
@@ -751,6 +780,14 @@ export const runRadarScan = createServerFn({ method: "POST" })
     // exact-code matches and are strong by construction.
     // Owner 2026-11-02: bids closing within 2 days go after the ones there is
     // still time to win (~/lib/radar-closing-soon).
+    const strongAll = scored.filter((m) => m.strong);
+    // The real count before the list cap (owner 2026-11-08: a Florida
+    // construction search read "25 found" while 100+ were open; the cap limits
+    // the cards returned, never the number reported).
+    const strongTotal = strongAll.length;
+    const strongLocalTotal = state
+      ? strongAll.filter((m) => matchGeographyBucket(state, m.bid.location, m.bid.agency) === "local").length
+      : strongTotal;
     const ranked = closingSoonLast(scored.filter((m) => m.strong), (m) => m.bid.due_date).slice(0, RADAR_MATCH_CAP);
     const weakRowCandidates = scored.filter((m) => !m.strong);
 
@@ -1002,18 +1039,19 @@ export const runRadarScan = createServerFn({ method: "POST" })
       visitorId: scanVisitorId || null,
       userId: scanner?.id ?? null,
       trade, state, cert: certId, sizePref,
-      matched: matches.length, shown: visibleMatches.length, related: related.length,
+      matched: strongTotal, shown: visibleMatches.length, related: related.length,
     });
     return {
       paidRequired: false,
       freeSearchKept,
       // Owner 2026-11-01: signed-in free accounts see their own count with the $5 offer.
       paidMember: subscribed,
-      // In-state matches before the free cap, for the $5 offer's count.
-      localMatched: state ? local.length : matches.length,
+      // In-state matches before any cap, for the $5 offer's count.
+      localMatched: strongLocalTotal,
       matches: visibleMatches,
       // Owner 2026-10-15: admin's "Matches found" showed the free 3, not the real count.
-      totalMatched: matches.length,
+      // Owner 2026-11-08: and not the 25-card cap either.
+      totalMatched: strongTotal,
       emailUnlocked,
       certLabel: CERT_LABEL[certId],
       sections: {
@@ -1489,8 +1527,13 @@ function RadarLanding() {
   const totalMatches = scan.status === "done" ? Math.max(scan.totalMatched ?? 0, scan.matches.length) : 0;
   const emailUnlocked = scan.status === "done" && scan.emailUnlocked === true;
   const visibleCount = emailUnlocked ? scan.matches.length : Math.min(totalMatches, FREE_ANONYMOUS_RADAR_RESULTS);
-  /** Real locked count — ONLY non-zero when genuine matches exceed the free cap. */
-  const locked = emailUnlocked ? 0 : Math.max(totalMatches - FREE_ANONYMOUS_RADAR_RESULTS, 0);
+  /**
+   * What an email unlock shows: the rest of the cards, up to the list cap
+   * (RADAR_MATCH_CAP). ONLY non-zero when genuine matches exceed the free cap.
+   */
+  const locked = emailUnlocked ? 0 : Math.max(Math.min(totalMatches, RADAR_MATCH_CAP) - FREE_ANONYMOUS_RADAR_RESULTS, 0);
+  /** Every real match not on screen (can exceed `locked` when the search found more than the list holds). */
+  const waiting = emailUnlocked ? 0 : Math.max(totalMatches - visibleCount, 0);
 
   // PR1 funnel: fires exactly once when an ANONYMOUS visitor's results screen
   // first renders after a completed scan (guarded so a refresh/re-render cannot
@@ -2347,8 +2390,10 @@ function RadarLanding() {
                     }}
                     className="flex items-center justify-between gap-3 rounded-xl border border-amber-400/60 bg-amber-500/10 px-4 py-3 text-left text-sm font-semibold text-amber-200 hover:bg-amber-500/20"
                   >
-                    <span>Showing {visibleCount} of {visibleCount + locked} matching bids</span>
-                    <span className="whitespace-nowrap text-amber-300">See all {visibleCount + locked}: just your email →</span>
+                    <span>Showing {visibleCount} of {totalMatches} matching bids</span>
+                    <span className="whitespace-nowrap text-amber-300">
+                      {totalMatches > RADAR_MATCH_CAP ? `See your best ${RADAR_MATCH_CAP}` : `See all ${totalMatches}`}: just your email →
+                    </span>
                   </button>
                 )}
                 {scan.matches.slice(0, visibleCount).map((m, i) => (
@@ -2358,7 +2403,7 @@ function RadarLanding() {
                     intel={matchIntel[m.id]}
                     certLabel={scan.certLabel}
                     index={i + 1}
-                    total={visibleCount + locked}
+                    total={totalMatches}
                     trade={trade}
                     state={state}
                     cert={cert}
@@ -2382,7 +2427,7 @@ function RadarLanding() {
                     className="block rounded-xl border border-amber-400/60 bg-amber-500/15 px-4 py-4 text-amber-50 hover:bg-amber-500/25"
                   >
                     <span className="block text-base font-bold">
-                      {locked} more {tradeLabel(track).replace(/["“”]/g, "")} bids{state ? ` in ${STATE_NAMES[state] ?? state}` : ""} are waiting.
+                      {waiting} more {tradeLabel(track).replace(/["“”]/g, "")} bids{state ? ` in ${STATE_NAMES[state] ?? state}` : ""} are waiting.
                     </span>
                     <span className="mt-1 block text-sm text-amber-100">
                       Open every official notice, and get each new bid at 6 AM, for 30 days.
@@ -2392,7 +2437,7 @@ function RadarLanding() {
                     </span>
                   </a>
                 )}
-                {locked > 0 && <LockedMatchPreview locked={locked} />}
+                {locked > 0 && <LockedMatchPreview locked={waiting} />}
                 {/* Email unlock (owner 2026-10-23): of 28 visitors sent from
                     here to the full signup page in 30 days, 2 signed up. An
                     email alone now shows every match of this search, on this

@@ -95,7 +95,7 @@ jobs:
         run: |
           D="$RUNNER_TEMP/vendornet"
           mkdir -p "$D"
-          cp .github/scripts/vendornet-bids-fetch.mjs .github/scripts/virginia-beach-bids-fetch.mjs .github/scripts/oracle-abstracts-fetch.mjs .github/scripts/planetbids-bids-fetch.mjs "$D/"
+          cp .github/scripts/vendornet-bids-fetch.mjs .github/scripts/virginia-beach-bids-fetch.mjs .github/scripts/oracle-abstracts-fetch.mjs .github/scripts/planetbids-bids-fetch.mjs .github/scripts/gdot-letting-fetch.mjs "$D/"
           cd "$D"
           npm init -y >/dev/null
           npm install --no-audit --no-fund --no-save --no-package-lock puppeteer-core@24
@@ -136,3 +136,12 @@ jobs:
       - name: Send app reminders for saved bids due soon
         continue-on-error: true
         run: bun run src/jobs/push-bid-alerts.ts --due-soon
+
+      # Georgia DOT planned lettings (owner 2026-11-08, "Add as 'Upcoming'"): GDOT's public
+      # Project Letting by Month forecast, shown on the Upcoming forecasts page, never as open
+      # bids. Never fails the sync.
+      - name: Update Georgia DOT planned lettings (Upcoming forecasts)
+        continue-on-error: true
+        env:
+          GDOT_LETTING_FETCH_SCRIPT: ${{ runner.temp }}/vendornet/gdot-letting-fetch.mjs
+        run: bun run src/jobs/gdot-letting-sync.ts

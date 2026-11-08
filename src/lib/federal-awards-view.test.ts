@@ -32,7 +32,7 @@ describe("/awards shows real federal awards", () => {
     expect(page).not.toContain('winning_company: "Open opportunity"');
     expect(page).toContain("<FederalAwardsSection data={federal} />");
     expect(page).toContain("Open bids: see who held similar work");
-    const q = readFileSync(new URL("./federal-trade-data.server.ts", import.meta.url), "utf8");
+    const q = readFileSync(new URL("./federal-awards.server.ts", import.meta.url), "utf8");
     expect(q).toContain("SELECT DISTINCT ON (award_key) award_key, award_id, recipient_name");
   });
 });

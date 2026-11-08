@@ -22,7 +22,7 @@ export const getFederalAwards = createServerFn({ method: "GET" })
       paid = false; // fail closed: a lookup error never shows the member list
     }
     try {
-      const { queryFederalAwards } = await import("~/lib/federal-trade-data.server");
+      const { queryFederalAwards } = await import("~/lib/federal-awards.server");
       const r = await queryFederalAwards({
         like: data.q ? awardLikePattern(data.q) : null,
         state: data.state || null,

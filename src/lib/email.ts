@@ -7,6 +7,7 @@
 
 import { digestBidsToList } from "./digest-recipients";
 import { HEAD_START_DAYS } from "./head-start";
+import { PAYMENTS_WON_LINE, paymentsHref } from "./payments-upsell";
 import { displayCompanyName, formatAwardAmount } from "./award-check";
 import { Resend } from "resend";
 
@@ -817,6 +818,19 @@ export function awardResultsSubject(items: AwardEmailItem[]): string {
   return `${items.length} bids in your pipeline were awarded — Contrax`;
 }
 
+/** One Contrax Payments line under the results when a member won (owner 2026-11-08). */
+function awardWonPaymentsRow(): string {
+  return `
+<tr>
+  <td style="padding:0 32px 16px;">
+    <p style="margin:0;padding:14px 18px;background:#eff6ff;border-radius:8px;color:#1e3a8a;font-size:14px;line-height:1.5;">
+      ${escapeHtml(PAYMENTS_WON_LINE)}
+      <a href="${paymentsHref("won_email", true)}" style="color:#1d4ed8;font-weight:600;text-decoration:none;">See Contrax Payments →</a>
+    </p>
+  </td>
+</tr>`;
+}
+
 export function awardResultsHtml(items: AwardEmailItem[]): string {
   const rows = items
     .map((i) => {
@@ -878,6 +892,7 @@ export function awardResultsHtml(items: AwardEmailItem[]): string {
         </td>
       </tr>
       ${rows}
+      ${items.some((i) => i.outcome === "won") ? awardWonPaymentsRow() : ""}
       <tr>
         <td style="background:#f9fafb;padding:20px 32px;text-align:center;border-top:1px solid #e5e7eb;">
           <p style="margin:0 0 4px;color:#9ca3af;font-size:12px;">You get this because these bids are saved in your Contrax pipeline. Remove a bid from your pipeline to stop updates on it.</p>

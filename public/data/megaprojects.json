@@ -75,6 +75,27 @@
     "checked": "2026-10-25"
   },
   {
+    "slug": "amazon-data-center-wade-drive-loudoun-va",
+    "company": "Amazon",
+    "project": "Data center on Wade Drive near Dulles Airport",
+    "city": "Loudoun County",
+    "state": "VA",
+    "sector": "tech",
+    "amount": 99790000,
+    "amountNote": "land purchase price for the 23-acre site, not the cost of the building",
+    "jobs": null,
+    "jobsNote": null,
+    "status": "Proposed: Amazon has asked Loudoun County for two special exceptions, one to allow a data center on the site and one to raise the height limit from 45 feet to 100 feet; the county is also weighing a temporary pause on data center approvals",
+    "summary": "Amazon paid about $99.8 million for 23 acres at 44146 Wade Drive near Dulles Airport in Loudoun County, where it plans a data center up to 100 feet tall.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "Virginia Business, November 2026",
+      "url": "https://virginiabusiness.com/amazon-buys-loudoun-property-for-100m-plans-data-center/"
+    },
+    "checked": "2026-11-08"
+  },
+  {
     "slug": "tsmc-phoenix-az",
     "company": "TSMC",
     "project": "Arizona chip fab complex",

@@ -84,9 +84,12 @@ import { mapCategory } from "~/lib/trade-classification";
 import type { FetchResult } from "../runner";
 import { httpFailureDetail, requestFailureDetail, SourceUnreachableError } from "../fetch-failure";
 import type { RawBid } from "./sam-gov";
+import { CONTRAXBOT_USER_AGENT } from "./periscope-bso";
 
-const UA =
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36";
+/** Our own name, never a browser's (owner rule: "keep ContraxBot as the bot identity"; switched
+ * from a desktop Chrome string 2026-11-08 after the New Mexico captures read Bonfire fine as ContraxBot). */
+export const BONFIRE_USER_AGENT = CONTRAXBOT_USER_AGENT;
+const UA = BONFIRE_USER_AGENT;
 
 /** Bonfire ProjectStatusID for an open project. */
 export const BONFIRE_STATUS_OPEN = "2";

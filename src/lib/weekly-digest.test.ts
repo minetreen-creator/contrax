@@ -138,12 +138,16 @@ describe("founding offer in the free emails (owner 2026-10-03)", () => {
     }
   });
 
-  test("radar match alert pitches the founding price only while spots remain", () => {
-    expect(radarMatchAlertHtml([bid], 0, "https://u", 1)).toContain("(only 1 spot left)");
-    const full = radarMatchAlertHtml([bid], 0, "https://u", 0);
-    expect(full).toContain("Starter is $19/month");
-    expect(full).not.toContain("founding");
-    expect(radarMatchAlertHtml([bid], 0, "https://u")).toContain("Starter is $19/month");
+  // Owner 2026-11-08: one offer everywhere. The match alert to email-only leads offers the
+  // $5 pass whatever the founding count (it used to pitch the founding year or $19/month).
+  test("radar match alert offers the $5 pass, never the founding year or $19/month", () => {
+    for (const spots of [1, 0, null]) {
+      const html = radarMatchAlertHtml([bid], 0, "https://u", spots);
+      expect(html).toContain("Get the $5 pass");
+      expect(html).toContain("upgrade?plan=starter&source=radar_alert");
+      expect(html).not.toContain("founding");
+      expect(html).not.toContain("$19/month");
+    }
   });
 
   test("starterPriceHtml", () => {

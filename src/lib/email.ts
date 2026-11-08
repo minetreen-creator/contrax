@@ -516,7 +516,7 @@ export function radarMatchAlertHtml(
   bids: NewBidSummary[],
   truncatedCount: number,
   unsubscribeUrl: string,
-  foundingSpots: number | null = null,
+  _foundingSpots: number | null = null,
 ): string {
   const bidCards = bids
     .map((bid) => {
@@ -593,10 +593,8 @@ export function radarMatchAlertHtml(
             See all my matches →
           </a>
           <p style="margin:16px 0 0;color:#6b7280;font-size:13px;line-height:1.5;">
-            Free match alerts arrive once a week. Want every new bid each morning?
-            ${foundingOfferOpen(foundingSpots)
-              ? `Starter is ${starterPriceHtml(foundingSpots)}. <a href="https://www.contrax.company/founding-businesses" style="color:#2563eb;font-weight:600;">Claim a founding spot →</a>`
-              : `<a href="https://www.contrax.company/pricing" style="color:#2563eb;">Starter is $19/month</a>.`}
+            Free match alerts arrive once a week. <strong>The $5 pass</strong> sends every new matching bid at 6 AM Eastern, every morning, with the official notices and documents, for 30 days. No auto-renew.
+            <a href="${RADAR_ALERT_PASS_URL}" style="color:#2563eb;font-weight:600;">Get the $5 pass →</a>
           </p>
         </td>
       </tr>
@@ -952,6 +950,9 @@ export interface WeeklyDigestHtmlOptions {
   /** "Flooring in WA" when the list was matched to the reader's trade and state. */
   matchLabel?: string;
 }
+
+/** Where the free Radar match-alert email's offer sends people (owner 2026-11-08: it still offered $19/month). */
+export const RADAR_ALERT_PASS_URL = "https://www.contrax.company/upgrade?plan=starter&source=radar_alert";
 
 /** Where the weekly email's offer sends people (the $5 30-day pass). */
 export const WEEKLY_PASS_URL = "https://www.contrax.company/upgrade?plan=starter&source=weekly_email";

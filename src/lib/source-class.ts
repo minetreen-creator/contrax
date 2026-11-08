@@ -6584,6 +6584,13 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
     searchScope: "city-open-data",
     recordType: "opportunity",
   },
+  sc_columbia_ionwave: {
+    class: "local",
+    city: "Columbia",
+    scopeState: "SC",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
   va_vbcps_beacon: {
     class: "local",
     city: "Virginia Beach",

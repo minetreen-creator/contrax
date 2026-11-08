@@ -8,8 +8,13 @@
  *     place. Hot Springs' own CivicEngage page lists the same bids, so it is not read separately.
  *   `ar_fayetteville_ionwave`: the City of Fayetteville's own public IonWave board.
  *
+ *   `sc_columbia_ionwave` (owner 2026-11-08): the City of Columbia, SC's public IonWave board. The
+ *     city is moving to Cobblestone, but says to keep using IonWave for bids until that launches.
+ *
  * Same portal type as `ne_omaha_ionwave` and `fl_lee_county`. Close times are printed with their zone
- * ("(CT)"). Sole/single-source notices are not open competitions and are skipped (`not_competitive`).
+ * ("(CT)"). Sole/single-source notices are not open competitions and are skipped (`not_competitive`),
+ * and "Event" rows (Columbia's "Register for Our New e-Procurement Platform") are not solicitations
+ * (`not_a_solicitation`).
  * Detail pages are never requested; the row links to IonWave's public detail page for people to open.
  */
 import { mapCategory } from "~/lib/trade-classification";
@@ -108,6 +113,7 @@ export function mapIonwaveBoard(board: IonwaveBoard, items: IonwaveItem[], now: 
     seen.add(it.id);
     if (!it.title || !it.number) { skip(it.id, "missing_fields"); continue; }
     if (/sole source|single source/i.test(it.type)) { skip(it.id, "not_competitive"); continue; }
+    if (/^event$/i.test(it.type.trim())) { skip(it.id, "not_a_solicitation"); continue; }
     const due = ionwaveClose(it.close);
     if (!due) { skip(it.id, "bad_date"); continue; }
     if (Date.parse(due) <= now) { skip(it.id, "closed"); continue; }
@@ -180,6 +186,22 @@ export async function fetchIonwaveBoard(board: IonwaveBoard, now: number = Date.
     throw new SourceUnreachableError(board.source, [e instanceof Error ? e.message : String(e)]);
   }
 }
+
+export const SC_IONWAVE_BOARDS: readonly IonwaveBoard[] = [
+  {
+    source: "sc_columbia_ionwave",
+    origin: "https://columbiasc.ionwave.net",
+    agency: "City of Columbia",
+    location: "Columbia, SC",
+    fallbackLocation: "Columbia, SC",
+    idPrefix: "columbiascionwave",
+  },
+];
+
+export const SC_IONWAVE_SOURCES: { name: string; fetchFn: () => Promise<FetchResult> }[] = SC_IONWAVE_BOARDS.map((b) => ({
+  name: b.source,
+  fetchFn: () => fetchIonwaveBoard(b),
+}));
 
 export const AR_IONWAVE_SOURCES: { name: string; fetchFn: () => Promise<FetchResult> }[] = AR_IONWAVE_BOARDS.map((b) => ({
   name: b.source,

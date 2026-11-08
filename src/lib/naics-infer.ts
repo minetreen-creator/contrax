@@ -127,7 +127,11 @@ const KEYWORD_OVERRIDES: Record<string, string[]> = {
   "562910": ["remediation", "environmental remediation", "asbestos abatement", "contaminated soil", "hazmat cleanup", "site remediation"],
   "562920": ["recycling", "materials recovery", "recyclable"],
   // ── Education, health, social ────────────────────────────────────────────
-  "611310": ["college", "university", "higher education"],
+  // Owner 2026-11-08: "college" / "university" alone name the BUYER or a street ("Texas A&M
+  // University Area Streets", "6475 College St.", "University of Houston … Security Cameras"),
+  // not education work, so they tagged roads and cameras as 611310. Only phrases that describe
+  // delivering instruction count.
+  "611310": ["dual credit", "college credit", "college-level courses", "degree program", "credit-bearing courses", "academic instruction", "instructional services"],
   "611430": ["training", "professional development", "workforce training", "vocational training"],
   "611710": ["educational support", "tutoring", "education services", "after school"],
   "621111": ["physician", "medical practice", "doctor", "primary care", "family medicine"],

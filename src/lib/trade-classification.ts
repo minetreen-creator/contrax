@@ -568,10 +568,22 @@ const SC_CONSTRUCTION_TITLE =
 const VA_CONSTRUCTION_TITLE =
   /\b(construct|reconstruct|renovate|rehabilitate)\b|\brehab (of |the )?(senior|home|house|housing|homes|building|units?|apartments?|facility|school)\b|\b(collection|distribution|water|sewer|sanitary|drainage) system rehabilitation\b|\brehabilitation project\b|\b(re-?coating|repainting)\b[^.]{0,40}\btanks?\b|\bsound (barrier|wall)s?\b|\bwall (repairs?|replacement|reinforcement)\b|\b(swimming )?pool (replacement|renovation|construction)\b|\b(re)?point(ing)? (and|&) repair|\brepair (and|&) re-?point|\b(re|tuck)point(ing)?\b|\bhome (repair|rehabilitation)s?\b|\bhousing rehabilitation\b/;
 
+/** Owner 2026-11-08 ("lets look at construction in PA"): Pennsylvania titles
+ *  (BidNet Pennsylvania, PennBid, eMarketplace) that are building work but use
+ *  phrases none of the lists above carry. Pennsylvania's Separations Act splits
+ *  public building jobs into prime contracts, so "… Dining Hall - General" is the
+ *  general construction prime (the "- HVAC" and "- Electrical" primes keep their
+ *  own trades). Also: "Exterior Repairs", "Final Clarifier Repairs", "Library
+ *  Improvements", "Storm Improvements", "Elevator Addition", "Sinkhole Repairs",
+ *  "Trail Development", "Recreational Building", "Catch Basin and Inlet
+ *  Replacement", "Accessible Front Entrance", "Fire-Rated Double Doors". */
+const PA_CONSTRUCTION_TITLE =
+  /\s[-–]\s*["“]?general( construction| contract(or)?| trades?)?["”]?\s*$|\bexterior (repairs?|improvements?|renovations?|restoration)\b|\bclarifiers?\b[^.]{0,20}\b(repairs?|rehabilitation|replacement|improvements?)\b|\b(library|park|building|facility|manor|hall|school|center|station|office|bathroom|restroom|campus|plant) (interior )?improvements?\b|\binterior improvements? project\b|\bstorm(water)? (replacement|improvements?)\b|\b(elevator|building|classroom|garage) addition\b|\bsinkholes? (repairs?|remediation)\b|\btrail development\b|\brecreation(al)? building\b|\bcatch basins? (and inlets? )?(replacement|repairs?|rehabilitation|reconstruction|installation)\b|\breplace[^.]{0,20}\bcatch basins?\b|\binlets? replacement\b|\baccessible (front |main )?entrances?\b|\bfire[- ]rated\b[^.]{0,20}\bdoors?\b|\bsecurity wall\b|\brepair\b[^.]{0,30}\bwater tanks?\b|\bcemetery expansion\b|\bbrick [a-z]+ repairs?\b/;
+
 export function isConstructionTitle(title: string): boolean {
   const t = (title || "").toLowerCase();
   if (!t) return false;
-  if (ROAD_SEGMENT_TITLE.test(t) || CA_CONSTRUCTION_TITLE.test(t) || SC_CONSTRUCTION_TITLE.test(t) || VA_CONSTRUCTION_TITLE.test(t)) return true;
+  if (ROAD_SEGMENT_TITLE.test(t) || CA_CONSTRUCTION_TITLE.test(t) || SC_CONSTRUCTION_TITLE.test(t) || VA_CONSTRUCTION_TITLE.test(t) || PA_CONSTRUCTION_TITLE.test(t)) return true;
   if (t.includes("construction") || t.includes("renovation") || t.includes("demolition")) return true;
   if (CONSTRUCTION_WORDS.test(t) || CONSTRUCTION_TITLE_WORDS.test(t) || EXTRA_CONSTRUCTION_TITLE_WORDS.test(t)) return true;
   return MORE_CONSTRUCTION_TITLE_WORDS.test(t) && !ELECTRICAL_WORDS.test(t) && !ELECTRICAL_TITLE_WORDS.test(t) && !HVAC_TITLE_WORDS.test(t);
@@ -582,9 +594,11 @@ export function isConstructionTitle(title: string): boolean {
  *  "Construction Inspection Services", "Construction Management Software". */
 export function isConstructionNonWork(title: string): boolean {
   const t = (title || "").toLowerCase();
-  if (/\b(machines?|equipment|trucks?|trailers?|vehicles?|loaders?|rollers?|pavers? (machine|equipment)|parts|software|licen[cs]es?|subscriptions?|uniforms?|tools?|rental of)\b/.test(t) && !/\b(installation|install|repairs? (to|of) (the )?(building|facility|roof|street|bridge))\b/.test(t)) return true;
+  // A contract "bridge" ("Multifunction Devices 6 Month Bridge") is a short extension of an existing contract, not a bridge job (owner 2026-11-08, PA).
+  if (/\b\d+[- ]months? bridge\b|\bbridge (contract|agreement|extension|period|purchase order)\b/.test(t)) return true;
+  if (/\b(machines?|equipment|trucks?|trailers?|vehicles?|loaders?|rollers?|pavers? (machine|equipment)|parts|software|licen[cs]es?|subscriptions?|uniforms?|tools?|rental of|furnishing|grates)\b/.test(t) && !/\b(installation|install|repairs? (to|of) (the )?(building|facility|roof|street|bridge)|(elevator|building|classroom|garage) addition)\b/.test(t)) return true;
   if (/\b(materials?|suppl(y|ies)|aggregates?|cold mix|emulsions?|rock|gravel|sand|limestone|base material|ready[- ]mix|rebar|lumber|pipe and fittings)\b/.test(t) && !/\b(and|&) (installation|install|labor|construction)\b|\b(construction|project|improvements?|repairs?|replacement|rehabilitation|overlay|bridges?|culverts?|demolition|abatement|removal)\b/.test(t.replace(/\b(road|building|construction) materials?\b/g, ""))) return true;
-  if (/\b(inspection|testing|survey(ing)?|engineering|design services|architect(ural)?|consultant|consulting|management services|program management|construction management|cm services|cmi|cm&i|cm ?& ?i|materials testing|observation|staking|assessments?|study|studies|master plan|feasibility|appraisals?|sweeping|janitorial|custodial|mowing|chemicals?|laborator(y|ies)|lab services|operators?|analysis|instruments|furniture|public art|alerting|(bridge|overhead|gantry) cranes?|specialists?|administration services|program administration)\b/.test(t) && !/\b(design[- ]build|cmar|cm at[- ]risk|construction manage(r|ment) at[- ]risk|general contractor)\b/.test(t)) return true;
+  if (/\b(inspection|testing|survey(ing)?|engineering|design services|architect(ural)?|consultant|consulting|management services|program management|construction management|cm services|cmi|cm&i|cm ?& ?i|materials testing|observation|staking|assessments?|study|studies|master plan|feasibility|appraisals?|sweeping|janitorial|custodial|mowing|chemicals?|laborator(y|ies)|lab services|operators?|analysis|instruments|furniture|public art|alerting|(bridge|overhead|gantry) cranes?|specialists?|administration services|program administration|winter maintenance|snow (removal|plowing))\b/.test(t) && !/\b(design[- ]build|cmar|cm at[- ]risk|construction manage(r|ment) at[- ]risk|general contractor)\b/.test(t)) return true;
   return false;
 }
 

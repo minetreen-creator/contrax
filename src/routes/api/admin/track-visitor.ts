@@ -6,6 +6,7 @@ import { cameFromLabel, isLikelyScraper, medianGapSeconds, scraperSignals, type 
 import { ensureTrackedVisitorsTable } from "~/lib/scraper-watch.server";
 import { clearIpBlockCache, ensureBlockedIpsTable, isIpBlocked } from "~/lib/ip-block.server";
 import { getClientIp } from "~/lib/request-ip";
+import { hasPaidBidAccess } from "~/lib/head-start.server";
 
 /**
  * Scraper tracker (src/lib/scraper-watch.ts). Admin only.
@@ -118,6 +119,33 @@ async function GET({ request }: { request: Request }) {
 
     const [t] = (await db`SELECT tracked_at, note FROM tracked_visitors WHERE visitor_id = ${vid}`) as { tracked_at: string; note: string | null }[];
 
+    // The account this visitor signed in to, if any (owner 2026-11-08, "I want to know who
+    // people are"): only from their own sign-ins on this device (page_views.user_id).
+    let account: VisitorTrail["account"] = null;
+    if (agg?.signed_in) {
+      try {
+        const [a] = (await db`
+          SELECT u.id, u.is_admin, u.email, u.company_name, u.created_at
+          FROM users u
+          WHERE u.id::text = (
+            SELECT user_id FROM page_views
+            WHERE visitor_id = ${vid} AND user_id IS NOT NULL
+            ORDER BY created_at DESC LIMIT 1
+          )
+        `) as { id: number; is_admin: boolean; email: string; company_name: string | null; created_at: string | null }[];
+        if (a?.email) {
+          account = {
+            email: String(a.email),
+            company: a.company_name ? String(a.company_name) : null,
+            signedUp: a.created_at ? new Date(a.created_at).toISOString() : null,
+            paid: await hasPaidBidAccess({ id: a.id, is_admin: a.is_admin }),
+          };
+        }
+      } catch (accountError) {
+        console.error("[api/admin/track-visitor] account lookup failed", accountError);
+      }
+    }
+
     // Raw IP in the payload: record the access first, fail closed.
     try {
       await db`CREATE TABLE IF NOT EXISTS admin_network_access_audit (
@@ -168,6 +196,7 @@ async function GET({ request }: { request: Request }) {
       searches,
       signals,
       likelyScraper: isLikelyScraper(signals),
+      account,
     };
     return Response.json(trail, { headers: { "Cache-Control": "private, no-store, max-age=0" } });
   } catch (err) {

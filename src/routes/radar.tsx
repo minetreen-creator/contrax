@@ -49,6 +49,7 @@ import { matchPriorLoss, type PriorLossBadge, type PriorLossRow } from "~/lib/aw
 import { expandTrade, tradeProvenanceFor, isStrongTradeMatch, RELATED_TRADE_TERMS, isCourierFamilyNaics, tradeExpresslyCourier, type TradeExpansion, type TradeMatchProvenance } from "~/lib/trade-registry";
 import { TRADE_SUGGESTIONS } from "~/lib/trade-suggestions";
 import { STATE_NAMES } from "~/lib/contract-map";
+import { dismissReturnPrompt, readReturnDismissedAt, recordRadarVisitDay, returnSignupHref, shouldShowReturnPrompt } from "~/lib/radar-return";
 import { STARTER_FIRST_MONTH_PRICE } from "~/lib/starter-offer";
 import { wantsRadarMore } from "~/lib/radar-more";
 import { broaderRadarTrade } from "~/lib/radar-fallback";
@@ -1357,11 +1358,13 @@ function RadarLanding() {
   // <=3 reveal, locked card, email capture) keep reading exactly the value they
   // read before this PR. SSR renders null and hydration agrees (no mismatch).
   const [viewer, setViewer] = useState<AuthUser | null>(null);
+  // Whether the sign-in check has answered (the returning-visitor prompt never guesses).
+  const [viewerChecked, setViewerChecked] = useState(false);
   useEffect(() => {
     let alive = true;
     getCurrentUser()
-      .then((u) => { if (alive) setViewer(u ?? null); })
-      .catch(() => { /* anonymous — the card keeps its today behaviour */ });
+      .then((u) => { if (alive) { setViewer(u ?? null); setViewerChecked(true); } })
+      .catch(() => { if (alive) setViewerChecked(true); /* anonymous — the card keeps its today behaviour */ });
     return () => { alive = false; };
   }, []);
 
@@ -1794,7 +1797,7 @@ function RadarLanding() {
             </p>
 
             {/* Bids first (owner 2026-11-07): live bids before any questions. */}
-            {!hasDeepLink && <BidsFirst />}
+            {!hasDeepLink && <BidsFirst signedIn={viewerChecked ? !!viewer : null} />}
             {!hasDeepLink && (
               <p className="mt-5 text-xs font-semibold uppercase tracking-widest text-slate-400">Or search your exact trade</p>
             )}
@@ -3810,9 +3813,25 @@ export function MatchAlertsCard({
  * before filling anything in. Renders nothing until loaded, and nothing at all
  * when the state is unknown or has no open bids.
  */
-function BidsFirst() {
+function BidsFirst({ signedIn }: { signedIn: boolean | null }) {
   const [data, setData] = useState<BidsFirstData | null | undefined>(undefined);
   const [tab, setTab] = useState<BidsFirstTab>("construction");
+  // Returning-visitor prompt (owner 2026-11-08, "I want to know who people are"): visit days are
+  // counted in this browser only; on the third day a signed-out visitor is asked to make an account.
+  const [visitDays, setVisitDays] = useState(0);
+  const [dismissedAt, setDismissedAt] = useState<number | null>(null);
+  useEffect(() => {
+    setVisitDays(recordRadarVisitDay());
+    setDismissedAt(readReturnDismissedAt());
+  }, []);
+  const showReturn = shouldShowReturnPrompt({ visitDays, signedIn, dismissedAt, now: Date.now() });
+  const returnShown = useRef(false);
+  useEffect(() => {
+    if (showReturn && data && !returnShown.current) {
+      returnShown.current = true;
+      trackEvent("radar_return_prompt_shown", `${data.state}:${visitDays}`);
+    }
+  }, [showReturn, data, visitDays]);
   const load = (state: string) => {
     getBidsFirst({ data: { state } })
       .then((d) => {
@@ -3864,6 +3883,46 @@ function BidsFirst() {
             ))}
         </select>
       </div>
+      {showReturn ? (
+        <div className="mt-3 rounded-xl border border-amber-500/50 bg-amber-500/10 px-3 py-3">
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-sm font-semibold text-amber-200">
+              Welcome back. Want these {stateName} {active.label.toLowerCase()} bids waiting for you?
+            </p>
+            <button
+              type="button"
+              aria-label="Not now"
+              onClick={() => {
+                dismissReturnPrompt();
+                setDismissedAt(Date.now());
+                trackEvent("radar_return_prompt_dismiss", data.state);
+              }}
+              className="shrink-0 rounded px-1 text-lg leading-none text-slate-400 hover:text-white"
+            >
+              ×
+            </button>
+          </div>
+          <p className="mt-1 text-xs text-slate-300">
+            Create your Contrax account and it's set up for {active.label.toLowerCase()} in {stateName}, so you land right on your bids next time.
+          </p>
+          <div className="mt-2 flex flex-wrap items-center gap-3">
+            <a
+              href={returnSignupHref(active.trade, data.state)}
+              onClick={() => trackEvent("radar_return_prompt_click", data.state)}
+              className="rounded-lg bg-amber-500 px-3 py-2 text-xs font-bold text-slate-950 hover:bg-amber-400"
+            >
+              Create my account
+            </a>
+            <a
+              href="/login"
+              onClick={() => trackEvent("radar_return_prompt_signin", data.state)}
+              className="text-xs font-semibold text-slate-300 underline hover:text-white"
+            >
+              I already have one: sign in
+            </a>
+          </div>
+        </div>
+      ) : null}
       <div className="mt-3 flex gap-1.5 overflow-x-auto pb-1" role="tablist" aria-label="Trades">
         {BIDS_FIRST_TABS.map((t) => (
           <button

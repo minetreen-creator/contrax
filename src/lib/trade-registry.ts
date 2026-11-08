@@ -644,6 +644,14 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
       // Owner 2026-11-07: "Unarmed Security Services", "24 Hour Armed Security Services".
       "armed security",
       "unarmed security",
+      // Owner 2026-11-08 (a "security guard" search in Ohio found 0 while "2027 Security Services
+      // at Recreation Centers, Pools, and Playgrounds" was open): guard work named by the place
+      // guarded, and escort/patrol/event wording. Never bare "security services" (IT security).
+      "security services at",
+      "security escort",
+      "security escorts",
+      "security patrol",
+      "event security",
     ],
     naics: ["561612"],
   },
@@ -1301,6 +1309,14 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
       "telecommunications cabling",
       "voice and data cabling",
       "cat6",
+      // Owner 2026-11-08 (a "low voltage" search in Virginia found 0 while "camera installation"
+      // found 17): camera, access control, intrusion and fiber jobs are low-voltage work too.
+      "access control",
+      "security camera",
+      "camera system",
+      "intrusion detection",
+      "intrusion, monitoring",
+      "fiber optic network",
     ],
     naics: [],
     exactOnly: true,

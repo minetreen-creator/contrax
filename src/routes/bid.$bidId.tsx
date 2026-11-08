@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { WinnerPriceLine } from "~/components/WinnerPriceLine";
+import { IntelTeaserCard } from "~/components/IntelTeaserCard";
+import { intelTeaser, recompeteLine, type IntelTeaser } from "~/lib/intel-teaser";
 import { AreaAwardsBox } from "~/components/AreaAwardsBox";
 import { AppInstallBanner } from "~/components/AppInstallBanner";
 import type { AreaAwards } from "~/lib/area-awards";
@@ -306,8 +308,8 @@ const getBidPriceIntel = createServerFn({ method: "GET" })
     const id = Number((d as any)?.id);
     return Number.isInteger(id) && id > 0 ? id : -1;
   })
-  .handler(async ({ data: id }): Promise<{ intel: FPDSIntel | null; hasRecord: boolean }> => {
-    const none = { intel: null, hasRecord: false };
+  .handler(async ({ data: id }): Promise<{ intel: FPDSIntel | null; hasRecord: boolean; teaser: IntelTeaser | null }> => {
+    const none = { intel: null, hasRecord: false, teaser: null };
     if (id <= 0) return none;
     try {
       const { getRequest } = await import("@tanstack/react-start/server");
@@ -328,7 +330,8 @@ const getBidPriceIntel = createServerFn({ method: "GET" })
       const hasRecord = !!deriveWinnerPrice(intel, null);
       if (!hasRecord) return none;
       const paid = await hasPaidBidAccess(await getCurrentUser());
-      return { intel: paid ? intel : null, hasRecord: true };
+      // Free viewers get only the teaser facts (end year, re-bid soon, years of history): never the winner or a dollar amount.
+      return { intel: paid ? intel : null, hasRecord: true, teaser: intelTeaser(intel) };
     } catch (e) {
       console.error("[bid/$id] price intel failed (nothing shown):", e);
       return none;
@@ -379,7 +382,7 @@ function BidDetailPage() {
   // locked panel flash first.
   const [checked, setChecked] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
-  const [price, setPrice] = useState<{ intel: FPDSIntel | null; hasRecord: boolean } | null>(null);
+  const [price, setPrice] = useState<{ intel: FPDSIntel | null; hasRecord: boolean; teaser: IntelTeaser | null } | null>(null);
   const [areaAwards, setAreaAwards] = useState<AreaAwards | null>(null);
   // The point of contact, for paid plans only (fetched per user, never in the HTML).
   // undefined until this viewer's own check returns, so a paying member never
@@ -529,17 +532,14 @@ function BidDetailPage() {
               {price?.hasRecord && (
                 <div className="px-5 pb-4">
                   {price.intel ? (
-                    <WinnerPriceLine intel={price.intel} paidAccess revealed />
+                    <>
+                      <WinnerPriceLine intel={price.intel} paidAccess revealed />
+                      {recompeteLine(price.intel.pop_end_date) ? (
+                        <p className="mt-2 text-sm text-slate-300">🔁 {recompeteLine(price.intel.pop_end_date)}</p>
+                      ) : null}
+                    </>
                   ) : (
-                    <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3">
-                      <p className="text-sm font-semibold text-emerald-200">🏆 What's this job worth? We found who won it last time.</p>
-                      <p className="mt-1 text-sm text-slate-300">
-                        See who won the prior contract for this work and what they were paid, straight from public government records.
-                      </p>
-                      <a href="/upgrade?plan=starter" className="mt-2 inline-block text-sm font-semibold text-emerald-300 hover:text-emerald-200">
-                        Unlock with Starter, ${STARTER_FIRST_MONTH_PRICE} for 30 days →
-                      </a>
-                    </div>
+                    <IntelTeaserCard teaser={price.teaser} bidId={bid.id} />
                   )}
                 </div>
               )}

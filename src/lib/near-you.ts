@@ -68,21 +68,27 @@ export const getEmailSample = createServerFn({ method: "GET" }).handler(async ()
     const h = getRequest().headers;
     const state = stateFromGeoHeaders(h.get("x-vercel-ip-country"), h.get("x-vercel-ip-country-region"));
     if (!state) return { state: "", bids: [] };
-    const { sql } = await import("~/db");
-    const s = sql();
-    const rows = (await s`
-      SELECT id, title, agency, location, due_date FROM bids
-      WHERE normalized_state = ${state}
-        AND due_date > NOW() + INTERVAL '3 days'
-        AND created_at > NOW() - INTERVAL '4 days'
-        AND ${s.unsafe(LOW_CONTENT_SQL)} AND ${s.unsafe(AWARD_EXCLUSION_SQL)}
-      ORDER BY created_at DESC
-      LIMIT 3
-    `) as { id: number; title: string; agency: string | null; location: string | null; due_date: string | Date }[];
-    return {
-      state,
-      bids: rows.map((r) => ({ id: r.id, title: r.title, agency: r.agency, location: r.location, due: new Date(r.due_date).toISOString() })),
-    };
+    // Owner 2026-11-08 (mystery-shopper pass): the sample led with parts orders
+    // ("10--HOUSING ASSEMBLY,BAIL", "59--CIRCUIT CARD ASSEMB"). It now shows
+    // real trade work posted in the visitor's state this week, one bid per
+    // trade in turn (construction, landscaping, janitorial, security), from the
+    // same source as the Radar landing panel.
+    const { loadBidsFirst, BIDS_FIRST_TABS } = await import("~/lib/bids-first");
+    const data = await loadBidsFirst(state);
+    if (!data) return { state, bids: [] };
+    const weekAgo = Date.now() - 7 * 86_400_000;
+    const fresh = BIDS_FIRST_TABS.map((t) => data.bids[t.id].filter((b) => b.posted && Date.parse(b.posted) > weekAgo && b.due_date && Date.parse(b.due_date) > Date.now() + 3 * 86_400_000));
+    const picked: EmailSampleBid[] = [];
+    const seen = new Set<number>();
+    for (let round = 0; picked.length < 3 && round < 6; round++) {
+      for (const list of fresh) {
+        const b = list[round];
+        if (!b || seen.has(b.id) || picked.length >= 3) continue;
+        seen.add(b.id);
+        picked.push({ id: b.id, title: b.title, agency: b.agency || null, location: b.location, due: b.due_date as string });
+      }
+    }
+    return { state, bids: picked };
   } catch (err) {
     console.error("[email-sample] failed:", err);
     return { state: "", bids: [] };

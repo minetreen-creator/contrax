@@ -64,9 +64,14 @@ work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 
 echo "[bun-checksum] downloading official release asset: ${ZIP_URL}"
-curl -fsSL --retry 3 -o "$work/$ZIP_NAME" "$ZIP_URL"
+# Patient retries (owner 2026-11-08): GitHub answered 504 for SHASUMS256.txt for
+# several minutes and every Vercel build failed on the old 3 quick retries
+# (~7 s). Up to 8 tries, 10 s apart, on any error; the checksum checks below
+# are unchanged and still fail closed.
+CURL_RETRY=(--retry 8 --retry-delay 10 --retry-all-errors --connect-timeout 20)
+curl -fsSL "${CURL_RETRY[@]}" -o "$work/$ZIP_NAME" "$ZIP_URL"
 echo "[bun-checksum] downloading official checksums: ${SHASUMS_URL}"
-curl -fsSL --retry 3 -o "$work/SHASUMS256.txt" "$SHASUMS_URL"
+curl -fsSL "${CURL_RETRY[@]}" -o "$work/SHASUMS256.txt" "$SHASUMS_URL"
 
 official_zip="$(awk '$2 == "bun-linux-x64.zip" {print $1}' "$work/SHASUMS256.txt")"
 if [ -z "$official_zip" ]; then

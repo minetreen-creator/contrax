@@ -20,7 +20,8 @@ describe("one offer", () => {
   });
   test("the bid lock's main button names the exact deal", () => {
     const bid = read("src/routes/bid.$bidId.tsx");
-    expect(bid).toContain("Open this bid + every new one for 30 days: ${STARTER_FIRST_MONTH_PRICE}");
+    // A first-time buyer still sees the exact $5 deal (a used pass is told $19/month, owner 2026-11-08).
+    expect(bid).toContain("`Open this bid + every new one for 30 days: $${STARTER_FIRST_MONTH_PRICE}`");
     // Owner 2026-11-02: one lock for new and members-only bids, carrying the bid to the plan.
     expect(bid).toContain("href={bidStarterHref(bidId, signedIn)}");
     expect(bid).not.toContain("<HeadStartLock");

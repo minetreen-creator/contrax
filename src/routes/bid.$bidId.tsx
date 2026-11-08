@@ -1,4 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { UnlockBidSheet, type UnlockBidSummary } from "~/components/UnlockBidSheet";
+import { rememberCheckoutBid } from "~/lib/checkout-resume";
 import { createServerFn } from "@tanstack/react-start";
 import { WinnerPriceLine } from "~/components/WinnerPriceLine";
 import { IntelTeaserCard } from "~/components/IntelTeaserCard";
@@ -9,7 +11,7 @@ import { AppInstallBanner } from "~/components/AppInstallBanner";
 import type { AreaAwards } from "~/lib/area-awards";
 import { deriveWinnerPrice } from "~/lib/winner-price";
 import type { FPDSIntel } from "~/lib/fpds";
-import { STARTER_FIRST_MONTH_PRICE } from "~/lib/starter-offer";
+import { STARTER_FIRST_MONTH_PRICE, STARTER_FULL_PRICE } from "~/lib/starter-offer";
 import { useEffect, useState } from "react";
 import { sql } from "~/db";
 import { RfpSummaryCard } from "~/components/RfpSummaryCard";
@@ -66,6 +68,10 @@ interface BidDetail {
   contact: BidContact | null;
   /** The viewer has an account (Basic after its trial), so the lock offers a plan, not a trial. */
   signed_in: boolean;
+  /** The agency's own bid number, shown in the $5 confirm step (owner 2026-11-08). */
+  solicitation_number?: string | null;
+  /** Which Starter checkout this viewer gets: "pass" ($5 once) or a $19/month subscription. */
+  starter_kind?: "pass" | "subscription" | "subscription_full_price";
 }
 
 interface BidContact {
@@ -193,7 +199,7 @@ const getPublicBid = createServerFn({ method: "GET" })
     try {
       const rows = (await sql()`
         SELECT id, title, agency, description, location, set_aside,
-               due_date, estimated_value, source_url, naics_code, created_at
+               due_date, estimated_value, source_url, naics_code, created_at, solicitation_number
         FROM bids
         WHERE id = ${id}
         LIMIT 1
@@ -243,7 +249,7 @@ const getBid = createServerFn({ method: "GET" })
     try {
       const rows = (await sql()`
         SELECT id, title, agency, description, location, set_aside,
-               due_date, estimated_value, source_url, naics_code, created_at
+               due_date, estimated_value, source_url, naics_code, created_at, solicitation_number
         FROM bids
         WHERE id = ${id}
         LIMIT 1
@@ -256,9 +262,20 @@ const getBid = createServerFn({ method: "GET" })
       let learned: PriorLossBadge | null = null;
       let paid = false;
       let signedIn = false;
+      // Which Starter checkout this viewer gets (owner 2026-11-08): only a first-time buyer gets the
+      // one-time $5 pass; someone who already used it is offered $19/month. The lock says which.
+      let starterKind: "pass" | "subscription" | "subscription_full_price" = "pass";
       try {
         const user = await getCurrentUser();
         signedIn = !!user;
+        if (user) {
+          try {
+            const { starterKindForUser } = await import("~/lib/starter-pass.server");
+            starterKind = await starterKindForUser(user.id);
+          } catch {
+            starterKind = "pass";
+          }
+        }
         paid = await hasPaidBidAccess(user);
         if (user) {
           const tier = await effectiveAutopsyTier(user.id, user);
@@ -289,6 +306,8 @@ const getBid = createServerFn({ method: "GET" })
         learned,
         contact: paid ? await loadContact(id) : null,
         signed_in: signedIn,
+        solicitation_number: r.solicitation_number ? String(r.solicitation_number).slice(0, 80) : null,
+        starter_kind: starterKind,
       };
     } catch (e) {
       console.error("[bid/$id] load failed:", e);
@@ -514,7 +533,7 @@ function BidDetailPage() {
               </section>
               {(locked || membersOnly) && (
                 <div className="px-5 py-4">
-                  <NoticeLock bidId={bid.id} signedIn={signedIn} isNew={locked} />
+                  <NoticeLock bidId={bid.id} signedIn={signedIn} isNew={locked} bid={bid} />
                 </div>
               )}
               {sourceUrl && (
@@ -730,7 +749,10 @@ export const Route = createFileRoute("/bid/$bidId")({
  * off the free tier"). Free accounts and visitors see what the job is; the $5
  * Starter pass is the one button to act on it (owner 2026-11-01).
  */
-function NoticeLock({ bidId, signedIn, isNew = false }: { bidId: number; signedIn: boolean; isNew?: boolean }) {
+function NoticeLock({ bidId, signedIn, isNew = false, bid }: { bidId: number; signedIn: boolean; isNew?: boolean; bid?: UnlockBidSummary & { starter_kind?: BidDetail["starter_kind"] } }) {
+  const [confirming, setConfirming] = useState(false);
+  // Only a first-time buyer gets the one-time $5 pass; a used pass means Starter at $19/month.
+  const pass = (bid?.starter_kind ?? "pass") === "pass";
   // Owner 2026-11-02 (design critique): one lock for every locked bid, the $5
   // as the one clear button, and the bid carried through signup to the plan.
   return (
@@ -742,21 +764,37 @@ function NoticeLock({ bidId, signedIn, isNew = false }: { bidId: number; signedI
       <ul className="mt-2 space-y-1 text-sm text-slate-200">
         <li>✓ Open this notice and its documents today</li>
         <li>✓ Every new bid in your trade, emailed at 6 AM</li>
-        <li>✓ 30 days for ${STARTER_FIRST_MONTH_PRICE}, one time. No automatic renewal.</li>
+        <li>{pass ? `✓ 30 days for $${STARTER_FIRST_MONTH_PRICE}, one time. No automatic renewal.` : `✓ Starter is $${STARTER_FULL_PRICE}/month. Cancel anytime.`}</li>
       </ul>
       <a
         href={bidStarterHref(bidId, signedIn)}
         onClick={(e) => {
-          // Pay first, account after (CEO 2026-10-22): the $5 opens Stripe
-          // directly, signed in or not. The href is the no-JS fallback.
+          // Pay first, account after (CEO 2026-10-22). Owner 2026-11-08: 4 of 6 checkouts that
+          // day came from this button and none paid, so it opens a short confirm step (this bid,
+          // what $5 gets, no auto-renew) before Stripe. The href is the no-JS fallback.
           e.preventDefault();
           trackEvent("bid_lock_starter_click", isNew ? "new" : "members");
-          void redirectToCheckout("starter");
+          if (pass) {
+            setConfirming(true);
+          } else {
+            rememberCheckoutBid(bidId);
+            void redirectToCheckout("starter");
+          }
         }}
         className="mt-3 block w-full rounded-lg bg-amber-400 px-4 py-3 text-center text-base font-bold text-slate-950 hover:bg-amber-300 sm:inline-block sm:w-auto"
       >
-        Open this bid + every new one for 30 days: ${STARTER_FIRST_MONTH_PRICE}
+        {pass ? `Open this bid + every new one for 30 days: $${STARTER_FIRST_MONTH_PRICE}` : `Open this bid with Starter: $${STARTER_FULL_PRICE}/month`}
       </a>
+      {confirming ? (
+        <UnlockBidSheet
+          bidId={bidId}
+          bid={bid}
+          onClose={() => {
+            setConfirming(false);
+            trackEvent("bid_lock_sheet_close", isNew ? "new" : "members");
+          }}
+        />
+      ) : null}
     </div>
   );
 }

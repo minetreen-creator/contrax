@@ -13,6 +13,8 @@ export const STARTER_FIRST_MONTH_COUPON = "contrax_starter_first_month_5_v1";
 /** $19 → $5 for the first month, in cents. */
 export const STARTER_FIRST_MONTH_AMOUNT_OFF = 1400;
 export const STARTER_FIRST_MONTH_PRICE = 5;
+/** The regular Starter month in dollars ($5 + the $14 first-month coupon); client-safe copy of stripe.ts MONTHLY_PRICE_USD.starter. */
+export const STARTER_FULL_PRICE = STARTER_FIRST_MONTH_PRICE + STARTER_FIRST_MONTH_AMOUNT_OFF / 100;
 
 /** Short line under the Starter price. */
 /** Owner 2026-10-30: the $5 is now a 30-day pass with no automatic renewal (starter-pass.ts). */

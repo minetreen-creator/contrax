@@ -5,12 +5,16 @@ import { trackEvent } from "~/lib/track";
  * Install prompt for the Contrax app (owner 2026-11-07, "1"): phone visitors on
  * Radar and bid pages get a small banner at the bottom of the screen. Tapping
  * it opens the two-step install for their phone (Android's own Install button
- * when the browser offers it). Shown a few seconds in, never to someone who
+ * when the browser offers it). Shown a little while in, never to someone who
  * already has the app open from the home screen, and once per visitor:
  * dismissing it or opening the install steps hides it for good on that phone.
  */
 const SEEN_KEY = "contrax-app-banner";
-const SHOW_AFTER_MS = 6000;
+/**
+ * Radar waits longer (owner 2026-11-08: a Winchester visitor got the banner and
+ * closed it while their search was still loading); bid pages are read at once.
+ */
+const SHOW_AFTER_MS = { radar: 20000, bid: 6000 } as const;
 
 type Platform = "ios" | "android";
 
@@ -40,7 +44,7 @@ export function AppInstallBanner({ where }: { where: "radar" | "bid" }) {
     const t = window.setTimeout(() => {
       setVisible(true);
       trackEvent("app_banner_shown", `${where}:${p}`);
-    }, SHOW_AFTER_MS);
+    }, SHOW_AFTER_MS[where]);
     return () => {
       window.clearTimeout(t);
       window.removeEventListener("beforeinstallprompt", onPrompt);

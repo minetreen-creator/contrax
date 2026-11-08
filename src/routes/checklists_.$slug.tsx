@@ -47,7 +47,7 @@ function ChecklistPage() {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900 print:bg-white">
+    <main className="min-h-screen bg-slate-50 text-slate-900 print:min-h-0 print:bg-white">
       <div className="print:hidden">
         <SiteHeader />
       </div>

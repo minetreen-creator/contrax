@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { getCurrentUser, type AuthUser } from "~/lib/auth";
 import { trackEvent } from "~/lib/track";
+import { PAYMENTS_WON_LINE, paymentsHref } from "~/lib/payments-upsell";
 // PIPELINE CSV EXPORT gate (owner decision 2, 2026-09-26): export is a Bid
 // Scout ($99/mo) feature. The click IS the attempt — the prompt opens only for a
 // gated attempt (never on the page view), paired with the standalone
@@ -173,6 +174,14 @@ function BidWorkspace({ item, contacts, onSaved }: { item: PipelineItem; contact
           {item.contact_name && <p><span className="font-semibold text-slate-800">Contact:</span> {item.contact_name}{item.contact_organization ? ` · ${item.contact_organization}` : ""}</p>}
           {item.crm_contact && <p><span className="font-semibold text-slate-800">Linked contact:</span> {item.crm_contact.name}{item.crm_contact.organization ? ` · ${item.crm_contact.organization}` : ""}</p>}
           {item.notes && <p className="whitespace-pre-wrap"><span className="font-semibold text-slate-800">Notes:</span> {item.notes}</p>}
+          {item.pursuit_status === "won" && (
+            <p className="mt-2 rounded-lg bg-blue-50 px-3 py-2 text-blue-900">
+              {PAYMENTS_WON_LINE}{" "}
+              <a href={paymentsHref("pipeline_won")} onClick={() => trackEvent("payments_won_click", "pipeline")} className="font-semibold text-blue-700 underline">
+                See Contrax Payments →
+              </a>
+            </p>
+          )}
         </div>
         <button type="button" className="rounded-lg border border-slate-300 px-3 py-1.5 font-medium text-slate-700 hover:bg-slate-50" onClick={() => { if (editing) { setDraft(item); setLinkId(item.crm_contact_id ? String(item.crm_contact_id) : ""); } setSaveError(""); setEditing(!editing); }}>{editing ? "Cancel" : "Manage bid"}</button>
       </div>

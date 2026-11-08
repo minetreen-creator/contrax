@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
+import { FederalAwardsSection } from "~/components/FederalAwardsSection";
+import { getFederalAwards } from "~/lib/federal-awards";
 import { useEffect, useState } from "react";
 import { sql } from "~/db";
 import { US_STATES } from "~/lib/states";
@@ -157,8 +159,10 @@ const getAwardsData = createServerFn({ method: "GET" })
     solicitation_number: null,
     // Synced records are opportunities, not completed awards. Keep the shared
     // award card shape while making that distinction explicit to users.
-    winning_company: "Open opportunity",
-    award_amount: r.estimated_value || "Not specified",
+    // Owner 2026-11-08: these are open bids, never shown as awards. Real awards are the
+    // federal section above the list (FederalAwardsSection).
+    winning_company: "Open bid",
+    award_amount: r.estimated_value || "Value not posted",
     award_date: r.created_at || r.due_date ? (toISODate(r.created_at || r.due_date) || "") : "",
     incumbent: null,
     category: r.category || null,
@@ -290,13 +294,17 @@ const getPaidBidAccess = createServerFn({ method: "GET" }).handler(async (): Pro
 export const Route = createFileRoute("/awards")({
   validateSearch: (search: Record<string, unknown>) => ({
     search: typeof search.search === "string" ? search.search : undefined,
+    state: typeof search.state === "string" ? search.state : undefined,
   }),
-  loader: async ({ context }) => {
+  // The URL search drives both lists on the server (it used to be read from a
+  // router context that never carried it, so ?search= was ignored server-side).
+  loaderDeps: ({ search }) => ({ q: search.search ?? "", state: search.state ?? "" }),
+  loader: async ({ deps }) => {
     // Resolve the current user + their saved bid ids so SSR renders the correct
     // logged-in/logged-out button state (and the saved state) in the HTML.
     const currentUser = await getCurrentUser();
     const [data, savedBidIds, paidAccess] = await Promise.all([
-      getAwardsData({ data: { search: (context as { search?: string }).search } }),
+      getAwardsData({ data: { search: deps.q } }),
       currentUser
         ? getSavedBidIds({ data: { userId: currentUser.id } })
         : Promise.resolve([] as number[]),
@@ -308,43 +316,44 @@ export const Route = createFileRoute("/awards")({
       // sees the teaser, never a free viewer seeing paid data.
       getPaidBidAccess(),
     ]);
-    return { ...data, currentUser, savedBidIds, paidAccess };
+    const federal = await getFederalAwards({ data: { q: deps.q, state: deps.state } });
+    return { ...data, currentUser, savedBidIds, paidAccess, federal };
   },
   component: AwardsPage,
   head: () => ({
     meta: [
-      { title: "Government Contract Awards Database — Contrax" },
+      { title: "Federal Contract Awards: Who Won and for How Much | Contrax" },
       {
         name: "description",
         content:
-          "Browse live federal, state, and local set-aside contract opportunities with incumbent intelligence and 5-year pricing history — built for 8(a), SDVOSB, WOSB, and HUBZone-certified small businesses.",
+          "Who won federal contracts and for how much: median award value, typical price range, top agencies and top winners by trade and state, from USAspending.gov. Plus open bids with incumbent intel.",
       },
       { name: "robots", content: "index, follow" },
       // Open Graph
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://www.contrax.company/awards" },
-      { property: "og:title", content: "Government Contract Awards Database — Contrax" },
+      { property: "og:title", content: "Federal Contract Awards: Who Won and for How Much | Contrax" },
       {
         property: "og:description",
         content:
-          "Browse live federal, state, and local set-aside contract opportunities with incumbent intelligence and 5-year pricing history — built for 8(a), SDVOSB, WOSB, and HUBZone-certified small businesses.",
+          "Who won federal contracts and for how much: median award value, typical price range, top agencies and top winners by trade and state, from USAspending.gov. Plus open bids with incumbent intel.",
       },
       { property: "og:image", content: "https://www.contrax.company/logo-square.png" },
       { property: "og:image:type", content: "image/png" },
-      { property: "og:image:alt", content: "Government Contract Awards Database — Contrax" },
+      { property: "og:image:alt", content: "Federal Contract Awards: Who Won and for How Much | Contrax" },
       { property: "og:image:width", content: "1200" },
       { property: "og:image:height", content: "630" },
       { property: "og:site_name", content: "Contrax" },
       // Twitter Card
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "Government Contract Awards Database — Contrax" },
+      { name: "twitter:title", content: "Federal Contract Awards: Who Won and for How Much | Contrax" },
       {
         name: "twitter:description",
         content:
-          "Browse live federal, state, and local set-aside contract opportunities with incumbent intelligence and 5-year pricing history — built for certified small businesses.",
+          "Who won federal contracts and for how much: median award value, typical price range, top agencies and top winners by trade and state, from USAspending.gov. Plus open bids with incumbent intel.",
       },
       { name: "twitter:image", content: "https://www.contrax.company/logo-square.png" },
-      { name: "twitter:image:alt", content: "Government Contract Awards Database — Contrax" },
+      { name: "twitter:image:alt", content: "Federal Contract Awards: Who Won and for How Much | Contrax" },
     ],
     links: [{ rel: "canonical", href: "https://www.contrax.company/awards" }],
   }),
@@ -359,7 +368,7 @@ function fmtDate(d: string | null | undefined) {
 
 // ── Component ──────────────────────────────────────────────────────────────────
 function AwardsPage() {
-  const { awards, similarBids, currentUser, savedBidIds, paidAccess } = Route.useLoaderData();
+  const { awards, similarBids, currentUser, savedBidIds, paidAccess, federal } = Route.useLoaderData();
   const routeSearch = Route.useSearch();
   const [search, setSearch] = useState("");
   const inputSearch = search || routeSearch.search || "";
@@ -561,10 +570,13 @@ function AwardsPage() {
       </header>
 
       <main className="mx-auto max-w-5xl px-4 py-8">
-        {/* Hero */}
+        {/* Real federal awards first (owner 2026-11-08) */}
+        <FederalAwardsSection data={federal} />
+
+        {/* Open bids, labeled as open bids */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900">Past Awards</h1>
-          <p className="mt-2 text-lg text-slate-500">Learn from awarded contracts to sharpen your bids</p>
+          <h2 className="text-2xl font-bold text-slate-900">Open bids: see who held similar work</h2>
+          <p className="mt-2 text-slate-500">These are open now, not awarded yet. Open one to see the incumbent and past prices for similar federal work.</p>
           {!currentUser && (
             <a
               href="/signup?plan=professional&next=/awards"
@@ -579,11 +591,11 @@ function AwardsPage() {
         {/* Filters */}
         <div className="mb-6 flex flex-col sm:flex-row gap-3">
           <div className="flex-1">
-            <label htmlFor="award-search" className="sr-only">Search awards</label>
+            <label htmlFor="award-search" className="sr-only">Search open bids</label>
             <input
               id="award-search"
               type="text"
-              placeholder="Search by title, company, or keyword..."
+              placeholder="Search open bids by title or keyword..."
               value={inputSearch}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white"
@@ -700,9 +712,9 @@ function AwardsPage() {
                   <div className="hidden sm:flex px-5 pb-2 text-xs font-medium uppercase tracking-wide text-slate-400 gap-4">
                     <span className="flex-1">Title</span>
                     <span className="w-16 shrink-0">Agency</span>
-                    <span className="w-36 shrink-0">Winner</span>
-                    <span className="w-24 shrink-0 text-right">Amount</span>
-                    <span className="w-24 shrink-0 text-right">Date</span>
+                    <span className="w-36 shrink-0">Status</span>
+                    <span className="w-24 shrink-0 text-right">Est. value</span>
+                    <span className="w-24 shrink-0 text-right">Posted</span>
                     <span className="w-16 shrink-0 text-right">NAICS</span>
                     <span className="w-5 shrink-0" />
                   </div>

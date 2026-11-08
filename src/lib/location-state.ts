@@ -1080,6 +1080,7 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   ar_fayetteville_ionwave: "AR",
   ar_ionwave_central: "AR",
   sc_columbia_ionwave: "SC",
+  oh_toledo_planetbids: "OH",
   va_vbcps_beacon: "VA",
   va_grtc_beacon: "VA",
   pa_pittsburgh_schools_beacon: "PA",

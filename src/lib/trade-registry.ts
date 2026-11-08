@@ -347,6 +347,11 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
       "floor waxing",
       "floor maintenance",
       "carpet shampoo",
+      // Owner 2026-11-08 (Ohio janitorial check): "Trauma Cleaning IDIQ" (crime-scene /
+      // biohazard cleanup) is specialty cleaning work that matched nothing.
+      "trauma cleaning",
+      "biohazard cleaning",
+      "crime scene cleaning",
     ],
     naics: ["561720"],
   },

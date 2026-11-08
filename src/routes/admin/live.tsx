@@ -1822,7 +1822,7 @@ export const Route = createFileRoute("/admin/live")({
       { name: "theme-color", content: "#0b1220" },
     ],
     links: [
-      { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "manifest", href: "/admin.webmanifest" },
       { rel: "apple-touch-icon", href: "/logo-square.png" },
     ],
   }),

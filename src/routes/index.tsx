@@ -166,7 +166,8 @@ export const Route = createFileRoute("/")({
       { name: "twitter:image", content: "https://www.contrax.company/logo-square.png" },
       { name: "twitter:image:alt", content: PAGE_TITLE },
     ],
-    links: [{ rel: "canonical", href: "https://www.contrax.company" }],
+    // The customer app manifest (owner 2026-11-08): lets Chrome offer "Install Contrax" on the homepage.
+    links: [{ rel: "canonical", href: "https://www.contrax.company" }, { rel: "manifest", href: "/app.webmanifest" }],
   }),
 });
 

@@ -74,6 +74,14 @@ const PRODUCT_PATHS = [
   ["/forecasts", "weekly", "0.6"],
   ["/map", "daily", "0.6"],
   ["/example-brief", "monthly", "0.6"],
+  // Bid checklists (owner 2026-11-08); slugs match src/lib/bid-checklists.ts (a test checks).
+  ["/checklists", "monthly", "0.6"],
+  ["/checklists/municipal-landscaping-ifb", "monthly", "0.6"],
+  ["/checklists/commercial-janitorial-bid-prep", "monthly", "0.6"],
+  ["/checklists/public-works-construction-bid", "monthly", "0.6"],
+  ["/checklists/security-guard-services-bid", "monthly", "0.6"],
+  ["/checklists/snow-and-ice-removal-bid", "monthly", "0.6"],
+  ["/checklists/hvac-maintenance-services-bid", "monthly", "0.6"],
 ];
 /** Full state name -> region URL slug ("New Jersey" -> "new-jersey"). */
 const STATE_SLUGS = {

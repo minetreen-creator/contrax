@@ -558,10 +558,20 @@ const CA_CONSTRUCTION_TITLE =
 const SC_CONSTRUCTION_TITLE =
   /\broof replacements\b|\bmr ?& ?r\b|\bconcrete installation\b|\b(courthouse|building|facility|library|school|terminal|hospital|jail|detention center) expansion\b|\bwater ?lines?\b|\bpond (improvements?|repairs?|rehabilitation|restoration)\b|\bimprovements? (to|of)\b[^.]{0,50}\b(roads?|streets?)\b|\bwwtp\b|\bgeomembrane\b|\b(asbestos|lead paint) (removal|abatement)\b|\bremoval of asbestos\b|\bweigh station\b|\bpavement improvements?\b|\bint\.? improvements?\b|\bintersection impr\b|\b(i|us|sc|sr|s)[- ]?\d+\b[^.]{0,40}\bimprovements?\b|\broad departure\b|\btraffic calming\b|\bfrontage? roads\b|\broads and utilities\b|\bright[- ]of[- ]way improvements?\b|\bdriveway (extension|construction|replacement)\b|\brehabilitation of \d+\b|\breplace\b[^.]{0,30}\broofs\b|\broof maintenance\b|\b(foundation|headquarters|hq) improvements?\b|\bexpansion\b[^.]{0,5}\bbuilding\b|\bgeneral contracting\b|\b(residential|licensed|building) contractors\b|\blandfill (partial )?closure\b|\bdiking\b|\bpole sheds?\b|\bstorage buildings?\b|\bbathroom (modifications?|remodel|renovation)\b|\bconcrete pads?\b|\bchimney (work|repairs?)\b|\bcarpet replacement\b|\bgym floors?\b|\blobby (updates|renovation|improvements?)\b/;
 
+/** Owner 2026-11-08 ("lets look at construction in VA"): Virginia titles (eVA,
+ *  BidNet Virginia) that are building work but use a verb or a phrase none of
+ *  the lists above carry: "Construct Solid Waste and Recycling Center",
+ *  "Renovate Ewell Hall", "Rehab Senior Home", "Water Collection System
+ *  Rehabilitation", "Recoating and Repairs to Water Tank", "Sound Barrier Wall
+ *  Repairs", "Old Town Pool Replacement", "Repair and Repoint". HVAC, electrical
+ *  and plumbing jobs keep their own trades, as above. */
+const VA_CONSTRUCTION_TITLE =
+  /\b(construct|reconstruct|renovate|rehabilitate)\b|\brehab (of |the )?(senior|home|house|housing|homes|building|units?|apartments?|facility|school)\b|\b(collection|distribution|water|sewer|sanitary|drainage) system rehabilitation\b|\brehabilitation project\b|\b(re-?coating|repainting)\b[^.]{0,40}\btanks?\b|\bsound (barrier|wall)s?\b|\bwall (repairs?|replacement|reinforcement)\b|\b(swimming )?pool (replacement|renovation|construction)\b|\b(re)?point(ing)? (and|&) repair|\brepair (and|&) re-?point|\b(re|tuck)point(ing)?\b|\bhome (repair|rehabilitation)s?\b|\bhousing rehabilitation\b/;
+
 export function isConstructionTitle(title: string): boolean {
   const t = (title || "").toLowerCase();
   if (!t) return false;
-  if (ROAD_SEGMENT_TITLE.test(t) || CA_CONSTRUCTION_TITLE.test(t) || SC_CONSTRUCTION_TITLE.test(t)) return true;
+  if (ROAD_SEGMENT_TITLE.test(t) || CA_CONSTRUCTION_TITLE.test(t) || SC_CONSTRUCTION_TITLE.test(t) || VA_CONSTRUCTION_TITLE.test(t)) return true;
   if (t.includes("construction") || t.includes("renovation") || t.includes("demolition")) return true;
   if (CONSTRUCTION_WORDS.test(t) || CONSTRUCTION_TITLE_WORDS.test(t) || EXTRA_CONSTRUCTION_TITLE_WORDS.test(t)) return true;
   return MORE_CONSTRUCTION_TITLE_WORDS.test(t) && !ELECTRICAL_WORDS.test(t) && !ELECTRICAL_TITLE_WORDS.test(t) && !HVAC_TITLE_WORDS.test(t);
@@ -574,7 +584,7 @@ export function isConstructionNonWork(title: string): boolean {
   const t = (title || "").toLowerCase();
   if (/\b(machines?|equipment|trucks?|trailers?|vehicles?|loaders?|rollers?|pavers? (machine|equipment)|parts|software|licen[cs]es?|subscriptions?|uniforms?|tools?|rental of)\b/.test(t) && !/\b(installation|install|repairs? (to|of) (the )?(building|facility|roof|street|bridge))\b/.test(t)) return true;
   if (/\b(materials?|suppl(y|ies)|aggregates?|cold mix|emulsions?|rock|gravel|sand|limestone|base material|ready[- ]mix|rebar|lumber|pipe and fittings)\b/.test(t) && !/\b(and|&) (installation|install|labor|construction)\b|\b(construction|project|improvements?|repairs?|replacement|rehabilitation|overlay|bridges?|culverts?|demolition|abatement|removal)\b/.test(t.replace(/\b(road|building|construction) materials?\b/g, ""))) return true;
-  if (/\b(inspection|testing|survey(ing)?|engineering|design services|architect(ural)?|consultant|consulting|management services|program management|construction management|cm services|cmi|cm&i|cm ?& ?i|materials testing|observation|staking|assessments?|study|studies|master plan|feasibility|appraisals?|sweeping|janitorial|custodial|mowing|chemicals?|laborator(y|ies)|lab services|operators?|analysis|instruments|furniture|public art|alerting|(bridge|overhead|gantry) cranes?)\b/.test(t) && !/\b(design[- ]build|cmar|cm at[- ]risk|construction manage(r|ment) at[- ]risk|general contractor)\b/.test(t)) return true;
+  if (/\b(inspection|testing|survey(ing)?|engineering|design services|architect(ural)?|consultant|consulting|management services|program management|construction management|cm services|cmi|cm&i|cm ?& ?i|materials testing|observation|staking|assessments?|study|studies|master plan|feasibility|appraisals?|sweeping|janitorial|custodial|mowing|chemicals?|laborator(y|ies)|lab services|operators?|analysis|instruments|furniture|public art|alerting|(bridge|overhead|gantry) cranes?|specialists?|administration services|program administration)\b/.test(t) && !/\b(design[- ]build|cmar|cm at[- ]risk|construction manage(r|ment) at[- ]risk|general contractor)\b/.test(t)) return true;
   return false;
 }
 

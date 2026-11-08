@@ -696,6 +696,16 @@ export const COUNTY_CIVICENGAGE_CONFIGS: readonly CivicEngageBoardConfig[] = [
   board("ar_maumelle", "www.maumelle.gov", "City of Maumelle", "Maumelle, AR", "maumellearcivic"),
   board("ar_west_memphis", "www.westmemphisar.gov", "City of West Memphis", "West Memphis, AR", "westmemphisarcivic"),
   board("ar_garland_county", "www.garlandcounty.org", "Garland County", "Garland County, AR", "garlandcountyarcivic"),
+  // New Mexico (owner 2026-11-08: "need new construction jobs in NM"), captured 2026-11-08.
+  board("nm_rio_rancho", "www.rrnm.gov", "City of Rio Rancho", "Rio Rancho, NM", "rioranchocivic"),
+  board("nm_roswell", "www.roswell-nm.gov", "City of Roswell", "Roswell, NM", "roswellnmcivic"),
+  board("nm_valencia_county", "www.co.valencia.nm.us", "Valencia County, New Mexico", "Valencia County, NM", "valenciacountycivic"),
+  board("nm_clovis", "www.clovisnm.gov", "City of Clovis", "Clovis, NM", "clovisnmcivic"),
+  board("nm_alamogordo", "www.ci.alamogordo.nm.us", "City of Alamogordo", "Alamogordo, NM", "alamogordocivic"),
+  board("nm_gallup", "www.gallupnm.gov", "City of Gallup", "Gallup, NM", "gallupnmcivic"),
+  board("nm_otero_county", "www.co.otero.nm.us", "Otero County, New Mexico", "Otero County, NM", "oterocountycivic"),
+  board("nm_eddy_county", "www.eddycountynm.gov", "Eddy County, New Mexico", "Eddy County, NM", "eddycountycivic"),
+  board("nm_mckinley_county", "www.co.mckinley.nm.us", "McKinley County, New Mexico", "McKinley County, NM", "mckinleycountycivic"),
 ];
 
 export function countyCivicEngageConfig(source: string): CivicEngageBoardConfig {

@@ -107,3 +107,12 @@ California boards, captured 2026-11-04 (owner: "I can branch out" → "dl all 3"
 candidate city hosts were tried; most California cities post on PlanetBids, which sits
 behind a bot challenge Contrax does not get around, and their CivicEngage pages are empty
 pointers. Kept the 5 boards with open bids: Alhambra, Gilroy, Inglewood, San Mateo, Moorpark.
+civicengage | www.rrnm.gov | title=Bid Postings • Rio Rancho • CivicEngage | bidIDs=0 | same=false | captured 2026-11-08 (New Mexico)
+civicengage | www.roswell-nm.gov | title=Bid Postings • Roswell, NM • CivicEngage | bidIDs=0 | same=false | captured 2026-11-08 (New Mexico)
+civicengage | www.co.valencia.nm.us | title=Bid Postings • Valencia County, NM • CivicEngage | bidIDs=2 | same=false | captured 2026-11-08 (New Mexico)
+civicengage | www.clovisnm.gov | title=Bid Postings • Clovis, NM • CivicEngage | bidIDs=0 | same=false | captured 2026-11-08 (New Mexico)
+civicengage | www.ci.alamogordo.nm.us | title=Bid Postings • Alamogordo, NM • CivicEngage | bidIDs=0 | same=false | captured 2026-11-08 (New Mexico)
+civicengage | www.gallupnm.gov | title=Bid Postings • Gallup, NM • CivicEngage | bidIDs=0 | same=false | captured 2026-11-08 (New Mexico)
+civicengage | www.co.otero.nm.us | title=Bid Postings • Otero County, NM • CivicEngage | bidIDs=0 | same=false | captured 2026-11-08 (New Mexico)
+civicengage | www.eddycountynm.gov | title=Bid Postings • Eddy County, NM • CivicEngage | bidIDs=1 | same=false | captured 2026-11-08 (New Mexico)
+civicengage | www.co.mckinley.nm.us | title=Bid Postings • McKinley County, NM • CivicEngage | bidIDs=3 | same=false | captured 2026-11-08 (New Mexico)

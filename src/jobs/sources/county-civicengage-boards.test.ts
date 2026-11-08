@@ -64,6 +64,8 @@ const OPEN: Record<string, number> = {
   // Arkansas, captured 2026-11-07 (Jonesboro's yearly "Bid Tabulations" pages are skipped as not bids).
   ar_jonesboro: 2, ar_siloam_springs: 2, ar_rogers: 1,
   wa_marysville: 1, wa_redmond: 4, wa_bothell: 1, wa_puyallup: 1, wa_bremerton: 3, wa_des_moines: 2, wa_anacortes: 1, wa_yakima_county: 1, wa_franklin_county: 4, wa_cowlitz_county: 2, wa_grant_county: 1, wa_clallam_county: 1, wa_jefferson_county: 1, id_idaho_falls: 2, id_pocatello: 2, id_kootenai_county: 1,
+  // New Mexico, captured 2026-11-08.
+  nm_valencia_county: 2, nm_eddy_county: 1,
 };
 // Real boards with nothing open at capture (scheduled so new bids flow in), so no file.
 const NO_CAPTURE = new Set([
@@ -87,13 +89,14 @@ const NO_CAPTURE = new Set([
   "nc_sanford", "nc_lincoln_county", "nc_nash_county", "nc_caldwell_county", "nc_pender_county", "nc_monroe", "nc_boone", "nc_indian_trail", "nc_carolina_beach", "nc_emerald_isle", "nc_lincolnton",
   "ar_bentonville", "ar_russellville", "ar_cabot", "ar_maumelle", "ar_west_memphis", "ar_garland_county",
   "wa_spokane_valley", "wa_pasco", "wa_kennewick", "wa_mount_vernon", "wa_longview", "wa_north_bend", "wa_port_orchard", "wa_burlington", "wa_washougal", "wa_ridgefield", "wa_ellensburg", "wa_west_richland", "wa_cheney", "wa_liberty_lake", "wa_pierce_county", "wa_snohomish_county", "wa_island_county", "wa_douglas_county", "wa_adams_county", "wa_asotin_county", "id_twin_falls", "id_lewiston", "id_eagle", "wy_laramie", "wy_campbell_county", "wy_albany_county", "wy_green_river", "wy_torrington", "wy_carbon_county", "wy_goshen_county",
+  "nm_rio_rancho", "nm_roswell", "nm_clovis", "nm_alamogordo", "nm_gallup", "nm_otero_county", "nm_mckinley_county",
 ]);
 
 describe("county CivicEngage boards", () => {
   test("327 boards with unique sources and id prefixes", () => {
-    expect(COUNTY_CIVICENGAGE_CONFIGS).toHaveLength(649);
-    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.source)).size).toBe(649);
-    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.idPrefix)).size).toBe(649);
+    expect(COUNTY_CIVICENGAGE_CONFIGS).toHaveLength(658);
+    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.source)).size).toBe(658);
+    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.idPrefix)).size).toBe(658);
   });
 
   for (const cfg of COUNTY_CIVICENGAGE_CONFIGS.filter((c) => !NO_CAPTURE.has(c.source))) {

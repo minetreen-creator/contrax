@@ -1,18 +1,18 @@
 {
-  "name": "Contrax Mission Control",
+  "id": "/app",
+  "name": "Contrax: Public Bids Near You",
   "short_name": "Contrax",
-  "description": "Government contracting intelligence and owner Mission Control",
-  "start_url": "/admin/live",
+  "description": "Open government bids in your trade and area, with alerts the minute they post.",
+  "start_url": "/app?source=homescreen",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#0b1220",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
   "theme_color": "#0b1220",
+  "categories": ["business", "productivity"],
   "icons": [
-    {
-      "src": "/logo.png",
-      "sizes": "any",
-      "type": "image/png",
-      "purpose": "any"
-    }
+    { "src": "/app-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/app-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/app-icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

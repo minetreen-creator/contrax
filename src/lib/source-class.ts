@@ -6591,6 +6591,13 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
     searchScope: "city-open-data",
     recordType: "opportunity",
   },
+  oh_toledo_planetbids: {
+    class: "local",
+    city: "Toledo",
+    scopeState: "OH",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
   va_vbcps_beacon: {
     class: "local",
     city: "Virginia Beach",

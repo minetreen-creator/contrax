@@ -907,6 +907,7 @@ export const LOCAL_AGENCIES: LocalAgency[] = [
   { source: "ar_fayetteville_ionwave", slug: "city-of-fayetteville-ar", name: "City of Fayetteville, Arkansas" },
   { source: "ar_ionwave_central", slug: "central-arkansas-ionwave-ar", name: "Central Arkansas IonWave board (Pulaski County, Conway, Hot Springs, Central Arkansas Water), Arkansas" },
   { source: "sc_columbia_ionwave", slug: "city-of-columbia-sc", name: "City of Columbia, South Carolina" },
+  { source: "oh_toledo_planetbids", slug: "city-of-toledo-oh", name: "City of Toledo, Ohio" },
   { source: "va_vbcps_beacon", slug: "virginia-beach-schools-va", name: "Virginia Beach City Public Schools, Virginia" },
   { source: "va_grtc_beacon", slug: "grtc-va", name: "GRTC Transit System, Virginia" },
   { source: "pa_pittsburgh_schools_beacon", slug: "pittsburgh-public-schools-pa", name: "Pittsburgh Public Schools, Pennsylvania" },

@@ -69,6 +69,7 @@ import { PAVA_BEACON_SOURCES } from "./sources/pava-beacon";
 import { REVIZE_SOURCES } from "./sources/revize-bids";
 import { FL_DIRECT_SOURCES } from "./sources/fl-direct";
 import { AR_IONWAVE_SOURCES, SC_IONWAVE_SOURCES } from "./sources/ar-ionwave";
+import { PLANETBIDS_SOURCES } from "./sources/planetbids";
 import { fetchOhFranklinCountyBids } from "./sources/oh-franklin-county";
 import { fetchNjHarrisonBids } from "./sources/nj-harrison";
 import { fetchVaLoudounBids } from "./sources/va-loudoun";
@@ -576,6 +577,7 @@ export const TAIL_SOURCES: SyncSource[] = [
   // Arkansas IonWave boards (owner 2026-11-07).
   ...AR_IONWAVE_SOURCES,
   ...SC_IONWAVE_SOURCES,
+  ...PLANETBIDS_SOURCES,
   { name: "oh_franklin_county", fetchFn: () => fetchOhFranklinCountyBids() },
   { name: "nj_harrison", fetchFn: () => fetchNjHarrisonBids() },
   { name: "va_loudoun", fetchFn: fetchVaLoudounBids },

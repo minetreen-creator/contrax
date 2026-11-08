@@ -5,6 +5,8 @@ type Forecast = {
   id: string; title: string; description: string; fiscalYear: number; fiscalQuarter: string;
   agency: string; naics: string; city: string; state: string; country: string;
   valueRange: string; setAside: string; strategy: string; dateFlags: string[];
+  // Georgia DOT planned lettings (owner 2026-11-08, "Add as 'Upcoming'").
+  kind?: "dot-letting"; letLabel?: string; workType?: string; letBy?: string; projectId?: string; sourceUrl?: string; processedOn?: string;
 };
 type Payload = { forecasts: Forecast[]; total: number; snapshotDate: string };
 export const Route = createFileRoute("/forecasts")({
@@ -39,8 +41,8 @@ function Forecasts() {
     <div className="mx-auto max-w-5xl px-4 py-10">
       <a href="/radar" className="font-semibold text-blue-700">← Contract Radar</a>
       <h1 className="mt-6 text-3xl font-bold">Upcoming procurement forecasts</h1>
-      <p className="mt-3 max-w-3xl text-slate-600">Explore planned Commerce and Homeland Security purchases. Forecasts may change and are not open solicitations. Estimated quarters are not bid deadlines.</p>
-      <p className="mt-3 text-sm text-slate-600">Source snapshot: September 30, 2026. Includes fiscal years 2027–2029; fiscal year 2027 begins October 1, 2026.</p>
+      <p className="mt-3 max-w-3xl text-slate-600">Explore planned Commerce and Homeland Security purchases, and the road and bridge jobs Georgia DOT plans to put out to bid. Forecasts may change and are not open solicitations. Estimated quarters and planned months are not bid deadlines.</p>
+      <p className="mt-3 text-sm text-slate-600">Federal source snapshot: September 30, 2026. Includes fiscal years 2027–2029; fiscal year 2027 begins October 1, 2026. Georgia DOT's forecast is refreshed with every Contrax bid sync; Georgia's fiscal year starts July 1.</p>
       <a href="https://www.commerce.gov/oam/industry/procurement-forecasts" target="_blank" rel="noreferrer" className="mt-2 inline-block text-sm font-semibold text-blue-700">View Commerce's current forecast report →</a>
       <div className="mt-6 grid gap-4 rounded-2xl border border-slate-200 bg-white p-5 sm:grid-cols-3">
         <label className="text-sm font-semibold">Keyword or NAICS
@@ -65,7 +67,18 @@ function Forecasts() {
       </div>
       {data && !matches.length ? <p className="mt-4">No forecasts match these filters.</p> : null}
       <div className="mt-5 grid gap-5">
-        {matches.slice((currentPage - 1) * 20, currentPage * 20).map(row => <article key={row.id} className="rounded-2xl border border-slate-200 bg-white p-6">
+        {matches.slice((currentPage - 1) * 20, currentPage * 20).map(row => row.kind === "dot-letting" ? <article key={row.id} className="rounded-2xl border border-slate-200 bg-white p-6">
+          <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-800">Upcoming GDOT letting · not open for bidding yet</span>
+          <h2 className="mt-3 text-xl font-bold">{row.title}</h2>
+          <p className="mt-2 text-sm text-slate-600">{row.agency} · Project {row.projectId}</p>
+          <p className="mt-3 text-sm font-semibold">Planned letting: {row.letLabel} (GDOT forecast; the month can change)</p>
+          <p className="mt-2 text-sm">Location: {[row.city, row.state].filter(Boolean).join(", ") || "Not stated"}</p>
+          <p className="mt-2 text-sm">Work type: {row.workType || "Not stated"}</p>
+          <p className="mt-2 text-sm">Estimated cost: {row.valueRange || "Not stated"}</p>
+          {row.letBy ? <p className="mt-2 text-sm">Let by: {row.letBy}</p> : null}
+          <p className="mt-3 text-sm text-slate-600">When GDOT advertises this project, the bid notice and plans are posted on Bid Express.</p>
+          {row.sourceUrl ? <a href={row.sourceUrl} target="_blank" rel="noreferrer" className="mt-2 inline-block text-sm font-semibold text-blue-700">View GDOT's Project Letting by Month forecast →</a> : null}
+        </article> : <article key={row.id} className="rounded-2xl border border-slate-200 bg-white p-6">
           <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-800">Forecast · not open for bidding</span>
           <h2 className="mt-3 text-xl font-bold">{row.title}</h2>
           <p className="mt-2 text-sm text-slate-600">{row.agency} · Forecast ID {row.id}</p>

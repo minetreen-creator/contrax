@@ -47,8 +47,14 @@ test("refuses a stale payload or one for another agency", () => {
   expect(() => mapPlanetbids(toledo, { ...payload, cid: 1 }, AT)).toThrow();
 });
 
-test("Toledo is registered as an Ohio city source", () => {
-  expect(PLANETBIDS_SOURCES.map((s) => s.name)).toEqual(["oh_toledo_planetbids"]);
+test("every PlanetBids board is registered with its state", () => {
+  expect(PLANETBIDS_SOURCES.map((s) => s.name)).toEqual([
+    "oh_toledo_planetbids", "ca_san_diego_planetbids", "ca_san_diego_airport_planetbids", "ca_port_of_san_diego_planetbids",
+    "ca_valley_water_planetbids", "ca_sacrt_planetbids", "oh_metroparks_toledo_planetbids",
+  ]);
+  expect(new Set(PLANETBIDS_BOARDS.map((b) => b.cid)).size).toBe(PLANETBIDS_BOARDS.length);
+  expect(new Set(PLANETBIDS_BOARDS.map((b) => b.idPrefix)).size).toBe(PLANETBIDS_BOARDS.length);
+  for (const b of PLANETBIDS_BOARDS) expect(SOURCE_CLASSES[b.source]?.scopeState).toBe(b.location.slice(-2));
   expect(SOURCE_CLASSES.oh_toledo_planetbids?.scopeState).toBe("OH");
 });
 

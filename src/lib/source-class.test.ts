@@ -99,7 +99,8 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // + City of Houston (Beacon), 2026-11-03 (538 → 539).
     // + City of Columbia, SC (IonWave), 2026-11-08 (1090 → 1091).
     // + City of Toledo (PlanetBids), 2026-11-08 (1091 → 1092).
-    expect(Object.keys(SOURCE_CLASSES).length).toBe(1092);
+    // + 6 more PlanetBids agencies (San Diego city/airport/port, Valley Water, SacRT, Metroparks Toledo), 2026-11-08 (1092 → 1098).
+    expect(Object.keys(SOURCE_CLASSES).length).toBe(1098);
   });
 
   test("every registry label is classified (no collector is unclassified)", () => {
@@ -192,7 +193,8 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // il_chicago_dps, retired 2026-11-03 (their sites refuse the sync) → 455.
     // + City of Columbia, SC (IonWave), 2026-11-08 (1006 → 1007).
     // + City of Toledo (PlanetBids), 2026-11-08 (1007 → 1008).
-    expect(TAIL_SOURCES.length).toBe(1008);
+    // + 6 more PlanetBids agencies, 2026-11-08 (1008 → 1014).
+    expect(TAIL_SOURCES.length).toBe(1014);
   });
 
   test("every city registry entry the product fetches is LOCAL with a city name", () => {

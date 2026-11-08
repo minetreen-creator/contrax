@@ -60,6 +60,8 @@ async function handler({ request }: { request: Request }) {
 
     return Response.json({
       saved: toSave.length,
+      // Which bids were saved, so the banner can link each one to its bid page.
+      savedIds: toSave,
       total: validIds.length,
       limited,
       limit: limited ? FREE_SAVE_LIMIT : null,

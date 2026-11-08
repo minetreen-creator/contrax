@@ -68,6 +68,7 @@ export const HERO_COPY = {
     checks: ["Real government bids", "No card to search", "No automatic renewal"],
     veteran: "Built with veteran-owned businesses in mind. Open to every small business.",
     local: "Explore city & county bids →",
+    xray: "Who's winning near you? Look up a competitor →",
     cardTitle: "What does your business do?",
     tradePlaceholder: "Other trade",
     everyState: "Every state",
@@ -85,6 +86,7 @@ export const HERO_COPY = {
     checks: ["Licitaciones reales del gobierno", "Sin tarjeta para buscar", "Sin renovación automática"],
     veteran: "Pensado para negocios de veteranos. Abierto a todo pequeño negocio.",
     local: "Ver licitaciones de ciudades y condados →",
+    xray: "¿Quién gana contratos cerca de usted? Busque un competidor →",
     cardTitle: "¿A qué se dedica su negocio?",
     tradePlaceholder: "Otro oficio",
     everyState: "Todos los estados",
@@ -275,6 +277,13 @@ export function HomeContractFinder({ sample, openTotal = 0 }: { sample: Everyday
             className="mt-5 hidden text-sm font-semibold text-blue-200 underline underline-offset-4 hover:text-white sm:inline-block"
           >
             {c.local}
+          </a>
+          {/* Competitor X-Ray (owner 2026-11-08: "a secondary tab or homepage bar"). */}
+          <a
+            href="/competitor-xray"
+            className="mt-2 hidden text-sm font-semibold text-amber-300 underline underline-offset-4 hover:text-white sm:block"
+          >
+            {c.xray}
           </a>
         </div>
         <div className="rounded-2xl bg-white p-4 text-slate-950 shadow-xl shadow-black/30 sm:rounded-3xl sm:p-8">

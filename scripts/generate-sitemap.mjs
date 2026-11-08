@@ -75,6 +75,7 @@ const PRODUCT_PATHS = [
   ["/map", "daily", "0.6"],
   ["/example-brief", "monthly", "0.6"],
   // Bid checklists (owner 2026-11-08); slugs match src/lib/bid-checklists.ts (a test checks).
+  ["/competitor-xray", "monthly", "0.6"],
   ["/checklists", "monthly", "0.6"],
   ["/checklists/municipal-landscaping-ifb", "monthly", "0.6"],
   ["/checklists/commercial-janitorial-bid-prep", "monthly", "0.6"],

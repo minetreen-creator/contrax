@@ -5,6 +5,7 @@ import { STATE_CODE_TO_NAME } from "~/lib/location-state";
 import { stateFromCoords } from "~/lib/state-from-coords";
 import { STARTER_FIRST_MONTH_PRICE } from "~/lib/starter-offer";
 import { trackEvent } from "~/lib/track";
+import { BIDS_FIRST_TABS, getBidsFirst, type BidsFirstData, type BidsFirstTab } from "~/lib/bids-first";
 
 /**
  * The Contrax app (owner 2026-11-07: "yes build the app"). An installable web
@@ -18,52 +19,6 @@ interface MiniBid {
   agency: string;
   due_date: string | null;
 }
-
-const OPEN_GUARDS = "due_date > NOW() AND length(title) >= 15 AND title !~ '^[0-9]{2}--' AND title !~* '(intent to (sole[ -]source|award)|sole[ -]source)'";
-
-const getNearby = createServerFn({ method: "GET" })
-  .validator((d: unknown) => {
-    const s = String((d as any)?.state ?? "").toUpperCase();
-    return /^[A-Z]{2}$/.test(s) ? s : "";
-  })
-  .handler(async ({ data }): Promise<{ state: string; total: number; bids: MiniBid[] }> => {
-    try {
-      let state = data;
-      if (!state) {
-        const { getRequest } = await import("@tanstack/react-start/server");
-        const { stateFromGeoHeaders } = await import("~/lib/radar-geo");
-        const h = getRequest().headers;
-        state = stateFromGeoHeaders(h.get("x-vercel-ip-country"), h.get("x-vercel-ip-country-region"));
-      }
-      if (!state || !STATE_CODE_TO_NAME[state]) return { state: "", total: 0, bids: [] };
-      const { sql } = await import("~/db");
-      const { LOW_CONTENT_SQL } = await import("~/lib/low-content");
-      const { AWARD_EXCLUSION_SQL } = await import("~/lib/source-class");
-      const s = sql();
-      const [rows, count] = await Promise.all([
-        s`SELECT id, title, agency, due_date FROM bids
-          WHERE normalized_state = ${state} AND ${s.unsafe(OPEN_GUARDS)}
-            AND ${s.unsafe(LOW_CONTENT_SQL)} AND ${s.unsafe(AWARD_EXCLUSION_SQL)}
-          ORDER BY created_at DESC LIMIT 15`,
-        s`SELECT COUNT(*)::int AS n FROM bids
-          WHERE normalized_state = ${state} AND due_date > NOW()
-            AND ${s.unsafe(LOW_CONTENT_SQL)} AND ${s.unsafe(AWARD_EXCLUSION_SQL)}`,
-      ]);
-      return {
-        state,
-        total: Number((count as { n: number }[])[0]?.n ?? 0),
-        bids: (rows as any[]).map((r) => ({
-          id: Number(r.id),
-          title: String(r.title ?? ""),
-          agency: String(r.agency ?? ""),
-          due_date: r.due_date ? new Date(r.due_date).toISOString() : null,
-        })),
-      };
-    } catch (e) {
-      console.error("[app] nearby failed:", e);
-      return { state: "", total: 0, bids: [] };
-    }
-  });
 
 /** The member's matches from the last 24 hours (what the notifications are about). Paid plans only. */
 const getNewForYou = createServerFn({ method: "GET" }).handler(
@@ -134,16 +89,22 @@ function AppPage() {
   const [alerts, setAlerts] = useState<AlertState>("loading");
   const [publicKey, setPublicKey] = useState<string | null>(null);
   const [newForYou, setNewForYou] = useState<{ paid: boolean; label: string; bids: MiniBid[] } | null>(null);
-  const [nearby, setNearby] = useState<{ state: string; total: number; bids: MiniBid[] } | null>(null);
+  // Owner 2026-11-08 (mystery-shopper pass): "Bids near me" led with food
+  // orders ("Various Breakfast Products"). It now shows real trade work by tab,
+  // from the same source as the Radar landing panel (~/lib/bids-first).
+  const [nearby, setNearby] = useState<BidsFirstData | null | undefined>(undefined);
+  const [tab, setTab] = useState<BidsFirstTab>("construction");
   const [locating, setLocating] = useState(false);
 
   const loadNearby = (state: string) => {
-    getNearby({ data: { state } }).then((n) => {
-      setNearby(n);
-      try {
-        if (n.state) localStorage.setItem("contrax-app-state", n.state);
-      } catch {}
-    });
+    getBidsFirst({ data: { state } })
+      .then((n) => {
+        setNearby(n);
+        try {
+          if (n?.state) localStorage.setItem("contrax-app-state", n.state);
+        } catch {}
+      })
+      .catch(() => setNearby(null));
   };
 
   useEffect(() => {
@@ -341,7 +302,7 @@ function AppPage() {
               <h2 className="text-base font-bold text-white">📍 Bids near me</h2>
               {nearby?.state ? (
                 <p className="mt-1 text-xs text-slate-400">
-                  {nearby.total.toLocaleString()} open in {stateName}
+                  {nearby.total.toLocaleString()} open bids in {stateName}
                 </p>
               ) : null}
             </div>
@@ -366,13 +327,39 @@ function AppPage() {
                 ))}
             </select>
           </label>
-          {nearby === null ? (
+          {nearby === undefined ? (
             <p className="mt-3 text-sm text-slate-400">Loading…</p>
-          ) : nearby.bids.length ? (
+          ) : nearby ? (
             <>
-              <BidList bids={nearby.bids} />
-              <a href={`/radar?state=${nearby.state}`} className="mt-2 block text-sm font-semibold text-amber-300">
-                Search {stateName} by trade →
+              <div className="mt-3 flex gap-1.5 overflow-x-auto pb-1" role="tablist" aria-label="Trades">
+                {BIDS_FIRST_TABS.map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={tab === t.id}
+                    onClick={() => {
+                      setTab(t.id);
+                      trackEvent("app_nearby_tab", t.id);
+                    }}
+                    className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold ${
+                      tab === t.id ? "border-amber-500 bg-amber-500/15 text-amber-300" : "border-slate-700 text-slate-300"
+                    }`}
+                  >
+                    {t.label} <span className="text-slate-400">{nearby.counts[t.id].toLocaleString()}</span>
+                  </button>
+                ))}
+              </div>
+              {nearby.bids[tab].length ? (
+                <BidList bids={nearby.bids[tab]} />
+              ) : (
+                <p className="mt-3 text-sm text-slate-400">No open bids in this trade in {stateName} right now. Try another trade or state.</p>
+              )}
+              <a
+                href={`/radar?trade=${encodeURIComponent(BIDS_FIRST_TABS.find((t) => t.id === tab)?.trade ?? "")}&state=${nearby.state}`}
+                className="mt-2 block text-sm font-semibold text-amber-300"
+              >
+                See every {BIDS_FIRST_TABS.find((t) => t.id === tab)?.label.toLowerCase()} match in {stateName} →
               </a>
             </>
           ) : (

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getRadarSeen, clearRadarSeen, type RadarSeen, type RadarSeenMatch } from "~/lib/radar-session";
 import { trackEvent } from "~/lib/track";
+import { STARTER_FIRST_MONTH_PRICE } from "~/lib/starter-offer";
 
 /**
  * RadarLoginNotify — in-app (NOT email) welcome banner shown on and after login.
@@ -24,11 +25,23 @@ import { trackEvent } from "~/lib/track";
  *
  * The banner stays until the visitor dismisses it or saves, so it appears "on
  * login and after" across dashboard visits.
+ *
+ * Owner 2026-11-08: a new member saved a match here and never opened a bid, so
+ * never saw the bid page (the $5 button, the red-flag scanner, the incumbent
+ * preview). Every match link now opens the bid's own Contrax page, and after a
+ * save each saved bid is listed with an "Open this bid" button.
  */
 export function RadarLoginNotify() {
   const [seen, setSeen] = useState<RadarSeen | null>(null);
   const [saving, setSaving] = useState(false);
-  const [result, setResult] = useState<{ saved: number; total: number; limited: boolean; limit?: number | null; error?: boolean } | null>(null);
+  const [result, setResult] = useState<{
+    saved: number;
+    total: number;
+    limited: boolean;
+    limit?: number | null;
+    savedIds?: number[];
+    error?: boolean;
+  } | null>(null);
 
   useEffect(() => {
     const s = getRadarSeen();
@@ -45,7 +58,7 @@ export function RadarLoginNotify() {
   // Matches are stored already-sorted by score (highest first), so the top
   // match is simply the first one.
   const topMatch: RadarSeenMatch | undefined = seen.matches[0];
-  const topDetailUrl = topMatch?.source_url || null;
+  const topDetailUrl = topMatch ? bidPageHref(topMatch.id) : null;
 
   const dismiss = () => {
     clearRadarSeen();
@@ -66,7 +79,7 @@ export function RadarLoginNotify() {
         body: JSON.stringify({ bidIds: seen.matches.map((m) => m.id) }),
       });
       const json = (await res.json().catch(() => null)) as
-        | { saved?: number; total?: number; limited?: boolean; limit?: number | null; error?: string }
+        | { saved?: number; savedIds?: number[]; total?: number; limited?: boolean; limit?: number | null; error?: string }
         | null;
       if (!res.ok || !json || json.error) {
         setResult({ saved: 0, total, limited: false, error: true });
@@ -75,7 +88,13 @@ export function RadarLoginNotify() {
       // Saved — clear the browser session so the banner never resurfaces with
       // an empty action; keep the confirmation visible for this page view.
       clearRadarSeen();
-      setResult({ saved: json.saved ?? 0, total, limited: json.limited ?? false, limit: json.limit ?? null });
+      setResult({
+        saved: json.saved ?? 0,
+        total,
+        limited: json.limited ?? false,
+        limit: json.limit ?? null,
+        savedIds: Array.isArray(json.savedIds) ? json.savedIds : undefined,
+      });
     } catch {
       setResult({ saved: 0, total, limited: false, error: true });
     } finally {
@@ -86,6 +105,36 @@ export function RadarLoginNotify() {
   const openDetail = () => {
     trackEvent("radar_login_notify_detail", label);
   };
+
+  // The bids this save actually stored, in match order (falls back to the top match).
+  const savedMatches: RadarSeenMatch[] = result?.savedIds?.length
+    ? seen.matches.filter((m) => result.savedIds!.includes(m.id))
+    : topMatch
+      ? [topMatch]
+      : [];
+  const savedList = (
+    <ul className="mt-3 space-y-2">
+      {savedMatches.slice(0, 3).map((m, i) => (
+        <li key={m.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-white px-3 py-2">
+          <span className="min-w-0 flex-1 text-sm font-semibold text-slate-900">
+            {m.title}
+            {m.agency ? <span className="block text-xs font-normal text-slate-500">{m.agency}</span> : null}
+          </span>
+          <a
+            href={bidPageHref(m.id)}
+            onClick={() => trackEvent("radar_login_notify_open_bid", label)}
+            className={
+              i === 0
+                ? "rounded-lg bg-amber-500 px-3 py-1.5 text-sm font-bold text-slate-950 hover:bg-amber-400"
+                : "text-sm font-semibold text-amber-700 underline hover:text-amber-900"
+            }
+          >
+            Open this bid →
+          </a>
+        </li>
+      ))}
+    </ul>
+  );
 
   const heading =
     total === 1
@@ -130,32 +179,23 @@ export function RadarLoginNotify() {
               <p className="text-sm font-semibold text-amber-900">
                 Saved all {result.total} {result.total === 1 ? "match" : "matches"} to your Pipeline. ⭐
               </p>
-              {topDetailUrl && (
-                <a
-                  href={topDetailUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={openDetail}
-                  className="mt-2 inline-block text-sm font-semibold text-amber-700 underline hover:text-amber-900"
-                >
-                  View full solicitation details →
-                </a>
-              )}
+              {savedList}
             </div>
           ) : (
             <div>
               <p className="text-sm font-semibold text-amber-900">
-                Saved {result.saved} of {result.total} — Basic is limited to{" "}
+                Saved {result.saved} of {result.total}. Basic keeps{" "}
                 {result.limit ?? 1} saved bid{(result.limit ?? 1) === 1 ? "" : "s"}.{" "}
                 <a
-                  href="/upgrade"
+                  href="/upgrade?plan=starter&source=saved_match"
                   onClick={() => trackEvent("radar_login_notify_upgrade", label)}
                   className="font-bold underline hover:text-amber-700"
                 >
-                  Upgrade to Starter for unlimited
+                  Save them all with Starter, ${STARTER_FIRST_MONTH_PRICE} for 30 days
                 </a>
                 .
               </p>
+              {result.saved > 0 ? savedList : null}
               <a
                 href="/radar"
                 onClick={() => trackEvent("radar_login_notify_review", label)}
@@ -184,12 +224,10 @@ export function RadarLoginNotify() {
               {topDetailUrl && (
                 <a
                   href={topDetailUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
                   onClick={openDetail}
                   className="text-sm font-semibold text-amber-700 underline hover:text-amber-900"
                 >
-                  View Full Solicitation Details ↗
+                  Open the top match →
                 </a>
               )}
             </div>
@@ -203,4 +241,9 @@ export function RadarLoginNotify() {
       </div>
     </div>
   );
+}
+
+/** The bid's own Contrax page (not the agency site), where the bid actions live. */
+export function bidPageHref(id: number): string {
+  return `/bid/${encodeURIComponent(String(id))}`;
 }

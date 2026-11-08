@@ -118,6 +118,7 @@ const EVENT_LABELS: Record<string, string> = {
   incumbent_gate_view: "Incumbent gate shown",
   radar_login_notify_shown: "Saved-matches banner shown",
   radar_login_notify_save: "Saved-match saved to pipeline",
+  radar_login_notify_open_bid: "Opened a saved match's bid page",
   pending_draft_created: "Draft created",
   pending_draft_fulfilled: "Draft fulfilled",
   onboarding_match_count: "Onboarding matches shown",

@@ -154,6 +154,12 @@ export interface VisitorTrail {
   searches: { trade: string; state: string; matched: number; at: string }[];
   signals: ScraperSignal[];
   likelyScraper: boolean;
+  /**
+   * The Contrax account this visitor signed in to (owner 2026-11-08: "I want to know who people
+   * are"; build 2). Only ever an account the person created and signed in to on this device,
+   * never a guess from the IP. null when they have not signed in.
+   */
+  account?: { email: string; company: string | null; signedUp: string | null; paid: boolean } | null;
 }
 
 const REFERRER_NAMES: [RegExp, string][] = [

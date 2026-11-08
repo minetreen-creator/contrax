@@ -410,6 +410,20 @@ function TrackDrawer({ vid, label, onClose, onChanged }: { vid: string; label: s
               )}
             </div>
 
+            {/* Who it is, when they signed in to their own account (owner 2026-11-08: "I want to know who people are"). */}
+            {trail.account ? (
+              <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2">
+                <p className="text-sm font-bold text-emerald-200">Signed in: {trail.account.company || trail.account.email}</p>
+                <p className="mt-0.5 break-all text-slate-200">{trail.account.email}</p>
+                <p className="mt-0.5 text-slate-400">
+                  {trail.account.paid ? "Paid member" : "No paid plan"}
+                  {trail.account.signedUp ? ` · account made ${agoLabel(trail.account.signedUp, now)}` : ""}
+                </p>
+              </div>
+            ) : (
+              <p className="text-slate-500">Not signed in. Their name shows here once they sign in to a Contrax account.</p>
+            )}
+
             <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1">
               <dt className="text-slate-500">Where</dt><dd className="text-slate-200">{trail.place ?? "Unknown"}{trail.country ? ` · ${trail.country}` : ""} <span className="text-slate-500">(from IP, approximate)</span></dd>
               <dt className="text-slate-500">IP</dt><dd className="font-mono text-slate-200">{trail.ip ?? "not kept"}{trail.ipBlocked ? <span className="ml-1 font-sans text-[10px] font-bold uppercase text-rose-300">blocked</span> : null}{trail.sameIpVisitors ? <span className="text-slate-500"> · {trail.sameIpVisitors} other id{trail.sameIpVisitors === 1 ? "" : "s"} today</span> : null}</dd>

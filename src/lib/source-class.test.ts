@@ -100,7 +100,8 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // + City of Columbia, SC (IonWave), 2026-11-08 (1090 → 1091).
     // + City of Toledo (PlanetBids), 2026-11-08 (1091 → 1092).
     // + 6 more PlanetBids agencies (San Diego city/airport/port, Valley Water, SacRT, Metroparks Toledo), 2026-11-08 (1092 → 1098).
-    expect(Object.keys(SOURCE_CLASSES).length).toBe(1110);
+    // + 3 Texas city IonWave boards (Plano, Irving, Georgetown), 2026-11-09 (1110 → 1113).
+    expect(Object.keys(SOURCE_CLASSES).length).toBe(1113);
   });
 
   test("every registry label is classified (no collector is unclassified)", () => {
@@ -194,7 +195,8 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // + City of Columbia, SC (IonWave), 2026-11-08 (1006 → 1007).
     // + City of Toledo (PlanetBids), 2026-11-08 (1007 → 1008).
     // + 6 more PlanetBids agencies, 2026-11-08 (1008 → 1014).
-    expect(TAIL_SOURCES.length).toBe(1026);
+    // + 3 Texas city IonWave boards (Plano, Irving, Georgetown), 2026-11-09 (1026 → 1029).
+    expect(TAIL_SOURCES.length).toBe(1029);
   });
 
   test("every city registry entry the product fetches is LOCAL with a city name", () => {

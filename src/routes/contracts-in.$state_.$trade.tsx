@@ -10,6 +10,7 @@ import {
 } from "~/lib/seo-landing";
 import { radarHrefFor, SEO_TRADE_BY_SLUG } from "~/lib/seo-trades";
 import { FederalTradeFacts } from "~/components/FederalTradeFacts";
+import { findSubsPath, tradeWords } from "~/lib/sub-finder";
 
 // /contracts-in/{state}/{trade} — e.g. /contracts-in/virginia/janitorial.
 // The trailing underscore on $state_ keeps this route un-nested, so it renders
@@ -85,6 +86,15 @@ function ContractsInStateTrade() {
           stateCode={data.code}
           stateName={name}
         />
+      )}
+      {data.code && data.trade && (
+        // Owner 2026-11-09: primes bidding these jobs can find local subs here.
+        <p className="mx-auto mt-6 max-w-3xl px-4 text-sm text-slate-700">
+          Bidding one of these as the prime?{" "}
+          <a href={findSubsPath(name, data.trade.slug)} className="font-semibold text-blue-700 hover:underline">
+            Find {tradeWords(data.trade.label)} subcontractors in {name} →
+          </a>
+        </p>
       )}
       {data.code && (
         <OtherTradeLinks stateName={name} currentTrade={data.trade?.slug} />

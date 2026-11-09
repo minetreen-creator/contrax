@@ -159,6 +159,8 @@ export interface WeeklyDigestRecipient {
   headStartCount: number;
   /** "Flooring in WA" when the list was matched to their profile. */
   matchLabel?: string;
+  /** The "let primes find you" Sub Finder line, for members with a trade who aren't listed. */
+  subFinderHtml?: string;
 }
 
 export async function sendWeeklyBidDigest(recipients: WeeklyDigestRecipient[]): Promise<number> {
@@ -184,6 +186,7 @@ export async function sendWeeklyBidDigest(recipients: WeeklyDigestRecipient[]): 
             unsubscribeUrl: r.unsubscribeUrl,
             headStartCount: r.headStartCount,
             matchLabel: r.matchLabel,
+            subFinderHtml: r.subFinderHtml,
           }),
           headers: {
             "List-Unsubscribe": `<${r.unsubscribeUrl}>`,
@@ -997,6 +1000,8 @@ export interface WeeklyDigestHtmlOptions {
   foundingSpots?: number | null;
   /** "Flooring in WA" when the list was matched to the reader's trade and state. */
   matchLabel?: string;
+  /** The "let primes find you" Sub Finder line (src/lib/sub-finder.ts subFinderPromptHtml). */
+  subFinderHtml?: string;
 }
 
 /** Where the free Radar match-alert email's offer sends people (owner 2026-11-08: it still offered $19/month). */
@@ -1021,6 +1026,8 @@ export interface DailyDigestHtmlOptions {
   autopilotHtml?: string;
   /** How many Auto-Pilot picks there are (named in the subject line). */
   autopilotPicks?: number;
+  /** The "let primes find you" Sub Finder line (src/lib/sub-finder.ts subFinderPromptHtml). */
+  subFinderHtml?: string;
 }
 
 export function bidDigestHtml(
@@ -1149,6 +1156,7 @@ export function bidDigestHtml(
           </p>
         </td>
       </tr>` : ""}
+      ${daily?.subFinderHtml ?? weekly?.subFinderHtml ?? ""}
       <!-- Footer -->
       <tr>
         <td style="background:#f9fafb;padding:20px 32px;text-align:center;border-top:1px solid #e5e7eb;">

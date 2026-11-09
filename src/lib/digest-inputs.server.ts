@@ -76,12 +76,15 @@ export async function loadDigestMembers(): Promise<DigestMember[]> {
            ) AS has_bid_scout,
            bp.locations, bp.naics_codes, bp.industry, bp.service_categories,
            bp.business_name, bp.certifications, bp.licenses, bp.years_in_business, bp.employee_count,
-           bp.typical_contract_value, bp.past_performance_summary, bp.capability_statement
+           bp.typical_contract_value, bp.past_performance_summary, bp.capability_statement,
+           bp.listed_for_primes
     FROM users u
     LEFT JOIN LATERAL (
       SELECT locations, naics_codes, industry, service_categories,
              business_name, certifications, licenses, years_in_business, employee_count,
-             typical_contract_value, past_performance_summary, capability_statement
+             typical_contract_value, past_performance_summary, capability_statement,
+             -- Read through to_jsonb so the email never fails before Sub Finder adds the column.
+             COALESCE((to_jsonb(p)->>'listed_for_primes')::boolean, false) AS listed_for_primes
       FROM business_profiles p WHERE p.user_id = u.id ORDER BY p.id ASC LIMIT 1
     ) bp ON true
   `) as DigestMember[];

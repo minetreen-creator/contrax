@@ -78,6 +78,7 @@ const PRODUCT_PATHS = [
   ["/roadmap", "monthly", "0.5"],
   ["/pathway", "monthly", "0.7"],
   ["/sub-finder", "weekly", "0.6"],
+  ["/find-subcontractors", "weekly", "0.6"],
   ["/example-brief", "monthly", "0.6"],
   // Bid checklists (owner 2026-11-08); slugs match src/lib/bid-checklists.ts (a test checks).
   ["/competitor-xray", "monthly", "0.6"],
@@ -145,6 +146,7 @@ function readStaticUrlBlocks() {
       loc.includes("/clauses/") ||
       loc === `${PROD_URL}/clauses` ||
       loc.includes("/contracts-in/") ||
+      loc.includes("/find-subcontractors/") ||
       SEO_LANDING_PATHS.some((p) => loc === `${PROD_URL}${p}`) ||
       PRODUCT_PATHS.some(([p]) => loc === `${PROD_URL}${p}`)
     ) continue;
@@ -261,6 +263,26 @@ async function main() {
     ([code, slug]) =>
       `  <url>\n    <loc>${PROD_URL}/contracts-in/${STATE_SLUGS[code]}/${slug}</loc>\n    <lastmod>${TODAY}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>0.7</priority>\n  </url>`,
   );
+  // Prime search pages (/find-subcontractors/{state}/{trade}, owner 2026-11-09): only pairs with
+  // federal spending in the latest synced year, the same test the page uses to allow indexing.
+  const subCombos = [];
+  try {
+    const db = neon(process.env.DATABASE_URL);
+    const slugs = new Set(SEO_TRADES.map((t) => t.slug));
+    const rows = await db`
+      SELECT s.trade_slug, s.state FROM federal_trade_spending s
+      WHERE s.total_amount > 0
+        AND s.fiscal_year = (SELECT MAX(fiscal_year) FROM federal_trade_spending x WHERE x.trade_slug = s.trade_slug)
+      ORDER BY s.trade_slug, s.state
+    `;
+    for (const r of rows) if (slugs.has(r.trade_slug) && STATE_SLUGS[r.state]) subCombos.push([r.state, r.trade_slug]);
+  } catch (err) {
+    console.warn(`[generate-sitemap] find-subcontractors query failed (${err?.message ?? err}) — skipping those URLs`);
+  }
+  const subBlocks = subCombos.map(
+    ([code, slug]) =>
+      `  <url>\n    <loc>${PROD_URL}/find-subcontractors/${STATE_SLUGS[code]}/${slug}</loc>\n    <lastmod>${TODAY}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.6</priority>\n  </url>`,
+  );
   const productBlocks = PRODUCT_PATHS.map(
     ([p, freq, prio]) =>
       `  <url>\n    <loc>${PROD_URL}${p}</loc>\n    <lastmod>${TODAY}</lastmod>\n    <changefreq>${freq}</changefreq>\n    <priority>${prio}</priority>\n  </url>`,
@@ -299,6 +321,7 @@ async function main() {
     ...landBlocks,
     ...regionBlocks,
     ...tradeBlocks,
+    ...subBlocks,
     // Owner 2026-11-09 (Search Console): 4,730 FAR clause pages, word for word the government's own
     // text, were most of the "Crawled - currently not indexed" list and brought 4 visitors in 60
     // days. They stay live (and indexable) but leave the sitemap so Google spends its crawl on bid,

@@ -35,7 +35,7 @@ import { BID_SCOUT_PRICE_USD } from "~/lib/bid-scout";
  */
 
 const LIST_MRR_CENTS: Record<string, number> = {
-  starter: 1900, // $19/mo
+  starter: 1400, // $14/mo (owner 2026-11-09)
   professional: 7900, // $79/mo
   agency: 19900, // $199/mo
 };

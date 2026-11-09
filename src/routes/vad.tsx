@@ -46,7 +46,7 @@ const vadPlans: {
   {
     name: "Starter",
     price: "14",
-    was: "19",
+    was: "",
     period: "/mo",
     description: "For businesses ready to build and track a real government-contracting pipeline.",
     features: [
@@ -177,9 +177,11 @@ function VadPage() {
                 <div className="mb-6">
                   <span className="text-4xl font-extrabold text-slate-900">${plan.price}</span>
                   <span className="text-gray-500">{plan.period}</span>
-                  <span className="ml-2 text-sm font-medium text-gray-400 line-through">
-                    was ${plan.was}
-                  </span>
+                  {plan.was ? (
+                    <span className="ml-2 text-sm font-medium text-gray-400 line-through">
+                      was ${plan.was}
+                    </span>
+                  ) : null}
                 </div>
                 <ul className="mb-8 flex-1 space-y-3">
                   {plan.features.map((feature) => (

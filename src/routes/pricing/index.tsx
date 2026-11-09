@@ -13,7 +13,7 @@ import { trackEvent } from "~/lib/track";
 // Owner 2026-10-19 (item 6): descriptive title (prices in the title itself);
 // og:title / twitter:title read the same string. The meta descriptions are
 // unchanged — they already carry the prices.
-const PAGE_TITLE = "Pricing: Government Bid Alerts from $19/Month";
+const PAGE_TITLE = "Pricing: Government Bid Alerts from $14/Month";
 const META_DESCRIPTION =
   "Contrax plans for every stage of growth. Start with Starter for $5 for your first 30 days, with no automatic renewal, or keep searching on free Basic.";
 
@@ -43,13 +43,13 @@ export const Route = createFileRoute("/pricing/")({
 // Starter and Professional cards, verbatim. It is a price comparison, not a
 // feature bullet, so it renders directly under the price, not in the list.
 const VALUE_ANCHOR =
-  "Paid alert services run $49-149 a month for watching portals. Enterprise intelligence starts around $6,000 a year. Starter is $19.";
+  "Paid alert services run $49-149 a month for watching portals. Enterprise intelligence starts around $6,000 a year. Starter is $14.";
 
 /** Yearly = 10 × monthly (2 months free) — mirrors ANNUAL_UNIT_AMOUNTS in src/lib/stripe.ts and /upgrade. */
 const plans = [
   {
     name: "Starter",
-    price: 19,
+    price: 14,
     yearly: 190,
     slug: "starter",
     href: `/signup?plan=starter&next=${encodeURIComponent("/upgrade?plan=starter")}`,
@@ -103,7 +103,7 @@ const plans = [
 // visitors read (4 items; owner 2026-11-06: one offer, no plan comparisons).
 const FAQS = [
   { q: "What do I get?", a: "Every new government bid in your trade and states, in your inbox at 6 AM Eastern every morning, plus the official notice link and documents for every bid on Contrax. City, county, state and federal bids, matched to what your business does." },
-  { q: "Is there a free trial?", a: "Instead of a free trial, Starter costs $5 for your first 30 days, one time, with no automatic renewal. That is 30 days of the daily bid email and every state and trade. On day 30 the pass simply ends: you're never charged again unless you choose Starter at $19/month." },
+  { q: "Is there a free trial?", a: "Instead of a free trial, Starter costs $5 for your first 30 days, one time, with no automatic renewal. That is 30 days of the daily bid email and every state and trade. On day 30 the pass simply ends: you're never charged again unless you choose Starter at $14/month." },
   { q: "Can I cancel anytime?", a: "Yes. Cancel anytime and your access continues until the end of the billing period. No refunds for partial months." },
   { q: "What payment methods do you accept?", a: "We accept all major credit and debit cards through Stripe." },
 ];

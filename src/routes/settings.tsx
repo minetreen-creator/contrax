@@ -174,7 +174,7 @@ function CalendarFeedSection() {
       </div>
       {locked && (
         <div className="mt-4 flex flex-col gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900 sm:flex-row sm:items-center sm:justify-between">
-          <span>The calendar feed is part of Starter ($19/month, or $190 a year).</span>
+          <span>The calendar feed is part of Starter ($14/month, or $140 a year).</span>
           <a href="/upgrade" className="shrink-0 font-semibold text-blue-700 underline hover:text-blue-800">See plans →</a>
         </div>
       )}

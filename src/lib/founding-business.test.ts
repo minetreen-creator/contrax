@@ -23,7 +23,7 @@ const { setStripeClientForTests } = await import("~/lib/stripe");
 setStripeClientForTests({
   coupons: {
     retrieve: async () => ({
-      amount_off: 9100,
+      amount_off: 4100,
       currency: "usd",
       duration: "once",
       valid: true,
@@ -79,7 +79,7 @@ describe("Founding Business offer", () => {
         foundingBusinessSchema.safeParse({ ...profile, ...bad }).success,
       ).toBe(false);
   });
-  test("annual renewal is $190 with a fixed one-time $91 discount, no free trial or quantity input", () => {
+  test("annual renewal is $140 with a fixed one-time $41 discount (first year still $99), no free trial or quantity input", () => {
     const p = foundingBusinessCheckoutParams(
       7,
       "owner@example.com",
@@ -87,22 +87,22 @@ describe("Founding Business offer", () => {
       1,
     );
     expect(p.mode).toBe("subscription");
-    expect((p.line_items![0] as any).price_data.unit_amount).toBe(19000);
+    expect((p.line_items![0] as any).price_data.unit_amount).toBe(14000);
     expect((p.line_items![0] as any).price_data.recurring.interval).toBe(
       "year",
     );
     expect(p.discounts).toEqual([
-      { coupon: "contrax_founding_business_first_year_91_v1" },
+      { coupon: "contrax_founding_business_first_year_41_v1" },
     ]);
     expect(p.subscription_data?.metadata).toEqual(p.metadata);
-    expect(p.custom_text?.submit?.message).toContain("Renews at $190/year");
+    expect(p.custom_text?.submit?.message).toContain("Renews at $140/year");
     expect(p.subscription_data?.trial_period_days).toBeUndefined();
   });
   test("only a paid USD $99 subscription with attribution can fulfill", () => {
     expect(isPaidFoundingBusinessSession(session as any)).toBe(true);
     for (const patch of [
       { payment_status: "unpaid" },
-      { amount_total: 19000 },
+      { amount_total: 14000 },
       { currency: "eur" },
       { subscription: null },
       { mode: "payment" },

@@ -112,7 +112,7 @@ describe("weekly digest — email", () => {
     expect(html).toContain("Get the $5 pass");
     expect(WEEKLY_PASS_URL).toBe("https://www.contrax.company/upgrade?plan=starter&source=weekly_email");
     expect(html).toContain(WEEKLY_PASS_URL);
-    expect(html).not.toContain("$19/month");
+    expect(html).not.toContain("$14/month");
     expect(html).not.toContain("free Basic");
     expect(html).toContain(url);
   });
@@ -121,7 +121,7 @@ describe("weekly digest — email", () => {
     const html = bidDigestHtml([bid], 1);
     expect(html).toContain("since your last digest");
     expect(html).not.toContain("weekly-unsubscribe");
-    expect(html).not.toContain("$19/month");
+    expect(html).not.toContain("$14/month");
   });
 });
 
@@ -134,7 +134,7 @@ describe("founding offer in the free emails (owner 2026-10-03)", () => {
       const html = bidDigestHtml([bid], 1, { unsubscribeUrl: unsub, foundingSpots: spots });
       expect(html).toContain("Get the $5 pass");
       expect(html).not.toContain("founding");
-      expect(html).not.toContain("$19/month");
+      expect(html).not.toContain("$14/month");
     }
   });
 
@@ -146,13 +146,13 @@ describe("founding offer in the free emails (owner 2026-10-03)", () => {
       expect(html).toContain("Get the $5 pass");
       expect(html).toContain("upgrade?plan=starter&source=radar_alert");
       expect(html).not.toContain("founding");
-      expect(html).not.toContain("$19/month");
+      expect(html).not.toContain("$14/month");
     }
   });
 
   test("starterPriceHtml", () => {
     expect(starterPriceHtml(3)).toContain("3 spots left");
-    expect(starterPriceHtml(null)).toBe("$19/month");
+    expect(starterPriceHtml(null)).toBe("$14/month");
   });
 });
 

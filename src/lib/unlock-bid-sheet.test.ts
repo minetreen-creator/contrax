@@ -22,8 +22,8 @@ describe("bid-page $5 confirm step", () => {
     expect(checkoutBidToOpen(t, s)).toBeNull();
   });
 
-  test("the regular Starter month is $19", () => {
-    expect(STARTER_FULL_PRICE).toBe(19);
+  test("the regular Starter month is $14 (owner 2026-11-09)", () => {
+    expect(STARTER_FULL_PRICE).toBe(14);
   });
 
   test("first-time buyers get the sheet; a used pass is told $19/month, never '$5 one time'", () => {

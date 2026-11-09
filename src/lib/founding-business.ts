@@ -2,9 +2,9 @@ import { z } from "zod";
 
 export const FOUNDING_BUSINESS_LIMIT = 10;
 export const FOUNDING_BUSINESS_FIRST_YEAR_CENTS = 9900;
-export const FOUNDING_BUSINESS_RENEWAL_CENTS = 19000;
+export const FOUNDING_BUSINESS_RENEWAL_CENTS = 14000; // = Starter yearly (owner 2026-11-09: Starter $14/mo)
 export const FOUNDING_BUSINESS_TERMS =
-  "$99 today for your first year of Starter. Renews at $190/year unless canceled before renewal. Your company feature lasts 12 months from publication and includes one Facebook spotlight. Promotion is not renewed automatically. No guaranteed traffic, leads, contracts or government endorsement.";
+  "$99 today for your first year of Starter. Renews at $140/year unless canceled before renewal. Your company feature lasts 12 months from publication and includes one Facebook spotlight. Promotion is not renewed automatically. No guaranteed traffic, leads, contracts or government endorsement.";
 const httpsUrl = z
   .string()
   .trim()

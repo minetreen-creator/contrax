@@ -94,7 +94,7 @@ export function attentionItems(c: CommandCounts): AttentionItem[] {
   if (c.bidFitReviewsOpen > 0)
     items.push({ key: "bid-fit", kind: "money", label: `${plural(c.bidFitReviewsOpen, "bid fit review")} to answer`, detail: "Paid or requested reviews waiting on you.", href: "/admin/bid-fit-reviews" });
   if (c.passesEndingSoon > 0)
-    items.push({ key: "passes", kind: "money", label: `${plural(c.passesEndingSoon, "$5 pass", "$5 passes")} ending within 5 days`, detail: "A personal note before the pass ends is the best shot at a $19/month customer.", href: "/admin/customers" });
+    items.push({ key: "passes", kind: "money", label: `${plural(c.passesEndingSoon, "$5 pass", "$5 passes")} ending within 5 days`, detail: "A personal note before the pass ends is the best shot at a $14/month customer.", href: "/admin/customers" });
   if (c.outreachDrafts > 0)
     items.push({ key: "outreach", kind: "approve", label: `${plural(c.outreachDrafts, "outreach draft")} to approve`, detail: `${c.outreachSentToday} sent today. Nothing goes out until you approve it.`, href: "/admin/outreach" });
   if (c.storiesPending > 0)

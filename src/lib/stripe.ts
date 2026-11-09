@@ -13,7 +13,7 @@ import { handleBidScoutSubscriptionEvent } from "~/lib/bid-scout";
 import { sendWelcomeEmail } from "~/lib/email";
 import { hashPassword } from "~/lib/password";
 import { issuePasswordResetToken, SET_PASSWORD_TOKEN_TTL_MS } from "~/lib/password-reset-tokens";
-import {
+import { STARTER_MONTHLY_CENTS,
   checkoutCreatedAccount,
   STARTER_FIRST_MONTH_AMOUNT_OFF,
   STARTER_FIRST_MONTH_COUPON,
@@ -95,7 +95,8 @@ const FALLBACK_PRICE_IDS: Record<PlanTier, string | null> = {
 /** Expected unit_amount (in cents) for each plan tier. Used to filter out
  *  stale active prices in the Stripe catalog when looking up by product name. */
 const EXPECTED_UNIT_AMOUNTS: Record<PlanTier, number | null> = {
-  starter: 1900,       // $19.00
+  // Locates the Starter catalog product only; Starter checkouts bill STARTER_MONTHLY_CENTS inline.
+  starter: 1900,       // $19.00 (legacy catalog price)
   professional: 7900,  // $79.00
   agency: 19900,       // $199.00
   savings_premium: null, // one-time price — amount varies
@@ -114,7 +115,7 @@ export type BillingInterval = "month" | "year";
 
 /** Yearly unit_amount (cents) per tier: 10 × the monthly price. */
 export const ANNUAL_UNIT_AMOUNTS: Partial<Record<PlanTier, number>> = {
-  starter: 1900 * 10, // $190/yr
+  starter: STARTER_MONTHLY_CENTS * 10, // $140/yr (owner 2026-11-09: Starter $14/mo)
   professional: 7900 * 10, // $790/yr
   agency: 19900 * 10, // $1,990/yr
 };
@@ -161,7 +162,7 @@ export async function foundingSpotsRemaining(): Promise<number | null> {
 
 /** Monthly price in whole dollars per tier (the catalog prices above). */
 export const MONTHLY_PRICE_USD: Partial<Record<PlanTier, number>> = {
-  starter: 19,
+  starter: STARTER_MONTHLY_CENTS / 100,
   professional: 79,
   agency: 199,
 };
@@ -170,7 +171,7 @@ export const MONTHLY_PRICE_USD: Partial<Record<PlanTier, number>> = {
 //
 // VAD partner members get EXCLUSIVE pricing for the first 12 months via the
 // `VAD26` server-side verification code (entered on the /vad partner page):
-//   - Starter:      $14/mo  (normally $19)
+//   - Starter:      $14/mo  (the regular Starter price since 2026-11-09)
 //   - Professional: $59/mo  (normally $79)
 //   - Agency:       $149/mo (normally $199)
 //
@@ -544,6 +545,20 @@ export async function createCheckoutSession(
         },
         quantity: 1,
       };
+    } else if (interval === "month" && planTier === "starter" && !isVad) {
+      // Owner 2026-11-09: Starter is $14 a month. Billed inline on the Starter product, so a
+      // catalog lookup can never pick the old $19 price or the veterans' product.
+      const monthly = await getStripe().prices.retrieve(priceId);
+      const productId = typeof monthly.product === "string" ? monthly.product : monthly.product.id;
+      lineItem = {
+        price_data: {
+          currency: monthly.currency || "usd",
+          product: productId,
+          unit_amount: STARTER_MONTHLY_CENTS,
+          recurring: { interval: "month" },
+        },
+        quantity: 1,
+      };
     } else if (interval === "year") {
       const monthly = await getStripe().prices.retrieve(priceId);
       const productId = typeof monthly.product === "string" ? monthly.product : monthly.product.id;
@@ -570,7 +585,8 @@ export async function createCheckoutSession(
       if (!product || product.deleted) throw new Error("Checkout product is unavailable.");
       if (product.name !== names[planTier]) {
         const amount = founding ? FOUNDING_MEMBER_UNIT_AMOUNT
-          : interval === "year" ? annualAmount! : monthly.unit_amount;
+          : interval === "year" ? annualAmount!
+          : planTier === "starter" ? STARTER_MONTHLY_CENTS : monthly.unit_amount;
         if (amount == null) throw new Error("Checkout price amount is unavailable.");
         const taxCode = typeof product.tax_code === "string" ? product.tax_code : product.tax_code?.id;
         lineItem = {

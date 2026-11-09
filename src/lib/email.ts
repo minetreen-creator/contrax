@@ -953,10 +953,10 @@ export function foundingOfferOpen(spots: number | null | undefined): spots is nu
 
 /** First-year bundle and renewal terms, or the ordinary Starter monthly price. */
 export function starterPriceHtml(spots: number | null | undefined): string {
-  if (!foundingOfferOpen(spots)) return "$19/month";
+  if (!foundingOfferOpen(spots)) return "$14/month";
   // No "10 spots left" while none are taken (owner 2026-10-04): it reads as "nobody bought".
   const left = spots >= 10 ? "" : ` (only ${spots} spot${spots === 1 ? "" : "s"} left)`;
-  return `<strong>$99 for your first year</strong> of Starter, with a 12-month company feature and one Facebook spotlight${left}. Renews at $190/year unless canceled; the feature does not renew automatically`
+  return `<strong>$99 for your first year</strong> of Starter, with a 12-month company feature and one Facebook spotlight${left}. Renews at $140/year unless canceled; the feature does not renew automatically`
 }
 
 // ── Bid Digest HTML Template ───────────────────────────────────────────────────

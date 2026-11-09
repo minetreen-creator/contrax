@@ -2,7 +2,7 @@ import type Stripe from "stripe";
 import { randomUUID } from "node:crypto";
 import { sql } from "~/db";
 import { getStripe } from "~/lib/stripe";
-import {
+import { FOUNDING_BUSINESS_FIRST_YEAR_CENTS, FOUNDING_BUSINESS_RENEWAL_CENTS,
   foundingBusinessSchema,
   FOUNDING_BUSINESS_LIMIT,
   FOUNDING_BUSINESS_TERMS,
@@ -10,7 +10,10 @@ import {
 } from "./founding-business";
 
 const BASE = process.env.PROD_URL || "https://www.contrax.company";
-const COUPON = "contrax_founding_business_first_year_91_v1";
+// Owner 2026-11-09: the renewal is now $140, so the $99 first year needs $41 off; a Stripe
+// coupon's amount cannot change, hence a new id.
+const COUPON = "contrax_founding_business_first_year_41_v1";
+const COUPON_AMOUNT_OFF = FOUNDING_BUSINESS_RENEWAL_CENTS - FOUNDING_BUSINESS_FIRST_YEAR_CENTS;
 // Fixed rows are the inventory. A row is never reused after payment. Expiration
 // is proven with Stripe, never inferred from a local timer or the return URL.
 export async function ensureFoundingBusinesses() {
@@ -75,7 +78,7 @@ export function foundingBusinessCheckoutParams(
         quantity: 1,
         price_data: {
           currency: "usd",
-          unit_amount: 19000,
+          unit_amount: FOUNDING_BUSINESS_RENEWAL_CENTS,
           recurring: { interval: "year" },
           product_data: {
             name: "Contrax Starter — Founding Business",
@@ -105,7 +108,7 @@ async function ensureCoupon() {
       coupon = await stripe.coupons.create(
         {
           id: COUPON,
-          amount_off: 9100,
+          amount_off: COUPON_AMOUNT_OFF,
           currency: "usd",
           duration: "once",
           name: "Founding Business: $99 first year",
@@ -119,7 +122,7 @@ async function ensureCoupon() {
     }
   }
   if (
-    coupon.amount_off !== 9100 ||
+    coupon.amount_off !== COUPON_AMOUNT_OFF ||
     coupon.currency !== "usd" ||
     coupon.duration !== "once" ||
     !coupon.valid

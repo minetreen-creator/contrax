@@ -122,7 +122,7 @@ const PASS_HIGHLIGHTS = [
 
 const PASS_PARAGRAPHS = [
   "You signed up for Contrax, so here's the easiest way to try Starter: one $5 payment covers your first 30 days.",
-  "Five days before your 30 days end, we'll email you once to ask whether you want to keep going at $19/month. Do nothing and you're never charged again. Your account simply goes back to Basic, and you keep your login.",
+  "Five days before your 30 days end, we'll email you once to ask whether you want to keep going at $14/month. Do nothing and you're never charged again. Your account simply goes back to Basic, and you keep your login.",
   "🔨 Pick your trade and states right after checkout, and your first bid email arrives the next morning at 6 AM.",
 ];
 

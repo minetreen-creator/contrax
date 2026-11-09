@@ -68,7 +68,7 @@ describe("trialEmailContent", () => {
   test("reminder and ended subjects, price and no-auto-renewal note", () => {
     const r = trialEmailContent("reminder", recap());
     expect(r.subject).toBe("Your Contrax trial ends soon");
-    expect(r.html).toContain("$19/month");
+    expect(r.html).toContain("$14/month");
     // Owner 2026-10-30: the $5 is a 30-day pass with no automatic renewal.
     expect(r.html).toContain("$5 for 30 days, one time. Nothing renews");
     expect(trialEmailContent("ended", recap()).subject).toContain("trial ended");

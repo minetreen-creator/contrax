@@ -100,8 +100,8 @@ export function trialEmailContent(stage: TrialEmailStage, r: TrialRecap): { subj
       : "Your 7-day trial ended, so your account is now on free Basic. You can still see what each bid is, but official notice links are locked, your daily bid email is paused and you can keep only 1 saved bid.";
   const close =
     stage === "reminder"
-      ? `Keep official notice links, the daily bid email, every state and trade, unlimited saved bids and who to contact on federal bids with Starter: $${STARTER_FIRST_MONTH_PRICE} for 30 days, one time. Nothing renews: on day 30 the pass simply ends unless you choose Starter at $19/month.`
-      : `Starter unlocks official notice links again and brings back the daily bid email, every state and trade, unlimited saved bids and who to contact on federal bids: $${STARTER_FIRST_MONTH_PRICE} for 30 days, one time. Nothing renews: on day 30 the pass simply ends unless you choose Starter at $19/month.`;
+      ? `Keep official notice links, the daily bid email, every state and trade, unlimited saved bids and who to contact on federal bids with Starter: $${STARTER_FIRST_MONTH_PRICE} for 30 days, one time. Nothing renews: on day 30 the pass simply ends unless you choose Starter at $14/month.`
+      : `Starter unlocks official notice links again and brings back the daily bid email, every state and trade, unlimited saved bids and who to contact on federal bids: $${STARTER_FIRST_MONTH_PRICE} for 30 days, one time. Nothing renews: on day 30 the pass simply ends unless you choose Starter at $14/month.`;
   const cta = stage === "reminder" ? "Keep my bids coming" : "Pick up where I left off";
   const url = "https://www.contrax.company/upgrade?utm_source=email&utm_campaign=trial_" + stage;
   const list = lines.length ? `<ul style="margin:0 0 16px;padding-left:20px;color:#111827;font-size:15px;line-height:1.6;">${lines.map((l) => `<li>${escapeHtml(l)}</li>`).join("")}</ul>` : "";

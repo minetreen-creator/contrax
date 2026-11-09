@@ -522,7 +522,7 @@ function MoneyPanel({ money, trials, now }: { money: MoneyStats; trials: TrialCa
           {money.starterPass ? (
             <p className="mt-2 text-xs text-slate-300">
               <b className="text-amber-300">$5 for 30 days:</b> {money.starterPass.bought} bought · {money.starterPass.activeNow} active now ·{" "}
-              {money.starterPass.continued} continued at $19 · {money.starterPass.ended} ended
+              {money.starterPass.continued} continued at $14 · {money.starterPass.ended} ended
             </p>
           ) : null}
           {money.signinRequired || money.failed ? (
@@ -564,7 +564,7 @@ function InvestorPanel({ n }: { n: InvestorNumbers }) {
     { label: "Monthly recurring", value: dollars(n.mrr), note: "active subscriptions x monthly price" },
     { label: "Revenue, 30 days", value: dollars(n.revenue30d), note: "real paid checkouts" },
     { label: "Sales this week", value: String(n.sales7d), note: growth === "new" ? "first sales vs last week" : growth + " vs last week (" + n.salesPrev7d + ")" },
-    { label: "Renewal", value: renewal, note: n.renewal.continued + " went on to $19 · " + n.renewal.ended + " ended" },
+    { label: "Renewal", value: renewal, note: n.renewal.continued + " went on to $14 · " + n.renewal.ended + " ended" },
     { label: "Customers ever", value: String(n.customersEver), note: "everyone who has paid" },
   ];
   return (

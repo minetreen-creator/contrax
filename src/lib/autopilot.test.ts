@@ -135,3 +135,48 @@ test("the OPEN_AI_KEY secret name is accepted", async () => {
   useOpenAiKeyAlias(both);
   expect(both.OPENAI_API_KEY).toBe("a");
 });
+
+describe("Auto-Pilot runs on Vercel before 6 AM (GitHub isn't reliable)", () => {
+  test("a Vercel cron scores and saves; the email reads saved answers", () => {
+    const build = readFileSync(new URL("../../build-vercel.sh", import.meta.url), "utf8");
+    expect(build).toContain('{ "path": "/api/cron/autopilot", "schedule": "*/10 8-10 * * *" }');
+    const route = readFileSync(new URL("../routes/api/cron/autopilot.ts", import.meta.url), "utf8");
+    expect(route).toContain("isAuthorizedCron(request, process.env.CRON_SECRET)");
+    const job = readFileSync(new URL("../jobs/send-bid-digest.ts", import.meta.url), "utf8");
+    expect(job).toContain("newAutopilotBudget(EMAIL_JOB_AI_CAP)");
+  });
+
+  test("without a key, saved answers are still used and nothing is scored", async () => {
+    const saved = process.env.OPENAI_API_KEY;
+    const savedAlt = process.env.OPEN_AI_KEY;
+    delete process.env.OPENAI_API_KEY;
+    delete process.env.OPEN_AI_KEY;
+    try {
+      const db = (() => async (strings: TemplateStringsArray) =>
+        strings.join("?").includes("SELECT bid_id, raw") ? [{ bid_id: 1, raw: '{"fit":85,"decision":"pursue","why":"Fits."}' }] : []) as never;
+      const budget = newAutopilotBudget(5);
+      const out = await autopilotForMember(3, {}, [{ bid_id: 1, title: "A" }, { bid_id: 2, title: "B" }], budget, { db });
+      expect(out.map((v) => v.bid_id)).toEqual([1]);
+      expect(budget.calls).toBe(0);
+    } finally {
+      if (saved !== undefined) process.env.OPENAI_API_KEY = saved;
+      if (savedAlt !== undefined) process.env.OPEN_AI_KEY = savedAlt;
+    }
+  });
+
+  test("a deadline stops new AI calls", async () => {
+    const budget = newAutopilotBudget(5);
+    const db = (() => async () => []) as never;
+    const out = await autopilotForMember(3, {}, [{ bid_id: 1, title: "A" }], budget, { db, ai: async () => '{"fit":90}', deadline: Date.now() - 1 });
+    expect(out).toEqual([]);
+    expect(budget.calls).toBe(0);
+  });
+});
+
+test("the email job and the Vercel job pick the same bids for a member", async () => {
+  const { memberDigestBids, autopilotBidsOf } = await import("./digest-member");
+  const bid = (id: number, title: string, location: string) => ({ bid_id: id, title, agency: "City", location, due_date: null, set_aside: null, source: "local", match: { title, description: `${title} services`, category: null, location, agency: "City", naics_code: null } });
+  const { main, openToAll, matcher } = memberDigestBids({ locations: ["VA"], industry: "Janitorial", service_categories: ["janitorial"] }, [bid(1, "Janitorial services", "Richmond, VA"), bid(2, "Bridge painting", "Ohio")]);
+  expect(matcher.personal).toBe(true);
+  expect(autopilotBidsOf(main, openToAll).map((b) => b.bid_id)).toEqual([1]);
+});

@@ -635,6 +635,16 @@ function BidDetailPage() {
               </p>
             )}
 
+            {/* Sub Finder (owner 2026-11-09): a prime going after this bid finds subs and sends a Trade Package. */}
+            <a
+              href={`/sub-finder?bid=${bid.id}${bid.state_code ? `&state=${bid.state_code}` : ""}`}
+              onClick={() => trackEvent("bid_sub_finder_click", String(bid.id))}
+              className="mt-4 block rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm hover:border-amber-400"
+            >
+              <span className="font-semibold text-white">Bidding as the prime? Find subs for this bid →</span>
+              <span className="mt-0.5 block text-xs text-slate-400">Sub Finder: listed subs by trade and certification, plus a Trade Package link to collect quotes.</span>
+            </a>
+
             <MaxAssistant bid={{ id: bid.id, title: bid.title }} />
 
             <BidAlertCapture naicsCode={bid.naics_code} stateCode={bid.state_code} />

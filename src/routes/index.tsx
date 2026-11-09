@@ -477,6 +477,7 @@ const FOOTER_GROUPS = [
       { href: "/gap-map", label: "Opportunity gap map" },
       { href: "/roadmap", label: "Your roadmap" },
       { href: "/prime-finder", label: "Prime contractor finder" },
+      { href: "/sub-finder", label: "Sub Finder" },
     ],
   },
   {

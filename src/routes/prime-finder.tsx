@@ -192,6 +192,8 @@ function PrimeFinderPage() {
           </li>
         </ol>
         <p className="mt-3 text-xs text-slate-500">
+          Want primes to find you too?{" "}
+          <a href="/sub-finder" className="font-semibold text-blue-700 hover:text-blue-800">List your business in Sub Finder</a>.{" "}
           Sources: USAspending.gov (active contracts ending in the next 18 months, by place of performance) and the SBA and GSA directories of prime contractors
           with subcontracting plans. Contrax does not contact primes for you.
         </p>

@@ -5,6 +5,7 @@ import { SiteHeader } from "~/components/SiteHeader";
 import { STATE_NAMES } from "~/lib/contract-map";
 import { SEO_TRADES, SEO_TRADE_BY_SLUG } from "~/lib/seo-trades";
 import { MAX_QUOTE_REQUESTS_PER_PACKAGE, SUB_FINDER_CERTS, certNames, shareText, type ListedSub } from "~/lib/sub-finder";
+import { SAM_SOURCE_NOTE } from "~/lib/sam-registrants";
 import { trackEvent } from "~/lib/track";
 
 /**
@@ -57,11 +58,15 @@ const getSubFinder = createServerFn({ method: "GET" })
       const context = await srv.packageContext({ bid: data.bid, mega: data.mega });
       const state = data.state || context?.state || "";
       const subs = await srv.findSubs({ trade: data.trade || null, state: state || null, cert: data.cert || null });
+      // SAM.gov registered small businesses (item 5): shown for one trade and state; more when signed in.
+      const { findRegisteredSubs } = await import("~/lib/sam-registrants.server");
+      const registered = data.trade && state ? await findRegisteredSubs({ trade: data.trade, state, cert: data.cert || null, limit: user ? 50 : 10 }) : null;
       return {
         ...data,
         state,
         context,
         subs,
+        registered,
         signedIn: Boolean(user),
         listing: user ? await srv.myListing(user.id) : null,
         packages: user ? await srv.myPackages(user.id) : [],
@@ -69,7 +74,7 @@ const getSubFinder = createServerFn({ method: "GET" })
       };
     } catch (e) {
       console.error("[sub-finder] load failed:", e);
-      return { ...data, context: null, subs: [] as ListedSub[], signedIn: Boolean(user), listing: null, packages: [], failed: true };
+      return { ...data, context: null, subs: [] as ListedSub[], registered: null, signedIn: Boolean(user), listing: null, packages: [], failed: true };
     }
   });
 
@@ -275,6 +280,10 @@ function SubFinderPage() {
             Only businesses that chose to be listed appear here, and only they can receive quote requests from Contrax. Certifications are self-reported;
             verify them in the SBA's certification search before you rely on them.
           </p>
+
+          {d.registered ? <RegisteredSubs data={d.registered} trade={tradeLabel} state={d.state ? STATE_NAMES[d.state] : ""} signedIn={d.signedIn} pkgUrl={pkg ? pkg.url : null} /> : d.trade && !d.state ? (
+            <p className="mt-6 text-sm text-slate-600">Pick a state to also see small businesses registered with the government for this trade.</p>
+          ) : null}
         </section>
 
         <aside className="space-y-4">
@@ -400,6 +409,52 @@ function SharePanel({ url, text }: { url: string; text: string }) {
         <a href={`mailto:?subject=${encodeURIComponent("Quote request")}&body=${encodeURIComponent(text)}`} onClick={() => trackEvent("sub_finder_share", "email")} className="col-span-2 rounded-lg border border-slate-300 px-3 py-2 text-center font-semibold text-slate-800">Email it</a>
       </div>
       <p className="text-xs text-slate-500">Send it from your own phone or email to the subs you work with. Their quotes come to your inbox.</p>
+    </div>
+  );
+}
+
+/**
+ * SAM.gov registered small businesses (Sub Finder item 5). Public registration data; these
+ * businesses haven't joined Contrax and Contrax never contacts them. The prime reaches out.
+ */
+function RegisteredSubs({ data, trade, state, signedIn, pkgUrl }: { data: { total: number; rows: { uei: string; name: string; city: string | null; url: string | null; certs: string[] }[] }; trade: string; state: string; signedIn: boolean; pkgUrl: string | null }) {
+  if (!data.total) return null;
+  return (
+    <div className="mt-8">
+      <h2 className="text-lg font-bold text-slate-900">
+        Registered with the government{trade ? ` · ${trade}` : ""}{state ? ` · ${state}` : ""}
+      </h2>
+      <p className="mt-1 text-sm text-slate-600">
+        {data.total.toLocaleString("en-US")} small business{data.total === 1 ? " is" : "es are"} registered in SAM.gov for this work. They haven't joined Contrax, and Contrax doesn't contact them:
+        reach out through their website{pkgUrl ? " and share your Trade Package link" : ""} yourself.
+      </p>
+      <ul className="mt-2 grid gap-2 sm:grid-cols-2">
+        {data.rows.map((r) => (
+          <li key={r.uei} className="rounded-xl border border-slate-200 bg-white p-3 text-sm">
+            <p className="font-semibold text-slate-900">{r.name}</p>
+            <p className="text-xs text-slate-600">{r.city ?? ""}</p>
+            {r.certs.length ? <p className="text-xs text-emerald-700">{certNames(r.certs.filter((c) => c !== "vosb" || !r.certs.includes("sdvosb"))).join(", ")}</p> : null}
+            {r.url ? (
+              <a href={r.url} target="_blank" rel="nofollow noopener noreferrer" onClick={() => trackEvent("sub_finder_registered_site", r.uei)} className="text-xs font-semibold text-blue-700 hover:underline">
+                Website →
+              </a>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+      {data.total > data.rows.length ? (
+        <p className="mt-2 text-sm text-slate-700">
+          {signedIn ? `Showing ${data.rows.length} of ${data.total.toLocaleString("en-US")}, certified businesses first. Narrow it with the certification filter.` : (
+            <>
+              Showing {data.rows.length} of {data.total.toLocaleString("en-US")}.{" "}
+              <a href={`/signup?source=sub_finder_registered&next=${encodeURIComponent("/sub-finder")}`} className="font-semibold text-blue-700">Create an account to see more →</a>
+            </>
+          )}
+        </p>
+      ) : null}
+      <p className="mt-2 text-xs text-slate-500">
+        {SAM_SOURCE_NOTE} Is this your business and you'd like it removed? Email contrax.companyllc@gmail.com.
+      </p>
     </div>
   );
 }

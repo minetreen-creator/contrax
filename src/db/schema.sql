@@ -1345,3 +1345,23 @@ CREATE TABLE IF NOT EXISTS trade_package_requests (
     sent_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     PRIMARY KEY (package_id, profile_id)
 );
+
+-- SAM.gov registered small businesses for Sub Finder (owner 2026-11-09, item 5). Loaded monthly
+-- from the PUBLIC entity extract (src/jobs/sam-registrants-sync.ts); mirror of
+-- src/lib/sam-registrants.server.ts ensureSamRegistrantsTable.
+CREATE TABLE IF NOT EXISTS sam_registrants (
+  uei TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  city TEXT,
+  state TEXT NOT NULL,
+  zip TEXT,
+  url TEXT,
+  trades TEXT[] NOT NULL DEFAULT '{}',
+  certs TEXT[] NOT NULL DEFAULT '{}',
+  naics TEXT[] NOT NULL DEFAULT '{}',
+  expires DATE,
+  extract_date DATE NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS sam_registrants_state_idx ON sam_registrants (state);
+CREATE INDEX IF NOT EXISTS sam_registrants_trades_idx ON sam_registrants USING GIN (trades);

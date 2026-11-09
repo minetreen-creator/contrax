@@ -34,6 +34,31 @@ export function maxProofBidOpen(now: number = Date.now()): boolean {
   return now < Date.parse(`${MAX_PROOF.due}T23:59:59-05:00`);
 }
 
+/** The notice's due date as people read it, e.g. "December 7, 2026" (or "Dec 7, 2026" when short). PURE. */
+export function maxProofDueLabel(short = false): string {
+  return new Date(`${MAX_PROOF.due}T12:00:00Z`).toLocaleDateString("en-US", { month: short ? "short" : "long", day: "numeric", year: "numeric", timeZone: "UTC" });
+}
+
+/**
+ * Date accuracy (owner 2026-11-09: "date accuracy and source citations a top priority"): Max's
+ * English answer must name the same due date as the notice. A test enforces it for every example. PURE.
+ */
+export function maxProofDateConsistent(): boolean {
+  const d = new Date(`${MAX_PROOF.due}T12:00:00Z`);
+  const monthDay = d.toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "UTC" });
+  return MAX_PROOF.max.en.includes(monthDay);
+}
+
+/**
+ * The live check: the bid's due date in the database (New York date) still matches the example.
+ * If the agency amends the date, the example hides itself instead of showing a stale one. PURE.
+ */
+export function maxProofStillCurrent(dbDue: string | Date | null | undefined): boolean {
+  if (!dbDue) return false;
+  const ny = new Date(dbDue).toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+  return ny === MAX_PROOF.due;
+}
+
 /** Words in the notice excerpt vs. in Max's answer, for the "time saved" line. PURE. */
 export function wordCount(text: string): number {
   return text.split(/\s+/).filter(Boolean).length;

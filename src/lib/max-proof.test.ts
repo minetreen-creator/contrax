@@ -33,3 +33,24 @@ describe("homepage Max proof", () => {
     expect(j).toBeLessThan(home.indexOf("<HomeAppStrip />"));
   });
 });
+
+describe("date accuracy (owner 2026-11-09)", () => {
+  test("Max's answer names the notice's own due date", async () => {
+    const { maxProofDateConsistent, maxProofDueLabel } = await import("./max-proof");
+    expect(maxProofDateConsistent()).toBe(true);
+    expect(maxProofDueLabel()).toBe("December 7, 2026");
+  });
+  test("the example hides itself if the bid's due date changes in the database", async () => {
+    const { maxProofStillCurrent } = await import("./max-proof");
+    expect(maxProofStillCurrent("2026-12-07T20:00:00.000Z")).toBe(true); // 3 PM Eastern on Dec 7
+    expect(maxProofStillCurrent("2026-12-02T22:00:00.000Z")).toBe(false);
+    expect(maxProofStillCurrent(null)).toBe(false);
+    const home = readFileSync("src/routes/index.tsx", "utf8");
+    expect(home).toContain("{maxProofCurrent !== false ? <HomeMaxProof /> : null}");
+  });
+  test("the notice card shows its due date and source; the answer cites it", () => {
+    const c = readFileSync("src/components/HomeMaxProof.tsx", "utf8");
+    expect(c).toContain("Due {maxProofDueLabel(true)} (from the notice)");
+    expect(c).toContain("Source: the {MAX_PROOF.agency} notice; the due date Max gives matches");
+  });
+});

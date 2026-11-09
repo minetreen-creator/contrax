@@ -33,6 +33,16 @@ describe("opportunity gap map", () => {
     expect(map.find((s) => s.state === "MD")!.score).toBeGreaterThan(map.find((s) => s.state === "TX")!.score);
   });
 
+  test("among big-spending states, about half are openings and half crowded", () => {
+    const big = Array.from({ length: 10 }, (_, i) => row(`S${i}`, 100e6, 10 + i * 10));
+    const codes = ["VA", "TX", "MD", "CA", "NY", "FL", "GA", "NC", "PA", "OH"];
+    const labelled = buildGapMap(big.map((r, i) => ({ ...r, state: codes[i] })).concat([row("WY", 1e6, 1), row("VT", 1e6, 1)]));
+    const n = (l: string) => labelled.filter((s) => s.label === l).length;
+    expect(n("opening")).toBe(5);
+    expect(n("crowded")).toBe(5);
+    expect(n("small")).toBe(2);
+  });
+
   test("small-business share is clamped and computed", () => {
     const [s] = buildGapMap([row("OH", 10e6, 2, 30e6)]);
     expect(s.setAsideShare).toBe(1);

@@ -155,7 +155,9 @@ export function Roadmap({ r }: { r: RoadmapInput }) {
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">
-      <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">Your contracting roadmap</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">
+        <a href="/pathway" className="hover:underline">Contrax Pathway</a> · Step 2 · Your contracting roadmap
+      </p>
       <div className="mt-1 flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">{r.profile.businessName || "Your business"}</h1>
         <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-800">{STAGE_TEXT[stage].title}</span>

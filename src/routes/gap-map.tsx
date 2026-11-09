@@ -75,7 +75,9 @@ function GapMapPage() {
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-8">
-      <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Opportunity gap map</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
+        <a href="/pathway" className="hover:underline">Contrax Pathway</a> · Step 1 · Opportunity gap map
+      </p>
       <h1 className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl">Where the federal {trade.label.toLowerCase()} work is, and who already has it</h1>
       <p className="mt-2 max-w-3xl text-sm text-slate-600">
         Federal spending{data.fiscalYear ? ` in fiscal year ${data.fiscalYear}` : ""}, the share set aside for small businesses, the top buying agencies,

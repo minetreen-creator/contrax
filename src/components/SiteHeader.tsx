@@ -41,6 +41,8 @@ export function SiteHeader({ user: userProp }: { user?: HeaderUser }) {
         </a>
         <nav className="flex items-center gap-4 text-sm sm:gap-[26px] sm:text-[15px]">
           <a href="/radar" className={link}>Contracts</a>
+          {/* Owner 2026-11-09: the Contrax Pathway. Hidden on phones so the row still fits. */}
+          <a href="/pathway" className={`${link} hidden sm:inline`}>Pathway</a>
           {/* Admins get an extra link; drop Pricing on phones so the row still fits. */}
           <a href="/pricing" className={user?.is_admin ? `${link} hidden sm:inline` : link}>Pricing</a>
           {user?.is_admin && (

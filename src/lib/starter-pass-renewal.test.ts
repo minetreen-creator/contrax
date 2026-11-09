@@ -28,10 +28,10 @@ describe("pass reminder with what the pass found", () => {
     expect(m.text).toContain("3 of the newest:");
     expect(m.text).toContain("- Lindsey Kyla Ct Bridge Replacement · City of Portland · due Nov 18: https://www.contrax.company/bid/101?source=pass_reminder");
     expect(m.text).not.toContain("A fourth one");
-    expect(m.text).toContain(`Keep my bid emails ($19/month): ${url}`);
+    expect(m.text).toContain(`Keep my bid emails ($14/month): ${url}`);
     expect(m.text).toContain("you won't be charged");
     expect(m.html).toContain("Asphalt Repair &lt;Phase 2&gt;");
-    expect(m.html).toContain("Keep my bid emails ($19/month)");
+    expect(m.html).toContain("Keep my bid emails ($14/month)");
     expect(m.html).toContain(url);
   });
 

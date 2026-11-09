@@ -66,7 +66,7 @@ describe("owner alert for a new pass", () => {
     expect(a.push.body).toContain("buyer@biz.com");
     expect(a.push.body).toContain("November 30");
     expect(a.push.url).toBe("/admin/live");
-    expect(a.text).toContain("$19/month");
+    expect(a.text).toContain("$14/month");
   });
   test("a checkout without an email still alerts", () => {
     expect(passBoughtOwnerAlert(null, new Date("2026-11-30T15:00:00Z")).push.body).toContain("(no email on the checkout)");

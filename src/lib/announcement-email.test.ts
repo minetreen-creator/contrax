@@ -62,7 +62,7 @@ describe("starter-pass announcement", () => {
     for (const body of [e.html, e.text]) {
       expect(body).toContain("$5 one time for your first 30 days");
       expect(body).toContain("Nothing renews");
-      expect(body).toContain("$19/month");
+      expect(body).toContain("$14/month");
       expect(body).toContain("https://www.contrax.company/pricing?utm_source=email&utm_campaign=starter_pass");
       expect(body).toContain("weekly-unsubscribe?token=abc");
     }

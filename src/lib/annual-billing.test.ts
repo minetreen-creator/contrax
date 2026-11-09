@@ -73,14 +73,14 @@ beforeAll(async () => {
 });
 
 describe("yearly checkout", () => {
-  test("Starter yearly: $190 a year on the Starter product, same metadata as monthly", async () => {
+  test("Starter yearly: $140 a year on the Starter product, same metadata as monthly", async () => {
     created.length = 0;
     const r = await stripeLib.createCheckoutSession("starter", { userId: 42, interval: "year" });
     expect(r).toEqual({ success: true, url: "https://checkout.stripe.test/session" });
     const params = created[0];
     expect(params.mode).toBe("subscription");
     expect(params.line_items).toEqual([
-      { price_data: { currency: "usd", product: "prod_starter", unit_amount: 19000, recurring: { interval: "year" } }, quantity: 1 },
+      { price_data: { currency: "usd", product: "prod_starter", unit_amount: 14000, recurring: { interval: "year" } }, quantity: 1 },
     ]);
     expect(params.metadata).toEqual({ plan_tier: "starter", user_id: "42", billing_interval: "year" });
     expect(params.subscription_data.metadata).toEqual(params.metadata);
@@ -104,7 +104,8 @@ describe("yearly checkout", () => {
   });
 
   test("yearly amounts are 10 × monthly", () => {
-    expect(stripeLib.ANNUAL_UNIT_AMOUNTS).toEqual({ starter: 19000, professional: 79000, agency: 199000 });
+    // Owner 2026-11-09: Starter is $14 a month, so $140 a year.
+    expect(stripeLib.ANNUAL_UNIT_AMOUNTS).toEqual({ starter: 14000, professional: 79000, agency: 199000 });
     for (const tier of ["starter", "professional", "agency"] as const) {
       expect(stripeLib.ANNUAL_UNIT_AMOUNTS[tier]).toBe(stripeLib.MONTHLY_PRICE_USD[tier]! * 100 * 10);
     }
@@ -138,7 +139,7 @@ describe("legacy shared Agency product", () => {
     legacyProduct = true;
     try {
       for (const [tier, options, amount, name] of [
-        ["starter", {}, 1900, "Contrax Starter"],
+        ["starter", {}, 1400, "Contrax Starter"],
         ["professional", {}, 7900, "Contrax Professional"],
         ["professional", { interval: "year" }, 79000, "Contrax Professional"],
       ] as const) {
@@ -160,18 +161,20 @@ describe("legacy shared Agency product", () => {
 });
 
 describe("Starter $5 first month", () => {
-  test("monthly Starter gets the one-time coupon; the price stays $19", async () => {
+  test("monthly Starter gets the one-time coupon and is billed $14 inline on the Starter product", async () => {
     created.length = 0;
     couponsCreated.length = 0;
     couponMissing = true;
     expect((await stripeLib.createCheckoutSession("starter", { userId: 42 })).success).toBe(true);
     expect(couponsCreated).toEqual([
-      { id: "contrax_starter_first_month_5_v1", amount_off: 1400, currency: "usd", duration: "once", name: "Starter: $5 first month" },
+      { id: "contrax_starter_first_month_5_v2", amount_off: 900, currency: "usd", duration: "once", name: "Starter: $5 first month" },
     ]);
     const session = created[0];
-    expect(session.line_items).toEqual([{ price: "price_starter_monthly", quantity: 1 }]);
-    expect(session.discounts).toEqual([{ coupon: "contrax_starter_first_month_5_v1" }]);
-    expect(session.metadata.first_month_offer).toBe("contrax_starter_first_month_5_v1");
+    expect(session.line_items).toEqual([
+      { price_data: { currency: "usd", product: "prod_starter", unit_amount: 1400, recurring: { interval: "month" } }, quantity: 1 },
+    ]);
+    expect(session.discounts).toEqual([{ coupon: "contrax_starter_first_month_5_v2" }]);
+    expect(session.metadata.first_month_offer).toBe("contrax_starter_first_month_5_v2");
     expect(session.subscription_data.metadata).toEqual(session.metadata);
   });
 

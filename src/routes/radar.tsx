@@ -1,5 +1,6 @@
 import { isLearnRadarVisit } from "~/lib/learn-radar";
 import { OpenToAllBids } from "~/components/OpenToAllBids";
+import { passFacts, radarPassPitch, type PassFacts } from "~/lib/radar-pass-pitch";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createServerFn } from "@tanstack/react-start";
@@ -931,6 +932,9 @@ export const runRadarScan = createServerFn({ method: "POST" })
       paidMember: subscribed,
       // In-state matches before any cap, for the $5 offer's count.
       localMatched: strongLocalTotal,
+      // The $5 offer names the searcher's own results (owner 2026-11-09): counted on the full
+      // list before the free preview is cut; counts only, no locked bid is revealed.
+      passFacts: passFacts(matches),
       matches: visibleMatches,
       // Owner 2026-10-15: admin's "Matches found" showed the free 3, not the real count.
       // Owner 2026-11-08: and not the 25-card cap either.
@@ -1241,7 +1245,7 @@ export interface RadarSections {
 type ScanState =
   | { status: "idle" }
   | { status: "loading" }
-  | { status: "done"; matches: RadarMatch[]; certLabel: string; sections: RadarSections; intelTicket: string | null; freeSearchKept?: boolean; totalMatched?: number; emailUnlocked?: boolean; paidMember?: boolean; localMatched?: number }
+  | { status: "done"; matches: RadarMatch[]; certLabel: string; sections: RadarSections; intelTicket: string | null; freeSearchKept?: boolean; totalMatched?: number; emailUnlocked?: boolean; paidMember?: boolean; localMatched?: number; passFacts?: PassFacts }
   | { status: "paid_required"; limit?: number; signupRequired?: boolean }
   | { status: "error" };
 /** Resolved payload of a successful runRadarScan call (handler return shape).
@@ -2307,28 +2311,36 @@ function RadarLanding() {
                 ))}
                 {/* Owner 2026-11-02 (design critique): the visitor's moment of most
                     interest is right after the free bid, and no price was shown. */}
-                {locked > 0 && (
+                {/* Owner 2026-11-09 (about 3% of searchers clicked buy): the offer names their own
+                    results and stays after an email unlock, when they have seen the whole list. */}
+                {(locked > 0 || emailUnlocked) && (() => {
+                  const pitch = radarPassPitch({
+                    total: totalMatches,
+                    waiting,
+                    unlocked: emailUnlocked,
+                    trade: tradeLabel(track).replace(/["“”]/g, ""),
+                    stateName: state ? (STATE_NAMES[state] ?? state) : null,
+                    facts: scan.status === "done" ? (scan.passFacts ?? null) : null,
+                  });
+                  return (
                   <a
                     href={`/signup?plan=starter&next=${encodeURIComponent("/upgrade?plan=starter")}`}
                     onClick={(e) => {
                       // Pay first, account after (CEO 2026-10-22): straight to Stripe.
                       e.preventDefault();
-                      trackEvent("radar_anon_pass_offer_click", `${trade}|${state}`);
+                      trackEvent("radar_anon_pass_offer_click", `${trade}|${state}|${emailUnlocked ? "unlocked" : "locked"}`);
                       void redirectToCheckout("starter");
                     }}
                     className="block rounded-xl border border-amber-400/60 bg-amber-500/15 px-4 py-4 text-amber-50 hover:bg-amber-500/25"
                   >
-                    <span className="block text-base font-bold">
-                      {waiting} more {tradeLabel(track).replace(/["“”]/g, "")} bids{state ? ` in ${STATE_NAMES[state] ?? state}` : ""} are waiting.
-                    </span>
-                    <span className="mt-1 block text-sm text-amber-100">
-                      Open every official notice, and get each new bid at 6 AM, for 30 days.
-                    </span>
+                    <span className="block text-base font-bold">{pitch.headline}</span>
+                    <span className="mt-1 block text-sm text-amber-100">{pitch.detail}</span>
                     <span className="mt-3 inline-block rounded-lg bg-amber-400 px-4 py-2.5 text-sm font-bold text-slate-950">
                       ${STARTER_FIRST_MONTH_PRICE} for 30 days, no auto-renew →
                     </span>
                   </a>
-                )}
+                  );
+                })()}
                 {locked > 0 && <LockedMatchPreview locked={waiting} />}
                 {/* Email unlock (owner 2026-10-23): of 28 visitors sent from
                     here to the full signup page in 30 days, 2 signed up. An

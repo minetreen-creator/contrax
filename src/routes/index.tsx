@@ -23,6 +23,7 @@ import {
   type ContractMapAggregate,
 } from "~/lib/contract-map";
 import { getEverydaySample } from "~/lib/sample-bids";
+import { MAX_PROOF, maxProofStillCurrent } from "~/lib/max-proof";
 import { featuredMegaprojects, MEGA_SECTORS, megaMoney, megaprojectHref, megaTotals, type Megaproject } from "~/lib/megaprojects";
 
 // ── Server Functions ──────────────────────────────────────────────────────────
@@ -129,7 +130,17 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
     getContractMapAggregate(),
     getMegaprojectsHighlight(),
   ]);
-  return { businessName, bidStats, contractMap, megaprojects };
+  // Date accuracy (owner 2026-11-09): the Max example shows only while its bid's due date in the
+  // database still matches the example. Hidden on a confirmed mismatch; shown if the check fails.
+  let maxProofCurrent = true;
+  try {
+    const { sql } = await import("~/db");
+    const rows = (await sql()`SELECT due_date FROM bids WHERE id = ${MAX_PROOF.bidId}`) as { due_date: string | null }[];
+    if (rows.length) maxProofCurrent = maxProofStillCurrent(rows[0].due_date);
+  } catch (e) {
+    console.warn("[home] Max example date check failed (shown):", (e as Error).message);
+  }
+  return { businessName, bidStats, contractMap, megaprojects, maxProofCurrent };
 });
 
 // ── Route ─────────────────────────────────────────────────────────────────────
@@ -179,7 +190,7 @@ const SERIF = "[font-family:Charter,'Iowan_Old_Style',Georgia,serif]";
 
 function Home() {
 
-  const { contractMap, megaprojects } = Route.useLoaderData();
+  const { contractMap, megaprojects, maxProofCurrent } = Route.useLoaderData();
   const { sample } = Route.useLoaderData();
 
   const jsonLd = {
@@ -210,7 +221,7 @@ function Home() {
           features"): the owner's line and the four steps, in place of "How Contrax works". */}
       <HomePathway />
       {/* Before/after proof (owner 2026-11-08): a real bid's notice next to Max's real answer. */}
-      <HomeMaxProof />
+      {maxProofCurrent !== false ? <HomeMaxProof /> : null}
       {/* The Contrax app (owner 2026-11-07: "Today is launch day"). */}
       <HomeAppStrip />
       {/* Megaprojects (owner 2026-11-07): the big plants and highway jobs hiring local subs. */}

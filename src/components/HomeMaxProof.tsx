@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MAX_PROOF, maxProofBidOpen, maxProofBullets } from "~/lib/max-proof";
+import { MAX_PROOF, maxProofBidOpen, maxProofBullets, maxProofDueLabel } from "~/lib/max-proof";
 import { trackEvent } from "~/lib/track";
 
 /**
@@ -25,6 +25,10 @@ export function HomeMaxProof() {
         <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
           <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Before: the notice</p>
           <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">{MAX_PROOF.title}</p>
+          {/* Owner 2026-11-09: the notice's own due date and source, so Max's date can be checked. */}
+          <p className="mt-1 text-xs font-semibold text-slate-700 dark:text-slate-300">
+            {MAX_PROOF.agency} · Due {maxProofDueLabel(true)} (from the notice)
+          </p>
           <p className="mt-3 max-h-64 overflow-hidden text-[13px] leading-relaxed text-slate-600 [mask-image:linear-gradient(to_bottom,black_70%,transparent)] dark:text-slate-400">
             {MAX_PROOF.notice}
           </p>
@@ -61,7 +65,10 @@ export function HomeMaxProof() {
               </li>
             ))}
           </ul>
-          <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">Max&apos;s answer word for word, asked on {asked}.</p>
+          <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+            Max&apos;s answer word for word, asked on {asked}. Source: the {MAX_PROOF.agency} notice; the due date Max gives matches
+            the notice ({maxProofDueLabel(true)}).
+          </p>
           <div className="mt-4 flex flex-wrap gap-3">
             {open ? (
               <a

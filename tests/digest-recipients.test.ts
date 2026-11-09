@@ -128,8 +128,12 @@ describe("emails go out once a day, in the morning", () => {
   test("the morning digest uses the paid-recipient rule, personal matching, and logs only real sends", () => {
     const job = read("src/jobs/send-bid-digest.ts");
     expect(job).toContain("if (!isDigestEligible(u)) continue;");
-    expect(job).toContain("buildDigestMatcher(u)");
-    expect(job).toContain("digestWindowStart(");
+    // Matching and the window moved to shared modules (owner 2026-11-09), used by the email
+    // job and Auto-Pilot's Vercel scoring alike.
+    expect(job).toContain("memberDigestBids(u, newBids)");
+    expect(read("src/lib/digest-member.ts")).toContain("buildDigestMatcher(member)");
+    expect(job).toContain("loadDigestBids(now)");
+    expect(read("src/lib/digest-inputs.server.ts")).toContain("digestWindowStart(");
     expect(job).toMatch(/if \(accepted > 0\) \{\s*await sql\(\)`\s*INSERT INTO bid_digest_log/);
   });
 

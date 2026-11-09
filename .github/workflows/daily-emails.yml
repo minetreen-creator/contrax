@@ -25,7 +25,7 @@ name: Daily Emails
 # every morning with gated=true, so it goes through the same once-a-day gate.
 #
 # Required secrets: DATABASE_URL, RESEND_API_KEY (emails are skipped with a
-# warning when the key is absent).
+# warning when the key is absent). Optional: OPENAI_API_KEY for Auto-Pilot.
 
 on:
   schedule:
@@ -53,6 +53,8 @@ jobs:
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      # Auto-Pilot picks in the bid digest (owner 2026-11-09); without it the digest skips them.
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

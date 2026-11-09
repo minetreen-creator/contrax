@@ -422,6 +422,9 @@ function MapPage() {
             Explore open federal, state and local contract opportunities across the country. Hover a state for its
             totals — click one to filter the live database and see exactly what's being bought in that state.
           </p>
+          <a href="/gap-map" className="mt-3 inline-block text-sm font-semibold text-emerald-400 hover:text-emerald-300">
+            New: the gap map shows where federal spending is big and few companies hold the work →
+          </a>
         </div>
 
         {/* Totals strip */}

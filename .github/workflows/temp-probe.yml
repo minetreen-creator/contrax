@@ -1,0 +1,29 @@
+name: Temp probe (Tampa city + Hillsborough numbers, read-only, totals only)
+on:
+  push:
+    branches: [claude/vibrant-cray-177q1d]
+    paths: [".github/probe/**"]
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      SAM_API_KEY: ${{ secrets.SAM_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - run: bun install --frozen-lockfile
+      - name: Open bids (our DB)
+        run: bun .github/probe/tampa_bids.ts
+      - name: Federal awards (USAspending)
+        run: python3 .github/probe/tampa_usa.py city; python3 .github/probe/tampa_usa.py county
+      - name: SAM.gov registrants (public extract, City of Tampa)
+        run: |
+          curl -sL -m 900 -A "ContraxBot/1.0 (+https://www.contrax.company)" -o /tmp/e.zip "https://api.sam.gov/data-services/v1/extracts?api_key=${SAM_API_KEY}&fileType=ENTITY&sensitivity=PUBLIC&frequency=MONTHLY&charset=UTF8"
+          mkdir -p /tmp/x && cd /tmp/x && unzip -o -q /tmp/e.zip && for z in *.ZIP *.zip; do [ -f "$z" ] && unzip -o -q "$z"; done
+          python3 $GITHUB_WORKSPACE/.github/probe/tampa_sam.py "$(ls /tmp/x/*.dat | head -1)"

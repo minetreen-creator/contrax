@@ -10,6 +10,7 @@ import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { buildDigestMatcher, type DigestProfile } from "~/lib/digest-match";
 import { splitDigestBids } from "~/lib/digest-open-to-all";
 import { profileList, strongPicks, type AutopilotProfile } from "~/lib/autopilot";
+import { autopilotBidsOf } from "~/lib/digest-member";
 import { autopilotEnabled, autopilotForMember, newAutopilotBudget } from "~/lib/autopilot.server";
 
 if (!autopilotEnabled()) {
@@ -66,7 +67,8 @@ for (const m of members) {
   };
   const all = [...main, ...openToAll];
   console.log(`\nMember ${n} (${matcher.label}; certifications: ${profile.certifications?.join(", ") || "none"}): ${all.length} matching bid(s)`);
-  const verdicts = await autopilotForMember(Number(m.user_id), profile, all, budget, { store: false });
+  // Same path as the morning job: overseas work is not read.
+  const verdicts = await autopilotForMember(Number(m.user_id), profile, autopilotBidsOf(main, openToAll), budget, { store: false });
   const title = new Map(all.map((b) => [b.bid_id, b]));
   for (const v of verdicts) {
     const b = title.get(v.bid_id)!;

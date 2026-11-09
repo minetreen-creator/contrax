@@ -21,6 +21,7 @@ import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { sendPersonalBidDigests, type NewBidSummary } from "~/lib/email";
 import { digestWindowStart, isDigestEligible, type DigestUserRow } from "~/lib/digest-recipients";
 import { buildDigestMatcher, type DigestBidFields, type DigestProfile } from "~/lib/digest-match";
+import { splitDigestBids } from "~/lib/digest-open-to-all";
 
 export async function ensureBidDigestLog(): Promise<void> {
   await sql()`
@@ -97,15 +98,22 @@ export async function sendMorningBidDigest(): Promise<{ bids: number; recipients
     if (seen.has(to.toLowerCase())) continue;
     seen.add(to.toLowerCase());
     const matcher = buildDigestMatcher(u);
-    const mine = matcher.personal ? newBids.filter((b) => matcher.matches(b.match)) : newBids;
-    if (mine.length === 0) {
+    const matched = matcher.personal ? newBids.filter((b) => matcher.matches(b.match)) : newBids;
+    // Federal bids with no set-aside go in their own block; market research and overseas work
+    // are left out (owner 2026-11-09, src/lib/digest-open-to-all.ts).
+    const { main: mine, openToAll } = splitDigestBids(matched.map((b) => ({ ...b, location: b.location })));
+    if (mine.length === 0 && openToAll.length === 0) {
       noMatches++;
       continue;
     }
+    const strip = (list: typeof mine) => list.map(({ match: _match, ...b }) => b);
     emails.push({
       to,
-      bids: mine.map(({ match: _match, ...b }) => b),
-      options: matcher.personal ? { matchLabel: matcher.label } : { setupHint: true },
+      bids: strip(mine),
+      options: {
+        ...(matcher.personal ? { matchLabel: matcher.label } : { setupHint: true }),
+        ...(openToAll.length ? { openToAll: strip(openToAll) } : {}),
+      },
     });
   }
   if (emails.length === 0) {

@@ -66,7 +66,9 @@ export function buildGapMap(inputs: GapStateInput[]): GapState[] {
   const shares = rows.map((r) => Math.min(1, Math.max(0, r.setAsideSpend / r.spend)));
   const endings = rows.map((r) => r.ending12);
   const spendMid = median(spends);
-  const perHolderMid = median(perHolder);
+  // "Few companies" is judged among the big-spending states only: against every state, tiny
+  // markets pulled the bar down and 23 of 26 big states came out as openings (2026-11-09).
+  const perHolderMid = median(perHolder.filter((_, i) => spends[i] >= spendMid));
   return rows
     .map((r, i) => {
       const spendPerHolder = perHolder[i];

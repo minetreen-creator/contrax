@@ -115,6 +115,11 @@ function RecompetesPage() {
           When a federal contract ends, the agency usually buys the work again, and the new solicitation often appears only weeks before it is due.
           This list shows contracts in your trade whose end date is coming up, who holds them now and what they are worth, so you can prepare early.
         </p>
+        <p className="mt-2 text-sm">
+          <a href="/gap-map" className="font-semibold text-emerald-700 hover:text-emerald-800">
+            See the gap map: which states have big spending and few companies holding the work →
+          </a>
+        </p>
 
         <form method="get" action="/recompetes" className="mt-6 grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 sm:grid-cols-4">
           <label className="text-sm font-medium text-slate-700">

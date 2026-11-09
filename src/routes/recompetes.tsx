@@ -118,6 +118,9 @@ function RecompetesPage() {
         <p className="mt-2 text-sm">
           <a href="/gap-map" className="font-semibold text-emerald-700 hover:text-emerald-800">
             See the gap map: which states have big spending and few companies holding the work →
+          </a>{" "}
+          <a href="/prime-finder" className="font-semibold text-blue-700 hover:text-blue-800">
+            Find primes to subcontract with →
           </a>
         </p>
 

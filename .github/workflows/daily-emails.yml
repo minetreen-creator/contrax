@@ -54,7 +54,9 @@ jobs:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
       # Auto-Pilot picks in the bid digest (owner 2026-11-09); without it the digest skips them.
+      # The owner saved the secret as OPEN_AI_KEY; either name works (autopilot.server.ts).
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPEN_AI_KEY: ${{ secrets.OPEN_AI_KEY }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

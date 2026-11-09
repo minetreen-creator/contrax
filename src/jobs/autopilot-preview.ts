@@ -1,6 +1,6 @@
 /**
  * Auto-Pilot preview (`bun run autopilot-preview`), read-only (owner 2026-11-09): for the admin
- * account(s) with a business profile, the AI reads up to AUTOPILOT_DAILY_CAP open bids added in
+ * account(s) with a business profile (or, when there are none, three sample businesses), the AI reads up to AUTOPILOT_DAILY_CAP open bids added in
  * the past 3 days that match the profile, and the verdicts are printed. Nothing is stored and no
  * email is sent. Prints no email addresses or names. Run from the Actions tab.
  */
@@ -31,8 +31,18 @@ const members = (await sql()`
   WHERE u.is_admin
 `) as (DigestProfile & Record<string, any>)[];
 console.log(`${bids.length} open bid(s) added in the past 3 days; ${members.length} admin profile(s).`);
+// No admin profile: three made-up sample businesses, so the AI's answers can be judged without
+// reading any customer's profile.
+if (members.length === 0) {
+  console.log("Using three sample businesses (not real customers).");
+  members.push(
+    { user_id: 0, business_name: "Sample paving contractor", industry: "Construction", service_categories: ["paving", "asphalt", "concrete"], locations: ["VA"], certifications: ["sdvosb"], years_in_business: 6, employee_count: 12, typical_contract_value: "$50K-$500K", past_performance_summary: "Parking lot and road resurfacing for two counties and a school district." },
+    { user_id: 0, business_name: "Sample cleaning company", industry: "Janitorial", service_categories: ["janitorial", "custodial", "floor care"], locations: ["NC"], certifications: ["wosb"], years_in_business: 3, employee_count: 8, typical_contract_value: "$20K-$150K", past_performance_summary: "Nightly office cleaning for a hospital clinic and a bank branch." },
+    { user_id: 0, business_name: "Sample landscaping firm", industry: "Landscaping", service_categories: ["landscaping", "mowing", "grounds maintenance"], locations: ["TX"], certifications: [], years_in_business: 10, employee_count: 25, typical_contract_value: "$25K-$300K", past_performance_summary: "Mowing and grounds care for a city parks department." },
+  );
+}
 
-const budget = newAutopilotBudget(40);
+const budget = newAutopilotBudget(36);
 let n = 0;
 for (const m of members) {
   n++;

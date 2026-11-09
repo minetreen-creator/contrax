@@ -2,8 +2,8 @@
  * Auto-Pilot Radar, server side (owner 2026-11-09): scores a member's new matching bids with the
  * AI and caches each answer, so a bid is read once per member (and again only if their profile
  * changes). Eligibility is never cached: it is worked out from today's certifications on every
- * read (src/lib/autopilot.ts). Without OPENAI_API_KEY it does nothing and the email goes out as
- * before.
+ * read (src/lib/autopilot.ts). Without OPENAI_API_KEY it only reads saved answers (the scoring
+ * runs on Vercel before 6 AM, src/lib/autopilot-prescore.server.ts).
  */
 import { sql } from "~/db";
 import { callAI } from "~/lib/ai";
@@ -21,7 +21,16 @@ import {
 /** Most AI calls in one morning across every member (cost cap). */
 export const AUTOPILOT_RUN_CAP = 600;
 
+/**
+ * The owner saved the GitHub Actions secret as OPEN_AI_KEY (2026-11-09); the AI helper reads
+ * OPENAI_API_KEY, so the jobs copy it across when only the other name is set.
+ */
+export function useOpenAiKeyAlias(env: Record<string, string | undefined> = process.env): void {
+  if (!env.OPENAI_API_KEY && env.OPEN_AI_KEY) env.OPENAI_API_KEY = env.OPEN_AI_KEY;
+}
+
 export function autopilotEnabled(): boolean {
+  useOpenAiKeyAlias();
   return Boolean(process.env.OPENAI_API_KEY);
 }
 
@@ -60,9 +69,17 @@ export async function autopilotForMember(
   profile: AutopilotProfile,
   bids: AutopilotBid[],
   budget: AutopilotBudget,
-  opts: { store?: boolean; ai?: (messages: { role: string; content: string }[]) => Promise<string>; db?: typeof sql } = {},
+  opts: {
+    store?: boolean;
+    ai?: (messages: { role: string; content: string }[]) => Promise<string>;
+    db?: typeof sql;
+    /** Stop starting AI calls after this time (ms since epoch). */
+    deadline?: number;
+  } = {},
 ): Promise<AutopilotVerdict[]> {
-  if ((!opts.ai && !autopilotEnabled()) || bids.length === 0) return [];
+  if (bids.length === 0) return [];
+  // Without a key (and no injected AI), saved answers are still used; nothing new is scored.
+  const canScore = Boolean(opts.ai) || autopilotEnabled();
   const db = opts.db ?? sql;
   const ai = opts.ai ?? ((m) => callAI(m, { jsonMode: true, temperature: 0.2, max_tokens: 300 }));
   const store = opts.store !== false;
@@ -94,7 +111,8 @@ export async function autopilotForMember(
   }
 
   const scoreOne = async (bid: AutopilotBid) => {
-    if (budget.left <= 0) return;
+    if (!canScore || budget.left <= 0) return;
+    if (opts.deadline && Date.now() > opts.deadline) return;
     budget.left--;
     budget.calls++;
     const eligibility = eligibilityFor(bid.set_aside, certs);

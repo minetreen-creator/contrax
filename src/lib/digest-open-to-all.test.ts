@@ -57,6 +57,8 @@ describe("6 AM email: open to all businesses", () => {
 
   test("the morning job uses the split", () => {
     const job = readFileSync(new URL("../jobs/send-bid-digest.ts", import.meta.url), "utf8");
-    expect(job).toContain("splitDigestBids(");
+    expect(job).toContain("memberDigestBids(u, newBids)");
+    const member = readFileSync(new URL("./digest-member.ts", import.meta.url), "utf8");
+    expect(member).toContain("splitDigestBids(matched)");
   });
 });

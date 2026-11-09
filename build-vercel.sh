@@ -105,7 +105,8 @@ cat > .vercel/output/config.json <<'JSON'
   { "path": "/api/cron/sync-bids?slot=weekend", "schedule": "0 15 * * 0,6" },
   { "path": "/api/cron/sam-csv", "schedule": "17 5 * * *" },
   { "path": "/api/cron/checkout-followup", "schedule": "23 * * * *" },
-  { "path": "/api/cron/starter-pass", "schedule": "41 14 * * *" }
+  { "path": "/api/cron/starter-pass", "schedule": "41 14 * * *" },
+  { "path": "/api/cron/autopilot", "schedule": "*/10 8-10 * * *" }
 ] }
 JSON
 

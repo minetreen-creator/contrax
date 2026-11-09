@@ -648,6 +648,12 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
       // at Recreation Centers, Pools, and Playgrounds" was open): guard work named by the place
       // guarded, and escort/patrol/event wording. Never bare "security services" (IT security).
       "security services at",
+      // Owner 2026-11-09 (Georgia security guard read 0 in-state): Athens-Clarke "On-Site Security
+      // Services Task Order Contract", City of Atlanta "On Call P.O.S.T Certified Security Services".
+      "on-site security services",
+      "onsite security services",
+      "on site security services",
+      "certified security services",
       "security escort",
       "security escorts",
       "security patrol",
@@ -1219,6 +1225,13 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
       "generator inspection", "emergency generator", "standby generator", "diesel generator",
       "transformer replacement", "switchgear", "street lighting", "lighting retrofit", "lighting upgrade",
       "lighting improvements", "led lighting", "traffic signal", "signalization",
+      // Owner 2026-11-09 (North Carolina electrical read 0 in-state; Texas missed about a third):
+      // "Temporary Generator Connections", "Interior Lighting Installation Upgrades", "Ag and Event
+      // Center Lighting Project", "Generators Preventative Maintenance and Repairs Services", "West
+      // Airfield Lighting Vault", TxDOT "Safety Lighting at Intersection", "Lighting Maintenance".
+      "generator connection", "generator connections", "generator preventative maintenance",
+      "generators preventative maintenance", "generator preventive maintenance", "airfield lighting",
+      "safety lighting", "roadway lighting", "lighting installation", "lighting maintenance", "lighting project",
     ],
     naics: ["238210"],
     exactOnly: true,

@@ -1,41 +1,26 @@
 name: Daily Emails
 
-# Owner 2026-10-01: "people shouldn't get emails every 4 hours, just once a day
-# in the morning". Every user-facing email that used to follow each 4-hourly
-# bid sync now goes out once a day from here:
-#   - the bid digest (paying users, trials, Bid Scout, admins): every open bid
-#     added since the previous digest (src/jobs/send-bid-digest.ts);
-#   - the free Basic plan's weekly bid email: Mondays only, the past week's
-#     new bids (src/jobs/send-weekly-digest.ts; it skips the other days);
-#   - free Radar match alerts: at most one per lead per week
-#     (src/lib/radar-lead-alerts.ts, LEAD_ALERT_INTERVAL_DAYS);
-#   - Max deadline reminders: bids a visitor asked Max to remind them about,
-#     3 days before they close (src/lib/max-reminders.server.ts);
-#   - "Did I win?" award results: SAM.gov award notices for saved federal bids
-#     past their deadline, one email per member (src/jobs/check-awards.ts).
+# BACKUP trigger (owner 2026-11-09: "github isn't reliable" / "move the email to vercel").
+# The morning emails are sent from Vercel: Vercel Cron calls /api/cron/daily-emails every 10
+# minutes from 10:00 to 15:50 UTC. This workflow calls the SAME runner
+# (src/lib/daily-emails.server.ts) hourly from 10:07 to 23:07 UTC, in case Vercel misses a
+# morning. Before each job runs it claims that job for today's New York date in the
+# daily_email_runs table, so whichever trigger comes first sends and the other skips: nobody gets
+# two emails. Nothing sends before 6 AM New York time.
 #
-# Sent at 6 AM Eastern (owner 2026-10-01). GitHub starts scheduled runs late,
-# often by hours, so a fixed "6 o'clock hour only" check skipped every run from
-# 2026-10-02 to 10-12 and no email went out (owner 2026-10-12). The workflow now
-# runs hourly from 10:07 to 23:07 UTC (6 or 7 AM Eastern onward, both EDT and
-# EST), and .github/scripts/daily-emails-gate.sh lets the FIRST run at or after
-# 6 AM New York time send; later runs that day see it already sent and skip.
-# A manual "Run workflow" always sends, unless started with gated=true: Vercel
-# Cron (owner 2026-10-12, /api/cron/daily-emails) starts this workflow on time
-# every morning with gated=true, so it goes through the same once-a-day gate.
+# The jobs (once a day each, in this order):
+#   - bid-digest: the paying members' morning bid email, with Auto-Pilot picks
+#     (src/jobs/send-bid-digest.ts);
+#   - trial-emails, weekly-digest (Mondays), radar-alerts (weekly per lead),
+#     max-reminders, award-check ("Did I win?").
 #
-# Required secrets: DATABASE_URL, RESEND_API_KEY (emails are skipped with a
-# warning when the key is absent). Optional: OPENAI_API_KEY for Auto-Pilot.
+# Secrets: DATABASE_URL, RESEND_API_KEY; optional OPENAI_API_KEY or OPEN_AI_KEY (Auto-Pilot
+# top-ups; its scoring runs on Vercel before 6 AM).
 
 on:
   schedule:
     - cron: "7 10-23 * * *"
   workflow_dispatch:
-    inputs:
-      gated:
-        description: "Apply the once-a-day 6 AM gate (set by Vercel Cron)"
-        type: boolean
-        default: false
 
 concurrency:
   group: daily-emails
@@ -43,7 +28,6 @@ concurrency:
 
 permissions:
   contents: read
-  actions: read
 
 jobs:
   send:
@@ -53,7 +37,6 @@ jobs:
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-      # Auto-Pilot picks in the bid digest (owner 2026-11-09); without it the digest skips them.
       # The owner saved the secret as OPEN_AI_KEY; either name works (autopilot.server.ts).
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       OPEN_AI_KEY: ${{ secrets.OPEN_AI_KEY }}
@@ -61,44 +44,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Send once a day, at or after 6 AM Eastern
-        id: gate
-        env:
-          GH_TOKEN: ${{ github.token }}
-          EVENT_NAME: ${{ github.event_name }}
-          GATED: ${{ inputs.gated && 'true' || 'false' }}
-        run: bash .github/scripts/daily-emails-gate.sh >> "$GITHUB_OUTPUT"
-
       - name: Set up Bun
-        if: steps.gate.outputs.send == 'true'
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.2
 
       - name: Install dependencies
-        if: steps.gate.outputs.send == 'true'
         run: bun install --frozen-lockfile
 
-      - name: Send morning bid digest
-        if: steps.gate.outputs.send == 'true'
-        run: bun run bid-digest
-
-      - name: Send trial-ending emails (2 days before, and when it ends)
-        if: always() && steps.gate.outputs.send == 'true'
-        run: bun run trial-emails
-
-      - name: Send weekly bid email to Basic users (Mondays)
-        if: always() && steps.gate.outputs.send == 'true'
-        run: bun run weekly-digest
-
-      - name: Send Radar match alerts (weekly per lead)
-        if: always() && steps.gate.outputs.send == 'true'
-        run: bun run radar-alerts
-
-      - name: Send Max deadline reminders
-        if: always() && steps.gate.outputs.send == 'true'
-        run: bun run max-reminders
-
-      - name: Check awards on saved bids ("Did I win?")
-        if: always() && steps.gate.outputs.send == 'true'
-        run: bun run award-check
+      - name: Send the morning emails (skips any already sent today)
+        run: bun run daily-emails

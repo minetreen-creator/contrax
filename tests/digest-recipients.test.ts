@@ -111,18 +111,19 @@ describe("emails go out once a day, in the morning", () => {
     expect(sync).not.toContain("run: bun run radar-alerts");
   });
 
-  test("the daily workflow sends the digest and the Radar alerts each morning", () => {
+  test("the morning runner sends the digest and the Radar alerts each morning, once", () => {
+    // Owner 2026-11-09: sent from Vercel (every 10 minutes from 10:00 UTC); GitHub runs the
+    // same runner hourly as a backup. Each job is claimed per New York date, so it runs once,
+    // and nothing sends before 6 AM New York time.
     const daily = read(".github/workflows/daily-emails.yml");
-    // Runs hourly from 10:07 UTC (owner 2026-10-12); the gate lets the first
-    // run at or after 6 AM New York time send, once a day.
     expect(daily).toContain('cron: "7 10-23 * * *"');
-    expect(daily).toContain("run: bash .github/scripts/daily-emails-gate.sh");
-    const gate = read(".github/scripts/daily-emails-gate.sh");
-    expect(gate).toContain("TZ=America/New_York date +%-H");
-    expect(gate).toContain('if [ "${hour}" -lt 6 ]; then');
-    expect(daily).toContain("run: bun run bid-digest");
-    expect(daily).toContain("run: bun run radar-alerts");
-    expect(read("package.json")).toContain('"bid-digest": "bun run src/jobs/send-bid-digest.ts"');
+    expect(daily).toContain("run: bun run daily-emails");
+    const runner = read("src/lib/daily-emails.server.ts");
+    expect(runner).toContain("ON CONFLICT (day, job) DO NOTHING");
+    expect(runner).toContain('case "bid-digest":');
+    expect(runner).toContain('case "radar-alerts":');
+    expect(read("src/lib/daily-emails.ts")).toContain("export const DAILY_EMAIL_HOUR = 6;");
+    expect(read("package.json")).toContain('"daily-emails": "bun run src/jobs/daily-emails.ts"');
   });
 
   test("the morning digest uses the paid-recipient rule, personal matching, and logs only real sends", () => {

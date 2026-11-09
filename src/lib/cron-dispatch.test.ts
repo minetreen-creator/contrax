@@ -55,8 +55,7 @@ describe("wiring", () => {
     const json = sh.slice(sh.indexOf("cat > .vercel/output/config.json <<'JSON'") + "cat > .vercel/output/config.json <<'JSON'".length);
     const cfg = JSON.parse(json.slice(0, json.indexOf("\nJSON")));
     expect(cfg.crons).toEqual([
-      { path: "/api/cron/daily-emails?slot=10", schedule: "0 10 * * *" },
-      { path: "/api/cron/daily-emails?slot=11", schedule: "0 11 * * *" },
+      { path: "/api/cron/daily-emails", schedule: "*/10 10-15 * * *" },
       { path: "/api/cron/sync-bids?slot=weekday", schedule: "0 */4 * * 1-5" },
       { path: "/api/cron/sync-bids?slot=weekend", schedule: "0 15 * * 0,6" },
       { path: "/api/cron/sam-csv", schedule: "17 5 * * *" },
@@ -65,10 +64,11 @@ describe("wiring", () => {
       { path: "/api/cron/autopilot", schedule: "*/10 8-10 * * *" },
     ]);
   });
-  test("the workflow passes the gated input to the gate", () => {
+  test("the GitHub workflow is a backup that runs the same once-a-day runner", () => {
+    // Owner 2026-11-09: the emails are sent from Vercel; GitHub calls the same claimed runner.
     const wf = readFileSync(".github/workflows/daily-emails.yml", "utf8");
-    expect(wf).toContain("gated:");
-    expect(wf).toContain("GATED: ${{ inputs.gated && 'true' || 'false' }}");
+    expect(wf).toContain("run: bun run daily-emails");
+    expect(wf).not.toContain("daily-emails-gate.sh");
   });
   test("Sync Bids is gated and the sync job waits on the gate", () => {
     const wf = readFileSync(".github/workflows/sync-bids.yml", "utf8");

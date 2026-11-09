@@ -1,40 +1,26 @@
 import { createFileRoute } from "@tanstack/react-router";
-import {
-  DAILY_EMAILS_REPO,
-  DAILY_EMAILS_WORKFLOW,
-  dispatchWorkflow,
-  isAuthorizedCron,
-} from "~/lib/cron-dispatch";
+import { isAuthorizedCron } from "~/lib/cron-dispatch";
 
 /**
- * GET /api/cron/daily-emails — called by Vercel Cron (see build-vercel.sh
- * `crons`). Starts the Daily Emails workflow on GitHub with `gated=true`, so the
- * workflow's once-a-day, at-or-after-6-AM-Eastern gate still decides whether to
- * send. Auth: `Authorization: Bearer $CRON_SECRET` only (fail-closed).
- * Needs GH_DISPATCH_TOKEN: a fine-grained token limited to this repo with
- * Actions read & write.
+ * GET /api/cron/daily-emails — Vercel Cron (build-vercel.sh `crons`), every 10 minutes from
+ * 10:00 to 15:50 UTC. Sends the morning emails here on Vercel (owner 2026-11-09: "move the email
+ * to vercel"); the first call at or after 6 AM New York time sends, later calls find each job
+ * already claimed and skip (src/lib/daily-emails.server.ts). The GitHub workflow is a backup that
+ * uses the same claims. Auth: `Authorization: Bearer $CRON_SECRET` only (fail-closed).
  */
 async function handler({ request }: { request: Request }) {
   if (!isAuthorizedCron(request, process.env.CRON_SECRET)) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const token = process.env.GH_DISPATCH_TOKEN;
-  if (!token) {
-    console.error("[cron/daily-emails] GH_DISPATCH_TOKEN is not set — cannot start the workflow");
-    return Response.json({ error: "GH_DISPATCH_TOKEN not configured" }, { status: 500 });
+  try {
+    const { runDailyEmails } = await import("~/lib/daily-emails.server");
+    const r = await runDailyEmails("vercel");
+    console.log(`[cron/daily-emails] ${JSON.stringify({ day: r.day, due: r.due, ran: r.ran.map((j) => `${j.job}:${j.status}`), skipped: r.skipped })}`);
+    return Response.json(r, { status: r.ran.some((j) => j.status === "failed") ? 500 : 200 });
+  } catch (err) {
+    console.error("[cron/daily-emails] failed:", err);
+    return Response.json({ error: "failed" }, { status: 500 });
   }
-  const r = await dispatchWorkflow({
-    token,
-    repo: DAILY_EMAILS_REPO,
-    workflow: DAILY_EMAILS_WORKFLOW,
-    inputs: { gated: "true" },
-  });
-  if (!r.ok) {
-    console.error(`[cron/daily-emails] dispatch failed (${r.status}): ${r.detail}`);
-    return Response.json({ error: "dispatch failed", status: r.status }, { status: 502 });
-  }
-  console.log("[cron/daily-emails] Daily Emails workflow started (gated)");
-  return Response.json({ started: true });
 }
 
 export const Route = createFileRoute("/api/cron/daily-emails")({

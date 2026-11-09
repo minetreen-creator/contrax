@@ -14,6 +14,7 @@
     "radar-alerts": "bun run src/jobs/send-radar-lead-alerts.ts",
     "max-reminders": "bun run src/jobs/send-max-reminders.ts",
     "bid-digest": "bun run src/jobs/send-bid-digest.ts",
+    "daily-emails": "bun run src/jobs/daily-emails.ts",
     "autopilot-preview": "bun run src/jobs/autopilot-preview.ts",
     "weekly-digest": "bun run src/jobs/send-weekly-digest.ts",
     "trial-emails": "bun run src/jobs/send-trial-emails.ts",

@@ -1,0 +1,14 @@
+name: Temp probe (read public data terms pages)
+on:
+  push:
+    branches: [claude/vibrant-cray-177q1d]
+    paths: [".github/probe/**"]
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash .github/probe/terms.sh

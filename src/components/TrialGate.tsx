@@ -59,7 +59,7 @@ export function PlanUpgradeScreen({
           Upgrade your plan →
         </a>
         <p className="mt-4 text-xs text-slate-400">
-          Starter is $19/mo · Professional is $79/mo · Agency is $199/mo
+          Starter is $14/mo · Professional is $79/mo · Agency is $199/mo
         </p>
       </div>
     </div>
@@ -136,7 +136,7 @@ export function TrialExpiredScreen() {
           View plans →
         </a>
         <p className="mt-4 text-xs text-slate-400">
-          Plans start at $19/mo — no setup fees, cancel anytime.
+          Plans start at $14/mo — no setup fees, cancel anytime.
         </p>
       </div>
     </div>

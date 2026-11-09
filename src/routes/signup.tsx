@@ -203,7 +203,7 @@ const PLAN_OPTIONS: {
   {
     slug: "starter",
     name: "Starter",
-    price: 19,
+    price: 14,
     bullets: [
       "Everything in Basic",
       "New bids the day they post, 7 days before free accounts",
@@ -1550,7 +1550,7 @@ function SignupPage() {
             </p>}
           </form>
           {/* Plan selector — selectable cards. Cold arrivals default to Starter
-              ($19/mo, the homepage promise); ?plan=professional intent links
+              ($14/mo, the homepage promise); ?plan=professional intent links
               preselect Professional via the URL. selectedPlan feeds both the
               signup POST body and the Google OAuth state. */}
           {!save_bid && <div className="mt-6 border-t border-gray-100 pt-5">
@@ -1631,7 +1631,7 @@ function SignupPage() {
               {selectedPlan === "basic"
                 ? "Basic — $0/mo, free forever"
                 : selectedPlan === "starter"
-                  ? "Starter — $5 one time for 30 days. Nothing renews: on day 30 it simply ends unless you choose Starter at $19/month. Your account is free to create."
+                  ? "Starter — $5 one time for 30 days. Nothing renews: on day 30 it simply ends unless you choose Starter at $14/month. Your account is free to create."
                   : `${planInfo.name} — $${planInfo.price}/mo. Your account is free to create; you pay only when you choose to.`}
             </p>
           </div>}

@@ -35,7 +35,7 @@ export const PLAN_COPY = {
       '"What did the winner bid last time?"',
       "Your saved bids' deadlines in Google Calendar or Outlook",
       "CRM: save contacts (up to 100) with notes, next actions and manual follow-up dates, and link them to your saved bids",
-      "Or $190 a year: 2 months free",
+      "Or $140 a year: 2 months free",
       "Cancel anytime",
     ],
   },

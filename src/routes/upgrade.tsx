@@ -36,7 +36,7 @@ export const Route = createFileRoute("/upgrade")({
 
 // Yearly = 10 × monthly (2 months free); mirrors ANNUAL_UNIT_AMOUNTS in src/lib/stripe.ts.
 const plans = [
-  { id: "starter", name: "Starter", price: 19, yearly: 190 },
+  { id: "starter", name: "Starter", price: 14, yearly: 140 },
   { id: "professional", name: "Professional", price: 79, yearly: 790 },
   { id: "agency", name: "Agency", price: 199, yearly: 1990 },
 ] as const;
@@ -254,7 +254,7 @@ function YourMatches({ pitch }: { pitch: UpgradePitch }) {
         <p className="mt-3 text-sm text-slate-700">
           Recent federal contracts for {pitch.typicalAward.scope === "state" ? where : pitch.tradeLabel || "your trade"}{" "}
           were awarded at a median of <strong>{formatDollars(pitch.typicalAward.median)}</strong> ({pitch.typicalAward.count}{" "}
-          awards, USAspending.gov). Starter is $19 a month.
+          awards, USAspending.gov). Starter is $14 a month.
         </p>
       )}
     </section>

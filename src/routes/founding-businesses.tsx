@@ -266,7 +266,7 @@ function FoundingBusinesses() {
                 <span className="text-slate-300">first year</span>
               </p>
               <p className="mt-3 text-sm text-slate-300">
-                Paid upfront · renews at $190/year
+                Paid upfront · renews at $140/year
               </p>
               <ul className="mt-8 space-y-5">
                 {[
@@ -511,7 +511,7 @@ function FoundingBusinesses() {
                   <ArrowRight size={18} />
                 </button>
                 <p className="text-center text-xs text-slate-500">
-                  $190/year after year one. Cancel before renewal.{" "}
+                  $140/year after year one. Cancel before renewal.{" "}
                   <a href="/terms" className="underline">
                     Terms
                   </a>{" "}

@@ -2,7 +2,7 @@ import type Stripe from "stripe";
 import { randomUUID } from "node:crypto";
 import { sql } from "~/db";
 import { getStripe } from "~/lib/stripe";
-import {
+import { FOUNDING_BUSINESS_RENEWAL_CENTS,
   foundingBusinessSchema,
   FOUNDING_BUSINESS_LIMIT,
   FOUNDING_BUSINESS_TERMS,
@@ -75,7 +75,7 @@ export function foundingBusinessCheckoutParams(
         quantity: 1,
         price_data: {
           currency: "usd",
-          unit_amount: 19000,
+          unit_amount: FOUNDING_BUSINESS_RENEWAL_CENTS,
           recurring: { interval: "year" },
           product_data: {
             name: "Contrax Starter — Founding Business",

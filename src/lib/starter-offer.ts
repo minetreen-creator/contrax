@@ -9,16 +9,22 @@
  * and the rule for which checkouts get it. The coupon lives in stripe.ts.
  */
 
-export const STARTER_FIRST_MONTH_COUPON = "contrax_starter_first_month_5_v1";
-/** $19 → $5 for the first month, in cents. */
-export const STARTER_FIRST_MONTH_AMOUNT_OFF = 1400;
+// Owner 2026-11-09: Starter is $14 a month (was $19). A Stripe coupon's amount cannot change, so
+// the $5 first month uses a new coupon id ($9 off $14).
+export const STARTER_FIRST_MONTH_COUPON = "contrax_starter_first_month_5_v2";
+/** $14 → $5 for the first month, in cents. */
+export const STARTER_FIRST_MONTH_AMOUNT_OFF = 900;
+/** The Starter month, in cents. The checkout bills this inline (stripe.ts), never a catalog price. */
+export const STARTER_MONTHLY_CENTS = 1400;
+/** Starter billed yearly, in dollars: 10 × the month (2 months free). */
+export const STARTER_ANNUAL_PRICE = (STARTER_MONTHLY_CENTS * 10) / 100;
 export const STARTER_FIRST_MONTH_PRICE = 5;
 /** The regular Starter month in dollars ($5 + the $14 first-month coupon); client-safe copy of stripe.ts MONTHLY_PRICE_USD.starter. */
 export const STARTER_FULL_PRICE = STARTER_FIRST_MONTH_PRICE + STARTER_FIRST_MONTH_AMOUNT_OFF / 100;
 
 /** Short line under the Starter price. */
 /** Owner 2026-10-30: the $5 is now a 30-day pass with no automatic renewal (starter-pass.ts). */
-export const STARTER_FIRST_MONTH_NOTE = "$5 one time for 30 days. Nothing renews: on day 30 the pass simply ends, unless you choose Starter at $19/month.";
+export const STARTER_FIRST_MONTH_NOTE = "$5 one time for 30 days. Nothing renews: on day 30 the pass simply ends, unless you choose Starter at $14/month.";
 
 /**
  * Monthly Starter subscriptions only: not yearly (already 2 months free), not

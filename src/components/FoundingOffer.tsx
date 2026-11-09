@@ -28,7 +28,7 @@ export function FoundingOffer({
         spotlight.
       </p>
       <p className="mt-3 text-sm text-slate-300">
-        $99 today for your first year. Renews at $190/year unless canceled. Your
+        $99 today for your first year. Renews at $140/year unless canceled. Your
         feature runs 12 months from publication after approval.
       </p>
       <a

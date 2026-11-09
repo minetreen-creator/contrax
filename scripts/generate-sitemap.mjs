@@ -132,7 +132,11 @@ function readStaticUrlBlocks() {
     // the SEO landing pages (set-aside hubs, /contracts-by-industry and every
     // /contracts-in/* region page) are regenerated fresh below, so drop them
     // too — otherwise a re-run would duplicate each one.
+    // Owner 2026-11-09 (Search Console): the set-aside x NAICS pages (/opportunities/8a/335314,
+    // a set-aside crossed with a manufacturing code) were "Crawled - currently not indexed" and
+    // brought 4 visitors in 60 days, so they stay live but leave the sitemap.
     if (
+      loc.includes("/opportunities/") ||
       loc.includes("/clauses/") ||
       loc === `${PROD_URL}/clauses` ||
       loc.includes("/contracts-in/") ||
@@ -290,14 +294,16 @@ async function main() {
     ...landBlocks,
     ...regionBlocks,
     ...tradeBlocks,
-    ...partBlocks,
-    ...clauseBlocks,
+    // Owner 2026-11-09 (Search Console): 4,730 FAR clause pages, word for word the government's own
+    // text, were most of the "Crawled - currently not indexed" list and brought 4 visitors in 60
+    // days. They stay live (and indexable) but leave the sitemap so Google spends its crawl on bid,
+    // state and city pages (sitemap-bids.xml, sitemap-local.xml). The /clauses index stays listed.
     "</urlset>",
     "",
   ].join("\n");
   writeFileSync(SITEMAP_PATH, xml);
   console.log(
-    `[generate-sitemap] wrote ${SITEMAP_PATH}: ${staticBlocks.length} static + ${productBlocks.length} product + 1 clauses index + ${landBlocks.length} landing + ${regionBlocks.length} region + ${tradeBlocks.length} state+trade + ${partBlocks.length} part + ${clauseBlocks.length} clause URLs = ${staticBlocks.length + productBlocks.length + 1 + landBlocks.length + regionBlocks.length + tradeBlocks.length + partBlocks.length + clauseBlocks.length} total`,
+    `[generate-sitemap] wrote ${SITEMAP_PATH}: ${staticBlocks.length} static + ${productBlocks.length} product + 1 clauses index + ${landBlocks.length} landing + ${regionBlocks.length} region + ${tradeBlocks.length} state+trade = ${staticBlocks.length + productBlocks.length + 1 + landBlocks.length + regionBlocks.length + tradeBlocks.length} total (${partBlocks.length} part + ${clauseBlocks.length} clause pages left out on purpose)`,
   );
 }
 

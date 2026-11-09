@@ -46,7 +46,10 @@ const KEYWORD_OVERRIDES: Record<string, string[]> = {
   "236220": ["commercial construction", "new commercial"],
   "237110": ["water main", "sewer line", "sewer", "water line", "waterline", "storm drain", "utility line construction"],
   "237130": ["power line", "communication line", "utility line construction", "electric utility"],
-  "237310": ["highway", "bridge", "roadway", "asphalt", "paving", "road construction", "pavement", "street construction"],
+  // "highway construction" (owner 2026-11-08): ITD's own notices say "highway construction and
+  // maintenance project" but their titles are route names ("US-20, MP 291 TO IDAHO FALLS"), so a
+  // lone "highway" in the description never qualified and an Idaho 237310 search found 3 of 13.
+  "237310": ["highway", "bridge", "roadway", "asphalt", "paving", "road construction", "pavement", "street construction", "highway construction"],
   "237990": ["heavy civil", "civil construction", "marine construction", "dredging"],
   "238110": ["poured concrete", "concrete", "concrete work", "structural concrete", "concrete polishing", "polished concrete"],
   "238120": ["structural steel", "steel erection", "ironwork", "structural steel fabrication", "erection"],

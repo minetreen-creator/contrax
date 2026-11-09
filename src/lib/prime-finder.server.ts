@@ -1,6 +1,6 @@
 /** Loads the prime contractor finder for one trade and state (cached 1 hour). */
 import { sql } from "~/db";
-import { sortPrimes, type PrimeRow } from "~/lib/prime-finder";
+import { sameCompany, sortPrimes, type PrimeRow } from "~/lib/prime-finder";
 
 const cache = new Map<string, { at: number; rows: PrimeRow[] }>();
 const TTL = 60 * 60 * 1000;
@@ -18,6 +18,7 @@ export async function loadPrimes(trade: string, state: string | null): Promise<P
            SUM(r.amount)::float8 AS value,
            ARRAY_REMOVE(ARRAY_AGG(DISTINCT r.agency), NULL) AS agencies,
            MIN(r.end_date) AS next_end,
+           MIN(r.end_date) FILTER (WHERE r.end_date >= NOW() + INTERVAL '3 months') AS next_open_end,
            BOOL_OR(p.uei IS NOT NULL) AS has_plan,
            MAX(p.plan_type) AS plan_type,
            MAX(p.parent) AS parent
@@ -28,16 +29,17 @@ export async function loadPrimes(trade: string, state: string | null): Promise<P
     ) p ON p.uei = r.recipient_uei
     WHERE r.trade_slug = ${trade} AND r.end_date >= NOW() ${stateFilter}
     GROUP BY r.recipient_uei
-  `) as { uei: string; name: string; contracts: number; value: number; agencies: string[] | null; next_end: string | Date | null; has_plan: boolean; plan_type: string | null; parent: string | null }[];
+  `) as { uei: string; name: string; contracts: number; value: number; agencies: string[] | null; next_end: string | Date | null; next_open_end: string | Date | null; has_plan: boolean; plan_type: string | null; parent: string | null }[];
   const out = sortPrimes(
     rows.map((r) => ({
       uei: r.uei,
       name: r.name,
-      parent: r.parent && r.parent.toUpperCase() !== String(r.name).toUpperCase() ? r.parent : null,
+      parent: r.parent && !sameCompany(r.parent, r.name) ? r.parent : null,
       contracts: Number(r.contracts),
       value: Number(r.value) || 0,
       agencies: (r.agencies ?? []).filter(Boolean).slice(0, 4),
-      nextEnd: r.next_end ? new Date(r.next_end).toISOString().slice(0, 10) : null,
+      // Timing follows the next contract still worth pursuing (3+ months out), else the soonest.
+      nextEnd: (r.next_open_end ?? r.next_end) ? new Date((r.next_open_end ?? r.next_end) as string).toISOString().slice(0, 10) : null,
       hasPlan: Boolean(r.has_plan),
       planType: r.plan_type ?? null,
     })),

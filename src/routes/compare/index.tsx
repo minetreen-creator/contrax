@@ -3,7 +3,7 @@ import { SiteHeader } from "~/components/SiteHeader";
 
 const columns = ["Contrax", "GovWin / Deltek", "BidNet / Bonfire", "GovSpend", "Manual Bidding (SAM.gov)", "Consultant / Gov't Contract Specialist"];
 const rows = [
-  ["Pricing", "$5 first 30 days, then $19–199/mo", "$5K–20K+/yr (enterprise)", "$300–800/mo", "Varies by plan", "$0 (but cost of time)", "$3–10K+/mo retainer"],
+  ["Pricing", "$5 one time for 30 days (nothing renews); plans $19–199/mo", "$5K–20K+/yr (enterprise)", "$300–800/mo", "Varies by plan", "$0 (but cost of time)", "$3–10K+/mo retainer"],
   ["Incumbent Pricing Intel", "Yes (5-yr history)", "Partial (enterprise only)", "No", "No", "No", "No"],
   ["Low-cost start", "$5 for your first 30 days", "No or limited", "No or limited", "No or limited", "N/A", "No"],
   ["Bid coverage", "Federal + State + Local (nationwide, synced every 4 hours on weekdays)", "Federal only (strong)", "State/Local focused", "Federal spend data", "Limited to what you search", "Depends on their expertise"],

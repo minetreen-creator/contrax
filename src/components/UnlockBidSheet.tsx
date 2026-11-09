@@ -79,7 +79,7 @@ export function UnlockBidSheet({ bidId, bid, onClose }: { bidId: number; bid?: U
 
         <div className="mt-4 rounded-xl bg-amber-50 px-3 py-2.5 text-center">
           <p className="text-base font-extrabold text-slate-900">${STARTER_FIRST_MONTH_PRICE} one time. No automatic renewal.</p>
-          <p className="mt-0.5 text-xs text-slate-600">Near the end we ask whether you want to keep going. Do nothing and you&apos;re never charged again.</p>
+          <p className="mt-0.5 text-xs text-slate-600">On day 30 it simply ends. We email you once before; do nothing and you&apos;re never charged again.</p>
         </div>
 
         <button

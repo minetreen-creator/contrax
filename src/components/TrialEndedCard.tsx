@@ -56,7 +56,7 @@ export function TrialEndedCard() {
         >
           Keep my bids coming: Starter, $5 for 30 days →
         </a>
-        <p className="mt-2 text-xs text-slate-600">No automatic renewal. We ask before charging $19/month.</p>
+        <p className="mt-2 text-xs text-slate-600">Nothing renews: on day 30 the pass simply ends unless you choose Starter at $19/month.</p>
       </div>
     </div>
   );

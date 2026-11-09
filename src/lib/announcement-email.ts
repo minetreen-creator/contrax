@@ -117,7 +117,7 @@ const PASS_URL = "https://www.contrax.company/pricing?utm_source=email&utm_campa
 const PASS_HIGHLIGHTS = [
   "📬 New government bids in your trade and states, emailed every morning at 6 AM",
   "💵 $5 one time for your first 30 days",
-  "🔒 No automatic renewal. We ask before charging you again.",
+  "🔒 Nothing renews. On day 30 the pass simply ends unless you choose to keep going.",
 ];
 
 const PASS_PARAGRAPHS = [

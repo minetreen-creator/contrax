@@ -194,7 +194,7 @@ const PLAN_OPTIONS: {
     free: true,
     bullets: [
       "Basic Solicitations Search (new bids after 7 days)",
-      "2 Radar searches per account",
+      "5 Radar searches a day",
       "1 saved bid",
       "No bid emails",
       "Standard set-aside filters",
@@ -1546,7 +1546,7 @@ function SignupPage() {
               <span aria-hidden="true" className="text-gray-300">·</span>
               <span>Takes under 30 seconds</span>
               <span aria-hidden="true" className="text-gray-300">·</span>
-              <span>Cancel anytime</span>
+              <span>{selectedPlan === "basic" ? "Free forever" : selectedPlan === "starter" ? "Nothing renews" : "Cancel anytime"}</span>
             </p>}
           </form>
           {/* Plan selector — selectable cards. Cold arrivals default to Starter
@@ -1597,8 +1597,8 @@ function SignupPage() {
                         )}
                       </span>
                       <span className="text-sm font-semibold text-slate-700">
-                        ${opt.price}
-                        <span className="text-xs font-normal text-gray-500">/mo</span>
+                        {opt.slug === "starter" ? "$5" : `$${opt.price}`}
+                        <span className="text-xs font-normal text-gray-500">{opt.slug === "starter" ? " for 30 days" : "/mo"}</span>
                       </span>
                       <span
                         className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
@@ -1631,7 +1631,7 @@ function SignupPage() {
               {selectedPlan === "basic"
                 ? "Basic — $0/mo, free forever"
                 : selectedPlan === "starter"
-                  ? "Starter — $5 for your first 30 days, then $19/mo. Your account is free to create; you pay only when you choose to."
+                  ? "Starter — $5 one time for 30 days. Nothing renews: on day 30 it simply ends unless you choose Starter at $19/month. Your account is free to create."
                   : `${planInfo.name} — $${planInfo.price}/mo. Your account is free to create; you pay only when you choose to.`}
             </p>
           </div>}

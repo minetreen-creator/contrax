@@ -18,7 +18,7 @@ export const STARTER_FULL_PRICE = STARTER_FIRST_MONTH_PRICE + STARTER_FIRST_MONT
 
 /** Short line under the Starter price. */
 /** Owner 2026-10-30: the $5 is now a 30-day pass with no automatic renewal (starter-pass.ts). */
-export const STARTER_FIRST_MONTH_NOTE = "$5 for your first 30 days. No automatic renewal: we'll ask before charging $19/month.";
+export const STARTER_FIRST_MONTH_NOTE = "$5 one time for 30 days. Nothing renews: on day 30 the pass simply ends, unless you choose Starter at $19/month.";
 
 /**
  * Monthly Starter subscriptions only: not yearly (already 2 months free), not

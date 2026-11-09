@@ -6,16 +6,17 @@ const q = async (label: string, p: Promise<unknown>) => {
   try { console.log(label, JSON.stringify(await p)); } catch (e) { console.log(label, "ERR", (e as Error).message.slice(0, 200)); }
 };
 const HVAC = sql().unsafe(`(category = 'HVAC' OR title ~* '(\\mhvac\\M|heating|air condition|chiller|boiler|cooling tower|rooftop unit|\\mrtu\\M|ventilation)')`);
+const VAL = `(CASE WHEN estimated_value ~ '^\\s*\\$?\\s*[0-9][0-9,]*(\\.[0-9]+)?\\s*$' THEN NULLIF(regexp_replace(estimated_value, '[^0-9.]', '', 'g'), '')::numeric END)`;
 const OPEN = sql().unsafe(`due_date > NOW() AND ${LOW_CONTENT_SQL} AND ${AWARD_EXCLUSION_SQL} AND normalized_state IS NOT NULL`);
 await q("open HVAC bids by state (count, with value, total listed value)", sql()`
   SELECT normalized_state AS state, COUNT(*)::int AS open_bids,
-         COUNT(*) FILTER (WHERE estimated_value_num > 0)::int AS with_value,
-         ROUND(COALESCE(SUM(estimated_value_num) FILTER (WHERE estimated_value_num > 0), 0))::bigint AS listed_value,
-         ROUND(COALESCE(MAX(estimated_value_num), 0))::bigint AS biggest
+         COUNT(*) FILTER (WHERE ${sql().unsafe(VAL)} > 0)::int AS with_value,
+         ROUND(COALESCE(SUM(${sql().unsafe(VAL)}) FILTER (WHERE ${sql().unsafe(VAL)} > 0), 0))::bigint AS listed_value,
+         ROUND(COALESCE(MAX(${sql().unsafe(VAL)}), 0))::bigint AS biggest
   FROM bids WHERE ${OPEN} AND ${HVAC} GROUP BY 1 ORDER BY 2 DESC LIMIT 12`);
 await q("biggest single open HVAC bids (listed value)", sql()`
-  SELECT normalized_state AS state, title, agency, ROUND(estimated_value_num)::bigint AS value, to_char(due_date, 'Mon DD') AS due
-  FROM bids WHERE ${OPEN} AND ${HVAC} AND estimated_value_num > 0 ORDER BY estimated_value_num DESC LIMIT 8`);
+  SELECT normalized_state AS state, title, agency, ROUND(${sql().unsafe(VAL)})::bigint AS value, to_char(due_date, 'Mon DD') AS due
+  FROM bids WHERE ${OPEN} AND ${HVAC} AND ${sql().unsafe(VAL)} > 0 ORDER BY ${sql().unsafe(VAL)} DESC LIMIT 8`);
 await q("share of open HVAC bids that list a value", sql()`
-  SELECT COUNT(*)::int AS open_bids, COUNT(*) FILTER (WHERE estimated_value_num > 0)::int AS with_value FROM bids WHERE ${OPEN} AND ${HVAC}`);
+  SELECT COUNT(*)::int AS open_bids, COUNT(*) FILTER (WHERE ${sql().unsafe(VAL)} > 0)::int AS with_value FROM bids WHERE ${OPEN} AND ${HVAC}`);
 process.exit(0);

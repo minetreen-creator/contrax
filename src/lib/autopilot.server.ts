@@ -21,7 +21,16 @@ import {
 /** Most AI calls in one morning across every member (cost cap). */
 export const AUTOPILOT_RUN_CAP = 600;
 
+/**
+ * The owner saved the GitHub Actions secret as OPEN_AI_KEY (2026-11-09); the AI helper reads
+ * OPENAI_API_KEY, so the jobs copy it across when only the other name is set.
+ */
+export function useOpenAiKeyAlias(env: Record<string, string | undefined> = process.env): void {
+  if (!env.OPENAI_API_KEY && env.OPEN_AI_KEY) env.OPENAI_API_KEY = env.OPEN_AI_KEY;
+}
+
 export function autopilotEnabled(): boolean {
+  useOpenAiKeyAlias();
   return Boolean(process.env.OPENAI_API_KEY);
 }
 

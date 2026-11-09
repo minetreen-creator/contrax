@@ -17,7 +17,8 @@ jobs:
     timeout-minutes: 10
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || secrets.OPEN_AI_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPEN_AI_KEY: ${{ secrets.OPEN_AI_KEY }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

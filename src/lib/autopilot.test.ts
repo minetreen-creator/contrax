@@ -119,7 +119,19 @@ test("the morning email leads with Auto-Pilot and names the picks in the subject
   expect(email.indexOf('${daily?.autopilotHtml ?? ""}')).toBeLessThan(email.indexOf("<!-- Bid List -->"));
   expect(email).toContain("strong fit${e.options.autopilotPicks === 1");
   const wf = readFileSync(new URL("../../.github/workflows/daily-emails.yml", import.meta.url), "utf8");
-  expect(wf).toContain("OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || secrets.OPEN_AI_KEY }}");
   const preview = readFileSync(new URL("../../.github/workflows/autopilot-preview.yml", import.meta.url), "utf8");
-  expect(preview).toContain("OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || secrets.OPEN_AI_KEY }}");
+  for (const f of [wf, preview]) {
+    expect(f).toContain("OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}");
+    expect(f).toContain("OPEN_AI_KEY: ${{ secrets.OPEN_AI_KEY }}");
+  }
+});
+
+test("the OPEN_AI_KEY secret name is accepted", async () => {
+  const { useOpenAiKeyAlias } = await import("./autopilot.server");
+  const env: Record<string, string | undefined> = { OPEN_AI_KEY: "k1" };
+  useOpenAiKeyAlias(env);
+  expect(env.OPENAI_API_KEY).toBe("k1");
+  const both: Record<string, string | undefined> = { OPENAI_API_KEY: "a", OPEN_AI_KEY: "b" };
+  useOpenAiKeyAlias(both);
+  expect(both.OPENAI_API_KEY).toBe("a");
 });

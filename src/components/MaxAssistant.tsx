@@ -166,6 +166,8 @@ export function MaxAssistant({ bid }: { bid?: { id: number; title: string } } = 
   const [state, setState] = useState<MaxState>("idle");
   const [turns, setTurns] = useState<Turn[]>([]);
   const [bids, setBids] = useState<BidCard[]>([]);
+  // Owner 2026-11-09: each answer's date check against the bid data.
+  const [dateCheck, setDateCheck] = useState<{ status: string; due: string | null } | null>(null);
   const [cta, setCta] = useState<{ kind: MaxCta; trade: string | null; state: string | null; bid: number | null }>({ kind: null, trade: null, state: null, bid: null });
   const [lang, setLang] = useState<MaxLang>("en");
   const [remindFor, setRemindFor] = useState<number | null>(null);
@@ -300,7 +302,7 @@ export function MaxAssistant({ bid }: { bid?: { id: number; title: string } } = 
       trackEvent("max_ask", q.slice(0, 80));
       setState("thinking");
       const res = await fetch("/api/max/ask", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ question: q, history, lang, bid_id: bid?.id }) });
-      const j = (await res.json().catch(() => ({}))) as { say?: string; error?: string; gate?: "email" | "paid" | "wait"; bids?: BidCard[]; cta?: MaxCta; remindBid?: number | null; capability?: MaxCapability | null; trade?: string | null; state?: string | null; lang?: MaxLang };
+      const j = (await res.json().catch(() => ({}))) as { say?: string; error?: string; gate?: "email" | "paid" | "wait"; bids?: BidCard[]; cta?: MaxCta; remindBid?: number | null; capability?: MaxCapability | null; trade?: string | null; state?: string | null; lang?: MaxLang; dateCheck?: { status: string; due: string | null } };
       const gate = res.status === 429 ? j.gate ?? "wait" : null;
       const say = j.say ?? (gate === "email" ? t.limitEmail : gate === "paid" ? t.limitPaid : gate ? t.limit : j.error ?? t.oops);
       if (gate) {
@@ -317,6 +319,8 @@ export function MaxAssistant({ bid }: { bid?: { id: number; title: string } } = 
         trackEvent("max_lang", replyLang);
       }
       setTurns((t) => [...t, { role: "assistant" as const, content: say }].slice(-8));
+      setDateCheck(j.dateCheck ?? null);
+      if (j.dateCheck?.status === "corrected") trackEvent("max_date_corrected", String(bid?.id ?? ""));
       if (j.bids?.length) setBids(j.bids.slice(0, 4));
       setCta({ kind: j.cta ?? null, trade: j.trade ?? null, state: j.state ?? null, bid: j.remindBid ?? null });
       if (j.cta === "remind" && j.remindBid) setRemindFor(j.remindBid);
@@ -452,6 +456,7 @@ export function MaxAssistant({ bid }: { bid?: { id: number; title: string } } = 
               ))}
             </ul>
           ) : null}
+          {last.length && (dateCheck?.due || dateCheck?.status === "corrected") ? <MaxDateNote check={dateCheck} lang={lang} /> : null}
           {!asked ? (
             <div className="mt-5 flex flex-wrap gap-2">
               {suggestions.map((s) => (
@@ -577,6 +582,22 @@ function MaxEmail({ trade, state, lang }: { trade: string | null; state: string 
       </div>
       {status === "error" ? <p className="mt-2 text-xs text-red-300">{es ? "Escribe un correo válido e inténtalo de nuevo." : zh ? "请输入有效的邮箱后重试。" : "Please enter a valid email and try again."}</p> : null}
     </form>
+  );
+}
+
+/** Under Max's latest answer: the due date checked against the notice, or a correction notice. */
+function MaxDateNote({ check, lang }: { check: { status: string; due: string | null }; lang: MaxLang }) {
+  const es = lang === "es";
+  const zh = lang === "zh";
+  const due = check.due
+    ? new Date(`${check.due}T12:00:00Z`).toLocaleDateString(es ? "es-US" : zh ? "zh-CN" : "en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })
+    : null;
+  return (
+    <p className={`mt-3 text-xs font-semibold ${check.status === "corrected" ? "text-amber-200" : "text-emerald-200"}`}>
+      {check.status === "corrected"
+        ? es ? "⚠ Una fecha no coincidía con el aviso; ya está corregida arriba." : zh ? "⚠ 有一个日期与公告不符，上面已更正。" : "⚠ A date didn't match the notice; it's corrected above."
+        : es ? `✓ Fecha límite verificada con el aviso: ${due}` : zh ? `✓ 截止日期已与公告核对：${due}` : `✓ Due date checked against the notice: ${due}`}
+    </p>
   );
 }
 

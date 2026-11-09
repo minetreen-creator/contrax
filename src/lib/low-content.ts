@@ -43,15 +43,29 @@ export const LOW_CONTENT_LOCATION_PLACEHOLDERS = [
  * or without a table alias, and even when `bids` is JOINed to a table that
  * lacks those columns (unqualified refs resolve to the sole matching table).
  */
+/**
+ * Settlement and final-payment notices (owner 2026-11-09): "Notice of Final Settlement - Eaglecrest
+ * Feeder", "Notice of Final Payment …". A city announcing it is about to pay a finished job is not
+ * a bid anyone can win; Colorado's BidNet group posts them as open solicitations. Titles that only
+ * mention the word ("Opioid Settlement Community Grants", "West Settlement Creek Bridge") stay.
+ */
+export const SETTLEMENT_NOTICE_RE =
+  /\b(?:(?:final|partial)\s+settlement|notice\s+of\s+settlement|settlement\s+notice|notice\s+of\s+final\s+(?:payment|acceptance)|final\s+payment\s+notice)\b/i;
+const SETTLEMENT_NOTICE_PG =
+  "\\m(final|partial)\\s+settlement\\M|notice\\s+of\\s+settlement|\\msettlement\\s+notice\\M|notice\\s+of\\s+final\\s+(payment|acceptance)|final\\s+payment\\s+notice";
+
 export const LOW_CONTENT_SQL = `
-  NOT (
-    cardinality(string_to_array(btrim(title), ' ')) < 5
-    AND (
-      location IS NULL
-      OR btrim(location) = ''
-      OR lower(btrim(location)) IN ('unknown','not specified','n/a','tbd','none','united states','us','usa')
+  (
+    NOT (
+      cardinality(string_to_array(btrim(title), ' ')) < 5
+      AND (
+        location IS NULL
+        OR btrim(location) = ''
+        OR lower(btrim(location)) IN ('unknown','not specified','n/a','tbd','none','united states','us','usa')
+      )
+      AND (set_aside IS NULL OR btrim(set_aside) = '')
     )
-    AND (set_aside IS NULL OR btrim(set_aside) = '')
+    AND NOT (COALESCE(title, '') ~* '${SETTLEMENT_NOTICE_PG}')
   )
 `;
 
@@ -71,5 +85,6 @@ export function isLowContent(
   const hasRealLocation =
     loc.length > 0 && !LOW_CONTENT_LOCATION_PLACEHOLDERS.includes(loc);
   const hasSetAside = String(set_aside ?? "").trim().length > 0;
+  if (SETTLEMENT_NOTICE_RE.test(String(title ?? ""))) return true;
   return words.length < 5 && !hasRealLocation && !hasSetAside;
 }

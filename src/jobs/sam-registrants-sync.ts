@@ -24,22 +24,25 @@ async function main() {
 
   let lines = 0;
   let kept = 0;
-  let batch: SamRegistrant[] = [];
+  // A business can appear on several lines (one per EFT indicator); one row per UEI per batch.
+  let batch = new Map<string, SamRegistrant>();
+  const seen = new Set<string>();
   const byTrade = new Map<string, number>();
   const rl = createInterface({ input: createReadStream(file, { encoding: "utf8" }), crlfDelay: Infinity });
   for await (const line of rl) {
     lines++;
     const r = parseSamLine(line);
-    if (!r) continue;
+    if (!r || seen.has(r.uei)) continue;
+    seen.add(r.uei);
     kept++;
     for (const t of r.trades) byTrade.set(t, (byTrade.get(t) ?? 0) + 1);
-    batch.push(r);
-    if (batch.length >= BATCH) {
-      await upsertSamRegistrants(batch, extractDate);
-      batch = [];
+    batch.set(r.uei, r);
+    if (batch.size >= BATCH) {
+      await upsertSamRegistrants([...batch.values()], extractDate);
+      batch = new Map();
     }
   }
-  await upsertSamRegistrants(batch, extractDate);
+  await upsertSamRegistrants([...batch.values()], extractDate);
   console.log(`SAM extract ${extractDate}: ${lines} lines read, ${kept} small businesses kept`);
   console.log("by trade:", [...byTrade.entries()].sort((a, b) => b[1] - a[1]).map(([t, n]) => `${t} ${n}`).join(", "));
 

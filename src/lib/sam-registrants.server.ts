@@ -24,6 +24,8 @@ export async function ensureSamRegistrantsTable(): Promise<void> {
 
 /** Insert or refresh a batch from one monthly extract. */
 export async function upsertSamRegistrants(rows: SamRegistrant[], extractDate: string): Promise<void> {
+  // ON CONFLICT can't touch one row twice in a statement: keep the last row per UEI.
+  rows = [...new Map(rows.map((r) => [r.uei, r])).values()];
   if (!rows.length) return;
   await sql()`
     INSERT INTO sam_registrants (uei, name, city, state, zip, url, trades, certs, naics, expires, extract_date, updated_at)

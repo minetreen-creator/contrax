@@ -79,7 +79,13 @@ echo "[5/5] bundle SSR handler + deps into the render function"
 # --minify-whitespace (2026-10-25): the bundle had grown to the CI 12 MB ceiling
 # (build-check.yml). Stripping whitespace only (no renaming, no syntax rewrites)
 # cuts it by about 20% and keeps function names in stack traces.
+# NODE_ENV=production at bundle time (2026-11-09): the bundle carried React's development
+# server builds (react-dom-server*.development.js, about 535 KB) next to the production ones,
+# because the NODE_ENV branch was left for runtime. Vercel always runs the function with
+# NODE_ENV=production, so the development branch was dead code; defining it drops about 200 KB
+# and changes nothing at runtime. The bundle sat 5 KB under the 12 MB ceiling before this.
 bun build vercel-entry.ts --target node --minify-whitespace \
+  --define 'process.env.NODE_ENV="production"' \
   --external '#tanstack-router-entry' --external '#tanstack-start-entry' \
   --external 'tanstack-start-manifest:v' \
   --outfile .vercel/output/functions/render.func/index.mjs

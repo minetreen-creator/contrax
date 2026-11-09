@@ -75,3 +75,8 @@ describe("open to all businesses", () => {
     expect(section).toContain("open to every company, small businesses included");
   });
 });
+
+test("the render bundle is built as production, so React's development server build stays out", () => {
+  const build = readFileSync(new URL("../../build-vercel.sh", import.meta.url), "utf8");
+  expect(build).toContain(`--define 'process.env.NODE_ENV="production"'`);
+});

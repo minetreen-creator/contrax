@@ -9,10 +9,10 @@ COUNTIES = [{"country": "USA", "state": "FL", "county": c} for c in ("057", "103
 FY = [{"start_date": "2025-10-01", "end_date": "2026-09-30"}]
 CONTRACTS = ["A", "B", "C", "D"]
 GROUPS = {
-    "all construction (236/237/238)": ["236", "237", "238"],
-    "buildings / general contractors (236)": ["236"],
-    "heavy & civil (237)": ["237"],
-    "specialty trades (238)": ["238"],
+    "all construction (NAICS 23)": ["23"],
+    "buildings / general contractors (2361/2362)": ["2361", "2362"],
+    "heavy & civil (2371-2379)": ["2371", "2372", "2373", "2379"],
+    "specialty trades (2381-2389)": ["2381", "2382", "2383", "2389"],
     "HVAC & plumbing (238220)": ["238220"],
     "electrical (238210)": ["238210"],
     "roofing (238160)": ["238160"],
@@ -57,7 +57,7 @@ for label, naics in GROUPS.items():
 
 # Top buyers for construction.
 try:
-    d = post("/search/spending_by_category/awarding_subagency/", {"filters": filters(["236", "237", "238"]), "limit": 6})
+    d = post("/search/spending_by_category/awarding_subagency/", {"filters": filters(["23"]), "limit": 6})
     print("top buyers:", "; ".join(f"{r['name']} ${float(r['amount'])/1e6:,.1f}M" for r in d.get("results", [])))
 except Exception as e:
     print("buyers ERR", str(e)[:200])
@@ -69,7 +69,7 @@ try:
     n, amt, page, seen = 0, 0.0, 1, set()
     while page <= 10:
         d = post("/search/spending_by_award/", {
-            "filters": filters(["236", "237", "238"], time=[{"start_date": "2023-10-01", "end_date": "2026-09-30"}]),
+            "filters": filters(["23"], time=[{"start_date": "2023-10-01", "end_date": "2026-09-30"}]),
             "fields": ["Award ID", "Award Amount", "End Date"], "limit": 100, "page": page, "sort": "Award Amount", "order": "desc",
         })
         for r in d.get("results", []):

@@ -22,8 +22,3 @@ jobs:
         run: bun .github/probe/tampa_bids.ts
       - name: Federal awards (USAspending)
         run: python3 .github/probe/tampa_usa.py
-      - name: SAM.gov registrants (public extract)
-        run: |
-          curl -sL -m 900 -A "ContraxBot/1.0 (+https://www.contrax.company)" -o /tmp/e.zip "https://api.sam.gov/data-services/v1/extracts?api_key=${SAM_API_KEY}&fileType=ENTITY&sensitivity=PUBLIC&frequency=MONTHLY&charset=UTF8"
-          mkdir -p /tmp/x && cd /tmp/x && unzip -o -q /tmp/e.zip && for z in *.ZIP *.zip; do [ -f "$z" ] && unzip -o -q "$z"; done; ls -l
-          python3 $GITHUB_WORKSPACE/.github/probe/tampa_sam.py "$(ls /tmp/x/*.dat | head -1)"

@@ -49,6 +49,8 @@ export async function sendMorningBidDigest(): Promise<{ bids: number; recipients
     console.warn(`[autopilot] table check failed: ${(e as Error).message}`);
   }
   const budget = newAutopilotBudget(EMAIL_JOB_AI_CAP);
+  // Top-ups stop after 30 seconds so the email is never held up (it runs on Vercel).
+  const deadline = Date.now() + 30_000;
   let autopilotMembers = 0;
 
   const seen = new Set<string>();
@@ -69,7 +71,7 @@ export async function sendMorningBidDigest(): Promise<{ bids: number; recipients
     let autopilotPicks = 0;
     if (matcher.personal && u.user_id) {
       try {
-        const verdicts = await autopilotForMember(Number(u.user_id), autopilotProfileOf(u), autopilotBidsOf(mine, openToAll), budget);
+        const verdicts = await autopilotForMember(Number(u.user_id), autopilotProfileOf(u), autopilotBidsOf(mine, openToAll), budget, { deadline });
         const byId = new Map([...mine, ...openToAll].map((b) => [b.bid_id, b]));
         const picks = strongPicks(verdicts).map((v) => {
           const b = byId.get(v.bid_id)!;

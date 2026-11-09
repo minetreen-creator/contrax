@@ -84,7 +84,10 @@ echo "[5/5] bundle SSR handler + deps into the render function"
 # because the NODE_ENV branch was left for runtime. Vercel always runs the function with
 # NODE_ENV=production, so the development branch was dead code; defining it drops about 200 KB
 # and changes nothing at runtime. The bundle sat 5 KB under the 12 MB ceiling before this.
-bun build vercel-entry.ts --target node --minify-whitespace \
+# --minify-syntax (2026-11-09): the bundle crossed the 12 MB ceiling again (12,606,613 bytes) as
+# Sub Finder landed. Syntax minification (shorter equivalent syntax, constant folding; no
+# renaming, so function names and stack traces stay) cuts about 446 KB.
+bun build vercel-entry.ts --target node --minify-whitespace --minify-syntax \
   --define 'process.env.NODE_ENV="production"' \
   --external '#tanstack-router-entry' --external '#tanstack-start-entry' \
   --external 'tanstack-start-manifest:v' \

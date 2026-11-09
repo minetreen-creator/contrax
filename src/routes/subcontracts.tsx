@@ -930,6 +930,11 @@ function SubcontractsPage() {
             Notices where a named prime is seeking bids or quotes from other businesses. You would respond to the
             prime contractor, not bid to the government agency.
           </p>
+          <p className="mt-2 text-sm">
+            <a href="/prime-finder" className="font-semibold text-blue-700 hover:text-blue-800">
+              New: find the primes holding federal work in your trade and state, and when their contracts come up →
+            </a>
+          </p>
           <p className="mt-3 text-sm text-slate-500" data-testid="subcontracts-freshness">
             Source: {SUBNET_SOURCE_LABEL} · {LAST_CHECKED_LABEL} {freshness ?? "—"} ·{" "}
             {payload ? noticeCountText(payload.counts.total) : "reading the stored notices"}

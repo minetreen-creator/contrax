@@ -260,6 +260,13 @@ function StatePanel({ s, trade, tradeLabel }: { s: GapState; trade: string; trad
         >
           Open {tradeLabel.toLowerCase()} bids in {s.name}
         </a>
+        <a
+          href={`/prime-finder?trade=${trade}&state=${s.state}`}
+          className="rounded-lg border border-slate-300 px-3 py-2 text-center text-sm font-semibold text-slate-800 hover:border-slate-500"
+          onClick={() => trackEvent("gap_map_primes", `${trade}:${s.state}`)}
+        >
+          Primes holding this work in {s.name}
+        </a>
       </div>
     </div>
   );

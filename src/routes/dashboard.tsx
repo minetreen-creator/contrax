@@ -835,6 +835,7 @@ function ZeroMatchesEmpty({
           Add adjacent NAICS codes
         </a>
         <a href="/onboarding" className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Edit profile</a>
+        <a href="/roadmap" className="inline-flex items-center gap-2 rounded-lg border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-100">My roadmap</a>
         <a href="/radar" className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Search open bids</a>
       </div>
     </div>

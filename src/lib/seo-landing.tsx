@@ -296,9 +296,27 @@ export interface RegionTradeData {
   trade: { slug: string; label: string; radarTerm: string } | null;
   count: number;
   bids: SeoBid[];
+  /**
+   * Radar's nationwide matches (no single state on the notice), open to a business in any state.
+   * Never counted in `count` (owner 2026-11-08); shown when the state has none of its own.
+   */
+  nationwideCount: number;
+  nationwide: SeoBid[];
   generatedAt: string;
   /** Federal spending and contracts ending soon (USAspending), when synced. */
   federal: FederalTradeFactsData | null;
+}
+
+/**
+ * Whether a state+trade page belongs in search results (owner 2026-11-09: Search Console flagged
+ * 72 sitemap pages as noindex after the state count became in-state only). Indexable when it lists
+ * open bids, in the state or nationwide, or has the state's federal spending facts for the trade.
+ * PURE.
+ */
+export function regionTradeIndexable(d: Pick<RegionTradeData, "code" | "trade" | "count" | "nationwideCount" | "federal"> | null | undefined): boolean {
+  if (!d?.trade || !d.code) return false;
+  if (d.count > 0 || d.nationwideCount > 0) return true;
+  return !!d.federal?.spending || (d.federal?.ending?.count ?? 0) > 0;
 }
 
 /** Keep only rows performed in (or bought by) `code`, soonest deadline first. */
@@ -334,6 +352,7 @@ export const getRegionTradeData = createServerFn({ method: "GET" })
     const trade = SEO_TRADE_BY_SLUG[data.trade] ?? null;
     const valid = !!code && REGION_SET.has(code) && !!trade;
     let bids: SeoBid[] = [];
+    let nationwide: SeoBid[] = [];
     if (valid) {
       const { sql } = await import("~/db");
       try {
@@ -341,9 +360,10 @@ export const getRegionTradeData = createServerFn({ method: "GET" })
         // and 8 on the share link). This page now lists exactly Radar's default matches in the
         // state: the same strict query, duplicate rule and trade test, nationwide rows left out.
         const { stateRadarMatches } = await import("~/lib/radar-candidates");
-        const { local } = await stateRadarMatches(sql, { trade: trade!.radarTerm, state: code! });
+        const split = await stateRadarMatches(sql, { trade: trade!.radarTerm, state: code! });
+        const local = split.local;
         // Radar rows carry no posted date; the cards need it for the members' head start.
-        const ids = local.map((r: any) => Number(r.id)).filter((n: number) => Number.isFinite(n));
+        const ids = [...local, ...split.nationwide].map((r: any) => Number(r.id)).filter((n: number) => Number.isFinite(n));
         const posted = ids.length
           ? ((await sql()`SELECT id, created_at FROM bids WHERE id = ANY(${ids})`) as { id: number; created_at: unknown }[])
           : [];
@@ -352,9 +372,11 @@ export const getRegionTradeData = createServerFn({ method: "GET" })
           local.map((r: any) => mapSeoBid({ ...r, created_at: createdById.get(Number(r.id)) ?? null })),
           code!,
         );
+        nationwide = split.nationwide.map((r: any) => mapSeoBid({ ...r, created_at: createdById.get(Number(r.id)) ?? null }));
       } catch (e) {
         console.error("[seo-landing] region-trade query failed:", e);
         bids = [];
+        nationwide = [];
       }
     }
     let federal: FederalTradeFactsData | null = null;
@@ -377,6 +399,8 @@ export const getRegionTradeData = createServerFn({ method: "GET" })
       trade: valid ? { slug: trade!.slug, label: trade!.label, radarTerm: trade!.radarTerm } : null,
       count: bids.length,
       bids: bids.slice(0, 25),
+      nationwideCount: nationwide.length,
+      nationwide: nationwide.slice(0, 10),
       generatedAt: new Date().toISOString(),
       federal,
     };
@@ -1001,6 +1025,32 @@ function RelatedTradeLink({ data }: { data: RegionTradeData }) {
 export function RegionTradeView({ data, radarHref }: { data: RegionTradeData; radarHref: string }) {
   const name = data.name ?? "this state";
   const label = data.trade?.label ?? "Matching";
+  if (data.count === 0 && data.nationwide.length > 0) {
+    // No bid of its own today, but nationwide ones a business here can bid on (owner 2026-11-09).
+    return (
+      <section>
+        <h2 className="text-2xl font-bold text-slate-900">
+          No open {label.toLowerCase()} solicitations in {name} right now
+        </h2>
+        <p className="mt-1 text-sm text-slate-600">
+          {data.nationwideCount.toLocaleString("en-US")} nationwide {label.toLowerCase()} bid{data.nationwideCount === 1 ? " is" : "s are"} open
+          now. {data.nationwideCount === 1 ? "It names" : "They name"} no single state, so a business in {name} can bid.
+        </p>
+        <RelatedTradeLink data={data} />
+        <ul className="mt-5 grid gap-4 sm:grid-cols-2">
+          {data.nationwide.map((b) => (
+            <BidCard key={b.id} b={b} />
+          ))}
+        </ul>
+        <DailyEmailOffer tradeLabel={label} stateName={name} count={data.count} />
+        <p className="mt-6">
+          <a href={radarHref} className="inline-block rounded-xl bg-blue-700 px-5 py-3 text-sm font-bold text-white hover:bg-blue-800">
+            See your best matches in Radar →
+          </a>
+        </p>
+      </section>
+    );
+  }
   if (data.count === 0) {
     return (
       <section className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center">

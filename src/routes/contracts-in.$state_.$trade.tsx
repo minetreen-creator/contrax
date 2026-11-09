@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import {
   getRegionTradeData,
   OtherTradeLinks,
+  regionTradeIndexable,
   RegionTradeView,
   SeoLanding,
   seoHead,
@@ -29,8 +30,9 @@ export const Route = createFileRoute("/contracts-in/$state_/$trade")({
           : "Open government contracts by state and trade, from federal, state and local sources.",
       canonical: `https://www.contrax.company/contracts-in/${(loaderData?.name ?? loaderData?.stateSlug ?? "").toLowerCase().replace(/\s+/g, "-")}/${loaderData?.trade?.slug ?? ""}`,
     });
-    // Unknown combos and pages with no open bids stay out of search results.
-    if (!loaderData?.trade || !loaderData?.code || loaderData.count === 0) {
+    // Unknown combos, and pages with no open bids (in the state or nationwide) and no federal
+    // facts, stay out of search results (src/lib/seo-landing.tsx regionTradeIndexable).
+    if (!regionTradeIndexable(loaderData)) {
       head.meta = head.meta.map((m) =>
         "name" in m && m.name === "robots" ? { name: "robots", content: "noindex, follow" } : m,
       );
@@ -53,7 +55,11 @@ function ContractsInStateTrade() {
     <SeoLanding
       eyebrow={`Live government bids · ${name}`}
       headline={`${name} ${spoken} bids`}
-      subhead={`${data.count > 0 ? `${data.count.toLocaleString("en-US")} open now` : "New bids post every week"} from cities, counties, school districts, the state and federal agencies in ${name}. New ones every weekday morning.`}
+      subhead={
+        data.count === 0 && data.nationwideCount > 0
+          ? `None posted in ${name} today, and ${data.nationwideCount.toLocaleString("en-US")} nationwide ${data.nationwideCount === 1 ? "one" : "ones"} open to ${name} businesses. New bids every weekday morning from cities, counties, school districts, the state and federal agencies.`
+          : `${data.count > 0 ? `${data.count.toLocaleString("en-US")} open now` : "New bids post every week"} from cities, counties, school districts, the state and federal agencies in ${name}. New ones every weekday morning.`
+      }
       radarHref={radarHref}
       signupState={data.code}
       radarLabel={`Search ${label.toLowerCase()} contracts in ${name} with Contract Radar`}

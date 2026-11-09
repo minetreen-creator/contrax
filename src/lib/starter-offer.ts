@@ -16,6 +16,8 @@ export const STARTER_FIRST_MONTH_COUPON = "contrax_starter_first_month_5_v2";
 export const STARTER_FIRST_MONTH_AMOUNT_OFF = 900;
 /** The Starter month, in cents. The checkout bills this inline (stripe.ts), never a catalog price. */
 export const STARTER_MONTHLY_CENTS = 1400;
+/** Veterans (VAD26 partner code) Starter month, in cents (owner 2026-11-09: $10, below the regular $14). */
+export const VAD_STARTER_MONTHLY_CENTS = 1000;
 /** Starter billed yearly, in dollars: 10 × the month (2 months free). */
 export const STARTER_ANNUAL_PRICE = (STARTER_MONTHLY_CENTS * 10) / 100;
 export const STARTER_FIRST_MONTH_PRICE = 5;

@@ -13,7 +13,7 @@ import { handleBidScoutSubscriptionEvent } from "~/lib/bid-scout";
 import { sendWelcomeEmail } from "~/lib/email";
 import { hashPassword } from "~/lib/password";
 import { issuePasswordResetToken, SET_PASSWORD_TOKEN_TTL_MS } from "~/lib/password-reset-tokens";
-import { STARTER_MONTHLY_CENTS,
+import { STARTER_MONTHLY_CENTS, VAD_STARTER_MONTHLY_CENTS,
   checkoutCreatedAccount,
   STARTER_FIRST_MONTH_AMOUNT_OFF,
   STARTER_FIRST_MONTH_COUPON,
@@ -171,7 +171,8 @@ export const MONTHLY_PRICE_USD: Partial<Record<PlanTier, number>> = {
 //
 // VAD partner members get EXCLUSIVE pricing for the first 12 months via the
 // `VAD26` server-side verification code (entered on the /vad partner page):
-//   - Starter:      $14/mo  (the regular Starter price since 2026-11-09)
+//   - Starter:      $10/mo  (owner 2026-11-09; regular Starter is $14). Billed inline on the
+//                           VAD Starter product, since its catalog price is $14.
 //   - Professional: $59/mo  (normally $79)
 //   - Agency:       $149/mo (normally $199)
 //
@@ -214,7 +215,7 @@ const VAD_EXPECTED_UNIT_AMOUNTS: Partial<Record<PlanTier, number>> = {
  *         console.log(pr.id, prod?.metadata?.plan_tier ?? pr.metadata?.plan_tier, pr.unit_amount) }))'
  */
 const FALLBACK_VAD_PRICE_IDS: Record<PlanTier, string | null> = {
-  starter: "price_1U8AsfGdL43e7acFAolkeOnS", // VAD Starter $14/mo (VAD26)
+  starter: "price_1U8AsfGdL43e7acFAolkeOnS", // VAD Starter product (catalog $14/mo; checkout bills $10 inline)
   professional: "price_1U8AYqGdL43e7acFJ4IWddcj", // VAD Professional $59/mo (VAD26)
   agency: "price_1U8AZqGdL43e7acFHY4MEhzA", // VAD Agency $149/mo (VAD26)
   savings_premium: null, // not part of the VAD offering
@@ -541,6 +542,20 @@ export async function createCheckoutSession(
           currency: monthly.currency || "usd",
           product: productId,
           unit_amount: FOUNDING_MEMBER_UNIT_AMOUNT,
+          recurring: { interval: "month" },
+        },
+        quantity: 1,
+      };
+    } else if (interval === "month" && planTier === "starter" && isVad) {
+      // Owner 2026-11-09: veterans' Starter is $10 a month (regular Starter is $14). Billed inline on
+      // the VAD Starter product, so the subscription stays on the veterans' product and metadata.
+      const monthly = await getStripe().prices.retrieve(priceId);
+      const productId = typeof monthly.product === "string" ? monthly.product : monthly.product.id;
+      lineItem = {
+        price_data: {
+          currency: monthly.currency || "usd",
+          product: productId,
+          unit_amount: VAD_STARTER_MONTHLY_CENTS,
           recurring: { interval: "month" },
         },
         quantity: 1,

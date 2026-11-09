@@ -25,7 +25,7 @@ export const Route = createFileRoute("/vad")({
 
 // VAD26 is our own server-side verification code, NOT a Stripe promo code.
 // Presenting it at checkout selects dedicated exact VAD Stripe prices for the
-// tier ($14/$59/$149). The customer is still billed at the exact VAD price —
+// tier ($10/$59/$149; Starter's $10 is billed inline on the VAD Starter product). The customer is still billed at the exact VAD price —
 // never a standard price minus a percentage.
 const VAD_CODE = "VAD26";
 
@@ -45,8 +45,8 @@ const vadPlans: {
 }[] = [
   {
     name: "Starter",
-    price: "14",
-    was: "",
+    price: "10",
+    was: "14",
     period: "/mo",
     description: "For businesses ready to build and track a real government-contracting pipeline.",
     features: [

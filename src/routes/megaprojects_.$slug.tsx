@@ -84,6 +84,15 @@ function MegaprojectPage() {
           <MegaprojectCard p={p} linkTitle={false} />
         </ul>
 
+        {/* Sub Finder (owner 2026-11-09): contractors working this project find subs and collect quotes. */}
+        <a
+          href={`/sub-finder?mega=${p.slug}&state=${p.state}`}
+          className="block rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm hover:border-blue-400"
+        >
+          <span className="font-semibold text-blue-900">Working on this project? Find subs with Sub Finder →</span>
+          <span className="mt-0.5 block text-xs text-blue-800">Listed local subs by trade and certification, and a Trade Package link to collect their quotes.</span>
+        </a>
+
         <section className="rounded-2xl border border-slate-200 bg-white p-6">
           <h2 className="text-xl font-extrabold text-slate-900">
             How to get on the {p.company} {p.city} sub list

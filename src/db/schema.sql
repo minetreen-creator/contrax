@@ -1306,3 +1306,42 @@ CREATE INDEX IF NOT EXISTS idx_dot_directory_records_prime ON dot_directory_reco
     WHERE prime_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_subcontract_primes_state
     ON subcontract_primes (vendor_state, fy);
+
+-- Sub Finder (owner 2026-11-09): members opt in to being listed for primes; Trade Packages,
+-- their responses, and quote requests (sent only to listed members). Mirrors
+-- src/lib/sub-finder.server.ts ensureSubFinderTables.
+ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS listed_for_primes BOOLEAN NOT NULL DEFAULT FALSE;
+CREATE TABLE IF NOT EXISTS trade_packages (
+    id SERIAL PRIMARY KEY,
+    slug TEXT NOT NULL UNIQUE,
+    prime_user_id INTEGER NOT NULL,
+    bid_id INTEGER,
+    mega_slug TEXT,
+    title TEXT NOT NULL,
+    agency TEXT,
+    trade TEXT NOT NULL,
+    state TEXT,
+    location TEXT,
+    scope TEXT NOT NULL,
+    quotes_due DATE,
+    company TEXT NOT NULL,
+    contact_name TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE TABLE IF NOT EXISTS trade_package_responses (
+    id SERIAL PRIMARY KEY,
+    package_id INTEGER NOT NULL REFERENCES trade_packages(id),
+    company TEXT NOT NULL,
+    contact_name TEXT,
+    email TEXT NOT NULL,
+    phone TEXT,
+    certifications JSONB NOT NULL DEFAULT '[]'::jsonb,
+    message TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE TABLE IF NOT EXISTS trade_package_requests (
+    package_id INTEGER NOT NULL REFERENCES trade_packages(id),
+    profile_id INTEGER NOT NULL,
+    sent_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (package_id, profile_id)
+);

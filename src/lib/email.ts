@@ -301,6 +301,33 @@ export async function sendRadarLeadConfirmationEmail(
 }
 
 /**
+ * One plain transactional email (Sub Finder, owner 2026-11-09): a quote response to the prime who
+ * asked, or a quote request to a member who listed their business for primes. Returns false on any
+ * failure (logged without the address); never throws.
+ */
+export async function sendBasicEmail(m: { to: string; subject: string; html: string; text: string; replyTo?: string }): Promise<boolean> {
+  try {
+    const resend = getResend();
+    if (!resend) {
+      console.warn("Cannot send email — RESEND_API_KEY not set");
+      return false;
+    }
+    await resend.emails.send({
+      from: "Contrax <hello@contrax.company>",
+      replyTo: m.replyTo ?? "contrax.companyllc@gmail.com",
+      to: [m.to],
+      subject: m.subject,
+      html: m.html,
+      text: m.text,
+    });
+    return true;
+  } catch (err) {
+    console.error("Failed to send email:", (err as Error).message);
+    return false;
+  }
+}
+
+/**
  * Trial-ending notice (owner 2026-10-19): one of the two per-trial emails built
  * by ~/lib/trial-emails. Returns false on any failure (logged without the
  * address) so the job records nothing and retries the next morning.

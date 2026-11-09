@@ -18,6 +18,7 @@ const WIN_WORK_LINKS = [
   { href: "/gap-map", label: "Opportunity gap map", note: "Where your trade's federal money is" },
   { href: "/roadmap", label: "Your roadmap", note: "Your plan and next 3 actions" },
   { href: "/prime-finder", label: "Prime contractor finder", note: "Primes that must subcontract" },
+  { href: "/sub-finder", label: "Sub Finder", note: "Find subs and collect quotes for your bid" },
 ];
 
 /** "Win work ▾": the Pathway tools. A <details> menu, so it works before hydration; closes on an outside click or Escape. */

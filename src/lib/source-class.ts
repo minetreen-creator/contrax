@@ -6668,6 +6668,9 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
     searchScope: "city-open-data",
     recordType: "opportunity",
   },
+  tx_plano_ionwave: { class: "local", city: "Plano", scopeState: "TX", searchScope: "city-open-data", recordType: "opportunity" },
+  tx_irving_ionwave: { class: "local", city: "Irving", scopeState: "TX", searchScope: "city-open-data", recordType: "opportunity" },
+  tx_georgetown_ionwave: { class: "local", city: "Georgetown", scopeState: "TX", searchScope: "city-open-data", recordType: "opportunity" },
   oh_toledo_planetbids: {
     class: "local",
     city: "Toledo",

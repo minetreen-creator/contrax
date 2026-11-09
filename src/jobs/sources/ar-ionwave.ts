@@ -203,6 +203,23 @@ export const SC_IONWAVE_SOURCES: { name: string; fetchFn: () => Promise<FetchRes
   fetchFn: () => fetchIonwaveBoard(b),
 }));
 
+/**
+ * Texas city IonWave boards (owner 2026-11-09: "resume the texas cities work"). Captured as
+ * ContraxBot on 2026-11-09: Plano (7 bids), Irving (9) and Georgetown (7), close times in Central
+ * time. Pearland, Garland and Allen answered with a bot challenge ("Just a moment…") and are not
+ * read (no circumvention); Carrollton has no IonWave board under any name tried.
+ */
+export const TX_IONWAVE_BOARDS: readonly IonwaveBoard[] = [
+  { source: "tx_plano_ionwave", origin: "https://planotx.ionwave.net", agency: "City of Plano", location: "Plano, TX", fallbackLocation: "Plano, TX", idPrefix: "planotxionwave" },
+  { source: "tx_irving_ionwave", origin: "https://cityofirving.ionwave.net", agency: "City of Irving", location: "Irving, TX", fallbackLocation: "Irving, TX", idPrefix: "irvingtxionwave" },
+  { source: "tx_georgetown_ionwave", origin: "https://gtowntx.ionwave.net", agency: "City of Georgetown", location: "Georgetown, TX", fallbackLocation: "Georgetown, TX", idPrefix: "georgetowntxionwave" },
+];
+
+export const TX_IONWAVE_SOURCES: { name: string; fetchFn: () => Promise<FetchResult> }[] = TX_IONWAVE_BOARDS.map((b) => ({
+  name: b.source,
+  fetchFn: () => fetchIonwaveBoard(b),
+}));
+
 export const AR_IONWAVE_SOURCES: { name: string; fetchFn: () => Promise<FetchResult> }[] = AR_IONWAVE_BOARDS.map((b) => ({
   name: b.source,
   fetchFn: () => fetchIonwaveBoard(b),

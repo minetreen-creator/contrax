@@ -68,7 +68,7 @@ import { CA_DIRECT_BATCH2, CA_DIRECT_SOURCES } from "./sources/ca-direct";
 import { PAVA_BEACON_SOURCES } from "./sources/pava-beacon";
 import { REVIZE_SOURCES } from "./sources/revize-bids";
 import { FL_DIRECT_SOURCES } from "./sources/fl-direct";
-import { AR_IONWAVE_SOURCES, SC_IONWAVE_SOURCES } from "./sources/ar-ionwave";
+import { AR_IONWAVE_SOURCES, SC_IONWAVE_SOURCES, TX_IONWAVE_SOURCES } from "./sources/ar-ionwave";
 import { PLANETBIDS_SOURCES } from "./sources/planetbids";
 import { fetchOhFranklinCountyBids } from "./sources/oh-franklin-county";
 import { fetchNjHarrisonBids } from "./sources/nj-harrison";
@@ -577,6 +577,8 @@ export const TAIL_SOURCES: SyncSource[] = [
   // Arkansas IonWave boards (owner 2026-11-07).
   ...AR_IONWAVE_SOURCES,
   ...SC_IONWAVE_SOURCES,
+  // Owner 2026-11-09: Texas cities' own IonWave boards (Plano, Irving, Georgetown).
+  ...TX_IONWAVE_SOURCES,
   ...PLANETBIDS_SOURCES,
   { name: "oh_franklin_county", fetchFn: () => fetchOhFranklinCountyBids() },
   { name: "nj_harrison", fetchFn: () => fetchNjHarrisonBids() },

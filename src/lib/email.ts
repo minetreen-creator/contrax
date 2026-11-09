@@ -6,6 +6,7 @@
  */
 
 import { digestBidsToList } from "./digest-recipients";
+import { OPEN_TO_ALL_EMAIL_MAX } from "./digest-open-to-all";
 import { HEAD_START_DAYS } from "./head-start";
 import { PAYMENTS_WON_LINE, paymentsHref } from "./payments-upsell";
 import { displayCompanyName, formatAwardAmount } from "./award-check";
@@ -212,7 +213,8 @@ export async function sendWeeklyBidDigest(recipients: WeeklyDigestRecipient[]): 
 export async function sendPersonalBidDigests(
   emails: { to: string; bids: NewBidSummary[]; options: DailyDigestHtmlOptions }[],
 ): Promise<number> {
-  const ready = emails.filter((e) => e.bids.length > 0);
+  const openCount = (e: { options: DailyDigestHtmlOptions }) => e.options.openToAll?.length ?? 0;
+  const ready = emails.filter((e) => e.bids.length + openCount(e) > 0);
   if (ready.length === 0) return 0;
   const resend = getResend();
   if (!resend) {
@@ -228,8 +230,12 @@ export async function sendPersonalBidDigests(
           from: "Contrax <hello@contrax.company>",
           replyTo: "contrax.companyllc@gmail.com",
           to: [e.to],
-          subject: `Your morning bid digest: ${e.bids.length} new ${e.options.matchLabel ? "matching " : ""}government bid${e.bids.length === 1 ? "" : "s"} — Contrax`,
-          html: bidDigestHtml(digestBidsToList(e.bids), e.bids.length, null, e.options),
+          subject: `Your morning bid digest: ${e.bids.length + openCount(e)} new ${e.options.matchLabel ? "matching " : ""}government bid${e.bids.length + openCount(e) === 1 ? "" : "s"} — Contrax`,
+          html: bidDigestHtml(digestBidsToList(e.bids), e.bids.length, null, {
+            ...e.options,
+            openToAllTotal: openCount(e),
+            openToAll: digestBidsToList(e.options.openToAll ?? [], OPEN_TO_ALL_EMAIL_MAX),
+          }),
         })),
       );
       if (error) {
@@ -978,6 +984,12 @@ export interface DailyDigestHtmlOptions {
   matchLabel?: string;
   /** True when the member has no trade/states set: suggest setting them. */
   setupHint?: boolean;
+  /**
+   * Federal bids that name no set-aside, listed in their own block (owner 2026-11-09,
+   * src/lib/digest-open-to-all.ts), soonest due first; `openToAllTotal` is how many there were.
+   */
+  openToAll?: NewBidSummary[];
+  openToAllTotal?: number;
 }
 
 export function bidDigestHtml(
@@ -987,6 +999,9 @@ export function bidDigestHtml(
   daily: DailyDigestHtmlOptions | null = null,
 ): string {
   const moreCount = Math.max(0, totalNew - bids.length);
+  const openToAll = daily?.openToAll ?? [];
+  const openTotal = openToAll.length ? Math.max(daily?.openToAllTotal ?? 0, openToAll.length) : 0;
+  const headerTotal = totalNew + openTotal;
   const now = new Date().toLocaleDateString("en-US", {
     weekday: "long",
     year: "numeric",
@@ -994,9 +1009,7 @@ export function bidDigestHtml(
     day: "numeric",
   });
 
-  const bidRows = bids
-    .map(
-      (bid) => `
+  const bidRow = (bid: NewBidSummary) => `
 <tr>
   <td style="padding:16px;border-bottom:1px solid #e5e7eb;">
     <a href="${bid.source_url}"
@@ -1017,9 +1030,9 @@ export function bidDigestHtml(
       </tr>
     </table>
   </td>
-</tr>`,
-    )
-    .join("\n");
+</tr>`;
+  const bidRows = bids.map(bidRow).join("\n");
+  const openRows = openToAll.map(bidRow).join("\n");
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -1037,7 +1050,7 @@ export function bidDigestHtml(
       <tr>
         <td style="background:linear-gradient(135deg,#2563eb,#1d4ed8);padding:32px 32px 24px;text-align:center;">
           <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:700;letter-spacing:-0.5px;">
-            🆕 ${totalNew} New Bid${totalNew === 1 ? "" : "s"} Found
+            🆕 ${headerTotal} New Bid${headerTotal === 1 ? "" : "s"} Found
           </h1>
           <p style="margin:8px 0 0;color:rgba(255,255,255,0.85);font-size:14px;">
             ${now}
@@ -1048,19 +1061,34 @@ export function bidDigestHtml(
       <tr>
         <td style="padding:24px 32px 8px;">
           <p style="margin:0;color:#374151;font-size:15px;line-height:1.6;">
-            Contrax found <strong>${totalNew} new government contract${totalNew === 1 ? "" : "s"}</strong> ${weekly ? "this past week" : "since your last digest"}${(daily?.matchLabel ?? weekly?.matchLabel) ? ` that match your profile (${escapeHtml(String(daily?.matchLabel ?? weekly?.matchLabel))})` : ""}. ${moreCount > 0 ? `Here are the ${bids.length} closing soonest:` : "Here's what's new:"}
+            Contrax found <strong>${headerTotal} new government contract${headerTotal === 1 ? "" : "s"}</strong> ${weekly ? "this past week" : "since your last digest"}${(daily?.matchLabel ?? weekly?.matchLabel) ? ` that match your profile (${escapeHtml(String(daily?.matchLabel ?? weekly?.matchLabel))})` : ""}.${openTotal > 0 ? ` ${openTotal} ${openTotal === 1 ? "is a federal bid" : "are federal bids"} open to all businesses, listed separately below.` : ""} ${bids.length === 0 ? "" : moreCount > 0 ? `Here are the ${bids.length} closing soonest:` : "Here's what's new:"}
           </p>
         </td>
       </tr>
       <!-- Bid List -->
-      <tr>
+      ${bids.length > 0 ? `<tr>
         <td style="padding:8px 32px 16px;">
           <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
             ${bidRows}
           </table>
           ${moreCount > 0 ? `<p style="margin:12px 0 0;color:#374151;font-size:14px;text-align:center;">${weekly ? `<strong>+ ${moreCount} more new ${weekly.matchLabel ? "matching " : ""}bid${moreCount === 1 ? "" : "s"} with the $5 pass.</strong> <a href="${WEEKLY_PASS_URL}" style="color:#2563eb;font-weight:600;text-decoration:none;">See them all →</a>` : `+ ${moreCount} more new bid${moreCount === 1 ? "" : "s"} on Contrax.`}</p>` : ""}
         </td>
-      </tr>
+      </tr>` : ""}
+      ${openToAll.length > 0 ? `<!-- Open to all businesses (owner 2026-11-09) -->
+      <tr>
+        <td style="padding:8px 32px 16px;">
+          <p style="margin:0 0 4px;color:#075985;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;">
+            🏛️ Open to all businesses (no set-aside)
+          </p>
+          <p style="margin:0 0 10px;color:#374151;font-size:13px;line-height:1.5;">
+            Federal bids that name no set-aside are open to every company, small businesses included. Larger firms can bid too, so some are big jobs, and the companies that win them often hire local subcontractors.
+          </p>
+          <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border:1px solid #bae6fd;border-radius:8px;overflow:hidden;">
+            ${openRows}
+          </table>
+          ${openTotal > openToAll.length ? `<p style="margin:12px 0 0;color:#374151;font-size:14px;text-align:center;">+ ${openTotal - openToAll.length} more open to all businesses on Contrax.</p>` : ""}
+        </td>
+      </tr>` : ""}
       <!-- CTA -->
       <tr>
         <td style="padding:8px 32px 24px;text-align:center;">

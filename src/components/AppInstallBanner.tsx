@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { trackEvent } from "~/lib/track";
 import { APP_INSTALLED_KEY, markAppInstalled } from "~/lib/app-install";
 
@@ -19,9 +19,13 @@ const SHOW_AFTER_MS = { radar: 20000, bid: 6000 } as const;
 
 type Platform = "ios" | "android";
 
-export function AppInstallBanner({ where }: { where: "radar" | "bid" }) {
+export function AppInstallBanner({ where, hold = false }: { where: "radar" | "bid"; hold?: boolean }) {
   const [platform, setPlatform] = useState<Platform | null>(null);
   const [visible, setVisible] = useState(false);
+  // `hold` (owner 2026-11-09): bid pages keep the banner back until the visitor has seen the $5
+  // offer. It still mounts at once so Android's install event is not missed.
+  const [due, setDue] = useState(false);
+  const shown = useRef(false);
   const [sheet, setSheet] = useState(false);
   const [installEvt, setInstallEvt] = useState<any>(null);
 
@@ -49,16 +53,20 @@ export function AppInstallBanner({ where }: { where: "radar" | "bid" }) {
       setVisible(false);
     };
     window.addEventListener("appinstalled", onInstalled);
-    const t = window.setTimeout(() => {
-      setVisible(true);
-      trackEvent("app_banner_shown", `${where}:${p}`);
-    }, SHOW_AFTER_MS[where]);
+    const t = window.setTimeout(() => setDue(true), SHOW_AFTER_MS[where]);
     return () => {
       window.clearTimeout(t);
       window.removeEventListener("beforeinstallprompt", onPrompt);
       window.removeEventListener("appinstalled", onInstalled);
     };
   }, [where]);
+
+  useEffect(() => {
+    if (!due || hold || shown.current || !platform) return;
+    shown.current = true;
+    setVisible(true);
+    trackEvent("app_banner_shown", `${where}:${platform}`);
+  }, [due, hold, platform, where]);
 
   const remember = () => {
     try {

@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 test("Radar and bid pages show the install banner and link the app manifest", () => {
   for (const [f, where] of [["src/routes/radar.tsx", "radar"], ["src/routes/bid.$bidId.tsx", "bid"]]) {
     const src = readFileSync(f, "utf8");
-    expect(src).toContain(`<AppInstallBanner where="${where}" />`);
+    expect(src).toContain(`<AppInstallBanner where="${where}"`);
     expect(src).toContain('{ rel: "manifest", href: "/app.webmanifest" }');
   }
 });

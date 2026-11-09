@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { UnlockBidSheet, type UnlockBidSummary } from "~/components/UnlockBidSheet";
+import { UnlockBidSheet } from "~/components/UnlockBidSheet";
 import { rememberCheckoutBid } from "~/lib/checkout-resume";
 import { createServerFn } from "@tanstack/react-start";
 import { WinnerPriceLine } from "~/components/WinnerPriceLine";
@@ -12,7 +12,7 @@ import type { AreaAwards } from "~/lib/area-awards";
 import { deriveWinnerPrice } from "~/lib/winner-price";
 import type { FPDSIntel } from "~/lib/fpds";
 import { STARTER_FIRST_MONTH_PRICE, STARTER_FULL_PRICE } from "~/lib/starter-offer";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { sql } from "~/db";
 import { RfpSummaryCard } from "~/components/RfpSummaryCard";
 import { resolveBidState, STATE_CODE_TO_NAME } from "~/lib/location-state";
@@ -408,6 +408,13 @@ function BidDetailPage() {
   // undefined until this viewer's own check returns, so a paying member never
   // sees the locked teaser flash first.
   const [contact, setContact] = useState<BidContact | null | undefined>(undefined);
+  // One $5 confirm step for the whole page (owner 2026-11-09): the top line, the lock and the
+  // contact panel all open it. Only a first-time buyer gets the one-time $5 pass; a used pass
+  // means Starter at $19/month and goes straight to checkout.
+  const [confirming, setConfirming] = useState(false);
+  // The app banner waits until the visitor has seen the $5 offer (scrolled past it or closed it).
+  const [offerSeen, setOfferSeen] = useState(false);
+  const pass = (bid?.starter_kind ?? "pass") === "pass";
 
   useEffect(() => {
     let active = true;
@@ -449,6 +456,28 @@ function BidDetailPage() {
   const sourceUrl = bid?.source_url ?? unlockedUrl;
   const locked = !!bid?.head_start_until && !sourceUrl;
   const membersOnly = !!bid?.has_link && !locked && !sourceUrl && checked;
+  const lockShown = locked || membersOnly;
+  const unlock = () => {
+    if (pass) {
+      setConfirming(true);
+    } else {
+      rememberCheckoutBid(bidId);
+      void redirectToCheckout("starter");
+    }
+  };
+  const closeSheet = useCallback(() => {
+    setConfirming(false);
+    setOfferSeen(true);
+    trackEvent("bid_lock_sheet_close", locked ? "new" : "members");
+  }, [locked]);
+  useEffect(() => {
+    if (!lockShown || offerSeen) return;
+    const onScroll = () => {
+      if (window.scrollY > 700) setOfferSeen(true);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [lockShown, offerSeen]);
 
   const due = bid?.due_date
     ? new Date(bid.due_date).toLocaleDateString("en-US", {
@@ -518,6 +547,27 @@ function BidDetailPage() {
                   <span aria-hidden="true">·</span>
                   <span>{bid.set_aside || "Open to small business"}</span>
                 </p>
+                {/* Owner 2026-11-09: 110 real people opened a bid page in a week and 4 tapped $5;
+                    on a phone the lock's button sat below the first screen. */}
+                {lockShown && (
+                  <a
+                    href={bidStarterHref(bid.id, signedIn)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      trackEvent("bid_top_starter_click", locked ? "new" : "members");
+                      unlock();
+                    }}
+                    className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-amber-500/50 bg-amber-500/10 px-3 py-2.5 text-sm hover:border-amber-400"
+                  >
+                    <span className="text-amber-100">
+                      🔒 {bid.has_contact ? "Notice, documents and contact" : "Notice and documents"}:{" "}
+                      <span className="font-bold text-white">
+                        {pass ? `$${STARTER_FIRST_MONTH_PRICE} for 30 days, one time` : `Starter, $${STARTER_FULL_PRICE}/month`}
+                      </span>
+                    </span>
+                    <span className="shrink-0 font-bold text-amber-300">Unlock →</span>
+                  </a>
+                )}
               </div>
               {/* Owner 2026-11-02 (design critique): the job is free to read; only
                   the official notice and its documents are for members. */}
@@ -533,7 +583,7 @@ function BidDetailPage() {
               </section>
               {(locked || membersOnly) && (
                 <div className="px-5 py-4">
-                  <NoticeLock bidId={bid.id} signedIn={signedIn} isNew={locked} bid={bid} />
+                  <NoticeLock bidId={bid.id} signedIn={signedIn} isNew={locked} pass={pass} onUnlock={unlock} />
                 </div>
               )}
               {sourceUrl && (
@@ -548,7 +598,7 @@ function BidDetailPage() {
                   </a>
                 </div>
               )}
-              {bid.has_contact && contact !== undefined && <BidContactPanel contact={contact} bidId={bid.id} />}
+              {bid.has_contact && contact !== undefined && <BidContactPanel contact={contact} bidId={bid.id} pass={pass} onUnlock={unlock} />}
               {price?.hasRecord && (
                 <div className="px-5 pb-4">
                   {price.intel ? (
@@ -616,8 +666,10 @@ function BidDetailPage() {
           </>
         )}
       </div>
-      {/* The Contrax app install prompt for phone visitors (owner 2026-11-07). */}
-      {bid && <AppInstallBanner where="bid" />}
+      {/* The Contrax app install prompt for phone visitors (owner 2026-11-07), held until the
+          visitor has seen the $5 offer so it never covers the first screen (owner 2026-11-09). */}
+      {bid && <AppInstallBanner where="bid" hold={!checked || (lockShown && !offerSeen)} />}
+      {bid && confirming ? <UnlockBidSheet bidId={bid.id} bid={bid} onClose={closeSheet} /> : null}
     </main>
   );
 }
@@ -680,7 +732,7 @@ function SimilarBidsBox({
  * Who to contact (owner 2026-10-19). Paid plans see the name, email and phone;
  * everyone else sees that a contact is on file and how to unlock it.
  */
-function BidContactPanel({ contact, bidId }: { contact: BidContact | null; bidId: number }) {
+function BidContactPanel({ contact, bidId, pass, onUnlock }: { contact: BidContact | null; bidId: number; pass: boolean; onUnlock: () => void }) {
   if (contact) {
     return (
       <div className="border-t border-slate-800 px-5 py-4">
@@ -705,14 +757,19 @@ function BidContactPanel({ contact, bidId }: { contact: BidContact | null; bidId
     <div className="border-t border-slate-800 px-5 py-4">
       <p className="text-xs font-semibold uppercase tracking-widest text-emerald-400">Who to contact</p>
       <p className="mt-1 text-sm text-slate-300">
-        🔒 The contracting officer&apos;s name, email and phone are on file for this bid. Paid plans see them.
+        🔒 The contracting officer&apos;s name, email and phone are on file for this bid.{" "}
+        {pass ? `They're included in the $${STARTER_FIRST_MONTH_PRICE} pass.` : "Starter members see them."}
       </p>
       <a
         href={`/upgrade?utm_source=bid&utm_campaign=contact&bid=${bidId}`}
-        onClick={() => trackEvent("bid_contact_upgrade_click", String(bidId))}
+        onClick={(e) => {
+          e.preventDefault();
+          trackEvent("bid_contact_upgrade_click", String(bidId));
+          onUnlock();
+        }}
         className="mt-2 inline-block text-sm font-semibold text-amber-400 hover:text-amber-300"
       >
-        See who to contact: Starter, $19/month →
+        {pass ? `See who to contact: included in the $${STARTER_FIRST_MONTH_PRICE} pass →` : `See who to contact: Starter, $${STARTER_FULL_PRICE}/month →`}
       </a>
     </div>
   );
@@ -749,10 +806,7 @@ export const Route = createFileRoute("/bid/$bidId")({
  * off the free tier"). Free accounts and visitors see what the job is; the $5
  * Starter pass is the one button to act on it (owner 2026-11-01).
  */
-function NoticeLock({ bidId, signedIn, isNew = false, bid }: { bidId: number; signedIn: boolean; isNew?: boolean; bid?: UnlockBidSummary & { starter_kind?: BidDetail["starter_kind"] } }) {
-  const [confirming, setConfirming] = useState(false);
-  // Only a first-time buyer gets the one-time $5 pass; a used pass means Starter at $19/month.
-  const pass = (bid?.starter_kind ?? "pass") === "pass";
+function NoticeLock({ bidId, signedIn, isNew = false, pass, onUnlock }: { bidId: number; signedIn: boolean; isNew?: boolean; pass: boolean; onUnlock: () => void }) {
   // Owner 2026-11-02 (design critique): one lock for every locked bid, the $5
   // as the one clear button, and the bid carried through signup to the plan.
   return (
@@ -774,27 +828,12 @@ function NoticeLock({ bidId, signedIn, isNew = false, bid }: { bidId: number; si
           // what $5 gets, no auto-renew) before Stripe. The href is the no-JS fallback.
           e.preventDefault();
           trackEvent("bid_lock_starter_click", isNew ? "new" : "members");
-          if (pass) {
-            setConfirming(true);
-          } else {
-            rememberCheckoutBid(bidId);
-            void redirectToCheckout("starter");
-          }
+          onUnlock();
         }}
         className="mt-3 block w-full rounded-lg bg-amber-400 px-4 py-3 text-center text-base font-bold text-slate-950 hover:bg-amber-300 sm:inline-block sm:w-auto"
       >
         {pass ? `Open this bid + every new one for 30 days: $${STARTER_FIRST_MONTH_PRICE}` : `Open this bid with Starter: $${STARTER_FULL_PRICE}/month`}
       </a>
-      {confirming ? (
-        <UnlockBidSheet
-          bidId={bidId}
-          bid={bid}
-          onClose={() => {
-            setConfirming(false);
-            trackEvent("bid_lock_sheet_close", isNew ? "new" : "members");
-          }}
-        />
-      ) : null}
     </div>
   );
 }

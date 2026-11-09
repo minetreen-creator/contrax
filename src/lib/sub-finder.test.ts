@@ -161,3 +161,24 @@ describe("growth: our own members, prime search pages, partners (owner 2026-11-0
     expect(page).not.toContain("sendBasicEmail");
   });
 });
+
+describe("Tampa Contractor Support Network (owner 2026-11-09)", () => {
+  test("Tampa Bay bids: a Tampa Bay place plus a Florida hint; build work by title", async () => {
+    const { isTampaBay, isBuildWork, CASA } = await import("./tampa");
+    expect(isTampaBay("Tampa, FL", "City of Tampa")).toBe(true);
+    expect(isTampaBay("Largo, Florida", null)).toBe(true);
+    expect(isTampaBay("Brandon, MS", "City of Brandon")).toBe(false);
+    expect(isTampaBay("Orlando, FL", "Orange County")).toBe(false);
+    expect(isTampaBay("Idaho", "NEZ PERCE-CLEARWATER NFS")).toBe(false);
+    expect(isTampaBay("Key Largo, FL", "BASE MIAMI BEACH")).toBe(false);
+    expect(isTampaBay("Pasco, WA", "City of Pasco")).toBe(false);
+    expect(isTampaBay("MacDill AFB, FL", "DLA ENERGY")).toBe(true);
+    expect(isBuildWork("HVAC Chiller Replacement - Building 5")).toBe(true);
+    expect(isBuildWork("Legal advertising services")).toBe(false);
+    expect(CASA.url).toContain("utm_source=contrax");
+    const page = readFileSync(new URL("../routes/tampa-contractors.tsx", import.meta.url), "utf8");
+    expect(page).toContain('rel="sponsored noopener"');
+    expect(page).toContain("Find the work. Build the team. House the crew.");
+    expect(readFileSync(new URL("../../scripts/generate-sitemap.mjs", import.meta.url), "utf8")).toContain('["/tampa-contractors", "daily", "0.6"]');
+  });
+});

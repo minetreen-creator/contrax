@@ -1,4 +1,5 @@
 import { sql } from "~/db";
+import { checkMaxDates, dateCorrection, type MaxEvidence } from "~/lib/max-trust";
 import { fetchOpenAIWithRetry, sanitizeLogString } from "~/lib/ai";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
@@ -82,7 +83,8 @@ export async function searchOpenBids(query: string, state: string | null, setAsi
   return state ? filterBidsToState(strong, state) : strong.sort((a, b) => String(a.due_date ?? "9999").localeCompare(String(b.due_date ?? "9999")));
 }
 
-type ToolOut = { result: unknown; cards?: MaxBidCard[] };
+/** dueDates: the due date (YYYY-MM-DD) of each bid the tool looked up, for Max's date check. */
+type ToolOut = { result: unknown; cards?: MaxBidCard[]; dueDates?: string[] };
 
 async function runTool(name: string, args: Record<string, unknown>, tier: MaxTier = "free"): Promise<ToolOut> {
   const db = sql();
@@ -161,18 +163,21 @@ async function runTool(name: string, args: Record<string, unknown>, tier: MaxTie
           note: "These are similar contracts (same NAICS code), not necessarily this exact one.",
         },
         cards: b.still_open ? [{ id: b.id, title: b.title, agency: b.agency, location: b.location, due: b.due_date ? new Date(b.due_date).toISOString().slice(0, 10) : null, setAside: b.set_aside }] : [],
+        dueDates: b.due_date ? [new Date(b.due_date).toISOString().slice(0, 10)] : [],
       };
     }
     case "bid_details": {
       const id = Math.round(Number(args.id));
       if (!Number.isFinite(id) || id <= 0) return { result: { error: "an id is required" } };
       const [b] = (await db.query(
-        `SELECT id, title, agency, location, normalized_state AS state, to_char(due_date, 'Dy Mon DD YYYY') AS due,
+        `SELECT id, title, agency, location, normalized_state AS state, to_char(due_date, 'Dy Mon DD YYYY') AS due, due_date,
                 estimated_value, set_aside, naics_code, LEFT(regexp_replace(COALESCE(description, ''), '\\s+', ' ', 'g'), 900) AS description
          FROM bids WHERE id = $1 AND ${AWARD_EXCLUSION_SQL}`,
         [id],
       )) as Record<string, unknown>[];
-      return { result: b ?? { error: "no open bid with that id" } };
+      if (!b) return { result: { error: "no open bid with that id" } };
+      const { due_date: rawDue, ...detail } = b;
+      return { result: detail, dueDates: rawDue ? [new Date(String(rawDue)).toISOString().slice(0, 10)] : [] };
     }
     case "state_overview": {
       if (!state) return { result: { error: "a two-letter state is required" } };
@@ -269,11 +274,13 @@ async function chat(model: string, messages: ChatMsg[]) {
   return msg;
 }
 
-async function answer(model: string, messages: ChatMsg[], tier: MaxTier): Promise<{ raw: string; cards: MaxBidCard[] }> {
+async function answer(model: string, messages: ChatMsg[], tier: MaxTier): Promise<{ raw: string; cards: MaxBidCard[]; evidence: MaxEvidence }> {
   let cards: MaxBidCard[] = [];
+  // What the lookups returned, for the date check (src/lib/max-trust.ts).
+  const evidence: MaxEvidence = { dueDates: [], text: "" };
   for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
     const msg = await chat(model, messages);
-    if (!msg.tool_calls?.length || round === MAX_TOOL_ROUNDS) return { raw: msg.content ?? "", cards };
+    if (!msg.tool_calls?.length || round === MAX_TOOL_ROUNDS) return { raw: msg.content ?? "", cards, evidence };
     messages.push({ role: "assistant", content: msg.content ?? null, tool_calls: msg.tool_calls });
     for (const call of msg.tool_calls) {
       let out: ToolOut;
@@ -284,14 +291,19 @@ async function answer(model: string, messages: ChatMsg[], tier: MaxTier): Promis
         out = { result: { error: "lookup failed" } };
       }
       if (out.cards?.length) cards = out.cards; // the last search is the one the answer is about
-      messages.push({ role: "tool", tool_call_id: call.id, content: JSON.stringify(out.result).slice(0, 7000) });
+      const content = JSON.stringify(out.result).slice(0, 7000);
+      evidence.text += `\n${content}`;
+      evidence.dueDates.push(...(out.dueDates ?? []), ...(out.cards ?? []).map((c) => c.due).filter((d): d is string => !!d));
+      messages.push({ role: "tool", tool_call_id: call.id, content });
     }
   }
-  return { raw: "", cards };
+  return { raw: "", cards, evidence };
 }
 
 /** One visitor question in, Max's reply and the bid cards to show out. */
-export async function askMax(input: { question: string; history: unknown; lang?: MaxLang; bidId?: unknown; tier?: MaxTier }): Promise<MaxReply & { bids: MaxBidCard[] }> {
+export async function askMax(input: { question: string; history: unknown; lang?: MaxLang; bidId?: unknown; tier?: MaxTier }): Promise<
+  MaxReply & { bids: MaxBidCard[]; dateCheck?: { status: "ok" | "corrected" | "none"; due: string | null } }
+> {
   const tier: MaxTier = input.tier ?? "free";
   const lang: MaxLang = maxLang(input.lang);
   const now = new Date().toLocaleString("en-US", { timeZone: "America/New_York", weekday: "long", month: "long", day: "numeric", year: "numeric" });
@@ -300,7 +312,7 @@ export async function askMax(input: { question: string; history: unknown; lang?:
     ...sanitizeMaxHistory(input.history),
     { role: "user", content: input.question.trim().slice(0, MAX_QUESTION_CHARS) },
   ];
-  let out: { raw: string; cards: MaxBidCard[] };
+  let out: { raw: string; cards: MaxBidCard[]; evidence: MaxEvidence };
   try {
     out = await answer(SMART_MODEL, [...messages], tier);
   } catch (err) {
@@ -315,9 +327,15 @@ export async function askMax(input: { question: string; history: unknown; lang?:
             : "Sorry, I'm having trouble reaching my brain right now. Try me again in a moment.";
       return { say, cta: null, trade: null, state: null, remindBid: null, lang, capability: null, bids: [] };
     }
-    out = await answer(FALLBACK_MODEL, [...messages], tier).catch(() => ({ raw: "", cards: [] }));
+    out = await answer(FALLBACK_MODEL, [...messages], tier).catch(() => ({ raw: "", cards: [], evidence: { dueDates: [], text: "" } }));
   }
-  return { ...parseMaxReply(out.raw, lang), bids: out.cards };
+  const reply = parseMaxReply(out.raw, lang);
+  // Date check (owner 2026-11-09): every date Max says must match the lookups, or it is
+  // corrected before anyone sees it.
+  const dates = checkMaxDates(reply.say, out.evidence);
+  if (dates.status === "corrected") console.warn(`[max] date corrected: said ${dates.mismatches.join(", ")}; due ${dates.due ?? "(several bids)"}`);
+  const say = dates.status === "corrected" ? `${reply.say}${dateCorrection(dates, reply.lang)}` : reply.say;
+  return { ...reply, say, dateCheck: { status: dates.status, due: dates.due }, bids: out.cards };
 }
 
 /** Max's voice (owner 2026-10-25: "give it an american accent too"). */

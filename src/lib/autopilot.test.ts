@@ -119,5 +119,7 @@ test("the morning email leads with Auto-Pilot and names the picks in the subject
   expect(email.indexOf('${daily?.autopilotHtml ?? ""}')).toBeLessThan(email.indexOf("<!-- Bid List -->"));
   expect(email).toContain("strong fit${e.options.autopilotPicks === 1");
   const wf = readFileSync(new URL("../../.github/workflows/daily-emails.yml", import.meta.url), "utf8");
-  expect(wf).toContain("OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}");
+  expect(wf).toContain("OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || secrets.OPEN_AI_KEY }}");
+  const preview = readFileSync(new URL("../../.github/workflows/autopilot-preview.yml", import.meta.url), "utf8");
+  expect(preview).toContain("OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || secrets.OPEN_AI_KEY }}");
 });

@@ -1,4 +1,5 @@
 import { isLearnRadarVisit } from "~/lib/learn-radar";
+import { OpenToAllBids } from "~/components/OpenToAllBids";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createServerFn } from "@tanstack/react-start";
@@ -2513,6 +2514,9 @@ function RadarLanding() {
                 )}
               </section>
             )}
+            {/* Owner 2026-11-09: federal bids that name no set-aside, listed apart and never in the
+                small-business counts above. */}
+            {trade.trim() !== "" && <OpenToAllBids trade={trade.trim()} state={state} where="radar" />}
           </section>
         )}
 

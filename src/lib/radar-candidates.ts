@@ -12,7 +12,7 @@
  *      are default matches.
  */
 import { setAsidePred } from "~/lib/open-bids";
-import { certMatches, sbCertFragment } from "~/lib/cert-matching";
+import { certMatches, FEDERAL_SOURCE_LABELS, sbCertFragment } from "~/lib/cert-matching";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { geoRelevant, locationConflict, matchGeographyBucket, resolveBidState } from "~/lib/location-state";
 import { collapseScanRows, loadNoticeDedupeKeys, runKeywordScanQuery } from "~/lib/radar-scan-query";
@@ -27,7 +27,7 @@ export interface StrictRadarRows {
 /** Strict scan rows for (trade, state, cert), de-duplicated. Throws RadarScanError on query failure. */
 export async function fetchStrictRadarRows(
   sql: any,
-  o: { trade: string; state: string; certId: string },
+  o: { trade: string; state: string; certId: string; window?: "federal_no_set_aside" },
 ): Promise<StrictRadarRows> {
   const { trade, state, certId } = o;
   const isNaics = /^\d{6}$/.test(trade);
@@ -38,7 +38,12 @@ export async function fetchStrictRadarRows(
   // portal publishes no set-aside metadata. The text-level include/exclude
   // decision runs in JS via the same certMatches predicate. Non-sb certs keep
   // their literal set_aside patterns UNCHANGED (mirrors /trades).
-  const certFrag = certId === "sb" ? sbCertFragment(sql) : setAsidePred(certId, sql);
+  const certFrag =
+    o.window === "federal_no_set_aside"
+      ? federalNoSetAsideFragment(sql)
+      : certId === "sb"
+        ? sbCertFragment(sql)
+        : setAsidePred(certId, sql);
   // Trade/NAICS predicate: exact NAICS equality when a 6-digit code is given,
   // otherwise the EXPANDED keyword set (trade-registry). Every term is a bound
   // parameter (injection-safe by construction).
@@ -74,9 +79,74 @@ export async function fetchStrictRadarRows(
  */
 export function radarRowPasses(r: any, certId: string, state: string): boolean {
   if (certMatches(r.set_aside, [r.source], certId as any) !== "include") return false;
+  return radarGeoPasses(r, state);
+}
+
+/** The location half of radarRowPasses: no contradictory location, and relevant to the state. */
+export function radarGeoPasses(r: any, state: string): boolean {
   const resolved = resolveBidState(r.location, r.agency);
   if (locationConflict(r.title, r.description, resolved)) return false;
   return geoRelevant(r.location, r.agency, state);
+}
+
+/**
+ * "Open to all businesses" (owner 2026-11-09): about 7,000 open federal notices name no set-aside,
+ * so the small-business rule (certMatches rule 3) keeps them out of every default match, though a
+ * federal notice with no set-aside is normally open to every company, small ones included. They
+ * are listed apart, under their own label, and never counted in the small-business numbers.
+ * Market research and award notices are not bids and stay out.
+ */
+export const NOT_A_BID_TITLE_RE =
+  /\b(?:sources?[\s-]+sought|request(?:s)? for information|rfi|market research|pre-?solicitation|special notice|notice of intent|intent to (?:award|sole[\s-]?source)|sole[\s-]?source|justification and approval|j&a|industry day|market intelligence|market survey|call for solutions|capability statements?)\b/i;
+
+/**
+ * Work performed abroad (an embassy guard force in Burundi, a commissary in Bavaria): a federal
+ * notice with no set-aside is often overseas, and that is not work for a small U.S. contractor.
+ * Foreign ISO place codes ("Bangui, CF-BGF") or a named foreign place in the title or location.
+ */
+export const FOREIGN_PLACE_RE =
+  /\b(?:u\.?s\.? (?:mission|embassy|consulate)|embassy|consulate|local guard (?:program|force)|bavaria|germany|japan|okinawa|korea|italy|spain|kuwait|qatar|bahrain|djibouti|afghanistan|iraq|kosovo|poland|romania|turkey|united kingdom|england|belgium|netherlands|greece|honduras|philippines|australia|diego garcia|kenya|niger|ghana|burundi|jordan|israel|egypt)\b/i;
+
+export function isForeignWork(r: { title?: unknown; location?: unknown }): boolean {
+  const loc = String(r.location ?? "");
+  if (/\b(?!US-)[A-Z]{2}-[A-Z0-9]{1,3}\b/.test(loc)) return true;
+  return FOREIGN_PLACE_RE.test(`${String(r.title ?? "")} ${loc}`);
+}
+
+/** A federal notice that names no set-aside (PURE). */
+export function isFederalNoSetAside(r: { set_aside?: unknown; source?: unknown }): boolean {
+  return String(r.set_aside ?? "").trim() === "" && FEDERAL_SOURCE_LABELS.has(String(r.source ?? "").toLowerCase());
+}
+
+function federalNoSetAsideFragment(sql: any): any {
+  // Source labels are hardcoded constants (never user input), as in sbCertFragment.
+  const vals = Array.from(FEDERAL_SOURCE_LABELS)
+    .map((s) => `'${s.replace(/'/g, "''")}'`)
+    .join(", ");
+  return sql()`AND (${sql().unsafe(`COALESCE(btrim(set_aside), '') = '' AND LOWER(COALESCE(source,'')) IN (${vals})`)})`;
+}
+
+/**
+ * The trade's federal no-set-aside bids, with the same trade test, duplicate rule and location
+ * rules as Radar's default matches, split into the state's own and nationwide ones.
+ */
+export async function openToAllMatches(sql: any, o: { trade: string; state: string }): Promise<{ local: any[]; nationwide: any[] }> {
+  const { rows, expansion } = await fetchStrictRadarRows(sql, { trade: o.trade, state: o.state, certId: "sb", window: "federal_no_set_aside" });
+  const kept = rows
+    .filter((r) => isFederalNoSetAside(r))
+    .filter((r) => !NOT_A_BID_TITLE_RE.test(String(r.title ?? "")))
+    .filter((r) => !isForeignWork(r))
+    .filter((r) => radarGeoPasses(r, o.state))
+    .filter((r) =>
+      isStrongTradeMatch(
+        String(r.title ?? ""),
+        r.category ? String(r.category) : null,
+        r.description ? String(r.description) : null,
+        r.naics_code ? String(r.naics_code) : null,
+        expansion,
+      ),
+    );
+  return splitByGeography(kept, o.state);
 }
 
 /** The default (strong) matches, in due-date order. Used for counts; the scan ranks by score itself. */

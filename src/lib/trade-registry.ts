@@ -1928,6 +1928,8 @@ export function serviceTradeMismatch(titleText: string, expansion: TradeExpansio
   if (!serviceTrade) return false;
   if (codes.some((c) => c.startsWith("484")) && /\b(?:lift trucks?|forklifts?|pallet jacks?)\b/.test(titleText)) return true;
   if (codes.includes("561612") && /\bkitchen patrol\b/.test(titleText)) return true;
+  // Cooking for a Marine Security Guard detachment is food service (owner 2026-11-09).
+  if (codes.includes("561612") && /\b(?:food services?|cooking|catering|meals?)\b/.test(titleText)) return true;
   // A truck for sale or a chassis upfit is a vehicle buy, not hauling work
   // ("2011 Freightliner Coronado", "Upfit of two (2) 2026 Freightliner Chassis").
   if (codes.some((c) => c.startsWith("484")) && /\b(?:upfit|chassis|(?:19|20)\d{2}\s+(?:freightliner|peterbilt|kenworth|mack|volvo|international|western star))\b/.test(titleText)) return true;

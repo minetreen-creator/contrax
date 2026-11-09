@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { OpenToAllBids } from "~/components/OpenToAllBids";
 import {
   getRegionTradeData,
   OtherTradeLinks,
@@ -72,6 +73,10 @@ function ContractsInStateTrade() {
       }
     >
       <RegionTradeView data={data} radarHref={radarHref} />
+      {data.code && data.trade && (
+        // Loaded after the page renders, so the page itself stays fast (owner 2026-11-09).
+        <OpenToAllBids trade={data.trade.radarTerm} state={data.code} where="state_page" tone="light" />
+      )}
       {data.code && data.trade && (
         <FederalTradeFacts
           data={data.federal}

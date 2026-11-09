@@ -1,4 +1,4 @@
-name: Temp probe (SAM.gov public entity extract format, read-only)
+name: Temp probe (Tampa Bay numbers, read-only, totals only)
 on:
   push:
     branches: [claude/vibrant-cray-177q1d]
@@ -8,9 +8,22 @@ permissions:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
       SAM_API_KEY: ${{ secrets.SAM_API_KEY }}
     steps:
       - uses: actions/checkout@v4
-      - run: bash .github/probe/sam.sh
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - run: bun install --frozen-lockfile
+      - name: Open bids (our DB)
+        run: bun .github/probe/tampa_bids.ts
+      - name: Federal awards (USAspending)
+        run: python3 .github/probe/tampa_usa.py
+      - name: SAM.gov registrants (public extract)
+        run: |
+          curl -sL -m 900 -A "ContraxBot/1.0 (+https://www.contrax.company)" -o /tmp/e.zip "https://api.sam.gov/data-services/v1/extracts?api_key=${SAM_API_KEY}&fileType=ENTITY&sensitivity=PUBLIC&frequency=MONTHLY&charset=UTF8"
+          mkdir -p /tmp/x && cd /tmp/x && unzip -o -q /tmp/e.zip && for z in *.ZIP *.zip; do [ -f "$z" ] && unzip -o -q "$z"; done; ls -l
+          python3 $GITHUB_WORKSPACE/.github/probe/tampa_sam.py "$(ls /tmp/x/*.dat | head -1)"

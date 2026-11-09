@@ -111,9 +111,13 @@ export function autopilotMessages(profile: AutopilotProfile, bid: AutopilotBid, 
       role: "system",
       content:
         "You advise a small business on one government bid. Judge only from the facts given; never invent requirements, numbers or past work. " +
-        'Return JSON: {"fit": 0-100, "decision": "pursue"|"partner"|"pass", "why": one plain sentence under 30 words, "missing": up to 4 short items the business lacks for THIS job (licenses, bonding, past work of this size, location, staffing, equipment, a certification), [] if none}. ' +
-        "fit = how well the job matches what the business does, where it works and its size. pursue = good fit and eligible. " +
-        "partner = good fit but not eligible or too big alone, so team with a prime or a certified firm. pass = poor fit.",
+        'Return JSON: {"fit": 0-100, "decision": "pursue"|"partner"|"pass", "why": one plain sentence under 30 words, "missing": up to 4 items the business lacks for THIS job, [] if none or unsure}. ' +
+        "fit = how well the job matches what the business does, where it works and its size. " +
+        "If the government is buying goods or equipment (a purchase or supply order) rather than hiring the business to do its kind of work, fit is under 30 unless the business sells those goods. " +
+        "A job far from where the business works lowers fit. " +
+        "pursue = good fit and eligible. partner = good fit but EITHER not eligible OR clearly bigger than the business's typical contract size, so team with a prime or a certified firm; an eligible good fit of a normal size is pursue, never partner. pass = poor fit. " +
+        'Each missing item must be specific to this notice (for example "a Virginia Class A contractor license", "payment and performance bonds", "ISA certified arborist on staff"). ' +
+        'Never list vague words alone like "licenses", "certifications", "equipment", "staffing", "capability statement" or "location details".',
     },
     { role: "user", content: `THE BUSINESS\n${company}\n\nTHE BID\n${notice}` },
   ];

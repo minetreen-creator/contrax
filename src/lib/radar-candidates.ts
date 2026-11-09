@@ -105,7 +105,7 @@ export const NOT_A_BID_TITLE_RE =
  * Foreign ISO place codes ("Bangui, CF-BGF") or a named foreign place in the title or location.
  */
 export const FOREIGN_PLACE_RE =
-  /\b(?:u\.?s\.? (?:mission|embassy|consulate)|embassy|consulate|local guard (?:program|force)|bavaria|germany|japan|okinawa|korea|italy|spain|kuwait|qatar|bahrain|djibouti|afghanistan|iraq|kosovo|poland|romania|turkey|united kingdom|england|belgium|netherlands|greece|honduras|philippines|australia|diego garcia|kenya|niger|ghana|burundi|jordan|israel|egypt)\b/i;
+  /\b(?:oconus|outside the continental|u\.?s\.? (?:mission|embassy|consulate)|embassy|consulate|local guard (?:program|force)|bavaria|germany|japan|okinawa|korea|italy|spain|kuwait|qatar|bahrain|djibouti|afghanistan|iraq|kosovo|poland|romania|turkey|united kingdom|england|belgium|netherlands|greece|honduras|philippines|australia|diego garcia|kenya|niger|ghana|burundi|jordan|israel|egypt)\b/i;
 
 export function isForeignWork(r: { title?: unknown; location?: unknown }): boolean {
   const loc = String(r.location ?? "");

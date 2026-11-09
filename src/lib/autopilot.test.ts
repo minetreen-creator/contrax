@@ -180,3 +180,18 @@ test("the email job and the Vercel job pick the same bids for a member", async (
   expect(matcher.personal).toBe(true);
   expect(autopilotBidsOf(main, openToAll).map((b) => b.bid_id)).toEqual([1]);
 });
+
+describe("quality fixes from the first preview (2026-11-09)", () => {
+  test("overseas work is never read: OCONUS, Japan", async () => {
+    const { autopilotBidsOf } = await import("./digest-member");
+    const b = (id: number, title: string) => ({ bid_id: id, title, location: "", due_date: null, match: { title } as never });
+    expect(autopilotBidsOf([b(1, "Region - OCONUS Support Services"), b(2, "Region - OCONUS JAPAN Support Services"), b(3, "Janitorial services, Raleigh NC")], []).map((x) => x.bid_id)).toEqual([3]);
+  });
+  test("the prompt rules out purchases, misused partner and vague missing items", async () => {
+    const { autopilotMessages } = await import("./autopilot");
+    const sys = autopilotMessages({}, { bid_id: 1, title: "x" }, { eligible: "yes", reason: "" })[0].content;
+    expect(sys).toContain("buying goods or equipment");
+    expect(sys).toContain("an eligible good fit of a normal size is pursue, never partner");
+    expect(sys).toContain("Never list vague words alone");
+  });
+});

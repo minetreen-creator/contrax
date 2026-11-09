@@ -20,3 +20,8 @@ test("the $5 strip says what the 6 AM email brings; the app panel stays; the map
 test("the footer lists the Pathway tools", () => {
   for (const href of ['"/pathway"', '"/gap-map"', '"/roadmap"', '"/prime-finder"']) expect(page).toContain(`href: ${href}`);
 });
+
+test("on phones the Pathway cards stay short: description hidden, number beside the title", () => {
+  expect(page).toContain('className="mt-2 hidden flex-1 text-sm leading-relaxed text-slate-600 sm:block');
+  expect(page).toContain('<div className="flex items-center gap-3 sm:block">');
+});

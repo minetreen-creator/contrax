@@ -11,6 +11,7 @@
  * unsubscribe token live in `email_preferences`; a send is recorded in
  * weekly_digest_log only when Resend accepted at least one email.
  */
+import { subFinderPromptDue, subFinderPromptHtml } from "~/lib/sub-finder";
 import { sql } from "~/db";
 import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
@@ -102,13 +103,15 @@ export async function sendWeeklyDigest(
              SELECT 1 FROM bid_scout_subscriptions s
              WHERE s.user_id = u.id AND s.status = 'active'
            ) AS has_bid_scout,
-           bp.locations, bp.naics_codes, bp.industry, bp.service_categories
+           bp.locations, bp.naics_codes, bp.industry, bp.service_categories, bp.listed_for_primes
     FROM users u
     LEFT JOIN LATERAL (
-      SELECT locations, naics_codes, industry, service_categories
+      SELECT locations, naics_codes, industry, service_categories,
+             -- Read through to_jsonb so the email never fails before Sub Finder adds the column.
+             COALESCE((to_jsonb(p)->>'listed_for_primes')::boolean, false) AS listed_for_primes
       FROM business_profiles p WHERE p.user_id = u.id ORDER BY p.id ASC LIMIT 1
     ) bp ON true
-  `) as (DigestUserRow & DigestProfile)[];
+  `) as (DigestUserRow & DigestProfile & { listed_for_primes?: boolean })[];
   const optedOut = (await sql()`
     SELECT email_lower FROM email_preferences WHERE weekly_digest_unsubscribed_at IS NOT NULL
   `) as { email_lower: string }[];
@@ -126,7 +129,7 @@ export async function sendWeeklyDigest(
   `) as { email_lower: string; unsubscribe_token: string }[];
   const tokenOf = new Map(tokens.map((t) => [t.email_lower, t.unsubscribe_token]));
   // Owner 2026-11-04: each person gets their trade's bids (profile trade + state), all bids when no profile.
-  const profileOf = new Map<string, DigestProfile>();
+  const profileOf = new Map<string, DigestProfile & { listed_for_primes?: boolean }>();
   for (const u of users) {
     const key = String(u.email ?? "").trim().toLowerCase();
     if (key && !profileOf.has(key)) profileOf.set(key, u);
@@ -137,7 +140,9 @@ export async function sendWeeklyDigest(
     if (!tokenOf.has(key)) continue;
     const r = weeklyRecipientBids(profileOf.get(key), newBids, headStart);
     if (r.bids.length === 0) continue;
-    addressed.push({ email: e, unsubscribeUrl: weeklyUnsubscribeUrl(tokenOf.get(key)!), ...r });
+    // Owner 2026-11-09: members with a trade who aren't listed get the Sub Finder line.
+    const listPrompt = subFinderPromptDue({ hasTrade: Boolean(r.matchLabel), listed: profileOf.get(key)?.listed_for_primes === true }, "weekly", 0);
+    addressed.push({ email: e, unsubscribeUrl: weeklyUnsubscribeUrl(tokenOf.get(key)!), ...r, ...(listPrompt ? { subFinderHtml: subFinderPromptHtml("weekly_email") } : {}) });
   }
   console.log(`📧 ${addressed.length} of ${recipients.length} free account(s) have matching bids this week`);
   if (addressed.length === 0) return { bids: newBids.length, recipients: 0, sent: false, reason: "no matching bids for any free account" };

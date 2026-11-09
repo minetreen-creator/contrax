@@ -1,7 +1,17 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
+import { bidDigestHtml } from "./email";
 import {
+  certCounts,
   cleanPackageInput,
+  aOrAn,
+  findSubsIndexable,
+  tradeWords,
+  findSubsPath,
+  newYorkWeekday,
+  PARTNER_BLURB,
+  subFinderPromptDue,
+  subFinderPromptHtml,
   cleanResponseInput,
   matchListedSubs,
   packageSlug,
@@ -87,5 +97,67 @@ describe("no cold outreach", () => {
     expect(read("../routes/prime-finder.tsx")).toContain('href="/sub-finder"');
     expect(read("../../scripts/generate-sitemap.mjs")).toContain('["/sub-finder", "weekly", "0.6"]');
     expect(read("../db/schema.sql")).toContain("ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS listed_for_primes BOOLEAN NOT NULL DEFAULT FALSE;");
+  });
+});
+
+describe("growth: our own members, prime search pages, partners (owner 2026-11-09)", () => {
+  test("the email line goes only to members with a trade who aren't listed; the 6 AM email only Tue and Fri", () => {
+    expect(subFinderPromptDue({ hasTrade: true, listed: false }, "daily", 2)).toBe(true);
+    expect(subFinderPromptDue({ hasTrade: true, listed: false }, "daily", 5)).toBe(true);
+    expect(subFinderPromptDue({ hasTrade: true, listed: false }, "daily", 3)).toBe(false);
+    expect(subFinderPromptDue({ hasTrade: true, listed: true }, "weekly", 1)).toBe(false);
+    expect(subFinderPromptDue({ hasTrade: false, listed: false }, "weekly", 1)).toBe(false);
+    expect(subFinderPromptDue({ hasTrade: true, listed: false }, "weekly", 1)).toBe(true);
+    expect(newYorkWeekday(new Date("2026-11-10T11:00:00Z"))).toBe(2);
+    expect(newYorkWeekday(new Date("2026-11-10T03:00:00Z"))).toBe(1);
+  });
+
+  test("the line shows in the email only when passed, and links to the listing switch", () => {
+    const bids = [{ title: "Bid", agency: "A", location: "VA", due_date: null, source_url: "https://x" }] as never[];
+    expect(bidDigestHtml(bids, 1, null, {})).not.toContain("Let primes find you");
+    const html = bidDigestHtml(bids, 1, null, { subFinderHtml: subFinderPromptHtml("daily_email") });
+    expect(html).toContain("Let primes find you.");
+    expect(html).toContain("https://www.contrax.company/sub-finder?source=daily_email#listing");
+  });
+
+  test("the email jobs read the listing safely (no failure before the column exists)", () => {
+    const inputs = readFileSync(new URL("./digest-inputs.server.ts", import.meta.url), "utf8");
+    const weekly = readFileSync(new URL("../jobs/send-weekly-digest.ts", import.meta.url), "utf8");
+    for (const src of [inputs, weekly]) expect(src).toContain("COALESCE((to_jsonb(p)->>'listed_for_primes')::boolean, false) AS listed_for_primes");
+  });
+
+  test("dashboard and roadmap carry the one-tap card", () => {
+    const read = (p: string) => readFileSync(new URL(p, import.meta.url), "utf8");
+    expect(read("../routes/dashboard.tsx")).toContain('<SubFinderListPrompt placement="dashboard" />');
+    expect(read("../routes/roadmap.tsx")).toContain('<SubFinderListPrompt placement="roadmap" />');
+  });
+
+  test("prime search pages: path, indexing only with real data, certification counts without names", () => {
+    expect(findSubsPath("North Carolina", "hvac")).toBe("/find-subcontractors/north-carolina/hvac");
+    expect(findSubsIndexable({ listed: 0, spend: 0, holders: 0 })).toBe(false);
+    expect(findSubsIndexable({ listed: 0, spend: 1000, holders: 0 })).toBe(true);
+    expect(findSubsIndexable(null)).toBe(false);
+    expect(tradeWords("HVAC and plumbing")).toBe("HVAC and plumbing");
+    expect(tradeWords("Janitorial")).toBe("janitorial");
+    expect(tradeWords("IT services")).toBe("IT services");
+    expect(aOrAn("HVAC and plumbing")).toBe("an");
+    expect(aOrAn("electrical")).toBe("an");
+    expect(aOrAn("janitorial")).toBe("a");
+    expect(certCounts([{ certifications: ["sdvosb"] }, { certifications: ["sdvosb", "wosb"] }, { certifications: [] }])).toEqual([
+      { value: "sdvosb", label: expect.any(String), count: 2 },
+      { value: "wosb", label: expect.any(String), count: 1 },
+    ]);
+    const map = readFileSync(new URL("../../scripts/generate-sitemap.mjs", import.meta.url), "utf8");
+    expect(map).toContain('["/find-subcontractors", "weekly", "0.6"]');
+    expect(map).toContain("/find-subcontractors/${STATE_SLUGS[code]}/${slug}");
+    const page = readFileSync(new URL("../routes/find-subcontractors.$state.$trade.tsx", import.meta.url), "utf8");
+    expect(page).not.toContain("businessName");
+  });
+
+  test("the partner page blurb tells clients how to list and links Sub Finder; nothing is sent from it", () => {
+    expect(PARTNER_BLURB).toContain("List my business for primes");
+    expect(PARTNER_BLURB).toContain("https://www.contrax.company/sub-finder");
+    const page = readFileSync(new URL("../routes/sub-finder_.partners.tsx", import.meta.url), "utf8");
+    expect(page).not.toContain("sendBasicEmail");
   });
 });

@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { SiteHeader } from "~/components/SiteHeader";
+import { SubFinderListPrompt } from "~/components/SubFinderListPrompt";
 import { STATE_NAMES } from "~/lib/contract-map";
 import { GAP_LABELS, money } from "~/lib/gap-map";
 import { approachTiming } from "~/lib/prime-finder";
@@ -172,6 +173,7 @@ export function Roadmap({ r }: { r: RoadmapInput }) {
         </div>
         <p className="mt-1 text-xs text-slate-500">{prog.done} of {prog.total} milestones done</p>
       </div>
+      <SubFinderListPrompt placement="roadmap" />
 
       <section className="mt-6 rounded-2xl border-2 border-slate-900 bg-white p-5">
         <h2 className="text-lg font-bold text-slate-900">Your next 3 actions</h2>

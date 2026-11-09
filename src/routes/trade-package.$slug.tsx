@@ -129,10 +129,21 @@ function TradePackagePage() {
       ) : state === "sent" ? (
         <section className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
           <h2 className="font-bold text-slate-900">Sent. {pkg.company} has your quote request.</h2>
-          <p className="mt-1 text-sm text-slate-700">They'll reply to the email you gave. Want more requests like this?</p>
-          <a href="/sub-finder" onClick={() => trackEvent("trade_package_get_listed")} className="mt-3 inline-block rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
-            List your business on Contrax so primes can find you →
+          <p className="mt-1 text-sm text-slate-700">They'll reply to the email you gave.</p>
+          <p className="mt-3 text-sm font-semibold text-slate-900">Want more quote requests like this one?</p>
+          <p className="text-sm text-slate-700">
+            List your business for primes on Contrax. Primes bidding {pkg.trade.toLowerCase()} work can then send you requests by email, and you can stop any time.
+          </p>
+          <a
+            href={`/signup?source=trade_package&next=${encodeURIComponent("/sub-finder#listing")}`}
+            onClick={() => trackEvent("trade_package_get_listed", pkg.trade)}
+            className="mt-3 inline-block rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
+          >
+            Create an account and get listed →
           </a>
+          <p className="mt-2 text-xs text-slate-600">
+            Already have an account? <a href="/sub-finder#listing" className="font-semibold text-blue-700">Turn on your listing →</a>
+          </p>
         </section>
       ) : (
         <form

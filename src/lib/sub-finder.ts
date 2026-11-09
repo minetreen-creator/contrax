@@ -161,3 +161,84 @@ export function quoteRequestEmail(p: { title: string; trade: string; company: st
 export function shareText(p: { company: string; trade: string; title: string; url: string }): string {
   return `${p.company} is collecting ${p.trade} quotes for ${p.title}. Scope and quote form: ${p.url}`;
 }
+
+// ── Member prompts (owner 2026-11-09: "1,2,3,5"): ask our own members to list. Members only. ──
+
+/** Where a member turns on "List my business for primes"; `source` says which prompt sent them. */
+export const subFinderListUrl = (source: string) => `https://www.contrax.company/sub-finder?source=${encodeURIComponent(source)}#listing`;
+
+/**
+ * Whether a member's email carries the "let primes find you" line: only members with a trade set
+ * who are not listed yet; the 6 AM email shows it on Tuesdays and Fridays (New York time) so it
+ * is not every morning, the free weekly email every week. PURE.
+ */
+export function subFinderPromptDue(m: { hasTrade: boolean; listed: boolean }, email: "daily" | "weekly", nyWeekday: number): boolean {
+  if (!m.hasTrade || m.listed) return false;
+  return email === "weekly" || nyWeekday === 2 || nyWeekday === 5;
+}
+
+/** Day of the week in New York, 0 = Sunday. PURE (date in). */
+export function newYorkWeekday(now: Date): number {
+  const w = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", weekday: "short" }).format(now);
+  return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(w);
+}
+
+/** The email block: one sentence and a link. PURE. */
+export function subFinderPromptHtml(source: string): string {
+  return `<!-- Sub Finder listing prompt -->
+      <tr>
+        <td style="padding:0 32px 24px;">
+          <div style="border:1px solid #c7d2fe;background:#eef2ff;border-radius:8px;padding:14px 16px;">
+            <p style="margin:0;color:#1e1b4b;font-size:14px;line-height:1.6;">
+              <strong>Let primes find you.</strong> Prime contractors use ${SUB_FINDER_NAME} to find local subs for government jobs. List your business and they can send you quote requests. You can stop any time.
+              <a href="${subFinderListUrl(source)}" style="color:#4338ca;font-weight:600;text-decoration:none;">List my business →</a>
+            </p>
+          </div>
+        </td>
+      </tr>`;
+}
+
+// ── Prime search pages (owner 2026-11-09 "yes"): /find-subcontractors/{state}/{trade}. ──
+
+/** "north-carolina" for a state name. PURE. */
+export const stateSlugOf = (name: string) => name.toLowerCase().replace(/\s+/g, "-");
+
+export const findSubsPath = (stateName: string, trade: string) => `/find-subcontractors/${stateSlugOf(stateName)}/${trade}`;
+
+/**
+ * Whether a prime search page belongs in search results: it needs real federal work in the trade
+ * and state (spending or contracts still running) or listed subs; otherwise it would be an empty page. PURE.
+ */
+export function findSubsIndexable(d: { listed: number; spend: number; holders: number } | null | undefined): boolean {
+  if (!d) return false;
+  return d.listed > 0 || d.spend > 0 || d.holders > 0;
+}
+
+/** Listed subs counted by self-reported certification, most first (names stay on Sub Finder). PURE. */
+export function certCounts(subs: Pick<ListedSub, "certifications">[]): { value: string; label: string; count: number }[] {
+  return SUB_FINDER_CERTS.map((c) => ({ ...c, count: subs.filter((s) => s.certifications.includes(c.value)).length }))
+    .filter((c) => c.count > 0)
+    .sort((a, b) => b.count - a.count);
+}
+
+// ── Partner page (owner 2026-11-09, growth item 3): /sub-finder/partners. No outreach from it. ──
+
+export const PARTNER_GROUPS: { name: string; why: string }[] = [
+  { name: "APEX Accelerators", why: "Your clients want subcontracting work. Listing puts them in front of primes who are pricing jobs in their trade and state right now." },
+  { name: "Small Business Development Centers", why: "A quick, practical next step for a client who isn't ready to prime a contract: get listed and answer quote requests." },
+  { name: "Veteran business groups", why: "SDVOSB and VOSB firms can show their certification to primes who need to meet veteran subcontracting goals." },
+  { name: "State certification offices", why: "Newly certified minority-owned, woman-owned and disadvantaged businesses can be found by primes looking for exactly that certification." },
+];
+
+export const PARTNER_BLURB = [
+  "Looking for subcontracting work on government jobs?",
+  "Prime contractors use Sub Finder on Contrax to find local subs by trade, state and certification, and send them quote requests for specific bids.",
+  "To get listed: create an account at contrax.company, add your trade, states and certifications, then turn on \"List my business for primes\" on the Sub Finder page. You can turn it off any time.",
+  "https://www.contrax.company/sub-finder",
+].join("\n\n");
+
+/** A trade label inside a sentence: "Janitorial" → "janitorial", acronyms kept ("HVAC and plumbing", "IT services"). PURE. */
+export const tradeWords = (label: string) => label.replace(/^[A-Z][a-z]/, (m) => m.toLowerCase());
+
+/** "a" or "an" for the word that follows. PURE. */
+export const aOrAn = (next: string) => (/^(?:[aeiou]|hvac|it\b|rfp)/i.test(next) && !/^(?:uni|use)/i.test(next) ? "an" : "a");

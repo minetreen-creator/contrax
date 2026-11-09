@@ -116,7 +116,9 @@ const setMyListing = createServerFn({ method: "POST" })
   });
 
 export const Route = createFileRoute("/sub-finder")({
-  validateSearch: (s: Record<string, unknown>) => parseSearch(s),
+  // Empty filters stay out of the URL, so /sub-finder doesn't redirect to /sub-finder?trade=&state=&cert=.
+  validateSearch: (s: Record<string, unknown>) =>
+    Object.fromEntries(Object.entries(parseSearch(s)).filter(([, v]) => v !== "" && v !== null)) as Partial<Search>,
   loaderDeps: ({ search }) => search,
   loader: ({ deps }) => getSubFinder({ data: deps }),
   component: () => (
@@ -329,7 +331,7 @@ function SubFinderPage() {
             )}
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm">
+          <div id="listing" className="scroll-mt-20 rounded-2xl border border-slate-200 bg-white p-4 text-sm">
             <h2 className="font-bold text-slate-900">Are you a subcontractor?</h2>
             <p className="mt-1 text-slate-600">List your business so primes with government work can find you and ask for your quote. You can stop any time.</p>
             {!d.signedIn ? (
@@ -342,6 +344,16 @@ function SubFinderPage() {
                 <span className="font-semibold text-slate-900">List my business for primes</span>
               </label>
             )}
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm">
+            <p className="text-slate-700">
+              <a href="/find-subcontractors" className="font-semibold text-blue-700">Browse by trade and state →</a>
+            </p>
+            <p className="mt-1 text-slate-700">
+              Help small businesses get government work?{" "}
+              <a href="/sub-finder/partners" className="font-semibold text-blue-700">Sub Finder for advisors and partners →</a>
+            </p>
           </div>
 
           {d.packages.length ? (

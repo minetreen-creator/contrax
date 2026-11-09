@@ -21,6 +21,7 @@ import { isDigestEligible } from "~/lib/digest-recipients";
 import { ensureBidDigestLog, loadDigestBids, loadDigestMembers } from "~/lib/digest-inputs.server";
 import { autopilotBidsOf, autopilotProfileOf, memberDigestBids } from "~/lib/digest-member";
 import { autopilotEmailHtml, strongPicks } from "~/lib/autopilot";
+import { newYorkWeekday, subFinderPromptDue, subFinderPromptHtml } from "~/lib/sub-finder";
 import { autopilotEnabled, autopilotForMember, ensureAutopilotTable, newAutopilotBudget } from "~/lib/autopilot.server";
 
 export { ensureBidDigestLog };
@@ -53,6 +54,7 @@ export async function sendMorningBidDigest(): Promise<{ bids: number; recipients
   const deadline = Date.now() + 30_000;
   let autopilotMembers = 0;
 
+  const weekday = newYorkWeekday(now);
   const seen = new Set<string>();
   const emails: Parameters<typeof sendPersonalBidDigests>[0] = [];
   let noMatches = 0;
@@ -91,6 +93,7 @@ export async function sendMorningBidDigest(): Promise<{ bids: number; recipients
         ...(matcher.personal ? { matchLabel: matcher.label } : { setupHint: true }),
         ...(openToAll.length ? { openToAll: strip(openToAll) } : {}),
         ...(autopilotHtml ? { autopilotHtml, autopilotPicks } : {}),
+        ...(subFinderPromptDue({ hasTrade: matcher.personal, listed: u.listed_for_primes === true }, "daily", weekday) ? { subFinderHtml: subFinderPromptHtml("daily_email") } : {}),
       },
     });
   }

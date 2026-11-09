@@ -230,7 +230,7 @@ export async function sendPersonalBidDigests(
           from: "Contrax <hello@contrax.company>",
           replyTo: "contrax.companyllc@gmail.com",
           to: [e.to],
-          subject: `Your morning bid digest: ${e.bids.length + openCount(e)} new ${e.options.matchLabel ? "matching " : ""}government bid${e.bids.length + openCount(e) === 1 ? "" : "s"} — Contrax`,
+          subject: `Your morning bid digest: ${e.options.autopilotPicks ? `⭐ ${e.options.autopilotPicks} strong fit${e.options.autopilotPicks === 1 ? "" : "s"}, ` : ""}${e.bids.length + openCount(e)} new ${e.options.matchLabel ? "matching " : ""}government bid${e.bids.length + openCount(e) === 1 ? "" : "s"} — Contrax`,
           html: bidDigestHtml(digestBidsToList(e.bids), e.bids.length, null, {
             ...e.options,
             openToAllTotal: openCount(e),
@@ -990,6 +990,10 @@ export interface DailyDigestHtmlOptions {
    */
   openToAll?: NewBidSummary[];
   openToAllTotal?: number;
+  /** Auto-Pilot's picks, ready-made (src/lib/autopilot.ts autopilotEmailHtml), shown first. */
+  autopilotHtml?: string;
+  /** How many Auto-Pilot picks there are (named in the subject line). */
+  autopilotPicks?: number;
 }
 
 export function bidDigestHtml(
@@ -1065,6 +1069,7 @@ export function bidDigestHtml(
           </p>
         </td>
       </tr>
+      ${daily?.autopilotHtml ?? ""}
       <!-- Bid List -->
       ${bids.length > 0 ? `<tr>
         <td style="padding:8px 32px 16px;">

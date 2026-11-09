@@ -182,3 +182,26 @@ export function autopilotEmailHtml(picks: { verdict: AutopilotVerdict; title: st
   <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border:1px solid #fde68a;border-radius:8px;overflow:hidden;background:#fffdf5;">${rows}</table>
 </td></tr>`;
 }
+
+/**
+ * A short key for the parts of a profile the AI reads, so a cached verdict is reused only while
+ * the profile it was made for is unchanged. PURE.
+ */
+export function autopilotProfileKey(p: AutopilotProfile): string {
+  const text = JSON.stringify([
+    p.businessName, p.industry, p.naicsCodes, p.serviceCategories, p.locations, p.licenses,
+    p.yearsInBusiness, p.employeeCount, p.typicalContractValue, p.pastPerformance, p.capabilityStatement,
+  ]);
+  let h = 5381;
+  for (let i = 0; i < text.length; i++) h = ((h * 33) ^ text.charCodeAt(i)) >>> 0;
+  return h.toString(36);
+}
+
+/** JSON arrays from the database (or text) as clean string lists. PURE. */
+export function profileList(v: unknown): string[] {
+  let a: unknown = v;
+  if (typeof v === "string") {
+    try { a = JSON.parse(v); } catch { a = v.split(","); }
+  }
+  return Array.isArray(a) ? a.map((x) => String(x ?? "").trim()).filter(Boolean) : [];
+}

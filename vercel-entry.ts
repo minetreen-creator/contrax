@@ -62,7 +62,7 @@ const PRIVACY_HTML = `<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Privacy Policy — Contrax</title>
 <meta name="description" content="Contrax privacy policy — how we collect, use, and protect your data.">
-<meta name="robots" content="noindex, follow">
+<meta name="robots" content="index, follow">
 <style>
   body { font-family: system-ui, -apple-system, sans-serif; color: #1e293b; line-height: 1.7; margin: 0; }
   .container { max-width: 720px; margin: 0 auto; padding: 3rem 1.5rem; }
@@ -116,7 +116,7 @@ const TERMS_HTML = `<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Terms of Service — Contrax</title>
 <meta name="description" content="Contrax terms of service — the rules and conditions for using our platform.">
-<meta name="robots" content="noindex, follow">
+<meta name="robots" content="index, follow">
 <style>
   body { font-family: system-ui, -apple-system, sans-serif; color: #1e293b; line-height: 1.7; margin: 0; }
   .container { max-width: 720px; margin: 0 auto; padding: 3rem 1.5rem; }

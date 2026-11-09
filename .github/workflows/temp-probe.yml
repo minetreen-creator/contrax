@@ -1,0 +1,16 @@
+name: Temp probe (SAM.gov public entity extract format, read-only)
+on:
+  push:
+    branches: [claude/vibrant-cray-177q1d]
+    paths: [".github/probe/**"]
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SAM_API_KEY: ${{ secrets.SAM_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash .github/probe/sam.sh

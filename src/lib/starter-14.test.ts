@@ -41,3 +41,13 @@ describe("Starter at $14", () => {
     expect(readFileSync(new URL("../routes/vad.tsx", import.meta.url), "utf8")).not.toContain('was: "19"');
   });
 });
+
+test("veterans (VAD26) Starter is $10 a month, billed inline on the VAD Starter product", async () => {
+  const { VAD_STARTER_MONTHLY_CENTS } = await import("./starter-offer");
+  expect(VAD_STARTER_MONTHLY_CENTS).toBe(1000);
+  const stripe = readFileSync(new URL("./stripe.ts", import.meta.url), "utf8");
+  expect(stripe).toContain('} else if (interval === "month" && planTier === "starter" && isVad) {');
+  expect(stripe).toContain("unit_amount: VAD_STARTER_MONTHLY_CENTS,");
+  const vad = readFileSync(new URL("../routes/vad.tsx", import.meta.url), "utf8");
+  expect(vad).toMatch(/name: "Starter",\s*price: "10",\s*was: "14",/);
+});

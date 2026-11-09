@@ -5,10 +5,12 @@ const read = (p: string) => readFileSync(new URL(p, import.meta.url), "utf8");
 
 test("the Pathway page carries the owner's line and links the four steps in order", () => {
   const page = read("../routes/pathway.tsx");
-  expect(page).toContain(
+  const lib = read("./pathway.ts");
+  expect(lib).toContain(
     `export const PATHWAY_LINE = "Contrax doesn't just show you government contracts. It shows you how to get into the business of winning them.";`,
   );
-  const order = ['href: "/gap-map"', 'href: "/roadmap"', 'href: "/radar"', 'href: "/prime-finder"'].map((h) => page.indexOf(h));
+  expect(page).toContain("{PATHWAY_LINE}");
+  const order = ['href: "/gap-map"', 'href: "/roadmap"', 'href: "/radar"', 'href: "/prime-finder"'].map((h) => lib.indexOf(h));
   expect(order.every((i) => i > 0)).toBe(true);
   expect([...order].sort((a, b) => a - b)).toEqual(order);
   // Cybersecurity's codes are inside IT services: the spending total leaves it out.

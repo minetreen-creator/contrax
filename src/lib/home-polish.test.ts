@@ -40,12 +40,10 @@ describe("homepage examples are everyday trades, not SDVOSB jargon", () => {
 });
 
 describe("homepage length and the phone chat bubble", () => {
-  test("the example AI brief is collapsed behind one tap", () => {
+  test("the example AI brief is off the homepage (owner 2026-11-09 cleanup; it stays at /example-brief)", () => {
     const page = readFileSync("src/routes/index.tsx", "utf8");
-    const open = page.indexOf("<details");
-    expect(open).toBeGreaterThan(-1);
-    expect(page.indexOf('<ExampleBrief variant="embed" />')).toBeGreaterThan(open);
-    expect(page).toContain("Show an example AI brief");
+    expect(page).not.toContain("<ExampleBrief");
+    expect(page).not.toContain("Show an example AI brief");
   });
   test("the floating AI chat bubble is gone; Max is the one assistant (owner 2026-11-01)", () => {
     const root = readFileSync("src/routes/__root.tsx", "utf8");

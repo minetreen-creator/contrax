@@ -100,12 +100,16 @@ describe("radar results", () => {
 
 describe("homepage", () => {
   const page = read("src/routes/index.tsx");
-  test("one path down the page, closing on the $5 pass", () => {
+  test("one path down the page: search, the $5 pass once, the Pathway, then the map", () => {
     expect(page).not.toContain("<MoneyCounter");
     expect(page).not.toContain("<EndingNearYou");
     expect(page).not.toContain("<FreeToolsStrip");
-    expect(page.indexOf("<HowItWorks />")).toBeLessThan(page.indexOf("<HomeStateMap"));
-    expect(page).toContain('<StarterPassStrip where="closing" />');
+    // Owner 2026-11-09 cleanup: the Pathway replaced "How Contrax works"; the closing
+    // $5 strip repeated the first one and is gone.
+    expect(page.indexOf("<HomePathway />")).toBeLessThan(page.indexOf("<HomeStateMap"));
+    expect(page).not.toContain("<HowItWorks />");
+    expect(page).not.toContain('<StarterPassStrip where="closing" />');
+    expect(page.split("<StarterPassStrip").length - 1).toBe(1);
   });
   test("search results name the $5 pass before the free account", async () => {
     const finder = read("src/components/HomeContractFinder.tsx");

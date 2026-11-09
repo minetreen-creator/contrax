@@ -1,0 +1,42 @@
+name: Sync SAM.gov registered small businesses
+# Sub Finder item 5 (owner 2026-11-09): small businesses registered in SAM.gov, from the PUBLIC
+# monthly entity extract (api.sam.gov data-services, public sensitivity; one API call a month).
+# Rules: src/lib/sam-registrants.ts. Contrax contacts none of these businesses.
+# SAM publishes the monthly file on the 1st; this runs on the 3rd, and by hand when needed.
+on:
+  schedule:
+    - cron: "23 10 3 * *"
+  workflow_dispatch:
+concurrency:
+  group: sam-registrants-sync
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  sync:
+    name: Sync SAM.gov registered small businesses
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Download the public monthly extract
+        env:
+          SAM_API_KEY: ${{ secrets.SAM_API_KEY }}
+        run: |
+          set -euo pipefail
+          curl -sSL --fail -m 1200 -A "ContraxBot/1.0 (+https://www.contrax.company)" -o /tmp/extract.zip \
+            "https://api.sam.gov/data-services/v1/extracts?api_key=${SAM_API_KEY}&fileType=ENTITY&sensitivity=PUBLIC&frequency=MONTHLY&charset=UTF8"
+          mkdir -p /tmp/sam && cd /tmp/sam && unzip -o -q /tmp/extract.zip
+          for z in *.ZIP *.zip; do [ -f "$z" ] && unzip -o -q "$z" && rm -f "$z"; done
+          ls -l /tmp/sam
+      - name: Load into the database
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: bun src/jobs/sam-registrants-sync.ts "$(ls /tmp/sam/*.dat | head -1)"

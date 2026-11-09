@@ -38,6 +38,8 @@ const getFindSubs = createServerFn({ method: "GET" })
       withPlan: 0,
       ending12: 0,
       ending12Value: 0,
+      registered: 0,
+      registeredCerts: {} as Record<string, number>,
     };
     try {
       const { findSubs } = await import("~/lib/sub-finder.server");
@@ -46,6 +48,14 @@ const getFindSubs = createServerFn({ method: "GET" })
       out.certs = certCounts(subs);
     } catch (e) {
       console.error("[find-subcontractors] listed subs failed:", e);
+    }
+    try {
+      const { registeredSubCounts } = await import("~/lib/sam-registrants.server");
+      const r = await registeredSubCounts(trade.slug, code);
+      out.registered = r.total;
+      out.registeredCerts = r.certs;
+    } catch (e) {
+      console.error("[find-subcontractors] registered counts failed:", e);
     }
     try {
       const { queryRecompetes, tradeSpendingFor } = await import("~/lib/federal-trade-data.server");
@@ -82,7 +92,7 @@ export const Route = createFileRoute("/find-subcontractors/$state/$trade")({
       meta: [
         { title },
         { name: "description", content: desc },
-        { name: "robots", content: findSubsIndexable(d) ? "index, follow" : "noindex, follow" },
+        { name: "robots", content: findSubsIndexable(d ? { ...d, listed: d.listed + d.registered } : d) ? "index, follow" : "noindex, follow" },
         { property: "og:title", content: title },
         { property: "og:description", content: desc },
       ],
@@ -91,6 +101,18 @@ export const Route = createFileRoute("/find-subcontractors/$state/$trade")({
   },
   component: FindSubsPage,
 });
+
+/** "120 veteran-owned, 85 SDVOSB and 40 WOSB" from the counts (no names). PURE. */
+function registeredCertText(c: Record<string, number>): string {
+  const parts = [
+    c.vosb ? `${c.vosb.toLocaleString("en-US")} veteran-owned` : null,
+    c.sdvosb ? `${c.sdvosb.toLocaleString("en-US")} SDVOSB` : null,
+    c.wosb ? `${c.wosb.toLocaleString("en-US")} WOSB` : null,
+    c["8a"] ? `${c["8a"].toLocaleString("en-US")} 8(a)` : null,
+    c.hubzone ? `${c.hubzone.toLocaleString("en-US")} HUBZone` : null,
+  ].filter(Boolean) as string[];
+  return parts.length > 1 ? `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}` : parts[0] ?? "";
+}
 
 function FindSubsPage() {
   const d = Route.useLoaderData();
@@ -142,8 +164,14 @@ function FindSubsPage() {
               ? "Open Sub Finder to see them and send a quote request. Only businesses that chose to be listed appear, and each request lets them stop."
               : "Make a Trade Package anyway and share the link with the subs you know, by text or email. Every sub who opens it can list their business here."}
           </p>
+          {d.registered > 0 ? (
+            <p className="mt-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-700">
+              <strong>{d.registered.toLocaleString("en-US")}</strong> small businesses in {d.name} are registered with the government (SAM.gov) for {label} work
+              {registeredCertText(d.registeredCerts) ? `, including ${registeredCertText(d.registeredCerts)}` : ""}. Sub Finder shows them by name with their websites.
+            </p>
+          ) : null}
           <a href={finder} onClick={() => trackEvent("find_subs_page_click", `${d.trade.slug}-${d.code}`)} className="mt-3 inline-block rounded-lg bg-slate-900 px-4 py-2.5 font-semibold text-white">
-            {d.listed > 0 ? `See ${label} subs in ${d.name} →` : "Make a Trade Package →"}
+            {d.listed > 0 || d.registered > 0 ? `See ${label} subs in ${d.name} →` : "Make a Trade Package →"}
           </a>
         </section>
 

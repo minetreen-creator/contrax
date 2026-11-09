@@ -14,7 +14,7 @@ let foundingSearchFails = false;
 let legacyProduct = false;
 // Starter "$5 first month" coupon state, driven per test.
 let couponMissing = false;
-let couponAmountOff = 1400;
+let couponAmountOff = 900; // $14 → $5 (owner 2026-11-09)
 const couponsCreated: any[] = [];
 mock.module("stripe", () => ({
   default: class FakeStripe {
@@ -197,7 +197,7 @@ describe("Starter $5 first month", () => {
       const r = await stripeLib.createCheckoutSession("starter", {});
       expect(r.success).toBe(false);
       expect(created).toHaveLength(0);
-    } finally { couponAmountOff = 1400; }
+    } finally { couponAmountOff = 900; }
   });
 });
 

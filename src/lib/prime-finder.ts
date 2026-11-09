@@ -23,6 +23,12 @@ export interface PrimeRow {
   planType: string | null;
 }
 
+/** Same company name apart from punctuation and spacing ("RQ CONSTRUCTION, LLC" / "RQ CONSTRUCTION LLC"). */
+export function sameCompany(a: string, b: string): boolean {
+  const n = (s: string) => s.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  return n(a) === n(b);
+}
+
 /** Plan holders first (they must subcontract), then the biggest holders of work. */
 export function sortPrimes(rows: PrimeRow[]): PrimeRow[] {
   return [...rows].sort((a, b) => Number(b.hasPlan) - Number(a.hasPlan) || b.value - a.value || a.name.localeCompare(b.name));

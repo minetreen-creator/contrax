@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { approachTiming, introEmail, monthsUntil, sortPrimes, type PrimeRow } from "./prime-finder";
+import { approachTiming, introEmail, monthsUntil, sameCompany, sortPrimes, type PrimeRow } from "./prime-finder";
 
 const prime = (o: Partial<PrimeRow>): PrimeRow => ({
   uei: "U", name: "Acme Facility Services", parent: null, contracts: 1, value: 1e6, agencies: ["Department of Defense"], nextEnd: "2027-06-30", hasPlan: false, planType: null, ...o,
@@ -14,6 +14,15 @@ describe("prime contractor finder", () => {
       prime({ uei: "c", name: "Plan Big", value: 9e6, hasPlan: true }),
     ]);
     expect(out.map((p) => p.uei)).toEqual(["c", "b", "a"]);
+  });
+
+  test("a parent with the same name apart from punctuation is not shown", () => {
+    expect(sameCompany("RQ CONSTRUCTION, LLC", "RQ Construction LLC")).toBe(true);
+    expect(sameCompany("HUNTSVILLE REHABILITATION CENTER", "HUNTSVILLE REHABILITATION FOUNDATION INC.")).toBe(false);
+    const server = readFileSync(new URL("./prime-finder.server.ts", import.meta.url), "utf8");
+    expect(server).toContain("!sameCompany(r.parent, r.name)");
+    // Timing follows the next contract still worth pursuing.
+    expect(server).toContain("FILTER (WHERE r.end_date >= NOW() + INTERVAL '3 months') AS next_open_end");
   });
 
   test("approach timing: 3 to 12 months out is the time to ask about the rebid team", () => {

@@ -17,8 +17,12 @@ test("the Pathway page carries the owner's line and links the four steps in orde
   expect(page).toContain("AND trade_slug <> 'cybersecurity'");
 });
 
-test("the Pathway is in the header (not on phones), the sitemap, and each step page links back", () => {
-  expect(read("../components/SiteHeader.tsx")).toContain('<a href="/pathway" className={`${link} hidden sm:inline`}>Pathway</a>');
+test("the Pathway tools are in the header Win work menu (not on phones), the sitemap, and each step page links back", () => {
+  const header = read("../components/SiteHeader.tsx");
+  expect(header).toContain('<a href="/radar" className={link}>Find work</a>');
+  expect(header).toContain("<WinWorkMenu linkClass={link} />");
+  expect(header).toContain('<details ref={ref} className="relative hidden sm:block">');
+  for (const href of ['"/pathway"', '"/gap-map"', '"/roadmap"', '"/prime-finder"']) expect(header).toContain(`href: ${href}`);
   expect(read("../../scripts/generate-sitemap.mjs")).toContain('["/pathway", "monthly", "0.7"]');
   expect(read("../routes/gap-map.tsx")).toContain("Contrax Pathway</a> · Step 1");
   expect(read("../routes/roadmap.tsx")).toContain("Contrax Pathway</a> · Step 2");

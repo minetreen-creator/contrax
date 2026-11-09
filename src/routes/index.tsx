@@ -364,7 +364,13 @@ function HomeAppStrip() {
             <p className="mt-1 text-sm text-slate-300">Bids near you, reminders before saved bids are due, and winning prices. No app store: it installs from your browser in seconds.</p>
           </div>
         </div>
-        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+        {/* Owner 2026-11-09: the install steps sit behind one tap so they don't take permanent space. */}
+        <details className="group mt-5">
+          <summary className="cursor-pointer list-none text-sm font-semibold text-amber-300 hover:text-amber-200 [&::-webkit-details-marker]:hidden">
+            <span className="group-open:hidden">How to install on iPhone or Android ↓</span>
+            <span className="hidden group-open:inline">Hide the install steps ↑</span>
+          </summary>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
           {APP_STEPS.map((d) => (
             <div key={d.device} className="rounded-xl border border-slate-700 bg-slate-900/70 p-4">
               <p className="text-sm font-bold text-white">How to install on {d.device}</p>
@@ -379,6 +385,7 @@ function HomeAppStrip() {
             </div>
           ))}
         </div>
+        </details>
         <p className="mt-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
           🔐 <b>Phone alerts need a paid plan.</b> Anyone can install the app and browse bids near them. Bid alerts come with Starter: ${STARTER_PRICE} for your first 30 days, no automatic renewal.
         </p>

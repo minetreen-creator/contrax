@@ -4,6 +4,7 @@
  */
 import { buildDigestMatcher, type DigestBidFields, type DigestMatcher, type DigestProfile } from "~/lib/digest-match";
 import { splitDigestBids } from "~/lib/digest-open-to-all";
+import { isForeignWork } from "~/lib/radar-candidates";
 import { profileList, type AutopilotBid, type AutopilotProfile } from "~/lib/autopilot";
 
 type Bid = { bid_id: number; title: string; agency?: string | null; location?: string | null; due_date: string | null; set_aside?: string | null; source?: string | null; match: DigestBidFields };
@@ -34,9 +35,12 @@ export function autopilotProfileOf(m: Record<string, any>): AutopilotProfile {
   };
 }
 
-/** The bids Auto-Pilot reads for a member, in the order it reads them (their own list first). */
+/**
+ * The bids Auto-Pilot reads for a member, in the order it reads them (their own list first).
+ * Work performed overseas is never a pick for a US small business, so it is not read.
+ */
 export function autopilotBidsOf(main: readonly Bid[], openToAll: readonly Bid[]): AutopilotBid[] {
-  return [...main, ...openToAll].map((b) => ({
+  return [...main, ...openToAll].filter((b) => !isForeignWork(b)).map((b) => ({
     bid_id: Number(b.bid_id),
     title: b.title,
     agency: b.agency ?? null,

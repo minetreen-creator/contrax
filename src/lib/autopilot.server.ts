@@ -95,7 +95,8 @@ export async function autopilotForMember(
     `) as { bid_id: number; raw: string }[];
     for (const r of rows) cached.set(Number(r.bid_id), String(r.raw));
   } catch (e) {
-    console.warn(`[autopilot] cache read failed: ${(e as Error).message}`);
+    // The table appears on the first morning run; until then there is simply nothing saved.
+    if (!/does not exist/.test((e as Error).message)) console.warn(`[autopilot] cache read failed: ${(e as Error).message}`);
   }
 
   const out: AutopilotVerdict[] = [];

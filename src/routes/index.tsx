@@ -2,10 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { HomeMaxProof } from "~/components/HomeMaxProof";
 import { createServerFn } from "@tanstack/react-start";
 import { readFile } from "node:fs/promises";
-import { Radar, KanbanSquare, ArrowRight, FileSearch } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { HomeContractFinder } from "~/components/HomeContractFinder";
 import { HomeStateMap } from "~/components/HomeStateMap";
-import { ExampleBrief } from "~/components/ExampleBrief";
+import { PATHWAY_LINE, PATHWAY_STEPS } from "~/lib/pathway";
 
 import { trackEvent } from "~/lib/track";
 import { STARTER_PASS_NOTE } from "~/lib/starter-pass";
@@ -203,8 +203,12 @@ function Home() {
       <Navbar />
       <HomeContractFinder sample={sample} openTotal={contractMap?.totals?.totalOpen ?? 0} />
       {/* The $5 Starter pass, right under the search (owner 2026-10-31 funnel
-          check: the homepage never mentioned the offer). */}
+          check: the homepage never mentioned the offer). Owner 2026-11-09: it now
+          also says what the 6 AM email brings (Auto-Pilot), and it is the only one. */}
       <StarterPassStrip />
+      {/* The Contrax Pathway (owner 2026-11-09: "clean up the homepage and add these new
+          features"): the owner's line and the four steps, in place of "How Contrax works". */}
+      <HomePathway />
       {/* Before/after proof (owner 2026-11-08): a real bid's notice next to Max's real answer. */}
       <HomeMaxProof />
       {/* The Contrax app (owner 2026-11-07: "Today is launch day"). */}
@@ -216,67 +220,52 @@ function Home() {
           the state map, Max, sub leads, and the $5 pass again to close. The
           federal money counter, contracts ending soon and the tools strip
           moved off the homepage (they told a lawn crew "not for you"). */}
-      <HowItWorks />
       {/* "Spin the map" (owner 2026-10-29: "Do 3"): tap a state, then a trade. */}
       <HomeStateMap contractMap={contractMap} />
-      {/* Owner 2026-11-06 ("hide the extra features and simplify the offer"): Max and
-          the Founding wall are off the homepage: search, how it works, the map, $5. */}
-      <StarterPassStrip where="closing" />
+      <p className="mx-auto mt-4 max-w-[1120px] px-4 text-center text-sm sm:px-6">
+        <a href="/gap-map" onClick={() => trackEvent("home_gap_map_click")} className="font-semibold text-blue-700 hover:text-blue-600 dark:text-blue-300">
+          Federal money by state: where your trade's spending is big and few companies hold the work →
+        </a>
+      </p>
+      {/* Owner 2026-11-09: the second $5 strip at the bottom repeated the first one; removed. */}
       <Footer />
     </div>
   );
 }
 
-// What Contrax does, in three cards (owner 2026-10-17: the former "Find /
-// Track / Learn" cards and "three steps" section merged; learning now lives in
-// the Launchpad section).
-function HowItWorks() {
-  const paths = [
-    { title: "Find contracts", description: "Search live opportunities by trade and state, with reasons you can check.", href: "/radar", Icon: Radar },
-    { title: "Decide before you bid", description: "Read the AI brief: requirements, milestones and red flags, cited to the solicitation.", href: "/example-brief", Icon: FileSearch },
-    { title: "Track your bids", description: "Keep bids, contacts and follow-ups moving in one workspace.", href: "/pipeline", Icon: KanbanSquare },
-  ];
+// The Contrax Pathway on the homepage (owner 2026-11-09): the line and the four steps, each
+// linked to its tool (src/lib/pathway.ts). Replaces the 3-card "How Contrax works" and the
+// collapsed example AI brief.
+function HomePathway() {
   return (
-    <section aria-labelledby="how-it-works-title" className="mx-auto max-w-[1120px] px-4 pt-12 sm:px-6">
-      <h2 id="how-it-works-title" className={`${SERIF} text-[clamp(24px,3vw,30px)] leading-[1.15] font-bold`}>How Contrax works</h2>
-      <div className="mt-5 grid gap-4 md:grid-cols-3">
-        {paths.map(({ title, description, href, Icon }, i) => (
-          <a key={title} href={href} className="group rounded-2xl border border-slate-200 bg-white p-6 transition hover:-translate-y-1 hover:border-blue-400 hover:shadow-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600 dark:border-slate-700 dark:bg-slate-900">
-            <div className="flex items-center gap-3">
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-50 text-sm font-bold text-blue-700 dark:bg-blue-950 dark:text-blue-300">{i + 1}</span>
-              <Icon aria-hidden="true" className="h-6 w-6 text-blue-600 dark:text-blue-300" />
-            </div>
-            <h3 className="mt-4 flex items-center justify-between gap-3 text-lg font-bold">{title}<ArrowRight aria-hidden="true" className="h-4 w-4 text-blue-600 dark:text-blue-300" /></h3>
-            <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">{description}</p>
-          </a>
-        ))}
-      </div>
-      {/* Owner 2026-10-19 (item 5): step 2's real after-state, directly under the
-          three cards. This is the EXISTING example-brief embed (variant="embed"):
-          it renders the real cached AI Executive Brief from the database, labels
-          every word of it EXAMPLE, and renders NOTHING when no currently-valid
-          cached example exists — that honesty contract is untouched and nothing
-          here is fabricated or screenshotted. When it hides itself, only the
-          link to the standalone page (which has an honest empty state) remains. */}
-      {/* Collapsed by default (owner 2026-10-31: the open brief was the longest
-          block on a 14-screen homepage); one tap opens it in place. */}
-      <details className="group mt-6">
-        <summary className="cursor-pointer list-none text-center text-sm font-semibold text-blue-700 hover:text-blue-600 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600 dark:text-blue-300">
-          <span className="group-open:hidden">Show an example AI brief ↓</span>
-          <span className="hidden group-open:inline">Hide the example brief ↑</span>
-        </summary>
-        <div className="mt-4">
-          <ExampleBrief variant="embed" />
-          <p className="mt-4 text-center text-sm">
+    <section aria-labelledby="pathway-title" className="mx-auto max-w-[1120px] px-4 pt-12 sm:px-6">
+      <p className="text-xs font-bold uppercase tracking-wider text-blue-700 dark:text-blue-300">The Contrax Pathway</p>
+      <h2 id="pathway-title" className={`${SERIF} mt-1 max-w-3xl text-[clamp(22px,2.8vw,30px)] leading-[1.2] font-bold`}>{PATHWAY_LINE}</h2>
+      <ol className="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {PATHWAY_STEPS.map((s) => (
+          <li key={s.n}>
             <a
-              href="/example-brief"
-              className="font-semibold text-blue-700 hover:text-blue-600 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600 dark:text-blue-300"
+              href={s.href}
+              onClick={() => trackEvent("home_pathway_click", s.event)}
+              className="group flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-5 transition hover:-translate-y-1 hover:border-blue-400 hover:shadow-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600 dark:border-slate-700 dark:bg-slate-900"
             >
-              See the full example brief →
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-sm font-bold text-white dark:bg-white dark:text-slate-900">{s.n}</span>
+              <h3 className="mt-3 text-lg font-bold">{s.name}</h3>
+              <p className="mt-1 text-sm font-semibold text-blue-700 dark:text-blue-300">{s.question}</p>
+              <p className="mt-2 flex-1 text-sm leading-relaxed text-slate-600 dark:text-slate-300">{s.what}</p>
+              <p className="mt-3 flex items-center justify-between gap-2 text-sm font-semibold text-slate-900 dark:text-white">
+                {s.cta} <ArrowRight aria-hidden="true" className="h-4 w-4 text-blue-600 dark:text-blue-300" />
+              </p>
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{s.access}</p>
             </a>
-          </p>
-        </div>
-      </details>
+          </li>
+        ))}
+      </ol>
+      <p className="mt-4 text-center text-sm">
+        <a href="/pathway" onClick={() => trackEvent("home_pathway_click", "pathway")} className="font-semibold text-blue-700 hover:text-blue-600 dark:text-blue-300">
+          See the whole Pathway →
+        </a>
+      </p>
     </section>
   );
 }
@@ -403,6 +392,9 @@ function StarterPassStrip({ where = "strip" }: { where?: "strip" | "closing" }) 
       <div className="flex flex-col gap-4 rounded-2xl border border-blue-200 bg-blue-50 p-5 sm:flex-row sm:items-center sm:justify-between dark:border-blue-900 dark:bg-blue-950/40">
         <div>
           <p className="text-lg font-bold text-slate-900 dark:text-white">📬 New bids in your trade, in your inbox every morning at 6 AM</p>
+          <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+            Auto-Pilot reads each one against your business and leads with the best fits: pursue, partner or pass, and why.
+          </p>
           <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">{STARTER_PASS_NOTE}</p>
         </div>
         <a
@@ -439,6 +431,16 @@ const FOOTER_GROUPS = [
       { href: "/local-bids", label: "City & County Bids" },
       { href: "/pricing", label: "Pricing" },
       { href: "/blog", label: "Blog" },
+    ],
+  },
+  {
+    // Owner 2026-11-09: the Contrax Pathway tools.
+    title: "Win contracts",
+    links: [
+      { href: "/pathway", label: "The Contrax Pathway" },
+      { href: "/gap-map", label: "Opportunity gap map" },
+      { href: "/roadmap", label: "Your roadmap" },
+      { href: "/prime-finder", label: "Prime contractor finder" },
     ],
   },
   {

@@ -25,3 +25,11 @@ test("on phones the Pathway cards stay short: description hidden, number beside 
   expect(page).toContain('className="mt-2 hidden flex-1 text-sm leading-relaxed text-slate-600 sm:block');
   expect(page).toContain('<div className="flex items-center gap-3 sm:block">');
 });
+
+test("under the map: the gap map, contracts ending soon and federal bids open to every business", () => {
+  const map = page.indexOf("<HomeStateMap");
+  for (const href of ['href="/gap-map"', 'href="/recompetes"', 'onClick={() => trackEvent("home_open_to_all_click")}']) {
+    expect(page.indexOf(href, map)).toBeGreaterThan(map);
+  }
+  expect(page).toContain("Federal bids open to every business, no certification needed");
+});

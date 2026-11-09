@@ -222,11 +222,25 @@ function Home() {
           moved off the homepage (they told a lawn crew "not for you"). */}
       {/* "Spin the map" (owner 2026-10-29: "Do 3"): tap a state, then a trade. */}
       <HomeStateMap contractMap={contractMap} />
-      <p className="mx-auto mt-4 max-w-[1120px] px-4 text-center text-sm sm:px-6">
-        <a href="/gap-map" onClick={() => trackEvent("home_gap_map_click")} className="font-semibold text-blue-700 hover:text-blue-600 dark:text-blue-300">
-          Federal money by state: where your trade's spending is big and few companies hold the work →
-        </a>
-      </p>
+      {/* Owner 2026-11-09 ("yes add both links"): the gap map, contracts ending soon and the
+          federal bids open to every business (listed apart when a Radar search names a trade). */}
+      <ul className="mx-auto mt-4 flex max-w-[1120px] list-none flex-col items-center gap-2 px-4 text-center text-sm sm:px-6">
+        <li>
+          <a href="/gap-map" onClick={() => trackEvent("home_gap_map_click")} className="font-semibold text-blue-700 hover:text-blue-600 dark:text-blue-300">
+            Federal money by state: where your trade's spending is big and few companies hold the work →
+          </a>
+        </li>
+        <li>
+          <a href="/recompetes" onClick={() => trackEvent("home_recompetes_click")} className="font-semibold text-blue-700 hover:text-blue-600 dark:text-blue-300">
+            Contracts ending soon: federal work in your trade that will be bid again, and who holds it now →
+          </a>
+        </li>
+        <li>
+          <a href="/radar" onClick={() => trackEvent("home_open_to_all_click")} className="font-semibold text-blue-700 hover:text-blue-600 dark:text-blue-300">
+            Federal bids open to every business, no certification needed: listed apart when you search your trade →
+          </a>
+        </li>
+      </ul>
       {/* Owner 2026-11-09: the second $5 strip at the bottom repeated the first one; removed. */}
       <Footer />
     </div>

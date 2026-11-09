@@ -33,3 +33,13 @@ test("under the map: the gap map, contracts ending soon and federal bids open to
   }
   expect(page).toContain("Federal bids open to every business, no certification needed");
 });
+
+test("the app install steps are collapsed behind one tap; the panel, alert note and buttons stay", () => {
+  const app = page.slice(page.indexOf("function HomeAppStrip"), page.indexOf("function StarterPassStrip"));
+  const open = app.indexOf('<details className="group mt-5">');
+  expect(open).toBeGreaterThan(-1);
+  expect(app.indexOf("APP_STEPS.map(")).toBeGreaterThan(open);
+  expect(app).toContain("How to install on iPhone or Android");
+  expect(app.indexOf("Phone alerts need a paid plan.")).toBeGreaterThan(app.indexOf("</details>"));
+  expect(app).toContain('href="/app?source=home"');
+});

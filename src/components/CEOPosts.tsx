@@ -115,7 +115,7 @@ export function CEOPosts() {
             <a href="/launchpad" className="mt-5 inline-block rounded-xl bg-blue-700 px-5 py-3 text-sm font-bold text-white hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600">Open Contrax Launchpad →</a>
           </article>
           <article className="mt-6 border-b border-slate-200 pb-8 dark:border-slate-700" aria-labelledby="ceo-trial-title">
-            <h3 id="ceo-trial-title" className="text-xl font-bold text-slate-900 dark:text-white">Every account now starts with a 7-day trial</h3>
+            <h3 id="ceo-trial-title" className="text-xl font-bold text-slate-900 dark:text-white">Past update: the 7-day trial (ended November 1, 2026)</h3>
             <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">Update, November 1, 2026: new accounts no longer get the 7-day trial. Starter is $5 for your first 30 days, with no automatic renewal.</p>
             <p className="mt-3 text-base leading-relaxed text-slate-700 dark:text-slate-300">Most people only ever saw the basic version of Contrax. Now everyone gets the full Professional tools for a week, and decides based on real results.</p>
             <figure className="mt-4">

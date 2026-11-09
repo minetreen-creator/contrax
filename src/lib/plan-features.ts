@@ -15,7 +15,7 @@ export const PLAN_COPY = {
     features: [
       "See every open solicitation (new bids after a 7-day head start)",
       "Official notice links and bid documents are for members",
-      "2 Radar searches per account",
+      "5 Radar searches a day",
       "Bid matches for 1 state and 1 trade",
       "1 Saved Bid",
       "Standard Set-Aside Filters",

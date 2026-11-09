@@ -53,6 +53,8 @@ interface ResolveResult {
   /** The email already had an account before this checkout: the plan is on
    *  it, but the buyer must sign in the normal way (starter-offer.ts). */
   signInRequired?: boolean;
+  /** The $5 pass's end date (ISO), so the confirmation can say when it ends. */
+  passEndsAt?: string | null;
 }
 
 const resolveCheckoutSession = createServerFn({ method: "POST" })
@@ -196,9 +198,12 @@ const resolveCheckoutSession = createServerFn({ method: "POST" })
       maxAge: SESSION_TTL_DAYS * 24 * 60 * 60,
     });
 
+    // The $5 pass: its end date, shown on the confirmation (owner 2026-11-09).
+    const passEndsAt = session.metadata?.starter_pass === "true" ? new Date(session.created * 1000 + 30 * 24 * 60 * 60 * 1000).toISOString() : null;
     return {
       email,
       plan: planTier ?? "starter",
+      passEndsAt,
     };
   });
 
@@ -271,6 +276,7 @@ function PostCheckoutPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [resolvedPlan, setResolvedPlan] = useState<string | undefined>(plan);
   const [resolvedEmail, setResolvedEmail] = useState<string>("");
+  const [passEndsAt, setPassEndsAt] = useState<string | null>(null);
 
   // Derive display info from plan
   const planLabel = getPlanLabel(resolvedPlan);
@@ -301,6 +307,8 @@ function PostCheckoutPage() {
         if (cancelled) return;
         setResolvedPlan(result.plan);
         setResolvedEmail(result.email);
+        const passEnd = "passEndsAt" in result ? ((result as { passEndsAt?: string | null }).passEndsAt ?? null) : null;
+        setPassEndsAt(passEnd);
         // Paid: stop offering to resume this checkout (owner 2026-11-08).
         clearCheckoutStarted();
         // Started from a bid's "Open this bid: $5"? Land back on that bid, unlocked (owner 2026-11-08).
@@ -319,7 +327,7 @@ function PostCheckoutPage() {
             return;
           }
           navigate({ to: getRedirectTarget(result.plan) });
-        }, 1500);
+        }, passEnd ? 6000 : 1500);
       } catch (err) {
         if (cancelled) return;
         setStatus("error");
@@ -408,6 +416,16 @@ function PostCheckoutPage() {
                 {!savingsProduct && " — let's get your profile set up so we can find the right contracts for you."}
                 {savingsProduct && " — start scanning your bills and finding savings."}
               </p>
+              {passEndsAt && (
+                <p className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+                  You paid $5 one time. Your pass runs until{" "}
+                  <span className="font-semibold">
+                    {new Date(passEndsAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "America/New_York" })}
+                  </span>
+                  . <span className="font-semibold">Nothing renews</span>: on that day it simply ends, and you&apos;re never charged again unless you
+                  choose to keep going. We emailed you this too.
+                </p>
+              )}
               {resolvedEmail && (
                 <p className="mt-3 rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-900">
                   Your {planLabel} pass is on <span className="font-semibold">{resolvedEmail}</span>. Sign in with that email

@@ -114,7 +114,7 @@ function PublicCopilot() {
           <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-8 md:flex-row md:items-center">
             <div>
               <h2 className="text-3xl font-bold">Make every bid decision count.</h2>
-              <p className="mt-2 text-blue-100">Create a free account. Starter is $5 for your first 30 days, then $19/month, with Professional at $79 and Agency at $199.</p>
+              <p className="mt-2 text-blue-100">Create a free account. Starter is $5 one time for 30 days (nothing renews), with Professional at $79 and Agency at $199.</p>
             </div>
             <a href="/signup" className="shrink-0 rounded-xl bg-white px-6 py-3.5 text-sm font-semibold text-blue-700 shadow-lg transition hover:bg-blue-50">Create a Free Account <span aria-hidden="true">→</span></a>
           </div>

@@ -39,7 +39,7 @@ export const RADAR_PRO_PLAN_LABEL = "Radar Pro";
 /** Mirrors EXPECTED_UNIT_AMOUNTS.professional (7900) in src/lib/stripe.ts. */
 export const RADAR_PRO_PRICE_USD = 79;
 export const RADAR_PRO_PRICE_NOTE =
-  "$79/mo · 7-day Professional trial · Cancel anytime";
+  "$79/mo · Cancel anytime";
 /** Where the Radar Pro CTA goes (existing upgrade surface — untouched). */
 export const RADAR_PRO_HREF = "/upgrade";
 

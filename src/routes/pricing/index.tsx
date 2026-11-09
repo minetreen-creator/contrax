@@ -25,7 +25,7 @@ export const Route = createFileRoute("/pricing/")({
       { name: "description", content: META_DESCRIPTION },
       { name: "robots", content: "index, follow" },
       { property: "og:title", content: PAGE_TITLE },
-      { property: "og:description", content: "Contrax plans for every stage of growth. Starter is $5 for your first 30 days, then $19/mo; Professional $79/mo; Basic search free." },
+      { property: "og:description", content: "Contrax plans for every stage of growth. Starter is $5 one time for 30 days, and nothing renews; Professional $79/mo; Basic search free." },
       { property: "og:image", content: "https://www.contrax.company/logo-square.png" },
       { property: "og:image:type", content: "image/png" },
       { property: "og:image:width", content: "1200" },
@@ -103,7 +103,7 @@ const plans = [
 // visitors read (4 items; owner 2026-11-06: one offer, no plan comparisons).
 const FAQS = [
   { q: "What do I get?", a: "Every new government bid in your trade and states, in your inbox at 6 AM Eastern every morning, plus the official notice link and documents for every bid on Contrax. City, county, state and federal bids, matched to what your business does." },
-  { q: "Is there a free trial?", a: "Instead of a free trial, Starter costs $5 for your first 30 days, one time, with no automatic renewal. That is 30 days of the daily bid email and every state and trade, and we ask before charging $19/month." },
+  { q: "Is there a free trial?", a: "Instead of a free trial, Starter costs $5 for your first 30 days, one time, with no automatic renewal. That is 30 days of the daily bid email and every state and trade. On day 30 the pass simply ends: you're never charged again unless you choose Starter at $19/month." },
   { q: "Can I cancel anytime?", a: "Yes. Cancel anytime and your access continues until the end of the billing period. No refunds for partial months." },
   { q: "What payment methods do you accept?", a: "We accept all major credit and debit cards through Stripe." },
 ];
@@ -126,7 +126,7 @@ const pricingJsonLd = {
         {
           "@type": "Offer",
           name: "Basic",
-          description: "Free search plan: one state and one trade, 2 Radar searches, 1 saved bid.",
+          description: "Free search plan: one state and one trade, 5 Radar searches a day, 1 saved bid.",
           price: "0",
           priceCurrency: "USD",
           category: "subscription",
@@ -372,7 +372,7 @@ function PricingPage() {
           <p className="mx-auto mt-6 max-w-2xl text-center text-sm text-gray-600">
             Not ready to pay? Keep searching on{" "}
             <a href="/signup?plan=basic" className="font-medium text-amber-600 hover:text-amber-500">free Basic</a>: one state and
-            one trade, 2 Radar searches, 1 saved bid, and new bids open to you after a 7-day head start for paying members.
+            one trade, 5 Radar searches a day, 1 saved bid, and new bids open to you after a 7-day head start for paying members.
           </p>
           {/* Owner 2026-11-03 ("do 2 and 3"): one product until there are
               paying customers. The other plans and products stay reachable by

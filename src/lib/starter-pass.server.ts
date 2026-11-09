@@ -17,6 +17,7 @@ import { sql } from "~/db";
 import {
   PASS_ENDED_STATUS,
   passBoughtOwnerAlert,
+  passConfirmationEmail,
   passReminderEmail,
   STARTER_PASS_FLAG,
   STARTER_PASS_REMIND_DAYS,
@@ -119,7 +120,10 @@ export async function recordCheckoutPass(
           starter_pass_ends_at = ${ends},
           starter_pass_reminded_at = NULL
       WHERE id = ${userId}`;
-    if (firstPurchase.length) await alertOwnerOfPass(firstPurchase[0].email, new Date(ends));
+    if (firstPurchase.length) {
+      await alertOwnerOfPass(firstPurchase[0].email, new Date(ends));
+      await sendPassConfirmation(firstPurchase[0].email, new Date(ends));
+    }
   } else if (session.mode === "subscription") {
     await sql()`UPDATE users SET starter_pass_ends_at = NULL WHERE id = ${userId}`;
   }
@@ -146,6 +150,24 @@ async function alertOwnerOfPass(buyerEmail: string | null, endsAt: Date): Promis
     });
   } catch (e) {
     console.error("[starter-pass] owner email failed:", (e as Error).message);
+  }
+}
+
+/** The buyer's written confirmation: end date, nothing renews. Never throws. */
+async function sendPassConfirmation(buyerEmail: string | null, endsAt: Date): Promise<void> {
+  if (!buyerEmail || !process.env.RESEND_API_KEY) return;
+  const mail = passConfirmationEmail(endsAt);
+  try {
+    await new Resend(process.env.RESEND_API_KEY).emails.send({
+      from: "Contrax <hello@contrax.company>",
+      replyTo: "contrax.companyllc@gmail.com",
+      to: buyerEmail,
+      subject: mail.subject,
+      text: mail.text,
+      html: mail.html,
+    });
+  } catch (e) {
+    console.error("[starter-pass] buyer confirmation failed:", (e as Error).message);
   }
 }
 

@@ -74,7 +74,7 @@ describe("owner alert for a new pass", () => {
   test("only the first purchase alerts, and a failed alert never fails the checkout", () => {
     const src = readFileSync(new URL("./starter-pass.server.ts", import.meta.url), "utf8");
     expect(src).toContain("WHERE id = ${userId} AND starter_pass_bought_at IS NULL");
-    expect(src).toContain("if (firstPurchase.length) await alertOwnerOfPass(");
+    expect(src).toContain("await alertOwnerOfPass(firstPurchase[0].email, new Date(ends));");
     expect(src).toContain('console.error("[starter-pass] owner push failed:"');
     expect(src).toContain('console.error("[starter-pass] owner email failed:"');
   });

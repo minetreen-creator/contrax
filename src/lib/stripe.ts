@@ -25,6 +25,7 @@ import {
   STARTER_PASS_FLAG,
   STARTER_PASS_PRODUCT_DESCRIPTION,
   STARTER_PASS_PRODUCT_NAME,
+  STARTER_PASS_SUBMIT_MESSAGE,
 } from "~/lib/starter-pass";
 
 // ── Client Initialization ──────────────────────────────────────────────────────
@@ -640,7 +641,7 @@ export async function createCheckoutSession(
       mode: sessionMode,
       line_items: [lineItem],
       // Owner 2026-10-30 (item 3): what happens next, under the pay button.
-      ...(planTier !== "savings_premium" ? { custom_text: { submit: { message: CHECKOUT_SUBMIT_MESSAGE } } } : {}),
+      ...(planTier !== "savings_premium" ? { custom_text: { submit: { message: starterPass ? STARTER_PASS_SUBMIT_MESSAGE : CHECKOUT_SUBMIT_MESSAGE } } } : {}),
       // A pass buyer keeps a Stripe customer, so continuing at $19 later reuses it.
       ...(starterPass ? { customer_creation: "always" as const } : {}),
       ...(firstMonth ? { discounts: [{ coupon: STARTER_FIRST_MONTH_COUPON }] } : {}),

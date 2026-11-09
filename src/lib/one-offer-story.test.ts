@@ -40,6 +40,8 @@ describe("one offer story", () => {
       expect(read(f)).not.toContain("our new 7-day trial");
     }
     expect(read("src/components/CEOPosts.tsx")).toContain("Past update: the 7-day trial (ended November 1, 2026)");
+    expect(read("src/lib/plan-gates.ts")).toContain('"$79/mo · Cancel anytime"');
+    expect(read("src/lib/pipeline-contacts.ts")).toContain('"Starter: $5 for 30 days · Nothing renews"');
   });
 
   test("free Basic shows the real search limit, and a free signup never says 'Cancel anytime'", () => {

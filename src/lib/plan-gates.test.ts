@@ -110,7 +110,8 @@ describe("plan gates: the gating map (owner 2026-09-26)", () => {
     expect(RADAR_PRO_TIER).toBe("professional");
     expect(RADAR_PRO_PLAN_LABEL).toBe("Radar Pro");
     expect(RADAR_PRO_PRICE_USD).toBe(79);
-    expect(RADAR_PRO_PRICE_NOTE).toBe("$79/mo · 7-day Professional trial · Cancel anytime");
+    // Owner 2026-11-09: no trial exists, so the note no longer promises one.
+    expect(RADAR_PRO_PRICE_NOTE).toBe("$79/mo · Cancel anytime");
     // The CTA reuses the EXISTING upgrade surface (no new door invented).
     expect(RADAR_PRO_HREF).toBe("/upgrade");
   });
@@ -178,7 +179,7 @@ describe("plan gates: the attempt prompt copy", () => {
       body:
         "AI Executive Briefs and bid scoring are Radar Pro features on the Professional plan. Upgrade to unlock them for every opportunity you're tracking.",
       ctaLabel: "Upgrade to Radar Pro →",
-      priceNote: "$79/mo · 7-day Professional trial · Cancel anytime",
+      priceNote: "$79/mo · Cancel anytime",
       href: "/upgrade",
       checkout: true,
       checkoutPlan: "professional",

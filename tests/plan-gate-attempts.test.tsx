@@ -114,7 +114,7 @@ describe("attempt-only prompts: nothing renders on view", () => {
     expect(html).toContain('role="dialog"');
     expect(html).toContain("Radar Pro feature");
     expect(html).toContain("Upgrade to Radar Pro →");
-    expect(html).toContain("$79/mo · 7-day Professional trial · Cancel anytime");
+    expect(html).toContain("$79/mo · Cancel anytime");
     expect(html).toContain("Maybe later");
     // The drafting/export prompt links to the paid plans (Bid Scout retired 2026-11-07).
     const b = gatePrompt("bid_scout");
@@ -718,7 +718,7 @@ describe("(g1) the /awards incumbent reveal shows the ratified Radar Pro gate", 
     );
     expect(html).toContain("Radar Pro feature");
     expect(html).toContain("Upgrade to Radar Pro →");
-    expect(html).toContain("$79/mo · 7-day Professional trial · Cancel anytime");
+    expect(html).toContain("$79/mo · Cancel anytime");
     expect(html).not.toContain("Upgrade to Professional");
     expect(html).not.toContain("past contract awardees and pricing history");
     expect(html).not.toContain("GATE_REQUIRED");
@@ -745,7 +745,7 @@ describe("(g4) the AI-brief locked preview shows the ratified Radar Pro offer", 
   test("the locked copy names the Radar Pro feature + its price note — the legacy Professional pitch is gone", () => {
     for (const src of [card, allowance]) {
       expect(src).toContain("Radar Pro feature");
-      expect(src).toContain("$79/mo · 7-day Professional trial · Cancel anytime");
+      expect(src).toContain("$79/mo · Cancel anytime");
       // The legacy locked-preview sentences are gone from every locked-brief source.
       expect(src).not.toContain("Understand this RFP in minutes");
       expect(src).not.toContain("Upgrade to Professional to reveal");

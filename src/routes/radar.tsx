@@ -4091,6 +4091,13 @@ function RadarMoreOptions({ trade, state, onPickState }: { trade: string; state:
             className="mt-2 inline-block text-sm font-semibold text-amber-300 underline">See industry days →</a>
         </div>
       )}
+      {/* Moved off the homepage (owner 2026-11-10 cleanup): the big plant and highway jobs hiring local subs. */}
+      <p className="mt-5 text-sm text-slate-300">
+        Big plant and highway projects are hiring local subs too:{" "}
+        <a href="/megaprojects?source=radar_more" onClick={() => trackEvent("radar_more_megaprojects", state)} className="font-semibold text-amber-300 underline">
+          See megaprojects →
+        </a>
+      </p>
     </section>
   );
 }

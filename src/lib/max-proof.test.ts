@@ -24,13 +24,11 @@ describe("homepage Max proof", () => {
     expect(maxProofBidOpen(Date.parse("2026-12-09T12:00:00Z"))).toBe(false);
   });
 
-  test("it sits on the homepage right under the search and the $5 strip", () => {
+  test("it sits on the homepage right after the message, before the $5 strip (owner 2026-11-10 cleanup)", () => {
     const home = readFileSync(new URL("../routes/index.tsx", import.meta.url), "utf8");
-    const i = home.indexOf("<StarterPassStrip />");
     const j = home.indexOf("<HomeMaxProof />");
-    expect(i).toBeGreaterThan(0);
-    expect(j).toBeGreaterThan(i);
-    expect(j).toBeLessThan(home.indexOf("<HomeAppStrip />"));
+    expect(j).toBeGreaterThan(home.indexOf("<HomeExecutionLine />"));
+    expect(j).toBeLessThan(home.indexOf("<StarterPassStrip />"));
   });
 });
 

@@ -7,6 +7,7 @@ import { redirectToCheckout } from "~/lib/checkout";
 import { PLAN_COPY, upgradeFeatures } from "~/lib/plan-features";
 import { formatDollars, shortDate, tradePlace, type UpgradePitch } from "~/lib/upgrade-pitch";
 import { STARTER_FIRST_MONTH_NOTE, STARTER_FIRST_MONTH_PRICE } from "~/lib/starter-offer";
+import { CheckoutTrust } from "~/components/CheckoutTrust";
 
 const getStatus = createServerFn({ method: "GET" }).handler(async () => {
   const u = await getCurrentUser();
@@ -91,7 +92,31 @@ function Upgrade() {
             </a>
           </div>
         )}
-        {!signedIn && (
+        {/* Pay without making an account first (owner 2026-11-10, "2"): someone who tapped $5 gets one
+            button to Stripe, which asks for the email; /post-checkout creates the account after payment. */}
+        {!signedIn && plan === "starter" && checkout !== "cancelled" && (
+          <div className="mx-auto mt-6 max-w-xl rounded-2xl border-2 border-amber-400 bg-white p-6 text-center shadow-sm">
+            <p className="text-lg font-bold text-slate-900">$5 for 30 days. No account needed first.</p>
+            <p className="mt-1 text-sm text-slate-600">Stripe asks for your email, and your Contrax account is set up the moment you pay.</p>
+            <button
+              type="button"
+              disabled={pendingPlan !== null}
+              onClick={async () => {
+                setPendingPlan("starter");
+                try { await redirectToCheckout("starter", { interval: "month" }); }
+                finally { setPendingPlan(null); }
+              }}
+              className="mt-4 w-full rounded-xl bg-amber-400 px-6 py-3 text-base font-bold text-slate-950 hover:bg-amber-300 disabled:opacity-60"
+            >
+              {pendingPlan === "starter" ? "Opening secure checkout…" : "Pay $5 and start now →"}
+            </button>
+            <CheckoutTrust className="mt-2" />
+            <p className="mt-3 text-xs text-slate-500">
+              Already have an account? <a href={`/login?redirect=${encodeURIComponent(`/upgrade?plan=starter${bid ? `&bid=${bid}` : ""}`)}`} className="underline">Sign in</a>
+            </p>
+          </div>
+        )}
+        {!signedIn && !(plan === "starter" && checkout !== "cancelled") && (
           <div className="mx-auto mt-6 max-w-xl rounded-2xl border border-amber-300 bg-amber-50 p-6 text-center">
             <p className="text-sm text-slate-700">
               Not ready to pay? A free account keeps searching on Basic. When you want unlimited Radar searches, every

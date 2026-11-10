@@ -51,7 +51,8 @@ describe("bid page: the job is free to read", () => {
   });
   test("the $5 button keeps the bid through signup to the plan page", () => {
     expect(bidStarterHref(42, true)).toBe("/upgrade?plan=starter&bid=42");
-    expect(bidStarterHref(42, false)).toBe(`/signup?plan=starter&bid=42&next=${encodeURIComponent("/upgrade?plan=starter&bid=42")}`);
+    // Owner 2026-11-10: pay without making an account first; the account is made after payment.
+    expect(bidStarterHref(42, false)).toBe("/upgrade?plan=starter&bid=42");
     expect(paidPlanReturn("/upgrade?plan=starter&bid=42")).toBe("/upgrade?plan=starter&bid=42");
     expect(paidPlanReturn("/upgrade?plan=starter&bid=4x2")).toBe("/upgrade?plan=starter");
     // Checkout check 2026-11-02: signup rebuilt the plan return and dropped the bid.

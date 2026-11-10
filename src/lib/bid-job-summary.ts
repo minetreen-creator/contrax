@@ -93,11 +93,13 @@ export function agencyDisplay(agency: string | null | undefined): string | null 
 }
 
 /**
- * Where the bid page's $5 button goes. Signed-in visitors go straight to the
- * Starter plan; everyone else signs up first and lands on it. Both carry the
- * bid so the plan page can link back to it.
+ * Where the bid page's $5 button goes: the Starter plan page, signed in or not (owner 2026-11-10:
+ * pay without making an account first). It carries the bid so the plan page can link back to it.
  */
 export function bidStarterHref(bidId: number, signedIn: boolean): string {
   const upgrade = `/upgrade?plan=starter&bid=${bidId}`;
-  return signedIn ? upgrade : `/signup?plan=starter&bid=${bidId}&next=${encodeURIComponent(upgrade)}`;
+  // Owner 2026-11-10 ("2": pay without making an account first): signed out goes to the same page;
+  // its button opens Stripe, which asks for the email, and /post-checkout creates the account.
+  void signedIn;
+  return upgrade;
 }

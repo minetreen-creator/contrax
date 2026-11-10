@@ -518,7 +518,7 @@ export function HomeContractFinder({ sample, openTotal = 0 }: { sample: Everyday
                       Open every official notice, and get each new bid in your trade at 6 AM, for 30 days. One time, no automatic renewal.
                     </p>
                     <a
-                      href={`/signup?plan=starter&next=${encodeURIComponent("/upgrade?plan=starter")}`}
+                      href="/upgrade?plan=starter"
                       onClick={(e) => {
                         // Pay first, account after (CEO 2026-10-22): straight to Stripe.
                         e.preventDefault();

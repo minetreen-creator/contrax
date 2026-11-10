@@ -20,7 +20,7 @@ export const BRAND_STEPS: readonly { title: string; detail: string; href: string
   {
     title: "Get the work.",
     // Owner 2026-11-10: no brand names here ("Max", "Auto-Pilot", "the Pathway" meant nothing to a busy contractor).
-    detail: "Our AI assistant reviews the bid with you, flags your strongest fits, and builds a checklist so you don't miss a requirement.",
+    detail: "Our AI assistant explains the bid in plain English, flags your strongest fits, and builds a checklist so you don't miss a requirement.",
     href: "/pathway",
     cta: "See how to win bids",
   },

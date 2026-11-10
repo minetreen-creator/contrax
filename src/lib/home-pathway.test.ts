@@ -17,14 +17,16 @@ test("moved off the homepage: the Pathway steps, the app panel, megaprojects, th
     expect(page).not.toContain(gone);
 });
 
-test("the Tampa card shows to Florida visitors only, decided in the browser so the cached page stays the same for everyone", () => {
-  expect(page).toContain("<FloridaOnly>\n        <HomeTampaPartner />\n      </FloridaOnly>");
-  expect(page).toContain('setShow(r.state === "FL")');
+test("the Tampa card shows to everyone, right after the message: out-of-state crews need the housing (owner 2026-11-10)", () => {
+  expect(page).not.toContain("FloridaOnly");
+  const tampa = at("<HomeTampaPartner />");
+  expect(tampa).toBeGreaterThan(at("<HomeExecutionLine />"));
+  expect(tampa).toBeLessThan(at("<HomeMaxProof />"));
   expect(page).toContain('{ href: "/tampa-contractors", label: "Tampa: work and crew housing" }');
 });
 
 test("subs are folded into the message section, and the footer keeps every moved tool", () => {
-  const line = page.slice(at("function HomeExecutionLine"), at("const getVisitorState"));
+  const line = page.slice(at("function HomeExecutionLine"), at("function HomeTampaPartner"));
   expect(line).toContain('href="/sub-finder/join?source=home"');
   expect(line).toContain('href="/subs-wanted"');
   for (const href of ['"/pathway"', '"/gap-map"', '"/roadmap"', '"/prime-finder"', '"/recompetes"', '"/megaprojects"', '"/subs-wanted"', '"/co-op-contracts"'])

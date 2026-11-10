@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState, type ReactNode } from "react";
 import { HomeMaxProof } from "~/components/HomeMaxProof";
 import { createServerFn } from "@tanstack/react-start";
 import { readFile } from "node:fs/promises";
@@ -201,13 +200,13 @@ function Home() {
       <Navbar />
       {/* Homepage cleanup (owner 2026-11-10: "follow your recommendations"): five sections, one path
           down the page. Search → the one message (subs folded into its step 2) → the AI assistant's
-          proof → the $5 pass → the state map. The Tampa card shows only to Florida visitors; the
+          proof → the $5 pass → the state map. The Tampa card follows the message; the
           Pathway, app, megaprojects and the extra tool links moved to their own pages and the footer. */}
       <HomeContractFinder sample={sample} openTotal={contractMap?.totals?.totalOpen ?? 0} />
       <HomeExecutionLine />
-      <FloridaOnly>
-        <HomeTampaPartner />
-      </FloridaOnly>
+      {/* Tampa partnership (owner 2026-11-10): for everyone, since the contractors who need crew housing
+          there are the ones coming from out of state. */}
+      <HomeTampaPartner />
       {/* Before/after proof (owner 2026-11-08): a real bid's notice next to Max's real answer. */}
       {maxProofCurrent !== false ? <HomeMaxProof /> : null}
       {/* The $5 Starter pass (src/lib/starter-pass.ts): the only offer on the page. */}
@@ -255,36 +254,6 @@ function HomeExecutionLine() {
       </p>
     </section>
   );
-}
-
-/**
- * Florida visitors only (owner 2026-11-10 cleanup: the Tampa partnership card is for people near the
- * work). The homepage is cached and the same for everyone, so the visitor's state is asked for in the
- * browser; nothing shows until the answer is Florida. Everyone else reaches Tampa from the footer.
- */
-const getVisitorState = createServerFn({ method: "GET" }).handler(async () => {
-  try {
-    const { getRequest } = await import("@tanstack/react-start/server");
-    const { stateFromGeoHeaders } = await import("~/lib/radar-geo");
-    const h = getRequest().headers;
-    return { state: stateFromGeoHeaders(h.get("x-vercel-ip-country"), h.get("x-vercel-ip-country-region")) };
-  } catch {
-    return { state: "" };
-  }
-});
-
-function FloridaOnly({ children }: { children: ReactNode }) {
-  const [show, setShow] = useState(false);
-  useEffect(() => {
-    let live = true;
-    getVisitorState()
-      .then((r) => live && setShow(r.state === "FL"))
-      .catch(() => {});
-    return () => {
-      live = false;
-    };
-  }, []);
-  return show ? <>{children}</> : null;
 }
 
 // Tampa Contractor Support Network (owner 2026-11-09): a partnership with Casa Blue Collar.

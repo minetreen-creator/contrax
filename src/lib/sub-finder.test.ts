@@ -182,3 +182,25 @@ describe("Tampa Contractor Support Network (owner 2026-11-09)", () => {
     expect(readFileSync(new URL("../../scripts/generate-sitemap.mjs", import.meta.url), "utf8")).toContain('["/tampa-contractors", "daily", "0.6"]');
   });
 });
+
+describe("Tampa partnership on the homepage (owner 2026-11-09)", () => {
+  test("the homepage shows the Tampa card after megaprojects, with the shared facts and the Casa link", () => {
+    const home = readFileSync(new URL("../routes/index.tsx", import.meta.url), "utf8");
+    expect(home.indexOf("<HomeTampaPartner />")).toBeGreaterThan(home.indexOf("<HomeMegaprojects"));
+    expect(home).toContain("TAMPA_FACTS.federalConstruction");
+    expect(home).toContain('rel="sponsored noopener"');
+  });
+});
+
+describe("pages stay readable in dark mode (owner 2026-11-10 screenshot)", () => {
+  test("new pages paint their own light background", () => {
+    for (const f of ["roadmap", "prime-finder", "sub-finder", "sub-finder_.partners", "sub-finder_.unlist", "trade-package.$slug", "find-subcontractors.$state.$trade", "find-subcontractors.index", "tampa-contractors", "pathway", "gap-map"]) {
+      expect(readFileSync(new URL(`../routes/${f}.tsx`, import.meta.url), "utf8")).toContain('className="min-h-screen bg-slate-50 text-slate-900 [color-scheme:light]"');
+    }
+  });
+
+  test("Tampa page and homepage card show Tampa subs", () => {
+    expect(readFileSync(new URL("../routes/tampa-contractors.tsx", import.meta.url), "utf8")).toContain("registeredSubsInCities");
+    expect(readFileSync(new URL("../routes/index.tsx", import.meta.url), "utf8")).toContain("Find Tampa subs →");
+  });
+});

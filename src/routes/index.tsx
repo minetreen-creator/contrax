@@ -8,6 +8,7 @@ import { HomeStateMap } from "~/components/HomeStateMap";
 import { PATHWAY_LINE, PATHWAY_STEPS } from "~/lib/pathway";
 
 import { trackEvent } from "~/lib/track";
+import { CASA, TAMPA_FACTS, TAMPA_PATH } from "~/lib/tampa";
 import { STARTER_PASS_NOTE } from "~/lib/starter-pass";
 import { STARTER_FIRST_MONTH_PRICE as STARTER_PRICE } from "~/lib/starter-offer";
 import { SiteHeader } from "~/components/SiteHeader";
@@ -226,6 +227,8 @@ function Home() {
       <HomeAppStrip />
       {/* Megaprojects (owner 2026-11-07): the big plants and highway jobs hiring local subs. */}
       {megaprojects ? <HomeMegaprojects {...megaprojects} /> : null}
+      {/* Tampa partnership (owner 2026-11-09): Contrax + Casa Blue Collar, crew housing for Tampa jobs. */}
+      <HomeTampaPartner />
       {/* Owner 2026-11-02 (design critique, "fix all"): one path down the page,
           sized for a small trade business: search, the $5 pass, how it works,
           the state map, Max, sub leads, and the $5 pass again to close. The
@@ -336,6 +339,69 @@ function HomeMegaprojects({ featured, projects, amount }: { featured: Megaprojec
           </li>
         ))}
       </ul>
+    </section>
+  );
+}
+
+// Tampa Contractor Support Network (owner 2026-11-09): a partnership with Casa Blue Collar.
+// Every figure is TAMPA_FACTS (src/lib/tampa.ts), the same numbers the Tampa page shows.
+function HomeTampaPartner() {
+  return (
+    <section aria-labelledby="home-tampa-title" className="mx-auto max-w-[1120px] px-4 pt-12 sm:px-6">
+      <div className="grid gap-5 rounded-3xl border border-slate-200 bg-gradient-to-br from-sky-50 to-white p-6 sm:p-8 lg:grid-cols-[1.4fr_1fr] dark:border-slate-700 dark:from-slate-900 dark:to-slate-950">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wider text-sky-700 dark:text-sky-300">🌴 New in Tampa · Partnership</p>
+          <h2 id="home-tampa-title" className={`${SERIF} mt-1 text-[clamp(24px,3vw,30px)] leading-[1.15] font-bold`}>Find the work. Build the team. House the crew.</h2>
+          <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
+            Contrax and {CASA.name} teamed up for contractors working Tampa government jobs: open bids, certified local subs, and housing for traveling crews.
+          </p>
+          <dl className="mt-4 grid grid-cols-3 gap-3">
+            <div>
+              <dt className="sr-only">Federal construction in Tampa</dt>
+              <dd className="text-2xl font-extrabold text-slate-900 dark:text-white">{TAMPA_FACTS.federalConstruction}</dd>
+              <dd className="text-xs text-slate-600 dark:text-slate-400">federal construction work in Tampa last year</dd>
+            </div>
+            <div>
+              <dt className="sr-only">Share to out-of-state firms</dt>
+              <dd className="text-2xl font-extrabold text-slate-900 dark:text-white">{TAMPA_FACTS.outOfStateShare}</dd>
+              <dd className="text-xs text-slate-600 dark:text-slate-400">went to firms based outside Florida</dd>
+            </div>
+            <div>
+              <dt className="sr-only">Contracts ending soon</dt>
+              <dd className="text-2xl font-extrabold text-slate-900 dark:text-white">{TAMPA_FACTS.endingSoonCount}</dd>
+              <dd className="text-xs text-slate-600 dark:text-slate-400">contracts ({TAMPA_FACTS.endingSoonValue}) up for rebid in 12 months</dd>
+            </div>
+          </dl>
+          <p className="mt-4 text-sm text-slate-700 dark:text-slate-300">
+            Need subs for a Tampa job? <strong>{TAMPA_FACTS.registeredContractors}</strong> construction contractors in Tampa are registered for federal work.{" "}
+            <a href={`${TAMPA_PATH}?source=home#team`} onClick={() => trackEvent("home_tampa_click", "subs")} className="font-semibold text-blue-700 hover:text-blue-600 dark:text-blue-300">
+              Find Tampa subs →
+            </a>
+          </p>
+          <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">{TAMPA_FACTS.asOf}. Source: {TAMPA_FACTS.source}.</p>
+        </div>
+        <div className="flex flex-col justify-center gap-3 rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Housing referral partner</p>
+          <p className="text-lg font-bold">{CASA.name}</p>
+          <p className="text-sm text-slate-700 dark:text-slate-300">Bringing a crew into Tampa? Ask {CASA.name} about housing near your job site and book with them directly.</p>
+          <a
+            href={`${TAMPA_PATH}?source=home`}
+            onClick={() => trackEvent("home_tampa_click", "network")}
+            className="inline-flex items-center justify-center gap-1 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600 dark:bg-white dark:text-slate-900"
+          >
+            Tampa bids, subs and crew housing <ArrowRight aria-hidden="true" className="h-4 w-4" />
+          </a>
+          <a
+            href={CASA.url}
+            target="_blank"
+            rel="sponsored noopener"
+            onClick={() => trackEvent("tampa_housing_referral_click", "home")}
+            className="text-center text-sm font-semibold text-blue-700 hover:text-blue-600 dark:text-blue-300"
+          >
+            Visit {CASA.name} →
+          </a>
+        </div>
+      </div>
     </section>
   );
 }

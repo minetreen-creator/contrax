@@ -127,10 +127,10 @@ export const Route = createFileRoute("/sub-finder")({
   loaderDeps: ({ search }) => search,
   loader: ({ deps }) => getSubFinder({ data: deps }),
   component: () => (
-    <>
+    <div className="min-h-screen bg-slate-50 text-slate-900 [color-scheme:light]">
       <SiteHeader />
       <SubFinderPage />
-    </>
+    </div>
   ),
   head: () => ({
     meta: [

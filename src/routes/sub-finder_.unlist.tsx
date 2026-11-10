@@ -25,7 +25,7 @@ export const Route = createFileRoute("/sub-finder_/unlist")({
   component: () => {
     const { ok } = Route.useLoaderData();
     return (
-      <>
+      <div className="min-h-screen bg-slate-50 text-slate-900 [color-scheme:light]">
         <SiteHeader />
         <main className="mx-auto max-w-xl px-4 py-12">
           <h1 className="text-2xl font-bold text-slate-900">{ok ? "You're no longer listed for primes" : "That link didn't work"}</h1>
@@ -36,7 +36,7 @@ export const Route = createFileRoute("/sub-finder_/unlist")({
           </p>
           <a href="/sub-finder" className="mt-4 inline-block font-semibold text-blue-700">Go to Sub Finder →</a>
         </main>
-      </>
+      </div>
     );
   },
   head: () => ({ meta: [{ title: "Sub Finder listing | Contrax" }, { name: "robots", content: "noindex" }] }),

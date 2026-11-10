@@ -77,10 +77,10 @@ export const Route = createFileRoute("/prime-finder")({
   loaderDeps: ({ search }) => search,
   loader: ({ deps }) => getPrimeFinder({ data: deps }),
   component: () => (
-    <>
+    <div className="min-h-screen bg-slate-50 text-slate-900 [color-scheme:light]">
       <SiteHeader />
       <PrimeFinderPage />
-    </>
+    </div>
   ),
   head: () => ({
     meta: [

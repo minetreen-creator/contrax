@@ -229,6 +229,8 @@ function Home() {
       <HomeAppStrip />
       {/* Megaprojects (owner 2026-11-07): the big plants and highway jobs hiring local subs. */}
       {megaprojects ? <HomeMegaprojects {...megaprojects} /> : null}
+      {/* Tampa partnership (owner 2026-11-09): Contrax + Casa Blue Collar, crew housing for Tampa jobs. */}
+      <HomeTampaPartner />
       {/* Owner 2026-11-02 (design critique, "fix all"): one path down the page,
           sized for a small trade business: search, the $5 pass, how it works,
           the state map, Max, sub leads, and the $5 pass again to close. The

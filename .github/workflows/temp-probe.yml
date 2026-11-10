@@ -1,4 +1,4 @@
-name: Temp probe (other bid sites: watermark and wording check, read-only)
+name: Temp probe (other bid sites, watermark and wording check, read-only)
 on:
   push:
     branches: [claude/vibrant-cray-177q1d]

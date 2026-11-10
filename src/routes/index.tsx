@@ -267,7 +267,7 @@ function Home() {
   );
 }
 
-// The Contrax Pathway on the homepage (owner 2026-11-09): the line and the four steps, each
+// The Contrax Pathway on the homepage (owner 2026-11-09): the line and the five steps, each
 // linked to its tool (src/lib/pathway.ts). Replaces the 3-card "How Contrax works" and the
 // collapsed example AI brief.
 function HomePathway() {
@@ -275,7 +275,7 @@ function HomePathway() {
     <section aria-labelledby="pathway-title" className="mx-auto max-w-[1120px] px-4 pt-12 sm:px-6">
       <p className="text-xs font-bold uppercase tracking-wider text-blue-700 dark:text-blue-300">The Contrax Pathway</p>
       <h2 id="pathway-title" className={`${SERIF} mt-1 max-w-3xl text-[clamp(22px,2.8vw,30px)] leading-[1.2] font-bold`}>{PATHWAY_LINE}</h2>
-      <ol className="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <ol className="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         {PATHWAY_STEPS.map((s) => (
           <li key={s.n}>
             <a
@@ -284,7 +284,7 @@ function HomePathway() {
               className="group flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-4 transition sm:p-5 hover:-translate-y-1 hover:border-blue-400 hover:shadow-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600 dark:border-slate-700 dark:bg-slate-900"
             >
               {/* Phones: the number sits beside the title and the long description is hidden, so the
-                  four steps stay short (owner 2026-11-09: the stacked cards made the page longer). */}
+                  steps stay short (owner 2026-11-09: the stacked cards made the page longer). */}
               <div className="flex items-center gap-3 sm:block">
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-900 text-sm font-bold text-white dark:bg-white dark:text-slate-900">{s.n}</span>
                 <h3 className="text-lg font-bold sm:mt-3">{s.name}</h3>

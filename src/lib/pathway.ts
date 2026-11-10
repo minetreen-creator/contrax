@@ -1,6 +1,6 @@
 /**
- * The Contrax Pathway (owner 2026-11-09): the owner's positioning line and the four connected
- * steps, shared by /pathway and the homepage. PURE.
+ * The Contrax Pathway (owner 2026-11-09): the owner's positioning line and the five connected
+ * steps (step 5, co-op contracts, owner 2026-11-10), shared by /pathway and the homepage. PURE.
  */
 export const PATHWAY_LINE = "Contrax doesn't just show you government contracts. It shows you how to get into the business of winning them.";
 
@@ -60,6 +60,17 @@ export const PATHWAY_STEPS: PathwayStep[] = [
     cta: "Find primes",
     access: "First 3 free; every prime with Professional",
     event: "prime_finder",
+  },
+  {
+    n: 5,
+    name: "Get on a co-op contract",
+    question: "How do agencies buy from me without a bid?",
+    what: "Purchasing co-ops like Sourcewell, BuyBoard and TIPS run one bid for thousands of member agencies. Win your category and members can buy from you with a purchase order. See which co-op categories are open for your trade now and how to get on.",
+    bullets: ["Open co-op solicitations for your trade, updated daily", "Which co-ops serve your area, and how each one works", "What to prepare before your category opens"],
+    href: "/co-op-contracts",
+    cta: "See open co-op bids",
+    access: "Free",
+    event: "coop_contracts",
   },
 ];
 

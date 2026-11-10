@@ -86,6 +86,7 @@ import { SiteHeader } from "~/components/SiteHeader";
 import { HeadStartLock } from "~/components/HeadStartLock";
 import { WinnerPriceLine } from "~/components/WinnerPriceLine";
 import { headStartUntil } from "~/lib/head-start";
+import { CoopCallout } from "~/components/CoopCallout";
 
 /**
  * /radar — "Contract Radar" interactive lead-generation experience.
@@ -2213,6 +2214,8 @@ function RadarLanding() {
                     : `${scan.matches.length} ${scan.matches.length === 1 ? "match" : "matches"} found for you`}
               </p>
             )}
+
+            <CoopCallout trade={trade} />
 
             {scan.matches.length === 0 && (
               <div className="mt-8 rounded-2xl border border-dashed border-slate-700 bg-slate-900/60 px-5 py-10 text-center text-sm text-slate-300">

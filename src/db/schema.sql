@@ -1381,3 +1381,18 @@ CREATE TABLE IF NOT EXISTS tx_hub_firms (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS tx_hub_firms_trades_idx ON tx_hub_firms USING GIN (trades);
+
+-- Purchasing co-op solicitations (src/lib/coop-contracts.ts) from Sourcewell's and BuyBoard's public
+-- pages (src/jobs/coop-sync.ts); mirror of src/lib/coop-contracts.server.ts ensureCoopTable.
+CREATE TABLE IF NOT EXISTS coop_solicitations (
+  key TEXT PRIMARY KEY,
+  coop TEXT NOT NULL,
+  number TEXT,
+  title TEXT NOT NULL,
+  due_at TIMESTAMPTZ,
+  url TEXT NOT NULL,
+  trades TEXT[] NOT NULL DEFAULT '{}',
+  construction BOOLEAN NOT NULL DEFAULT FALSE,
+  first_seen TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  synced_at TIMESTAMPTZ NOT NULL
+);

@@ -1,0 +1,31 @@
+name: Sync purchasing co-op solicitations
+# Co-op contracts (owner 2026-11-10, "yes build it"): Sourcewell's and BuyBoard's open vendor
+# solicitations from their public pages (robots.txt allows both). Rules: src/jobs/sources/coop.ts.
+# A handful of requests a day, two seconds apart, as ContraxBot. Daily, and by hand.
+on:
+  schedule:
+    - cron: "23 14 * * *"
+  workflow_dispatch:
+concurrency:
+  group: coop-sync
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  sync:
+    name: Sync purchasing co-op solicitations
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Read the co-ops and store their open solicitations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: bun src/jobs/coop-sync.ts

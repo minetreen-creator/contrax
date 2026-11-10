@@ -14,10 +14,11 @@ type HeaderUser = { id: number; email: string; is_admin?: boolean } | null;
  * and hydration agree.
  */
 const WIN_WORK_LINKS = [
-  { href: "/pathway", label: "The Contrax Pathway", note: "How the four steps fit together" },
+  { href: "/pathway", label: "The Contrax Pathway", note: "How the five steps fit together" },
   { href: "/gap-map", label: "Opportunity gap map", note: "Where your trade's federal money is" },
   { href: "/roadmap", label: "Your roadmap", note: "Your plan and next 3 actions" },
   { href: "/prime-finder", label: "Prime contractor finder", note: "Primes that must subcontract" },
+  { href: "/co-op-contracts", label: "Co-op contracts", note: "Get on contracts agencies buy from without a bid" },
   { href: "/sub-finder", label: "Sub Finder", note: "Find subs and collect quotes for your bid" },
   { href: "/sub-finder/join", label: "Get listed (subs)", note: "Get quote requests from primes" },
 ];

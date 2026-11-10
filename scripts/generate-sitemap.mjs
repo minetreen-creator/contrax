@@ -77,6 +77,7 @@ const PRODUCT_PATHS = [
   ["/prime-finder", "weekly", "0.6"],
   ["/roadmap", "monthly", "0.5"],
   ["/pathway", "monthly", "0.7"],
+  ["/co-op-contracts", "daily", "0.6"],
   ["/sub-finder", "weekly", "0.6"],
   ["/find-subcontractors", "weekly", "0.6"],
   ["/sub-finder/join", "weekly", "0.6"],

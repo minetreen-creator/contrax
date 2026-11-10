@@ -6,7 +6,7 @@ import { trackEvent } from "~/lib/track";
 import { PATHWAY_LINE, PATHWAY_STEPS as STEPS } from "~/lib/pathway";
 
 /**
- * /pathway — the Contrax Pathway (owner 2026-11-09): four connected capabilities that take a small
+ * /pathway — the Contrax Pathway (owner 2026-11-09): five connected capabilities that take a small
  * business from "where is the work?" to winning it, under the owner's positioning line. The figures
  * are live counts from data Contrax already syncs (USAspending.gov and the SBA/GSA prime
  * directories); each is left out if it cannot be read.
@@ -14,7 +14,7 @@ import { PATHWAY_LINE, PATHWAY_STEPS as STEPS } from "~/lib/pathway";
 const PROD_URL = "https://www.contrax.company";
 const TITLE = "The Contrax Pathway: How to Get Into the Business of Winning Government Contracts";
 const DESC =
-  "Contrax doesn't just show you government contracts. It shows you how to get into the business of winning them: know your market, get your plan, find the bids that fit, and team with the primes.";
+  "Contrax doesn't just show you government contracts. It shows you how to get into the business of winning them: know your market, get your plan, find the bids that fit, team with the primes, and get on a co-op contract.";
 
 const getPathwayStats = createServerFn({ method: "GET" }).handler(async () => {
   const out: { spend: number | null; fiscalYear: number | null; ending12: number | null; planPrimes: number | null } = {
@@ -84,7 +84,7 @@ function PathwayPage() {
           <p className="text-xs font-semibold uppercase tracking-widest text-sky-300">The Contrax Pathway</p>
           <h1 className="mt-3 text-3xl font-extrabold leading-tight sm:text-5xl">{PATHWAY_LINE}</h1>
           <p className="mx-auto mt-4 max-w-2xl text-slate-300">
-            Four connected steps: know your market, get your plan, find the bids that fit, and team with the primes that already hold the work.
+            Five connected steps: know your market, get your plan, find the bids that fit, team with the primes that already hold the work, and get on the co-op contracts agencies buy from without a bid.
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <a href="/roadmap" onClick={() => trackEvent("pathway_cta", "roadmap_hero")} className="rounded-xl bg-white px-5 py-3 text-sm font-bold text-slate-900 hover:bg-slate-100">

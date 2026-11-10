@@ -22,7 +22,8 @@ test("the contact link says the $5 pass includes it, and only a used pass is tol
 
 test("the app banner waits until the visitor has seen the $5 offer", () => {
   expect(page).toContain('<AppInstallBanner where="bid" hold={!checked || (lockShown && !offerSeen)} />');
-  expect(banner).toContain("if (!due || hold || shown.current || !platform) return;");
+  // Owner 2026-11-10: and only for paid members (the hold still applies).
+  expect(banner).toContain("if (!due || hold || !paid || shown.current || !platform) return;");
   // Still mounted at once, so Android's install event is caught while the banner is held.
   expect(banner).toContain('window.addEventListener("beforeinstallprompt", onPrompt);');
 });

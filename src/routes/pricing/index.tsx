@@ -1,4 +1,5 @@
 import { useEffect, useState, type MouseEvent } from "react";
+import { CheckoutTrust } from "~/components/CheckoutTrust";
 import { createFileRoute } from "@tanstack/react-router";
 import { BidValueCalculator } from "~/components/BidValueCalculator";
 import { EmailSample } from "~/components/EmailSample";
@@ -360,6 +361,7 @@ function PricingPage() {
                 >
                   {plan.slug === "starter" && interval === "month" ? `Start Starter for $${STARTER_FIRST_MONTH_PRICE}` : plan.cta}
                 </a>
+                {plan.slug === "starter" && interval === "month" ? <CheckoutTrust className="mt-2 text-center" /> : null}
               </div>
             ))}
           </div>

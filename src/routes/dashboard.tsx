@@ -17,6 +17,7 @@ import { SavedRadarMatches } from "~/components/SavedRadarMatches";
 import { TrialChecklist } from "~/components/TrialChecklist";
 import { TrialStartCard } from "~/components/TrialStartCard";
 import { SubFinderListPrompt } from "~/components/SubFinderListPrompt";
+import { AppInstallBanner } from "~/components/AppInstallBanner";
 import { isBriefMode, readRadarTopMatch, BRIEF_MODE_EVENTS } from "~/lib/brief-mode";
 import { trackEvent } from "~/lib/track";
 import { CompanyProfile, type BusinessProfile } from "~/components/CompanyProfile";
@@ -1603,6 +1604,8 @@ function DashboardPage({ user, trial, onTrialStarted }: { user: AuthUser; trial:
         {!briefMode && <TrialStartCard onTrialStarted={onTrialStarted} />}
         {/* Sub Finder (owner 2026-11-09): members with a profile can list for primes in one tap. */}
         <SubFinderListPrompt placement="dashboard" />
+        {/* The app, for paid members on phones (owner 2026-11-10): alerts work only with a paid plan. */}
+        <AppInstallBanner where="dashboard" />
 
         {/* Bid Scout assistance card — free-tier users ONLY (no active paid
             plan AND no active trial/grant entitlement). */}

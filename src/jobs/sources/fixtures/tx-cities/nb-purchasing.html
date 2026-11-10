@@ -1,0 +1,2500 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+	<meta http-equiv="Content-type" content="text/html; charset=UTF-8" />
+<!-- Google Tag Manager for GA4 -->
+				<script>(function(w,d,s,l,i){w.GAMeasurementID='G-METH026RQ3';w[l]=w[l]||[];w[l].push({'gtm.start':
+				new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+				j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+				'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+				})(window,document,'script','cpDataLayerGA4','GTM-K73C5PS');</script>
+				<!-- End Google Tag Manager for GA4 -->
+				<script type='text/javascript'>
+					var enableTelemetry = 'false'
+					var aiConfig = {
+					instrumentationKey: '1cde048e-3185-4906-aa46-c92a7312b60f'						
+					}
+					var appInsights = window.appInsights || function (a) { function b(a) { c[a] = function () { var b = arguments; c.queue.push(function () { c[a].apply(c, b) }) } } var c = { config: a }, d = document, e = window; setTimeout(function () { var b = d.createElement('script'); b.src = a.url || 'https://js.monitor.azure.com/scripts/a/ai.0.js', d.getElementsByTagName('script')[0].parentNode.appendChild(b) }); try { c.cookie = d.cookie } catch (a) { } c.queue = []; for (var f = ['Event', 'Exception', 'Metric', 'PageView', 'Trace', 'Dependency']; f.length;)b('track' + f.pop()); if (b('setAuthenticatedUserContext'), b('clearAuthenticatedUserContext'), b('startTrackEvent'), b('stopTrackEvent'), b('startTrackPage'), b('stopTrackPage'), b('flush'), !a.disableExceptionTracking) { f = 'onerror', b('_' + f); var g = e[f]; e[f] = function (a, b, d, e, h) { var i = g && g(a, b, d, e, h); return !0 !== i && c['_' + f](a, b, d, e, h), i } } return c }(aiConfig);
+					window.appInsights = appInsights, appInsights.queue && 0 === appInsights.queue.length;
+					// Add telemetry initializer
+					appInsights.queue.push(function() {
+						appInsights.context.addTelemetryInitializer(function(envelope) {
+							var telemetryItem = envelope.data.baseData;
+							// To check the telemetry item’s type:
+							if (!false)
+							{
+								//If the telemetry is not enabled, we still want to capture Google map custom event, so only allow that
+								if (envelope.name.indexOf('.Event') == -1)
+									return false;
+							}
+						});
+					});						
+					appInsights.trackPageView();
+				</script>
+	<script>
+		function populateAntiForgery(token) {
+			var input = document.createElement("input");
+			input.name = "__RequestVerificationToken";
+			input.type = "hidden";
+			input.value = token;
+			var absPat = /^https?:\/\/|^\/\//i;
+			var forms = document.getElementsByTagName("form");
+			for (var i = 0; i < forms.length; i++) {
+				if (forms[i].method == "post" &&
+					!forms[i].querySelector('[name="__RequestVerificationToken"]') &&
+					!absPat.test(forms[i].getAttribute("action"))) {
+					forms[i].appendChild(input.cloneNode());
+				}
+			}
+		}
+
+		function getAntiForgeryToken(callback, error) {
+			var xhr = new XMLHttpRequest();
+			xhr.open("GET", "/antiforgery");
+			xhr.addEventListener("load", function() {
+				try {
+					if (this.status !== 200) {
+						throw Error("Invalid status. Could not retrieve antiforgery token.");
+					}
+					var obj = JSON.parse(this.responseText);
+					callback(obj.token);
+				} catch (e) {
+					typeof error === "function" && error(e);
+				}
+			});
+			xhr.send();
+		}
+
+		getAntiForgeryToken(function(token) {
+			if (document.readyState === "complete"
+				|| document.readyState === "loaded" 
+				|| document.readyState === "interactive") {
+				populateAntiForgery(token);
+				return;
+			}
+			document.addEventListener("DOMContentLoaded", function() {
+				populateAntiForgery(token);
+			}, false);
+		}, console.error);
+	</script>
+			
+
+	<script type="text/javascript">
+		window.departmentHeader = {};
+		window.pageSectionTracker = {};
+		window.isResponsiveEnabled = true;
+		window.isRemoveSetHeights= true;
+		if (window.isRemoveSetHeights) {
+			document.documentElement.className += ' removeSetHeights';
+		}
+		window.mainMenuMediaQuery = 'screen and (max-width: 40em)';
+		window.isMobileBrowserIncludingTablets = false;
+		window.fixedResponsiveMenu = false;
+		window.fullWidthResponsiveMenu = false;
+		window.responsiveMenuHeight = '';
+		window.responsiveMenuFontSize = '';
+		window.isContentAdvisor = false;
+		(function () {
+			window.setSizeCookie = function () {
+				document.cookie = "dpi=" + window.devicePixelRatio + "; path=/";
+				document.cookie = "viewportWidth=" + window.innerWidth + "; path=/";
+				document.cookie = "viewportHeight=" + window.innerHeight + "; path=/";
+				if (screen && screen.width && screen.height) {
+					document.cookie = "screenWidth=" + screen.width + "; path=/";
+					document.cookie = "screenHeight=" + screen.height + "; path=/";
+				}
+				document.cookie = "responsiveGhost=1; path=/";
+			};
+
+			setSizeCookie();
+		}());
+	</script>
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+
+	<script async src="https://docaccess.com/docbox.js"></script>
+	<!-- Favicon MetaTags -->
+<link rel='icon' type='image/png' sizes='192x192' href='/DocumentCenter/View/15348'>
+
+<link rel='icon' type='image/png' sizes='256x256' href='/DocumentCenter/View/15349'>
+<link rel='apple-touch-icon' sizes='120x120' href='/DocumentCenter/View/15350'>
+<link rel='icon' type='image/png' sizes='16x16' href='/DocumentCenter/View/15351'>
+<link rel='icon' type='image/png' sizes='32x32' href='/DocumentCenter/View/15352'>
+<meta rel='msapplication-config' content='/DocumentCenter/View/15353'>
+<link rel='icon' type='image/png' sizes='150x150' href='/DocumentCenter/View/15353'>
+<link rel='shortcut icon' href='/DocumentCenter/View/15355'>
+<link rel='manifest' href='/DocumentCenter/View/15356'>
+<meta name="msapplication-TileColor" content="#da532c">
+<meta name="theme-color" content="#ffffff">
+<!-- End Favicon MetaTags -->
+
+	<meta name="category0" content="Home" />
+<meta name="category1" content="Departments" />
+<meta name="category2" content="Finance" />
+<meta name="category3" content="Purchasing" />
+
+	
+	<meta name="theme-color" content="#28536a">
+	<link rel="icon" href="/images/favicon.ico" type="image/x-icon" />
+	<link rel="shortcut icon" href="/images/favicon.ico" type="image/x-icon" />
+		<title>Purchasing | New Braunfels, TX - Official Website</title>
+
+		<meta name="description" content="Responsible for sourcing supplies and services for all City departments, Purchasing develops bid specifications, scopes of work, and facilitates the competitive bidding processes and contract management.">
+		<meta name="keywords" content="Purchasing">
+			<script src="/Assets/Scripts/jQuery/jquery-3.7.1.min.js"></script>
+	<script src="/Assets/Scripts/jQuery/jquery-migrate-3.6.0.min.js" type="text/javascript"></script>
+	
+
+	<!--[if IE 6]><script language="JavaScript" type="text/javascript"> var isie6 = true; </script><![endif]-->
+	<!--[if IE 7]><script language="JavaScript" type="text/javascript"> var isie7 = true; </script><![endif]-->
+	<!--[if IE 8]><script language="JavaScript" type="text/javascript"> var isie8 = true; </script><![endif]-->
+	<!--[if IE 9]><script language="JavaScript" type="text/javascript"> var isie8 = true; </script><![endif]-->
+	<script type="text/javascript"><!--
+	var intCountryCode = 840;
+	var order = '';
+//--></script>
+	
+<link href="/-681783051.css" rel="stylesheet" type="text/css" />	<link href="/-2140275272.css" rel="stylesheet" type="text/css" />	<link href="/-142035998.css" rel="stylesheet" type="text/css" />
+
+	<link rel="stylesheet" type="text/css" href="/Assets/Styles/Print.css" media="print">
+	<script type="text/javascript">
+		window.Pages = window.Pages || {};
+		// FrontEnd RWD initialization
+		window.Pages.rwdReady = $.Deferred();
+		window.Pages.toolBarDeferred = $.Deferred();
+		window.Pages.rwdSetupComplete = $.Deferred();
+		window.Pages.megaMenuLoaded = $.Deferred();
+		window.Pages.angularToolbarComplete = $.Deferred();
+		window.Pages.frontEndToolbarComplete = $.Deferred();
+	</script>
+	<!--CPHeadContent-->
+	<script src="/739942322.js" type="text/javascript"></script>
+	
+	
+	
+	
+
+
+
+
+	<!--[if lte IE 8]><link rel="stylesheet" type="text/css" href="/App_Themes/ie8.css"><![endif]-->
+	<!--[if lte IE 7]><link rel="stylesheet" type="text/css" href="/App_Themes/ie7.css"><![endif]-->
+	<!--[if lte IE 6]><link rel="stylesheet" type="text/css" href="/App_Themes/ie6.css"><![endif]-->
+	<!--[if lt IE 9]><script type="text/javascript" src="/Scripts/html5.js"></script><![endif]-->
+
+	<script type="text/javascript">
+		setEditorVariables(false, 840);
+		function getPrintPreviewType() { return 0; } function printPreview() {pPreview(getPrintPreviewType()); }
+	</script>
+	<script src="/Assets/Scripts/AlpineJS/3.14.1/alpine.min.js" type="text/javascript" defer="defer"></script>
+</head>
+<body class="wide " >
+
+    <script>jQuery(document).click(function (event) {
+	var target = jQuery(event.target);
+	if (target.attr('src') && target.parents('.image').length && target.parents('.widget').length) {
+		var text = target.attr('title');
+		
+		if (!text.length) {
+			text = "N/A";
+		}
+		ga('send',
+			{
+				hitType: 'event',
+				eventCategory: 'Image',
+				eventAction: 'Image - ' + text,
+				eventLabel: window.location.href
+			});
+	}
+	if (target.is('button') || target.hasClass('button') || target.parents().hasClass('button')) {
+		var text = "";
+		if (target.parents('.button')[0]) {
+			text = target.parents('.button').first().text();
+		} else if (target.text().length) {
+			text = target.text();
+		} else if (target.attr('title').length) {
+			text = target.attr('title');
+		}
+		if (!text.length) {
+			text = "N/A";
+		}
+		ga('send',
+			{
+				hitType: 'event',
+				eventCategory: 'Button',
+				eventAction: 'Button - ' + text,
+				eventLabel: window.location.href
+			});
+	}
+	if (target.parents('.widgetCustomHtml').length) {
+		ga('send',
+			{
+				hitType: 'event',
+				eventCategory: 'Custom Html',
+				eventAction: 'Custom Html Clicked',
+				eventLabel: window.location.href
+			});
+	}
+	if (target.parents('.editor').length) {
+		ga('send',
+			{
+				hitType: 'event',
+				eventCategory: 'Editor',
+				eventAction: 'Editor Link Clicked',
+				eventLabel: window.location.href
+			});
+	}
+	if (target.parents('.GraphicLinks').length) {
+		var text = "";
+		var targetGraphicLink = target;
+		if (target.hasClass('widgetGraphicLinksLink')) {
+			targetGraphicLink = jQuery(target.children()[0]);
+		}
+		if (targetGraphicLink.hasClass('text')) {
+			text = targetGraphicLink.text();
+		} else if (targetGraphicLink.attr('src').length) {
+			if (targetGraphicLink.attr('alt').length) {
+				text = targetGraphicLink.attr('alt');
+			} else {
+				text = targetGraphicLink.attr('src');
+			}
+		} else {
+			text = "N/A";
+		}
+		ga('send',
+			{
+				hitType: 'event',
+				eventCategory: 'Graphic Links',
+				eventAction: 'Graphic Link - ' + text,
+				eventLabel: window.location.href
+			});
+	}
+	if (target.parents('.InfoAdvanced').length) {
+		ga('send',
+			{
+				hitType: 'event',
+				eventCategory: 'Info Advanced',
+				eventAction: 'Info Advanced Clicked',
+				eventLabel: window.location.href
+			});
+	}
+	if (target.parents('.list').length) {
+		ga('send',
+			{
+				hitType: 'event',
+				eventCategory: 'List',
+				eventAction: 'List Clicked',
+				eventLabel: window.location.href
+			});
+	}
+	if (target.parents('.megaMenuItem').length || target.parents('.topMenuItem').length) {
+		var megaMenuText = jQuery('.topMenuItem.mouseover').find('span').text();
+		var breadCrumbs = [];
+		jQuery('.breadCrumbs > li').each(function () {
+			 breadCrumbs.push(this.textContent);
+		});
+		var pageTitle = breadCrumbs.join('>');
+		var subTitleText = target.parents('.megaMenuItem').children('.widgetTitle').children().text();
+		var text = "";
+		if (pageTitle) {
+			text += pageTitle + " | ";
+		} else {
+			text += document.title + ' - ';
+		}
+		if (target.text() == "" && megaMenuText == "") {
+			text += "N/A";
+		} else if (target.text().length && megaMenuText.length) {
+			if (megaMenuText == target.text()) {
+				text += megaMenuText;
+			} else {
+				text += megaMenuText + " - " + subTitleText + " - " + target.text();
+			}
+		} else if (target.text() == "") {
+			text += megaMenuText;
+		} else {
+			text += target.text();
+		}
+		if (!text.length) {
+			text = "N/A";
+		}
+		ga('send',
+			{
+				hitType: 'event',
+				eventCategory: 'Mega Menu',
+				eventAction: 'Mega Menu : ' + text,
+				eventLabel: window.location.href
+			});
+	}
+	if (target.parents('.widgetNewsFlash').length && target.parents('.widgetItem').length) {
+		var text = jQuery(target.parents('.widgetItem')[0]).find('.widgetTitle').children().text();
+		if (!text.length) {
+			text = "N/A";
+		}
+		ga('send',
+			{
+				hitType: 'event',
+				eventCategory: 'News Flash',
+				eventAction: 'News Flash - ' + text,
+				eventLabel: window.location.href
+			});
+	}
+	if (target.hasClass('widgetQuickLinksLink') || target.find('.widgetQuickLinksLink').length) {
+		var text = target.text();
+		if (!text.length) {
+			text = "N/A";
+		}
+		ga('send',
+			{
+				hitType: 'event',
+				eventCategory: 'Quick Links',
+				eventAction: 'Quick Links - ' + text,
+				eventLabel: window.location.href
+			});
+	}
+	if (target.attr('src') && target.parents('.cpSlideshow').length) {
+		var text = target.attr('title');
+		if (!text.length) {
+			text = "N/A";
+		}
+		ga('send',
+			{
+				hitType: 'event',
+				eventCategory: 'Slideshow',
+				eventAction: 'Slideshow - ' + text,
+				eventLabel: window.location.href
+			});
+	}
+	if (target.parents('.widgetText').length) {
+		ga('send',
+			{
+				hitType: 'event',
+				eventCategory: 'Text',
+				eventAction: 'Text Link Clicked',
+				eventLabel: window.location.href
+			});
+	}
+});</script>
+	<div id="popoverModal" class="cp-PopOver cp-PopOver--modal cp-AdminWrap" style="position: fixed; display: none;">
+	<div class="cp-PopOver-header">
+		<h3 class="cp-PopOver-title"></h3>
+		<button class="cp-Btn cp-PopOver-close" onclick="closePopOverModal(event)">
+			<svg class="cp-Icon--close" alt="close" title="close">
+				<use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#iconClose"></use>
+			</svg>
+		</button>
+	</div>
+	<div id="cpPopOverBody" class="cp-PopOver-body">
+		<form id="cpPopOverForm" name="cpPopOverForm" novalidate></form>
+	</div>
+	<div id="cpPopOverFooter" class="cp-PopOver-footer">
+		<div class="cp-BtnGroup" id="actionButtons">
+			<!-- Action buttons will be dynamically added here -->
+		</div>
+	</div>
+</div>
+    <div id="fb-root"></div>
+<div id=skipToContentLinks>
+<a href="#cc80d7a2b1-a529-451f-b707-f9173a55389b" target="_self" class="skipToContentLink">Skip to Main Content</a>
+</div>
+    <form id="frmReferenceFormForTelerikEditorDialogs"></form>
+
+        <input type="hidden" id="GoogleMapsKey" value="AIzaSyDWUuE-ifkbhxblF920N8MjpBdTg1Wt784" />
+
+
+
+    <input type="hidden" id="cpcDomain" value="https://cp-civicplusuniversity2.civicplus.com">
+    <input type="hidden" id="hdnStructureID" value="7" />
+    <input type="hidden" id="hdnContentCollectionID" value="fa853feb-3a24-4ec5-88a8-e4e7fd0cae9a" />
+    <input type="hidden" id="hdnWorkingCopyID" value="00000000-0000-0000-0000-000000000000" />
+    <input type="hidden" id="hdnThemeID" value="50" />
+    <input type="hidden" id="pageIsFrontEnd" value="true" />
+    <input type="hidden" id="pageModuleID" />
+    <input type="hidden" id="pagePageID" value="531" />
+
+    <div id="stickyPlaceholder"></div>
+    <div id="outer-wrap" class="outer-wrap">
+        <div id="inner-wrap" class="inner-wrap">
+                <div id="divToolbars" class="cpToolbars newCP mui-fixed" style="">
+                    
+
+
+
+                </div>
+            <div id="bodyWrapper">
+                <div id="mainNavHolderMobile" class="mainNavHolderMobile"></div>
+                
+<div data-cpRole="structuralContainer" id="bodyContainerTS">
+<!-- Header Container --><header data-cpRole="structuralContainer" id="headerContainerTS" class="fixedTopTS">
+<div data-cpRole="structuralContainer" id="headerWrapTS">
+<div class="siteWrap"><div data-cpRole="banner" id="bannerLogoTS" class="bannerLogoTS empty">
+
+
+
+
+				<a id="bannerLogoTS-138" style="			display: block; text-align: center;
+" class="bannerObject" href="/" target="_blank"><img alt="Home page" class="bannerObject" height="117" src="/ImageRepository/Document?documentID=24407" width="330" /></a>
+</div><div data-cpRole="contentContainer" id="searchTS">	<div id="ccbcf3a668-13cf-4650-bbd3-f0fbb62853bd" data-containerid="bcf3a668-13cf-4650-bbd3-f0fbb62853bd" class="pageContent cpGrid cpGrid24 isLockedContainer showInMobile" data-contentcontainerbreakpoint="50">
+				                
+
+		<div class="row outer wide"><!--
+--><div class="outer col col15 first" style="" data-widgetcontainerid="a39c350d-e8b1-4052-9856-f69a6de4cf1f">				
+	<div class="row nest first last wide">
+	
+	<div class="inner col col15 first last id01d9863e-3d4e-40db-a5ca-06ce1c20cd56" style="" data-widgetcontainerid="01d9863e-3d4e-40db-a5ca-06ce1c20cd56">	
+	<div data-widget-id="3ca2be73-154d-4c22-ae60-ec891f58c9fb" data-widget-controller-path="/QuickLinks/Widget">
+
+
+
+
+
+
+
+
+	<section id="widgetQuicklink3ca2be73-154d-4c22-ae60-ec891f58c9fb" class="widget widgetQuickLinks skin22 widgetOptionSet18 narrow" data-modulewidgettype="quickLinks" data-elementqueryclasses='{"wide-narrow":"min-width:30em"}' data-elementquerymatch='matchMultiColumn' data-elementqueryunmatch='unmatchMultiColumn' aria-label="Quick Links">
+			<header class="widgetHeader" id="quickLinksHeader3ca2be73-154d-4c22-ae60-ec891f58c9fb">
+		<div class="">
+						</div>
+	</header>
+	<div class="widgetBody cpGrid cpGrid3 ">
+        <div class="row  narrow">
+				<div class="col col1 first ">
+					<ol class="semanticList">
+
+
+
+
+    <li style="position:relative" class="widgetItem QuickLinks">
+        <a class="widgetDesc widgetQuickLinksLink" href="/3075/All-Departments" target="_blank" aria-label="All Departments - Government opens in new window" rel="noopener">All Departments</a>
+        <div class="widgetMeta"></div>
+    </li>
+					</ol>
+				</div>
+				<div class="col col1  ">
+					<ol class="semanticList">
+
+
+
+
+    <li style="position:relative" class="widgetItem QuickLinks">
+        <a class="widgetDesc widgetQuickLinksLink" href="/3317/Make-a-Request" target="_blank" aria-label="Submit a Request - Government opens in new window" rel="noopener">Submit a Request</a>
+        <div class="widgetMeta"></div>
+    </li>
+					</ol>
+				</div>
+				<div class="col col1  last">
+					<ol class="semanticList">
+
+
+
+
+    <li style="position:relative" class="widgetItem QuickLinks">
+        <a class="widgetDesc widgetQuickLinksLink" href="/3554/Join-Our-Team" target="_blank" aria-label="Join Our Team - Government opens in new window" rel="noopener">Join Our Team</a>
+        <div class="widgetMeta"></div>
+    </li>
+					</ol>
+				</div>
+		</div>
+        
+	</div>
+	<div class="widgetFooter">
+	</div>
+	<div class="addItemModal hidden">
+		<div class="url hidden">/QuickLinks.aspx</div>
+	</div>
+
+	</section>
+</div>
+
+	</div> <!-- inner column -->
+
+	</div> <!-- inner row -->
+
+			</div><!-- outer column --><!----><div class="outer col col9 last" style="" data-widgetcontainerid="32cec271-f089-4e98-926c-576c3e4fe5df">				
+	<div class="row nest first last wide">
+	
+	<div class="inner col col9 first last id1298256d-79fb-4ed8-8626-ebbb66162982" style="" data-widgetcontainerid="1298256d-79fb-4ed8-8626-ebbb66162982">	
+<div data-widget-id="aa0c5006-9afd-4545-98ea-9623dd5ca4fa" data-widget-controller-path="/Layout/WidgetSearch">
+	
+	<script defer type="text/javascript" src="/Common/Controls/jquery-ui-1.14.2/jquery-ui.min.js"></script>
+	<script defer src="/Areas/Layout/Assets/Scripts/Search.js" type="text/javascript"></script>
+	<script defer type="text/javascript">
+
+		$(document).ready(function () {
+			try {
+				// Minimum characters required before performing a search/autocomplete
+				var minPrefixLength = 3;
+				var autoCompleteDebounceDelay = 500;
+				var searchFieldSelector = "#searchField" + 'aa0c5006-9afd-4545-98ea-9623dd5ca4fa';
+				var checkboxSelector = "#ysnSearchOnlyDept" + 'aa0c5006-9afd-4545-98ea-9623dd5ca4fa';
+				var buttonSelector = ".widgetSearchButton" + 'aa0c5006-9afd-4545-98ea-9623dd5ca4fa';
+				var autoCompleteCache = {};
+				var autoCompleteCacheKeys = [];
+				var autoCompleteCacheLimit = 25;
+				var currentAutoCompleteRequest = null;
+				var currentAutoCompleteRequestKey = null;
+				var autoCompleteDebounceTimer = null;
+				var autoCompleteDebounceKey = null;
+				var pendingAutoCompleteResponses = [];
+
+				function normalizeAutoCompleteTerm(term) {
+					return $.trim((term || "") + "").replace(/\s+/g, " ");
+				}
+
+				function shouldSearch(term) {
+					return normalizeAutoCompleteTerm(term).length >= minPrefixLength;
+				}
+
+				function getAutoCompleteUrl() {
+					return '/Search/AutoComplete' + ($(checkboxSelector).is(':checked') || false? '?departmentId=0' : '');
+				}
+
+				function getAutoCompleteCacheKey(requestUrl, term) {
+					return requestUrl + "|" + term.toLowerCase();
+				}
+
+				function cacheAutoCompleteResult(cacheKey, data) {
+					if (!Object.prototype.hasOwnProperty.call(autoCompleteCache, cacheKey)) {
+						autoCompleteCacheKeys.push(cacheKey);
+						if (autoCompleteCacheKeys.length > autoCompleteCacheLimit) {
+							delete autoCompleteCache[autoCompleteCacheKeys.shift()];
+						}
+					}
+					autoCompleteCache[cacheKey] = data;
+				}
+
+				function respondToPendingAutoComplete(data) {
+					var responses = pendingAutoCompleteResponses;
+					pendingAutoCompleteResponses = [];
+					for (var i = 0; i < responses.length; i++) {
+						responses[i](data);
+					}
+				}
+
+				function cancelPendingAutoComplete() {
+					clearTimeout(autoCompleteDebounceTimer);
+					autoCompleteDebounceKey = null;
+					if (currentAutoCompleteRequest != null) {
+						currentAutoCompleteRequest.abort();
+						currentAutoCompleteRequest = null;
+					}
+					currentAutoCompleteRequestKey = null;
+					respondToPendingAutoComplete([]);
+				}
+
+				function createWidgetAutoCompleteSource(options) {
+					return function (request, response) {
+						var term = normalizeAutoCompleteTerm(request.term);
+						if (!options.shouldSearch(term)) {
+							response([]);
+							return;
+						}
+
+						var requestUrl = options.url();
+						var cacheKey = getAutoCompleteCacheKey(requestUrl, term);
+						if (Object.prototype.hasOwnProperty.call(autoCompleteCache, cacheKey)) {
+							response(autoCompleteCache[cacheKey]);
+							if (options.success) {
+								options.success(autoCompleteCache[cacheKey]);
+							}
+							return;
+						}
+
+						if (currentAutoCompleteRequestKey === cacheKey || autoCompleteDebounceKey === cacheKey) {
+							pendingAutoCompleteResponses.push(response);
+							return;
+						}
+
+						cancelPendingAutoComplete();
+						autoCompleteDebounceKey = cacheKey;
+						pendingAutoCompleteResponses.push(response);
+						autoCompleteDebounceTimer = setTimeout(function () {
+							autoCompleteDebounceKey = null;
+							currentAutoCompleteRequestKey = cacheKey;
+							currentAutoCompleteRequest = $.ajax({
+								url: requestUrl,
+								dataType: "json",
+								timeout: options.timeout,
+								data: {
+									term: term,
+								},
+								success: function (data) {
+									if (currentAutoCompleteRequestKey === cacheKey) {
+										cacheAutoCompleteResult(cacheKey, data);
+										respondToPendingAutoComplete(data);
+										if (options.success) {
+											options.success(data);
+										}
+									}
+								},
+								error: function (xmlhttprequest, textstatus, message) {
+									if (textstatus === "abort") {
+										return;
+									}
+
+									if (options.error) {
+										options.error(xmlhttprequest, textstatus, message);
+									}
+
+									respondToPendingAutoComplete([]);
+								},
+								complete: function (xmlhttprequest) {
+									if (currentAutoCompleteRequest === xmlhttprequest) {
+										currentAutoCompleteRequest = null;
+										currentAutoCompleteRequestKey = null;
+									}
+								}
+							});
+						}, options.delay);
+					};
+				}
+
+				// click handler for search buttons
+				$(buttonSelector).click(function (e) {
+					e.preventDefault();
+					var $btn = $(this);
+					var $field = $btn.siblings(".widgetSearchBox");
+					var term = $field.val() + "";
+					if (!shouldSearch(term)) {
+						// do nothing until user types enough characters
+						$field.focus();
+						return;
+					}
+
+					if ($(checkboxSelector).is(':checked') || false)
+					{
+						doWidgetSearch($.trim(term), Number(0));
+					}
+					else {
+						doWidgetSearch($.trim(term), 0);
+					}
+				});
+
+				// enter key handler for the search field
+				$(searchFieldSelector).keypress(function (e) {
+					var code = e.which || e.keyCode;
+					if (code === 13) {
+						e.preventDefault();
+						var $this = $(this);
+						var term = $this.val() + "";
+						if (!shouldSearch(term)) {
+							// do nothing until user types enough characters
+							$this.focus();
+							return false;
+						}
+
+						if ($(checkboxSelector).is(':checked') || false) {
+							doWidgetSearch($.trim(term), Number(0));
+						} else {
+							doWidgetSearch($.trim(term), 0);
+						}
+						return false;
+					}
+					return true;
+				});
+
+				// autocomplete: set minLength and guard source
+				if (false) {
+					var $searchField = $(searchFieldSelector).autocomplete({
+						minLength: minPrefixLength,
+						source: createWidgetAutoCompleteSource({
+							delay: autoCompleteDebounceDelay,
+							timeout: 10000,
+							shouldSearch: shouldSearch,
+							url: getAutoCompleteUrl,
+							success: function () {
+								$('.autoCompleteError').remove();
+							},
+							error: function (xmlhttprequest, textstatus, message) {
+								if (textstatus === "timeout") {
+									if ($(searchFieldSelector).siblings('.autoCompleteError').length == 0)
+										$('<span class="autoCompleteError"><p class="alert error">Search autocomplete is currently not responding. Please try again later.</p></span>').insertAfter($(searchFieldSelector));
+								}
+							}
+						}),
+						html: true,
+						delay: 0,
+						select: function (event, ui) {
+							$(this).val(ui.item.value);
+							$(this).next().click();
+						}
+					});
+
+					$searchField.data("ui-autocomplete")._renderItem = function (ul, item) {
+						return $("<li class=\"itemList\"></li>")
+							.data("ui-autocomplete-item", item)
+							.append("<a>" + item.label + "</a>")
+							.appendTo(ul);
+					};
+				}
+
+				// keep searchBtnApplyQuery consistent with prefix rule
+				window.searchBtnApplyQuery = function() {
+					var $field = $(searchFieldSelector);
+					var term = $field.val() + "";
+					if (shouldSearch(term)) {
+						// update href for the icon/button (if present)
+						var btn = document.getElementById("btnSearchIcon");
+						if (btn) btn.href = "/Search?searchPhrase=" + encodeURIComponent($.trim(term));
+					} else {
+						var btn = document.getElementById("btnSearchIcon");
+						if (btn) btn.href = "#";
+					}
+				};
+			}
+			catch(e) {} //we're going to eat this error. Autocomplete won't work but we dont wan't to break anything else on the page.
+		});
+	</script>
+
+	<section id="widgetPreviewSearch" class="widget widgetSearch skin17 widgetOptionSet59" style="display: block;" aria-label="Search">
+				<!-- For the button right and inside -->
+		<div class="widgetBody buttonRightInside">
+			<input class="widgetSearchBox widgetSearchBoxaa0c5006-9afd-4545-98ea-9623dd5ca4fa" cp5ph="true" id="searchFieldaa0c5006-9afd-4545-98ea-9623dd5ca4fa" name="searchField" onchange="searchBtnApplyQuery();" placeholder="Search..." type="text" value="" />
+						<a href="/Search/Results" id="btnSearchIcon" class="widgetSearchButton widgetSearchButtonaa0c5006-9afd-4545-98ea-9623dd5ca4fa" role="button"><img alt="Go to Site Search" class="imageHover" data-hover="/ImageRepository/Document?documentID=24388" data-image="/ImageRepository/Document?documentID=24387" src="/ImageRepository/Document?documentID=24387" /></a>
+
+			<label class="searchLabel" aria-hidden="true" for="searchFieldaa0c5006-9afd-4545-98ea-9623dd5ca4fa">Search</label>
+		</div>
+
+	</section>
+
+
+<style scoped>
+	  
+		.widgetSearch ::-webkit-input-placeholder {
+		color: #FFFFFF;
+	  }
+		.widgetSearch :-moz-placeholder { /* Firefox 18- */
+	   color: #FFFFFF;
+	}
+		.widgetSearch ::-moz-placeholder {  /* Firefox 19+ */
+	   color: #FFFFFF;
+	}
+	.widgetSearch :-ms-input-placeholder {
+	   color: #FFFFFF;
+	}
+	
+
+	.widgetSearch .widgetBody .widgetSearchBoxaa0c5006-9afd-4545-98ea-9623dd5ca4fa
+	{
+		color: #FFFFFF;
+		background: #2F5268; border: 0; box-shadow: inset 0px 3px 6px rgba(0, 0, 0, 0.16); border-radius: 5px; padding: 0 80px 0 20px; height: 75px; font-family: Source Sans Pro; font-size: 1.2em;
+	}
+	.widgetSearch .widgetBody .widgetSearchButtonaa0c5006-9afd-4545-98ea-9623dd5ca4fa
+	{
+		margin: 18px 18px 0 0;
+	}
+	.widgetSearch .widgetSearch-onlyDeptaa0c5006-9afd-4545-98ea-9623dd5ca4fa
+	{
+		display: inline-block;
+		color: #333;
+		
+		
+		 padding-top: 10px;
+	}
+	#ysnSearchOnlyDeptaa0c5006-9afd-4545-98ea-9623dd5ca4fa
+	{
+		position: relative;
+		top: .125em;
+	}
+
+</style>
+
+<link rel="stylesheet" href="/Common/Controls/jquery-ui-1.14.2/jquery-ui.min.css">
+<link rel="stylesheet" href="/Common/Controls/jquery-ui-1.14.2/jquery-ui.theme.min.css">
+
+
+
+<script type="text/javascript">
+	//Updates search icons href to have the correct queryString
+	function searchBtnApplyQuery() {
+		document.getElementById("btnSearchIcon").href = "/Search?searchPhrase=" + document.getElementById("searchFieldaa0c5006-9afd-4545-98ea-9623dd5ca4fa").value;
+	}
+</script>
+
+</div>
+
+	</div> <!-- inner column -->
+
+	</div> <!-- inner row -->
+
+			</div><!-- outer column --><!--		--></div> <!-- outer row -->
+
+
+	</div>
+</div></div>
+</div><div data-cpRole="structuralContainer" id="headerNavTS">
+<div class="siteWrap"><nav data-cpRole="nav" id="mainNav" class="siteNav mainNav" role="navigation">
+<ol id="mainNavMenu" data-parent="1" class="rootNavMenu" role="menu"><!--
+--><li id="MainItem2993" class="topMenuItem" role="none" data-pageid="2993" data-displaymegamenu="True"><!--
+			--><!--
+			--> <a role = "menuitem"  aria-haspopup=true aria-expanded='false' aria-controls="mainNavMegaMenu2993" id = "mainNavLivingVisiting" class="navMainItem mainNavItem mainNavItem1 " href="/2993/Living-Visiting" target = "_self" >   Living &amp; Visiting  </a>			<!--
+			--><!--
+			--></li><!----><li id="MainItem2935" class="topMenuItem" role="none" data-pageid="2935" data-displaymegamenu="True"><!--
+			--><!--
+			--> <a role = "menuitem"  aria-haspopup=true aria-expanded='false' aria-controls="mainNavMegaMenu2935" id = "mainNavBusinessDevelopment" class="navMainItem mainNavItem mainNavItem2 " href="/2935/Business-Development" target = "_self" >   Business &amp; Development  </a>			<!--
+			--><!--
+			--></li><!----><li id="MainItem2964" class="topMenuItem" role="none" data-pageid="2964" data-displaymegamenu="True"><!--
+			--><!--
+			--> <a role = "menuitem"  aria-haspopup=true aria-expanded='false' aria-controls="mainNavMegaMenu2964" id = "mainNavCityHall" class="navMainItem mainNavItem mainNavItem3 " href="/2964/City-Hall" target = "_self" >   City Hall  </a>			<!--
+			--><!--
+			--></li><!---->
+</ol>
+
+
+	<script type="text/javascript">
+		(function () {
+			function setupMenu() {
+				const menuID = 'mainNavMenu';
+				const menuType = MAIN_MENU;
+
+				//setup menu manager properties for main menu
+				if (!menuManager.mobileMainNav && true)
+					menuManager.adjustMainItemsWidth('#' + menuID);
+				menuManager.isMainMenuEditable = false;
+				menuManager.mainMenuMaxSubMenuLevels = 4;
+				menuManager.setMOMMode(2, menuType);
+
+				//Init main menu
+				const setupDraggable = menuManager.isMainMenuEditable;
+				const urlToGetHiddenMenus = '/Pages/MenuMain/HiddenMainSubMenus?pageID=1&moduleID=&themeID=50&menuContainerID=mainNav';
+
+				menuManager.setupMenu(menuID, 'mainNav', menuType, setupDraggable, urlToGetHiddenMenus);
+				menuManager.mainMenuInit = true;
+				menuManager.mainMenuTextResizer = true;
+				if (1.00 > 0)
+					menuManager.mainMenuTextResizerRatio = 1.00;
+				if (window.isResponsiveEnabled)
+					menuManager.mainMenuReady.resolve();
+
+			}
+
+			if (document.readyState === "complete"
+				|| document.readyState === "loaded"
+				|| document.readyState === "interactive") {
+				setupMenu();
+				return;
+			}
+
+			document.addEventListener("DOMContentLoaded", setupMenu);
+		})();
+	</script>
+
+
+<aside data-cpRole="megaMenu" id="megaMenu" class="megaMenu" style="display: none;"><input type="hidden" id="megaMenuPopupDirection" value="0"><input type="hidden" id="megaMenuWidthReference" value="0"><aside role="menu" data-cpRole="contentContainer" id="mainNavMegaMenu2993" class="contentTop mainNavMegaMenu megaMenuContainer pageID_2993 hidden" data-orientation="horizontal">	<div id="ccc992a482-952e-4a89-a098-dce7c3b5ffa9" data-containerid="c992a482-952e-4a89-a098-dce7c3b5ffa9" class="pageContent cpGrid cpGrid24">
+				                
+
+
+
+	</div>
+</aside><aside role="menu" data-cpRole="contentContainer" id="mainNavMegaMenu2935" class="contentTop mainNavMegaMenu megaMenuContainer pageID_2935 hidden" data-orientation="horizontal">	<div id="cc6a9699c8-a9f0-4832-b390-571bee3216a9" data-containerid="6a9699c8-a9f0-4832-b390-571bee3216a9" class="pageContent cpGrid cpGrid24">
+				                
+
+
+
+	</div>
+</aside><aside role="menu" data-cpRole="contentContainer" id="mainNavMegaMenu2964" class="contentTop mainNavMegaMenu megaMenuContainer pageID_2964 hidden" data-orientation="horizontal">	<div id="cc6a595947-d1b9-4e12-9d9d-94034845cbca" data-containerid="6a595947-d1b9-4e12-9d9d-94034845cbca" class="pageContent cpGrid cpGrid24">
+				                
+
+
+
+	</div>
+</aside></aside></nav></div>
+</div>
+</header><!-- Banner --><div data-cpRole="structuralContainer" id="bannerContainerTS" class="noOverflowTS">
+<div data-cpRole="banner" id="banner1"><div data-cpRole="structuralContainer" id="bannerSizingTS">
+<div data-cpRole="structuralContainer" id="bannerSearchTS">
+<div class="siteWrap2"><div data-cpRole="contentContainer" id="welcomeTS">	<div id="cca618c32c-5d5f-48ee-9f15-d49f9830c243" data-containerid="a618c32c-5d5f-48ee-9f15-d49f9830c243" class="pageContent cpGrid cpGrid24 showInMobile">
+				                
+
+
+
+	</div>
+</div></div>
+</div>
+</div>
+
+
+
+
+		<div id="bannerImagesJSON139" class="hidden"></div>
+		<div id="bannerSlideshowControls_banner1" class="bannerSlideshowControlsNew none " style="display:none">
+			<a id="arrowPrev_banner1" tabindex="0" class="arrowNew prev" aria-label="Banner Arrow Previous"><svg style=" " class=""><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#iconSlideshowArrowLeft"></use></svg></a>
+			<a id="arrowNext_banner1" tabindex="0" class="arrowNew next" aria-label="Banner Arrow Next"><svg style=" " class=""><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#iconSlideshowArrowRight"></use></svg></a>
+		</div>
+			<script type="text/javascript">
+				$(window).on("load", function () {
+					$.when(window.Pages.rwdSetupComplete)
+						.done(function () {
+							renderExternalBannerSlideshow('banner1',
+								{"BannerOptionID":139,"ThemeID":50,"SlotName":"banner1","Name":"Default","IsDefault":true,"BannerMode":2,"SlideShowSlideTiming":"5","SlideshowTransition":0,"SlideShowTransitionTiming":"1","ImageScale":true,"ImageAlignment":1,"ImageScroll":true,"MuteSound":true,"VideoType":0,"Status":40,"SlideshowControlsPosition":0,"SlideshowControlsAlignment":0,"SlideshowBannerControlsColorScheme":0,"DisplayVideoPauseButton":false,"VideoPauseButtonAlignment":1,"VideoPauseButtonControlsAlignment":0,"VideoPauseButtonStyle":"#FFFFFF","VideoPauseButtonBackgroundStyle":"#000000","VideoPauseButtonAlignmentClass":"alignRight viewport","DisplaySlideshowPauseButton":true,"SlideshowControlsColor":"#FFFFFF","SlideshowControlsBackgroundColor":"#000000","SlideshowPauseButtonClass":"isHidden","BannerImages":[{"BannerImageID":491,"BannerOptionID":139,"FileName":"/ImageRepository/Document?documentID=24383","Height":625,"Width":2200,"StartingOn":null,"StoppingOn":null,"IsLink":false,"LinkAddress":null,"Sequence":1,"RecordStatus":0,"ModifiedBy":0,"ModifiedOn":"\/Date(-62135575200000)\/","AltText":""}],"BannerVideos":[],"RecordStatus":0,"ModifiedBy":0,"ModifiedOn":"\/Date(-62135575200000)\/"},
+								'/App_Themes/Simple/Images/',
+								'Rotating');
+						});
+				});
+			</script>
+
+</div>
+</div><!-- Content container --><div data-cpRole="structuralContainer" id="mainContainerTS">
+<div class="siteWrap2"><div data-cpRole="structuralContainer" id="mainWrapTS" class="mainWrap" role="main">
+<div data-cpRole="structuralContainer" id="outerContentWrapTS" class="outerContentWrap">
+<div data-cpRole="structuralContainer" id="contentWrapTS" class="contentWrap">
+<div data-cpRole="breadCrumbs" id="breadCrumbs" class="breadCrumbContainer">		<ol class="semanticList breadCrumbs">
+			<li><a class="breadCrumb" href="/">Home</a></li><li><a class="breadCrumb" href="/55/Departments">Departments</a></li><li><a class="breadCrumb" href="/529/Finance">Finance</a></li><li id="currentBCPage" data-pageid="531"><a href class="breadCrumb" aria-current="page">Purchasing</a></li>
+		</ol>
+
+	   
+    
+</div><div data-cpRole="mainContentContainer" id="moduleContent">
+	
+	<div id="page" class="moduleContentNew">
+		
+
+	<input id="hdnPageID" name="hdnPageID" type="hidden" value="531" />
+	<input id="hdnParentID" name="hdnParentID" type="hidden" value="529" />
+	<input id="hdnVersionID" name="hdnVersionID" type="hidden" value="51380" />
+	<input id="pageMenuTitle" name="pageMenuTitle" type="hidden" value="Purchasing" />
+	<input id="pageShowFeatureColumn" name="pageShowFeatureColumn" type="hidden" value="False" />
+	<input id="hdnIsLayoutPage" name="hdnIsLayoutPage" type="hidden" value="False" />
+	<input id="hdnPageStatus" name="hdnPageStatus" type="hidden" value="Published" />
+
+				<h1 id="versionHeadLine" class="headline">
+
+Purchasing		</h1>
+	
+		<div id="cc80d7a2b1-a529-451f-b707-f9173a55389b" data-containerid="80d7a2b1-a529-451f-b707-f9173a55389b" class="pageContent cpGrid cpGrid24"  >
+			
+
+		<div class="row outer wide"><!--
+--><div class="outer col col24 first last" style="" data-widgetcontainerid="896879a5-43f9-4954-985c-7b1c9c44c276">				
+	<div class="row nest first last wide">
+	
+	<div class="inner col col24 first last id26c0e562-825e-492b-85f5-282e22a50ffd" style="" data-widgetcontainerid="26c0e562-825e-492b-85f5-282e22a50ffd">	
+
+<div class="widget image pageStyles" id="divImageOuter4ba993bd-fe38-4da3-9340-a732e0ac25f5" data-widget-id="4ba993bd-fe38-4da3-9340-a732e0ac25f5">
+    
+	<div class="widgetBody " id="divImage4ba993bd-fe38-4da3-9340-a732e0ac25f5"><img src="/ImageRepository/Document?documentID=24944" alt="A rust-colored walking bridge spanning a portion of the Comal River in Landa Park" title="A rust-colored walking bridge spanning a portion of the Comal River in Landa Park"/>	</div></div>
+
+	</div> <!-- inner column -->
+
+	</div> <!-- inner row -->
+
+			</div><!-- outer column --><!--		--></div> <!-- outer row -->
+		<div class="row outer wide"><!--
+--><div class="outer col col24 first last" style="" data-widgetcontainerid="597cb36a-4481-4036-9a87-a5f176f2da89">				
+	<div class="row nest first wide">
+	
+	<div class="inner col col24 first last idbd359600-1e9b-4956-8bfc-9bd245115911" style="" data-widgetcontainerid="bd359600-1e9b-4956-8bfc-9bd245115911">	
+<div class="widget editor pageStyles narrow" id="divEditor85eb734f-27e4-4dbb-b5c1-f3c57494d9c6" data-elementqueryclasses='{"wide-narrow":"min-width:25em"}'>
+	    <div class="fr-view">
+
+
+        <p>The Purchasing Division is the primary agency responsible for sourcing matters for supplies and services necessary for the efficient operation of all City departments. Purchasing works jointly with the various City departments in developing bid specifications, scopes of work and is responsible for facilitating the competitive processes and contract management. Additionally, the City is responsible for monitoring annual contracts, surplus property sells, including City fleet, and unclaimed confiscated goods. Our online tools are designed to provide vendors with the information needed to do business with the City.</p>
+    </div>
+
+<script type="text/javascript">
+	$(document).ready(function (e) {		
+	    renderSlideshowIfApplicable($('#divEditor' + '85eb734f-27e4-4dbb-b5c1-f3c57494d9c6'));
+	});
+</script>
+</div>
+
+	</div> <!-- inner column -->
+
+	</div> <!-- inner row -->
+	<div class="row nest wide">
+	
+	<div class="inner col col24 first last id2ade16dd-e875-498f-b236-2d4ff63afdae" style="" data-widgetcontainerid="2ade16dd-e875-498f-b236-2d4ff63afdae">	
+<div class="widget editor pageStyles narrow" id="divEditoree1d3e96-59df-4b09-9c9a-abe3abc8bf28" data-elementqueryclasses='{"wide-narrow":"min-width:25em"}'>
+	    <div class="fr-view">
+
+
+        <h1 class="headline">Solicitations</h1>
+    </div>
+
+<script type="text/javascript">
+	$(document).ready(function (e) {		
+	    renderSlideshowIfApplicable($('#divEditor' + 'ee1d3e96-59df-4b09-9c9a-abe3abc8bf28'));
+	});
+</script>
+</div>
+
+	</div> <!-- inner column -->
+
+	</div> <!-- inner row -->
+	<div class="row nest wide">
+	
+	<div class="inner col col24 first last ideadbaff9-dbb9-487d-a72c-77872fd14015" style="" data-widgetcontainerid="eadbaff9-dbb9-487d-a72c-77872fd14015">	
+<div class="widget editor pageStyles narrow" id="divEditor659b28a3-6cc2-49d0-bfb3-439a62c799ec" data-elementqueryclasses='{"wide-narrow":"min-width:25em"}'>
+	    <div class="fr-view">
+
+
+        <p>The City of New Braunfels utilizes Beacon as its e-procurement site. All available documents, specifications, and submission instructions are available on that site. Once you have registered as a supplier you can sign-in to your account through the<a href="https://www.beaconbid.com/login" target="_blank" rel="noopener">&nbsp;BeaconBid Sign In Page</a>.</p><p><strong>Need Help?</strong> Download an easy-to-use <a href="/DocumentCenter/View/48128/Beacon-Bid-Login-Help" target="_blank" rel="noopener">How-to Guide for BeaconBid</a>.</p>
+    </div>
+
+<script type="text/javascript">
+	$(document).ready(function (e) {		
+	    renderSlideshowIfApplicable($('#divEditor' + '659b28a3-6cc2-49d0-bfb3-439a62c799ec'));
+	});
+</script>
+</div>
+
+	</div> <!-- inner column -->
+
+	</div> <!-- inner row -->
+	<div class="row nest last wide">
+	
+	<div class="inner col col24 first last id7c6e31e6-cacf-40cf-b4fb-706ca2a59e50" style="" data-widgetcontainerid="7c6e31e6-cacf-40cf-b4fb-706ca2a59e50">	
+ 
+	<div data-widget-id='064501b6-f61b-4f7b-93ff-f8244ccc84f2' data-moduleName="customHtml" id='widgetCustomHtml064501b6-f61b-4f7b-93ff-f8244ccc84f2' class="widget widgetCustomHtml skin17 narrow" >
+	<div class="widgetBody pageStyles" id="widgetBody064501b6-f61b-4f7b-93ff-f8244ccc84f2">
+		<div id="customHtml064501b6-f61b-4f7b-93ff-f8244ccc84f2"><div><iframe src="https://www.beaconbid.com/integrations/widget/city-of-new-braunfels?" style="width:100%; min-height:500px; overflow: auto; border: none"></iframe></div></div>
+	</div>
+
+	</div>
+
+	</div> <!-- inner column -->
+
+	</div> <!-- inner row -->
+
+			</div><!-- outer column --><!--		--></div> <!-- outer row -->
+		<div class="row outer wide"><!--
+--><div class="outer col col24 first last" style="" data-widgetcontainerid="2bf54ade-76eb-45b6-a017-21a92b79d259">				
+	<div class="row nest first last wide">
+	
+	<div class="inner col col24 first last id334acbf7-57a4-41a9-9378-3c5c70decfbf" style="" data-widgetcontainerid="334acbf7-57a4-41a9-9378-3c5c70decfbf">	
+<div class="widget editor pageStyles narrow" id="divEditor8a4b59de-9fe3-4a1b-a507-d88a3022dccf" data-elementqueryclasses='{"wide-narrow":"min-width:25em"}'>
+	    <div class="fr-view">
+
+
+        <h1 class="headline">Resources</h1>
+    </div>
+
+<script type="text/javascript">
+	$(document).ready(function (e) {		
+	    renderSlideshowIfApplicable($('#divEditor' + '8a4b59de-9fe3-4a1b-a507-d88a3022dccf'));
+	});
+</script>
+</div>
+
+	</div> <!-- inner column -->
+
+	</div> <!-- inner row -->
+
+			</div><!-- outer column --><!--		--></div> <!-- outer row -->
+		<div class="row outer wide"><!--
+--><div class="outer col col16 first" style="" data-widgetcontainerid="4e463892-38c1-40b1-9179-017d121c2d88">				
+	<div class="row nest first last wide">
+	
+	<div class="inner col col16 first last id908dc1ed-a20b-4c0f-bc40-64ff2d7b5f59" style="" data-widgetcontainerid="908dc1ed-a20b-4c0f-bc40-64ff2d7b5f59">	
+		<nav class="widget clear dynamicSubpage widgetPages skin17 wide" id="widgetPage38337f1e-106c-4226-aef3-568b55327e51" data-elementqueryclasses='{"wide-narrow":"min-width:25em"}' data-elementquerymatch='matchMultiColumn' data-elementqueryunmatch='unmatchMultiColumn' aria-label = Pages>
+				<div class="hidden widgetTypeID">9</div>
+	<div class="hidden depth">1</div>
+	<div class="hidden cols">1</div>
+	<div class="hidden format">4</div>		
+	<div class="widgetBody">
+		
+		<style>
+			.widgetPages .widgetBody .layout4 .mediaLeft .media
+			{
+				margin-bottom: 10px; /* matches space between image and text */
+				width: 75px; /* Thumbnail size */
+			}
+			.widgetPages .widgetBody .layout4 .mediaLeft .text
+			{
+				margin-left: 85px; /* Thumbnail size + 10px */
+			}
+		</style>
+	<div class="widgetBody cpGrid cpGrid1 ">
+		<div class="row wide">
+
+					<div class="col col1">
+						<ol class="semanticList layout4">
+										<li class="megaMenuItem widgetItem mediaLeft" data-pageid="4175" >
+				<img class="media" alt="Archived Solicitations" src="/ImageRepository/Document?documentID=25254&amp;thumbnailSize=2" width="75" height="75" />
+				<div class="widgetTitle text">
+					<a href="/CivicAlerts.aspx?CID=38" target="_blank" rel="noopener">Archived Solicitations</a>
+				</div>
+				<p class="widgetDesc text">View archived solicitations from the City of New Braunfels.</p>
+				
+			</li>			<li class="megaMenuItem widgetItem mediaLeft" data-pageid="2692" >
+				<img class="media" alt="Contract Insurance Requirements" src="/ImageRepository/Document?documentID=24638&amp;thumbnailSize=2" width="75" height="75" />
+				<div class="widgetTitle text">
+					<a href="/2692/Contract-Insurance-Requirements" target="_self" >Contract Insurance Requirements</a>
+				</div>
+				<p class="widgetDesc text">Learn more about how the City requires all contractors, certain vendors, and most consultants to supply proof of insurance before a contract is awarded. </p>
+				
+			</li>			<li class="megaMenuItem widgetItem mediaLeft" data-pageid="2696" >
+				<img class="media" alt="Frequently Asked Questions" src="/ImageRepository/Document?documentID=24814&amp;thumbnailSize=2" width="75" height="75" />
+				<div class="widgetTitle text">
+					<a href="/2696/Frequently-Asked-Questions" target="_self" >Frequently Asked Questions</a>
+				</div>
+				<p class="widgetDesc text">Easy to find answers to commonly asked questions of the New Braunfels purchasing office.</p>
+				
+			</li>			<li class="megaMenuItem widgetItem mediaLeft" data-pageid="3740" >
+				<img class="media" alt="Financial Ethics" src="/ImageRepository/Document?documentID=32714&amp;thumbnailSize=2" width="75" height="75" />
+				<div class="widgetTitle text">
+					<a href="/3740/Financial-Ethics" target="_self" >Financial Ethics</a>
+				</div>
+				<p class="widgetDesc text">Purchasing will treat vendors in a fair manner, while avoiding the perception of immoral, illegal or unethical behavior. All vendors or persons doing business with the City of New Braunfels must follow the Purchasing Code of Ethics.</p>
+				
+			</li>						</ol>
+					</div>
+		</div>
+	</div>
+
+
+
+
+	</div>
+
+		</nav>
+
+
+
+	</div> <!-- inner column -->
+
+	</div> <!-- inner row -->
+
+			</div><!-- outer column --><!----><div class="outer col col8 last" style="" data-widgetcontainerid="bc3b7ca0-f5cd-4b60-bc85-729a5bc8c481">				
+	<div class="row nest first last wide">
+	
+	<div class="inner col col8 first last id4fc008fa-9d25-419c-8e60-2f8a65213ec1" style="" data-widgetcontainerid="4fc008fa-9d25-419c-8e60-2f8a65213ec1">	
+	<div data-widget-id="b1d729d0-025f-42c9-a72f-a150a5e57628" data-widget-controller-path="/QuickLinks/Widget">
+
+
+
+
+
+
+
+
+	<section id="widgetQuicklinkb1d729d0-025f-42c9-a72f-a150a5e57628" class="widget widgetQuickLinks skin27 widgetOptionSet18 narrow" data-modulewidgettype="quickLinks" data-elementqueryclasses='{"wide-narrow":"min-width:25em"}' data-elementquerymatch='matchMultiColumn' data-elementqueryunmatch='unmatchMultiColumn' aria-labelledby="quickLinksHeaderb1d729d0-025f-42c9-a72f-a150a5e57628">
+			<header class="widgetHeader" id="quickLinksHeaderb1d729d0-025f-42c9-a72f-a150a5e57628">
+		<div class="">
+					<h3><a  style="" href="/QuickLinks.aspx?CID=301" >Documents</a></h3>
+						</div>
+	</header>
+	<div class="widgetBody cpGrid cpGrid1 ">
+        <div class="row  narrow">
+				<div class="col col1 first last">
+					<ol class="semanticList">
+
+
+
+
+    <li style="position:relative" class="widgetItem QuickLinks">
+        <a class="widgetDesc widgetQuickLinksLink" href="/DocumentCenter/View/23388/CONB-Purchasing-Standard-Terms-and-Conditions" target="_blank" aria-label="Standard Terms &amp; Conditions - Solicitations opens in new window" rel="noopener">Standard Terms & Conditions</a>
+        <div class="widgetMeta">Download the City of New Braunfels Standard Terms & Conditions.</div>
+    </li>
+
+
+
+
+    <li style="position:relative" class="widgetItem QuickLinks">
+        <a class="widgetDesc widgetQuickLinksLink" href="/DocumentCenter/View/16615/Construction-Project-ManualSection-6-29-For-Joint-Projects-with-NBU" target="_blank" aria-label="Construction Project Manual (for Joint Projects with NBU) - Solicitations opens in new window" rel="noopener">Construction Project Manual (for Joint Projects with NBU)</a>
+        <div class="widgetMeta">Download the City of New Braunfels Construction Project Manual for Joint Projects with NBU.</div>
+    </li>
+
+
+
+
+    <li style="position:relative" class="widgetItem QuickLinks">
+        <a class="widgetDesc widgetQuickLinksLink" href="/DocumentCenter/View/33236/Construction-Project-Manual-section-6-292-2024" target="_blank" aria-label="Construction Project Manual - Solicitations opens in new window" rel="noopener">Construction Project Manual</a>
+        <div class="widgetMeta">Download the City of New Braunfels Construction Project Manual.</div>
+    </li>
+
+
+
+
+    <li style="position:relative" class="widgetItem QuickLinks">
+        <a class="widgetDesc widgetQuickLinksLink" href="/DocumentCenter/View/32461/Purchasing-Policy-and-Procedures-" target="_self" aria-label="Purchasing Policy and Procedures - Solicitations" rel="">Purchasing Policy and Procedures</a>
+        <div class="widgetMeta">This manual has been prepared to inform each department and division, of the methods of procurement available to city staff and role of all those involved in the purchasing process. </div>
+    </li>
+					</ol>
+				</div>
+		</div>
+        
+	</div>
+	<div class="widgetFooter">
+	</div>
+	<div class="addItemModal hidden">
+		<div class="url hidden">/QuickLinks.aspx</div>
+	</div>
+
+	</section>
+</div>
+
+	</div> <!-- inner column -->
+
+	</div> <!-- inner row -->
+
+			</div><!-- outer column --><!--		--></div> <!-- outer row -->
+		<div class="row outer wide"><!--
+--><div class="outer col col24 first last" style="" data-widgetcontainerid="10b79011-ed58-4d4f-b9a1-740f60fe306a">				
+	<div class="row nest first last wide">
+	
+	<div class="inner col col24 first last idde3765b0-101a-48a8-ad33-9907032056f9" style="" data-widgetcontainerid="de3765b0-101a-48a8-ad33-9907032056f9">	
+<div class="widget editor pageStyles narrow" id="divEditorbdea5fb0-05d7-425a-82a9-d1439e1fba5a" data-elementqueryclasses='{"wide-narrow":"min-width:25em"}'>
+	    <div class="fr-view">
+
+
+        <h1 class="headline">Additional Resources</h1>
+    </div>
+
+<script type="text/javascript">
+	$(document).ready(function (e) {		
+	    renderSlideshowIfApplicable($('#divEditor' + 'bdea5fb0-05d7-425a-82a9-d1439e1fba5a'));
+	});
+</script>
+</div>
+
+	</div> <!-- inner column -->
+
+	</div> <!-- inner row -->
+
+			</div><!-- outer column --><!--		--></div> <!-- outer row -->
+		<div class="row outer wide"><!--
+--><div class="outer col col24 first last" style="" data-widgetcontainerid="a9cea6f7-f6b4-4720-a8b3-69ebcfdb74ec">				
+	<div class="row nest first last wide">
+	
+	<div class="inner col col24 first last idcb97cf74-c790-42ac-9ac7-b98f07665096" style="" data-widgetcontainerid="cb97cf74-c790-42ac-9ac7-b98f07665096">	
+
+	<div id="divTabbed60e0f2a3-4c7c-4570-9798-5014d72b2694" class="widget widgetTabbed wide skin17" data-widgetid="60e0f2a3-4c7c-4570-9798-5014d72b2694">
+		<ol class="tabbedWidget cpTabs  " role="tablist" aria-hidden=".ToString().ToLowerInvariant()" style=" ">
+			<!--
+					--><li class="active" role="presentation">	<a href="#tab60e0f2a3-4c7c-4570-9798-5014d72b2694_0" class="tabButton" id="tabBtn60e0f2a3-4c7c-4570-9798-5014d72b2694_0" role="tab" aria-controls="tab60e0f2a3-4c7c-4570-9798-5014d72b2694_0" aria-selected="true" tabindex="0"><span class="tabName editable" data-sequence="0" data-tabname="Doing Business with the City" contenteditable="false">Doing Business with the City</span></a>
+</li><!--
+					--><li class="" role="presentation">	<a href="#tab60e0f2a3-4c7c-4570-9798-5014d72b2694_1" class="tabButton" id="tabBtn60e0f2a3-4c7c-4570-9798-5014d72b2694_1" role="tab" aria-controls="tab60e0f2a3-4c7c-4570-9798-5014d72b2694_1" aria-selected="false" tabindex="-1"><span class="tabName editable" data-sequence="1" data-tabname="Bid Submission" contenteditable="false">Bid Submission</span></a>
+</li><!--
+					--><li class="" role="presentation">	<a href="#tab60e0f2a3-4c7c-4570-9798-5014d72b2694_2" class="tabButton" id="tabBtn60e0f2a3-4c7c-4570-9798-5014d72b2694_2" role="tab" aria-controls="tab60e0f2a3-4c7c-4570-9798-5014d72b2694_2" aria-selected="false" tabindex="-1"><span class="tabName editable" data-sequence="2" data-tabname="Auctions" contenteditable="false">Auctions</span></a>
+</li><!--
+					--><li class="" role="presentation">	<a href="#tab60e0f2a3-4c7c-4570-9798-5014d72b2694_3" class="tabButton" id="tabBtn60e0f2a3-4c7c-4570-9798-5014d72b2694_3" role="tab" aria-controls="tab60e0f2a3-4c7c-4570-9798-5014d72b2694_3" aria-selected="false" tabindex="-1"><span class="tabName editable" data-sequence="3" data-tabname="Forms" contenteditable="false">Forms</span></a>
+</li><!--
+					-->
+		</ol>
+
+		<div class="cpTabPanels">
+					<ol class="tabbedWidgetNarrow cpTabs " role="tablist" aria-hidden="True.ToString().ToLowerInvariant()" style='display: none;'>
+						<li class="active" role="presentation">	<a href="#tab60e0f2a3-4c7c-4570-9798-5014d72b2694_0" class="tabButton" id="tabBtnNarrow60e0f2a3-4c7c-4570-9798-5014d72b2694_0" role="tab" aria-controls="tab60e0f2a3-4c7c-4570-9798-5014d72b2694_0" aria-selected="true" tabindex="0"><span class="tabName editable" data-sequence="0" data-tabname="Doing Business with the City" contenteditable="false">Doing Business with the City</span></a>
+</li>
+					</ol>
+				<div class="tabbedWidget cpTabPanel showing" style="" id="tab60e0f2a3-4c7c-4570-9798-5014d72b2694_0" role="tabpanel" aria-labelledby="tabBtn60e0f2a3-4c7c-4570-9798-5014d72b2694_0" tabindex="-1">
+
+<div class="widget editor pageStyles narrow" id="divEditord2c60c31-f91e-4c83-be6a-98be54256e3c" data-elementqueryclasses='{"wide-narrow":"min-width:25em"}'>
+	    <div class="fr-view">
+
+
+        <p>The City of New Braunfels utilizes <a href="https://www.beaconbid.com/solicitations/city-of-new-braunfels/open" target="_blank" rel="noopener">Beacon</a> to share solicitations with interested bidders. To view specifications, or receive updates from City of New Braunfels, please register as a supplier on <a href="https://www.beaconbid.com/solicitations/city-of-new-braunfels/open" target="_blank" rel="noopener">Beacon</a> by filling out the information on the form. Upon completion, you will receive an email with the link to download attachments. Please note that accurate information is required in order to receive any updates.</p><p><a href="https://www.beaconbid.com/solicitations/city-of-new-braunfels/open" target="_blank" rel="noopener">Beacon</a> is free for suppliers and you do not need an account with Beacon in order to receive updates.</p><p><a href="https://www.beaconbid.com/solicitations/city-of-new-braunfels/open" target="_blank" rel="noopener">Get Started with Beacon!</a></p>
+    </div>
+
+<script type="text/javascript">
+	$(document).ready(function (e) {		
+	    renderSlideshowIfApplicable($('#divEditor' + 'd2c60c31-f91e-4c83-be6a-98be54256e3c'));
+	});
+</script>
+</div>
+
+				</div>
+					<ol class="tabbedWidgetNarrow cpTabs " role="tablist" aria-hidden="True.ToString().ToLowerInvariant()" style='display: none;'>
+						<li class="" role="presentation">	<a href="#tab60e0f2a3-4c7c-4570-9798-5014d72b2694_1" class="tabButton" id="tabBtnNarrow60e0f2a3-4c7c-4570-9798-5014d72b2694_1" role="tab" aria-controls="tab60e0f2a3-4c7c-4570-9798-5014d72b2694_1" aria-selected="false" tabindex="-1"><span class="tabName editable" data-sequence="1" data-tabname="Bid Submission" contenteditable="false">Bid Submission</span></a>
+</li>
+					</ol>
+				<div class="tabbedWidget cpTabPanel " style="display: none;" id="tab60e0f2a3-4c7c-4570-9798-5014d72b2694_1" role="tabpanel" aria-labelledby="tabBtn60e0f2a3-4c7c-4570-9798-5014d72b2694_1" tabindex="-1">
+
+<div class="widget editor pageStyles narrow" id="divEditor979309f6-b94d-43e6-8598-2e929079ff30" data-elementqueryclasses='{"wide-narrow":"min-width:25em"}'>
+	    <div class="fr-view">
+
+
+        <h2 class="subhead1" id="isPasted">Bid Submission</h2><p>The City&apos;s preferred submission method is electronically utilizing <a href="https://www.beaconbid.com/solicitations/city-of-new-braunfels/open" target="_blank" rel="noopener">Beacon</a>. Competitive sealed bids/proposals must be submitted by the date and time noted. &nbsp;Proposals shall include all specified items in the section and be submitted electronically through Beacon or placed in an envelope, sealed and clearly identified on outside as a Proposal to Owner, with Proposer&rsquo;s name and address, and project name. Failure to submit Proposal in this manner may subject Proposer to disqualification. Proposal may be mailed or delivered (in person or by Express Mail or delivery service) to:</p><h3 class="subhead2" id="isPasted">Delivery</h3><p>City of New Braunfels</p><p>Office of City Secretary &ndash; Attn: Purchasing</p><p>550 Landa Street, New Braunfels, TX 78130</p><p>Labeled as:</p><p>PROJECT NAME &ndash; PROJECT NUMBER</p><p id="isPasted">Due: (Solicitation Due Date &amp; Time)</p><p>Late bids/proposals will not be accepted for any reason and will be returned unopened. Sealed bids are publicly opened at a date, time, and location specified in the bid documents. Tabulations of sealed bids are normally available the day following the bid opening and may be obtained by accessing the City&rsquo;s Purchasing Web page or calling the Purchasing Division at (830) 221-4389. Sealed proposals are opened in a manner that avoids disclosure of the contents to competing offers and keeps the proposals confidential during negotiations.</p><p>&nbsp;The following links will provide additional purchasing information:&nbsp;</p><ul type="circle"><li><a href="/DocumentCenter/View/23388/CONB-Purchasing-Standard-Terms-and-Conditions" target="_blank" rel="noopener">Standard Terms and Conditions</a></li><li><a href="/DocumentCenter/View/14291/Construction-Project-Manual---Sections-6-29" target="_blank" rel="noopener">Terms and Conditions- Construction Project Manual Sections 6-29</a></li><li><a href="/DocumentCenter/View/16615/Construction-Project-ManualSection-6-29-For-Joint-Projects-with-NBU" target="_blank" rel="noopener">Terms and Conditions- Construction Project Manual Sections 6-29 for Joint Projects with NBU</a></li><li><a href="/2692/Contract-Insurance-Requirements" target="_blank" rel="noopener">Contract Insurance Requirements</a></li><li><a href="/2696/Questions-and-Answers" target="_blank" rel="noopener">Questions and Answers</a></li></ul>
+    </div>
+
+<script type="text/javascript">
+	$(document).ready(function (e) {		
+	    renderSlideshowIfApplicable($('#divEditor' + '979309f6-b94d-43e6-8598-2e929079ff30'));
+	});
+</script>
+</div>
+
+				</div>
+					<ol class="tabbedWidgetNarrow cpTabs " role="tablist" aria-hidden="True.ToString().ToLowerInvariant()" style='display: none;'>
+						<li class="" role="presentation">	<a href="#tab60e0f2a3-4c7c-4570-9798-5014d72b2694_2" class="tabButton" id="tabBtnNarrow60e0f2a3-4c7c-4570-9798-5014d72b2694_2" role="tab" aria-controls="tab60e0f2a3-4c7c-4570-9798-5014d72b2694_2" aria-selected="false" tabindex="-1"><span class="tabName editable" data-sequence="2" data-tabname="Auctions" contenteditable="false">Auctions</span></a>
+</li>
+					</ol>
+				<div class="tabbedWidget cpTabPanel " style="display: none;" id="tab60e0f2a3-4c7c-4570-9798-5014d72b2694_2" role="tabpanel" aria-labelledby="tabBtn60e0f2a3-4c7c-4570-9798-5014d72b2694_2" tabindex="-1">
+
+<div class="widget editor pageStyles narrow" id="divEditor4b2d29da-098b-4584-afd8-f8220419d5a8" data-elementqueryclasses='{"wide-narrow":"min-width:25em"}'>
+	    <div class="fr-view">
+
+
+        <h2 class="subhead1" id="isPasted">Auctions</h2><h3 class="subhead2"><br></h3><p>The City will be periodically offering the general public the opportunity to bid on used fleet vehicles and used equipment through the following online auction sites:</p><ul><li><a href="https://www.govdeals.com/index.cfm?fa=Main.AdvSearchResultsNew&additionalParams=true&searchPg=Advanced&timing=bySimple&timeType=&locationType=miles&miles=1&zipCode=78130&milesKilo=miles&sPrice=0&ePrice=10000000&whichForm=&rowCount=10&sortOption=ad">GovDeals</a></li><li><a href="https://www.purplewave.com/" target="_blank" rel="noopener">Purple Wave Auction</a></li><li><a href="https://www.renebates.com/" target="_blank" rel="noopener">Rene Bates</a><a aria-label="Iron Planet Opens in new window" href="https://www.ironplanet.com" rel="noopener" target="_blank"></a></li></ul><p>Governmental entities interested in any of the surplus displayed must email <a href="mailto:purchasing@newbraunfels.gov">purchasing@newbraunfels.gov</a> for more information.</p><p>For other auction related inquires, please contact the Purchasing Department.</p>
+    </div>
+
+<script type="text/javascript">
+	$(document).ready(function (e) {		
+	    renderSlideshowIfApplicable($('#divEditor' + '4b2d29da-098b-4584-afd8-f8220419d5a8'));
+	});
+</script>
+</div>
+
+				</div>
+					<ol class="tabbedWidgetNarrow cpTabs " role="tablist" aria-hidden="True.ToString().ToLowerInvariant()" style='display: none;'>
+						<li class="" role="presentation">	<a href="#tab60e0f2a3-4c7c-4570-9798-5014d72b2694_3" class="tabButton" id="tabBtnNarrow60e0f2a3-4c7c-4570-9798-5014d72b2694_3" role="tab" aria-controls="tab60e0f2a3-4c7c-4570-9798-5014d72b2694_3" aria-selected="false" tabindex="-1"><span class="tabName editable" data-sequence="3" data-tabname="Forms" contenteditable="false">Forms</span></a>
+</li>
+					</ol>
+				<div class="tabbedWidget cpTabPanel " style="display: none;" id="tab60e0f2a3-4c7c-4570-9798-5014d72b2694_3" role="tabpanel" aria-labelledby="tabBtn60e0f2a3-4c7c-4570-9798-5014d72b2694_3" tabindex="-1">
+
+<div class="widget editor pageStyles narrow" id="divEditor3aa169c5-d9b5-4f0b-abc7-7ab642ecf815" data-elementqueryclasses='{"wide-narrow":"min-width:25em"}'>
+	    <div class="fr-view">
+
+
+        <h2 class="subhead1">Forms</h2><h3 class="subhead2"><br></h3><p id="isPasted">All related Purchasing forms can be found below. If you have questions regarding Purchasing requirements please contact the Purchasing division.</p><ul><li><a href="https://www.ethics.state.tx.us/data/forms/conflict/CIS.pdf" rel="noopener noreferrer" target="_blank" aria-label="Disclosure of Relations Statement- Form CIS Opens in new window">Disclosure of Relations Statement- Form CIS</a></li><li><a href="https://www.ethics.state.tx.us/data/forms/conflict/CIQ.pdf" rel="noopener noreferrer" target="_blank" aria-label="Conflict of Interest Questionnaire – Form CIQ Opens in new window">Conflict of Interest Questionnaire &ndash; Form CIQ</a>&nbsp; &nbsp;</li><li><a href="https://www.ethics.state.tx.us/filinginfo/1295/" rel="noopener noreferrer" target="_blank">Form 1295 FAQ</a></li><li><a href="/DocumentCenter/View/17479" target="_blank">Tax Exempt Form&nbsp;</a></li><li><a href="/DocumentCenter/View/17480" target="_blank">W-9</a></li><li><a href="/DocumentCenter/View/17478" target="_blank">City of New Braunfels W-9&nbsp;</a>&nbsp;</li><li><a href="/DocumentCenter/View/17481" target="_blank">Sole Source Affidavit</a></li></ul>
+    </div>
+
+<script type="text/javascript">
+	$(document).ready(function (e) {		
+	    renderSlideshowIfApplicable($('#divEditor' + '3aa169c5-d9b5-4f0b-abc7-7ab642ecf815'));
+	});
+</script>
+</div>
+
+				</div>
+					</div>
+	</div>
+	<script type="text/javascript">
+		
+		$.when(window.Pages.rwdReady).done(function () {
+			var tabbedWidgetID = 'divTabbed60e0f2a3-4c7c-4570-9798-5014d72b2694';
+			var mediaQuerySize = 25;
+			if (mediaQuerySize > 0) {
+				var mediaElementQuery = '#' + tabbedWidgetID + ':media(this-min-width:' + mediaQuerySize + 'em)';
+				var $tabbedWidget = $('#' + tabbedWidgetID);
+				
+                // Update child widget classes based on parent state
+                var updateChildWidgetClasses = function (isParentWide) {
+                    var liveEditEnabled = getCookieValue("enableLiveEdit") === "true";
+                    if (liveEditEnabled)
+                        return;
+
+                    var $childWidgets = $tabbedWidget.find('.widget').not('[data-elementqueryclasses]');
+
+                    if (isParentWide) {
+                        $childWidgets.addClass('wide').removeClass('narrow');
+                        $tabbedWidget.find('[data-event-list-row="true"]').addClass('wide').removeClass('narrow');
+                    } else {
+                        $childWidgets.addClass('narrow').removeClass('wide');
+                        $tabbedWidget.find('[data-event-list-row="true"]').addClass('narrow').removeClass('wide');
+                    }
+                };
+				
+				window.cpMedia.unregister(mediaElementQuery).register(mediaElementQuery, {
+					deferSetup: false,
+					setup: function () {
+						var liveEditEnabled = $.cookie("enableLiveEdit") === "true";
+						if (!liveEditEnabled) {
+							$tabbedWidget.addClass('narrow').removeClass('wide');
+							cpMedia.diag('$(element).addClass("narrow"), mediaQuery: ' + mediaElementQuery);
+							$tabbedWidget.find('.tabbedWidget.cpTabs').hide().attr('aria-hidden', 'true');
+							$tabbedWidget.find('.tabbedWidgetNarrow.cpTabs').show().attr('aria-hidden', 'false');
+							$tabbedWidget.data("tabHeightSet", false);
+							
+							// Update child widget classes - parent is narrow
+							updateChildWidgetClasses(false);
+						}
+					},
+					match: function () {
+						$tabbedWidget.addClass('wide').removeClass('narrow');
+						cpMedia.diag('$(element).removeClass("narrow"), mediaQuery: ' + mediaElementQuery);
+						$tabbedWidget.find('.tabbedWidget.cpTabs').show().attr('aria-hidden', 'false');
+						$tabbedWidget.find('.tabbedWidgetNarrow.cpTabs').hide().attr('aria-hidden', 'true');
+
+						if($tabbedWidget.data("tabHeightSet") == false)
+						{
+							$tabbedWidget.data("tabHeightSet", true);
+
+							var tabbedWidgetID = 'divTabbed60e0f2a3-4c7c-4570-9798-5014d72b2694';
+							setTabbedWidgetsTabHeight(tabbedWidgetID);
+						}
+						$('.cpTabPanels').unbind('click');
+						
+						// Update child widget classes - parent is wide
+						updateChildWidgetClasses(true);
+					},
+					unmatch: function () {
+						var liveEditEnabled = $.cookie("enableLiveEdit") === "true";
+						if (!liveEditEnabled) {
+							$tabbedWidget.addClass('narrow').removeClass('wide');
+							cpMedia.diag('$(element).addClass("narrow"), mediaQuery: ' + mediaElementQuery);
+							$tabbedWidget.find('.tabbedWidget.cpTabs').hide().attr('aria-hidden', 'true');
+							$tabbedWidget.find('.tabbedWidgetNarrow.cpTabs').show().attr('aria-hidden', 'false');
+							
+							// Update child widget classes - parent is narrow
+							updateChildWidgetClasses(false);
+						}
+						$('.cpTabPanels').click(function() {
+							this.scrollIntoView();
+						});
+					}
+				});                
+            }
+        });
+		
+		//Used for when page is initially loaded
+		if($('#divTabbed60e0f2a3-4c7c-4570-9798-5014d72b2694').hasClass('narrow'))
+		{
+			$('.cpTabPanels').click(function() {
+				this.scrollIntoView();
+			});
+		}
+		
+
+		//If responsive not enabled, execute this after a timeout
+		if(!isResponsiveEnabled)
+		{
+			window.setTimeout(function(){
+				var tabbedWidgetID = 'divTabbed60e0f2a3-4c7c-4570-9798-5014d72b2694';
+				typeof setTabbedWidgetsTabHeight === "function" && setTabbedWidgetsTabHeight(tabbedWidgetID);
+			}, 1500);
+		}
+
+		function reinitCarousels() {
+			if (window.carouselsToInit) {
+				for (var i = 0; i < window.carouselsToInit.length; i++) {
+					carouselsToInit[i]();
+				}
+			}
+		}
+		function sizeTabbedContent(element){
+			if(window.Pages){
+				if(window.Pages.onResizeHandlers){
+					var setTabbedInterval = setInterval(function () {
+						window.Pages.onResizeHandlers.forEach(function(car){car();});
+					}, 25)
+
+
+					setTimeout(function () {
+						clearInterval(setTabbedInterval);
+						if ($.cookie("enableLiveEdit") === "true") {
+							setInterval(function () {
+								window.Pages.onResizeHandlers.forEach(function(car){car();});
+							}, 2000);
+						}
+					}, 2500);
+					element.onclick="window.setTimeout(function(){reinitCarousels();},2);"
+				}
+			}
+		}
+
+		function adjustTab(e) {
+			e.preventDefault();
+			window.setTimeout(function(){
+				reinitCarousels();
+			}, 2);
+			sizeTabbedContent(this);
+		}
+
+		var tabButtons = document.querySelectorAll("#divTabbed60e0f2a3-4c7c-4570-9798-5014d72b2694 .tabButton");
+
+		tabButtons.forEach(function (tabButton) {
+			tabButton.addEventListener("click", adjustTab);
+		});
+
+	</script>
+
+
+
+	</div> <!-- inner column -->
+
+	</div> <!-- inner row -->
+
+			</div><!-- outer column --><!--		--></div> <!-- outer row -->
+		<div class="row outer wide"><!--
+--><div class="outer col col24 first last" style="" data-widgetcontainerid="61757411-1df6-43ee-a1e9-0d70142bbb83">				
+	<div class="row nest first last wide">
+	
+	<div class="inner col col24 first last idf1bcc459-b24c-464c-9134-1ff0410b7aad" style="" data-widgetcontainerid="f1bcc459-b24c-464c-9134-1ff0410b7aad">	
+<div class="widget editor pageStyles narrow" id="divEditor217cd79e-8b46-42c0-89d9-ce4b22da3060" data-elementqueryclasses='{"wide-narrow":"min-width:25em"}'>
+	    <div class="fr-view">
+
+
+        <h1 class="headline">Contact Information</h1>
+    </div>
+
+<script type="text/javascript">
+	$(document).ready(function (e) {		
+	    renderSlideshowIfApplicable($('#divEditor' + '217cd79e-8b46-42c0-89d9-ce4b22da3060'));
+	});
+</script>
+</div>
+
+	</div> <!-- inner column -->
+
+	</div> <!-- inner row -->
+
+			</div><!-- outer column --><!--		--></div> <!-- outer row -->
+		<div class="row outer wide"><!--
+--><div class="outer col col24 first last" style="" data-widgetcontainerid="899be3e6-e573-4677-afe9-9bdf85dbe1bc">				
+	<div class="row nest first last wide">
+	
+	<div class="inner col col24 first last idf17a2abe-a284-4ce1-9bf5-28045cf93b41" style="" data-widgetcontainerid="f17a2abe-a284-4ce1-9bf5-28045cf93b41">	
+
+
+
+
+
+
+
+
+<div data-widget-id="da6e592f-a0a7-4330-875e-dd9340e3d5c9" data-moduleWidgetType="cityDirectory" data-widget-controller-path="/CityDirectory/Widget">
+	<div id="cityDirectoryWidgetda6e592f-a0a7-4330-875e-dd9340e3d5c9" class="widget widgetStaffDirectory skin17 wide" >
+			<div class="widgetHeader">
+							</div>
+						<div class="widgetBody cpGrid cpGrid2">
+						<div class="row  wide">
+								<div class="col col1" style="padding: 5px;">
+									<ol class="semanticList">
+													<li class="widgetItem h-card">
+
+
+				<h4 class="widgetTitle field p-name">
+					Barbara Coleman
+					
+				</h4>
+				<div class="field p-job-title">Purchasing Manager</div>
+						<div class="field u-email"><a href="mailto:bcoleman@newbraunfels.gov">Email </a></div>
+
+
+					<div class="field p-tel">Phone: <a href="tel:8302214389">(830) 221-4389</a></div>
+
+
+
+				<br />
+			</li>
+
+									</ol>
+								</div>
+								<div class="col col1" style="padding: 5px;">
+									<ol class="semanticList">
+													<li class="widgetItem h-card">
+
+
+				<h4 class="widgetTitle field p-name">
+					Julie Gohlke
+					
+				</h4>
+				<div class="field p-job-title">Assistant Purchasing Manager</div>
+						<div class="field u-email"><a href="mailto:jgohlke@newbraunfels.gov">Email </a></div>
+
+
+					<div class="field p-tel">Phone: <a href="tel:8302214081">(830) 221-4081</a></div>
+
+
+
+				<br />
+			</li>
+
+									</ol>
+								</div>
+						</div>
+						<div class="row  wide">
+								<div class="col col1" style="padding: 5px;">
+									<ol class="semanticList">
+													<li class="widgetItem h-card">
+
+
+				<h4 class="widgetTitle field p-name">
+					Yvette Alvarado
+					
+				</h4>
+				<div class="field p-job-title">Contract Coordinator</div>
+						<div class="field u-email"><a href="mailto:yalvarado@newbraunfels.gov">Email </a></div>
+
+
+					<div class="field p-tel">Phone: <a href="tel:8302214388">(830) 221-4388</a></div>
+
+
+
+				<br />
+			</li>
+
+									</ol>
+								</div>
+								<div class="col col1" style="padding: 5px;">
+									<ol class="semanticList">
+													<li class="widgetItem h-card">
+
+
+				<h4 class="widgetTitle field p-name">
+					Gregory  Gutierrez
+					
+				</h4>
+				<div class="field p-job-title">Buyer</div>
+						<div class="field u-email"><a href="mailto:ggutierrez@newbraunfels.gov">Email </a></div>
+
+
+					<div class="field p-tel">Phone: <a href="tel:8302214398">(830) 221-4398</a></div>
+
+
+
+				<br />
+			</li>
+
+									</ol>
+								</div>
+						</div>
+									</div>
+	</div>
+</div>
+	</div> <!-- inner column -->
+
+	</div> <!-- inner row -->
+
+			</div><!-- outer column --><!--		--></div> <!-- outer row -->
+
+
+		</div>
+
+	</div>
+
+	
+	<div class="newCP">
+
+	</div>
+</div>
+</div>
+</div>
+</div></div>
+</div><!-- GBs --><div data-cpRole="structuralContainer" id="gbsContainerTS">
+<div class="siteWrap2"><div data-cpRole="contentContainer" id="gbsTS">	<div id="cc17ce8d1e-fa18-468a-9898-020aeb433609" data-containerid="17ce8d1e-fa18-468a-9898-020aeb433609" class="pageContent cpGrid cpGrid24 showInMobile">
+				                
+
+
+
+	</div>
+</div></div>
+</div><!-- Footer --><footer data-cpRole="structuralContainer" id="footerContainerTS"><div class="inner">
+<div class="siteWrap2"><div data-cpRole="contentContainer" id="footerTS">	<div id="cc796e0ff9-fc55-4bcd-b7c4-2e811dc86e4b" data-containerid="796e0ff9-fc55-4bcd-b7c4-2e811dc86e4b" class="pageContent cpGrid cpGrid24 isLockedContainer showInMobile" data-contentcontainerbreakpoint="50">
+				                
+
+		<div class="row outer wide"><!--
+--><div class="outer col col6 first" style="" data-widgetcontainerid="d0e16679-ef41-43c2-b968-76f501f686ff">				
+	<div class="row nest first wide">
+	
+	<div class="inner col col6 first last id6666a593-677e-4e4a-99e9-fc7e1637789d" style="" data-widgetcontainerid="6666a593-677e-4e4a-99e9-fc7e1637789d">	
+    <div data-widget-id="a97ceb9d-57b2-4064-9dae-1ab15192a6e5" data-widget-controller-path="/InfoAdvanced/Widget">
+
+
+
+
+
+	<section id="divInfoAdva97ceb9d-57b2-4064-9dae-1ab15192a6e5" class="widget widgetInfoAdvanced skin20 widgetOptionSet5 wide" data-modulewidgettype="infoAdv" data-elementqueryclasses='{"wide-narrow":"min-width:25em"}' data-elementquerymatch='matchMultiColumn' data-elementqueryunmatch='unmatchMultiColumn' aria-label="Info Advanced">
+			<header class="widgetHeader" id="headera97ceb9d-57b2-4064-9dae-1ab15192a6e5">
+		<div class="">
+								</div>
+	</header>
+	<div class="widgetBody  cpGrid cpGrid1 ">
+		<div class="row  wide">
+					<div class="col col1 first last">
+						<ol class="pageStyles semanticList">
+
+<li class="InfoAdvanced widgetItem fr-view">
+	<p><img src="/ImageRepository/Document?documentId=24394" class="fr-dib" alt="City of New Braunfels"></p>
+</li>						</ol>
+					</div>
+		</div>
+	</div>
+	<div class="widgetFooter">
+
+	</div>
+
+	</section>
+
+
+
+<script type="text/javascript">
+	//Render slideshow if info advacned items contain one.
+	$(document).ready(function (e) {
+		$('#divInfoAdva97ceb9d-57b2-4064-9dae-1ab15192a6e5 .InfoAdvanced.widgetItem').each(function () {
+			renderSlideshowIfApplicable($(this));		
+		});
+	});
+</script></div>
+	</div> <!-- inner column -->
+
+	</div> <!-- inner row -->
+	<div class="row nest last wide">
+	
+	<div class="inner col col6 first last idd1777e57-9008-421a-839a-2c719d0f6c74" style="" data-widgetcontainerid="d1777e57-9008-421a-839a-2c719d0f6c74">	
+<div data-widget-id="d20dfe57-cbe3-4260-9783-6d94d40cf6db" data-widget-controller-path="/GraphicLinks/Widget">
+
+
+
+
+<div id="graphicLinkWidgetd20dfe57-cbe3-4260-9783-6d94d40cf6db" class="widget widgetGraphicLinks skin23 widgetOptionSet57 wide" data-elementqueryclasses='{"wide-narrow":"min-width:1em"}' data-elementquerymatch='matchMultiColumn' data-elementqueryunmatch='unmatchMultiColumn' data-modulewidgettype="graphicLinks">
+	<div class="widgetHeader">
+		<div class="">
+				</div>
+	</div>
+	<div class="widgetBody cpGrid cpGrid4 ">
+		<nav class="widgetGraphicLinksNav" aria-labelledby="GraphicLinkHeaderText">
+				<div class="row autoWidths center wide">
+					<!--
+--><div class="col col1 first "><ul class="semanticList"><!--
+	    --><li class="widgetItem GraphicLinks"><a class="widgetDesc widgetGraphicLinksLink" href="/facebook" target="_self">
+
+<img src="/ImageRepository/Document?documentID=24395" 
+     class="graphicButtonLink" alt="Facebook" 
+     onmouseover="this.src='/ImageRepository/Document?documentID=24395'" 
+	onmouseout="this.src='/ImageRepository/Document?documentID=24395'"
+     onfocus="this.src='/ImageRepository/Document?documentID=24395'" 
+	onblur="this.src='/ImageRepository/Document?documentID=24395'"> 
+</a></li><!--
+--></ul></div><!----><div class="col col1  "><ul class="semanticList"><!--
+	    --><li class="widgetItem GraphicLinks"><a class="widgetDesc widgetGraphicLinksLink" href="/instagram" target="_self">
+
+<img src="/ImageRepository/Document?documentID=24396" 
+     class="graphicButtonLink" alt="Instagram" 
+     onmouseover="this.src='/ImageRepository/Document?documentID=24396'" 
+	onmouseout="this.src='/ImageRepository/Document?documentID=24396'"
+     onfocus="this.src='/ImageRepository/Document?documentID=24396'" 
+	onblur="this.src='/ImageRepository/Document?documentID=24396'"> 
+</a></li><!--
+--></ul></div><!----><div class="col col1  "><ul class="semanticList"><!--
+	    --><li class="widgetItem GraphicLinks"><a class="widgetDesc widgetGraphicLinksLink" href="/youtube" target="_self">
+
+<img src="/ImageRepository/Document?documentID=28275" 
+     class="graphicButtonLink" alt="YouTube" 
+     onmouseover="this.src='/ImageRepository/Document?documentID=28275'" 
+	onmouseout="this.src='/ImageRepository/Document?documentID=28275'"
+     onfocus="this.src='/ImageRepository/Document?documentID=28275'" 
+	onblur="this.src='/ImageRepository/Document?documentID=28275'"> 
+</a></li><!--
+--></ul></div><!----><div class="col col1  last"><ul class="semanticList"><!--
+	    --><li class="widgetItem GraphicLinks"><a class="widgetDesc widgetGraphicLinksLink" href="https://nextdoor.com/agency-detail/tx/new-braunfels/city-of-new-braunfels/" target="_blank">
+
+<img src="/ImageRepository/Document?documentID=24398" 
+     class="graphicButtonLink" alt="Nextdoor (opens in new window)" 
+     onmouseover="this.src='/ImageRepository/Document?documentID=24398'" 
+	onmouseout="this.src='/ImageRepository/Document?documentID=24398'"
+     onfocus="this.src='/ImageRepository/Document?documentID=24398'" 
+	onblur="this.src='/ImageRepository/Document?documentID=24398'"> 
+</a></li><!--
+--></ul></div><!--				-->
+				</div>
+			</nav>
+		</div>
+	<div class="widgetFooter">
+			</div>
+</div>
+</div>
+
+	</div> <!-- inner column -->
+
+	</div> <!-- inner row -->
+
+			</div><!-- outer column --><!----><div class="outer col col1" style="" data-widgetcontainerid="c846b65f-258d-414b-8a94-747c8d72327b">				
+	<div class="row nest first last wide">
+	
+	<div class="inner col col1 first last id15c3c0d3-200c-46e6-bae7-28fda075bb3c" style="" data-widgetcontainerid="15c3c0d3-200c-46e6-bae7-28fda075bb3c">	
+
+<div class="widget widgetSpacer" id="8fe7d2fc-1bde-45c4-b641-b62fcb1829d1"></div>
+	</div> <!-- inner column -->
+
+	</div> <!-- inner row -->
+
+			</div><!-- outer column --><!----><div class="outer col col5" style="" data-widgetcontainerid="05b5ea7a-023e-446e-8c89-4d9ae9b0cf4a">				
+	<div class="row nest first last wide">
+	
+	<div class="inner col col5 first last id519ceb04-070c-433c-aa5a-f6bdc8bb9691" style="" data-widgetcontainerid="519ceb04-070c-433c-aa5a-f6bdc8bb9691">	
+    <div data-widget-id="75188d1c-cfb7-4b1a-99d4-09e1a6cc8e58" data-widget-controller-path="/InfoAdvanced/Widget">
+
+
+
+
+
+	<section id="divInfoAdv75188d1c-cfb7-4b1a-99d4-09e1a6cc8e58" class="widget widgetInfoAdvanced skin20 widgetOptionSet5 wide" data-modulewidgettype="infoAdv" data-elementqueryclasses='{"wide-narrow":"min-width:25em"}' data-elementquerymatch='matchMultiColumn' data-elementqueryunmatch='unmatchMultiColumn' aria-labelledby="header75188d1c-cfb7-4b1a-99d4-09e1a6cc8e58">
+			<header class="widgetHeader" id="header75188d1c-cfb7-4b1a-99d4-09e1a6cc8e58">
+		<div class="">
+					<h3 >Contact Us</h3>
+								</div>
+	</header>
+	<div class="widgetBody  cpGrid cpGrid1 ">
+		<div class="row  wide">
+					<div class="col col1 first last">
+						<ol class="pageStyles semanticList">
+
+<li class="InfoAdvanced widgetItem fr-view">
+	<p>City of New Braunfels<br>550 Landa St.<br>New Braunfels, TX 78130</p><p>Phone: <a href="tel:830-221-4000">830-221-4000</a><br><a href="/list.aspx">Subscribe To City Updates</a></p><p><a href="https://newbraunfels.quickbase.com/db/btvz6tztb/form?a=API_GenAddRecordForm&dfid=10&ifv=1&aftersaveurl=https%3A%2F%2Fnewbraunfels.gov%2F3932%2FThank-You&page=1" rel="noopener" target="_blank"><img src="/ImageRepository/Document?documentId=25761" class="fr-fil fr-dib" alt="CustomerSatisfactionSurveyButton-01" style="width: 152px;"></a></p>
+</li>						</ol>
+					</div>
+		</div>
+	</div>
+	<div class="widgetFooter">
+
+	</div>
+
+	</section>
+
+
+
+<script type="text/javascript">
+	//Render slideshow if info advacned items contain one.
+	$(document).ready(function (e) {
+		$('#divInfoAdv75188d1c-cfb7-4b1a-99d4-09e1a6cc8e58 .InfoAdvanced.widgetItem').each(function () {
+			renderSlideshowIfApplicable($(this));		
+		});
+	});
+</script></div>
+	</div> <!-- inner column -->
+
+	</div> <!-- inner row -->
+
+			</div><!-- outer column --><!----><div class="outer col col1" style="" data-widgetcontainerid="6068aac6-097b-4ae8-a6be-6a40f6823c06">				
+	<div class="row nest first last wide">
+	
+	<div class="inner col col1 first last idba63b74c-c3f1-489e-8492-bcc0b99b20b6" style="" data-widgetcontainerid="ba63b74c-c3f1-489e-8492-bcc0b99b20b6">	
+
+<div class="widget widgetSpacer" id="a52e5a67-650f-4d46-8201-646dfcda2074"></div>
+	</div> <!-- inner column -->
+
+	</div> <!-- inner row -->
+
+			</div><!-- outer column --><!----><div class="outer col col5" style="" data-widgetcontainerid="b72b17bc-771b-4a94-92a0-81a22a4144a8">				
+	<div class="row nest first last wide">
+	
+	<div class="inner col col5 first last id5e2e18b8-0477-4aad-9bd9-7c3ed69c6d0f" style="" data-widgetcontainerid="5e2e18b8-0477-4aad-9bd9-7c3ed69c6d0f">	
+	<div data-widget-id="631341ac-d26a-4de1-acd4-44bdb5d73710" data-widget-controller-path="/QuickLinks/Widget">
+
+
+
+
+
+
+
+
+	<section id="widgetQuicklink631341ac-d26a-4de1-acd4-44bdb5d73710" class="widget widgetQuickLinks skin20 widgetOptionSet18 narrow" data-modulewidgettype="quickLinks" data-elementqueryclasses='{"wide-narrow":"min-width:25em"}' data-elementquerymatch='matchMultiColumn' data-elementqueryunmatch='unmatchMultiColumn' aria-labelledby="quickLinksHeader631341ac-d26a-4de1-acd4-44bdb5d73710">
+			<header class="widgetHeader" id="quickLinksHeader631341ac-d26a-4de1-acd4-44bdb5d73710">
+		<div class="">
+					<h3><a  style="" href="/QuickLinks.aspx?CID=107,49" >Quick Links</a></h3>
+						</div>
+	</header>
+	<div class="widgetBody cpGrid cpGrid1 ">
+        <div class="row  narrow">
+				<div class="col col1 first last">
+					<ol class="semanticList">
+
+
+
+
+    <li style="position:relative" class="widgetItem QuickLinks">
+        <a class="widgetDesc widgetQuickLinksLink" href="/3075/All-Departments" target="_blank" aria-label="All Departments - Government opens in new window" rel="noopener">All Departments</a>
+        <div class="widgetMeta"></div>
+    </li>
+
+
+
+
+    <li style="position:relative" class="widgetItem QuickLinks">
+        <a class="widgetDesc widgetQuickLinksLink" href="/3317/Make-a-Request" target="_blank" aria-label="Submit a Request - Government opens in new window" rel="noopener">Submit a Request</a>
+        <div class="widgetMeta"></div>
+    </li>
+
+
+
+
+    <li style="position:relative" class="widgetItem QuickLinks">
+        <a class="widgetDesc widgetQuickLinksLink" href="/3554/Join-Our-Team" target="_blank" aria-label="Join Our Team - Government opens in new window" rel="noopener">Join Our Team</a>
+        <div class="widgetMeta"></div>
+    </li>
+
+
+
+
+    <li style="position:relative" class="widgetItem QuickLinks">
+        <a class="widgetDesc widgetQuickLinksLink" href="/Directory.aspx" target="_blank" aria-label="Staff Directory - Government opens in new window" rel="noopener">Staff Directory</a>
+        <div class="widgetMeta"></div>
+    </li>
+
+
+
+
+    <li style="position:relative" class="widgetItem QuickLinks">
+        <a class="widgetDesc widgetQuickLinksLink" href="/2993/Living-Visiting" target="_blank" aria-label="Living &amp; Visiting in New Braunfels - Site Links opens in new window" rel="noopener">Living & Visiting in New Braunfels</a>
+        <div class="widgetMeta"></div>
+    </li>
+
+
+
+
+    <li style="position:relative" class="widgetItem QuickLinks">
+        <a class="widgetDesc widgetQuickLinksLink" href="/2935/Business-Development" target="_blank" aria-label="Business &amp; Development - Site Links opens in new window" rel="noopener">Business & Development</a>
+        <div class="widgetMeta"></div>
+    </li>
+					</ol>
+				</div>
+		</div>
+        
+	</div>
+	<div class="widgetFooter">
+	</div>
+	<div class="addItemModal hidden">
+		<div class="url hidden">/QuickLinks.aspx</div>
+	</div>
+
+	</section>
+</div>
+
+	</div> <!-- inner column -->
+
+	</div> <!-- inner row -->
+
+			</div><!-- outer column --><!----><div class="outer col col1" style="" data-widgetcontainerid="8617b132-5122-4d10-98d7-fa95757eab25">				
+	<div class="row nest first last wide">
+	
+	<div class="inner col col1 first last idde1d6066-cde3-4057-8207-59b9c5639b4b" style="" data-widgetcontainerid="de1d6066-cde3-4057-8207-59b9c5639b4b">	
+
+<div class="widget widgetSpacer" id="59aa56cd-2bba-461a-8f25-1de84f8dbb72"></div>
+	</div> <!-- inner column -->
+
+	</div> <!-- inner row -->
+
+			</div><!-- outer column --><!----><div class="outer col col5 last" style="" data-widgetcontainerid="ab903257-ccd8-49f1-b1cc-c707517016dc">				
+	<div class="row nest first last wide">
+	
+	<div class="inner col col5 first last idb16ff5e5-e4ac-4602-a37b-6f948d36a82f" style="" data-widgetcontainerid="b16ff5e5-e4ac-4602-a37b-6f948d36a82f">	
+	<div data-widget-id="b78192d8-4472-4435-8950-3f3d246f128c" data-widget-controller-path="/QuickLinks/Widget">
+
+
+
+
+
+
+
+
+	<section id="widgetQuicklinkb78192d8-4472-4435-8950-3f3d246f128c" class="widget widgetQuickLinks skin20 widgetOptionSet18 narrow" data-modulewidgettype="quickLinks" data-elementqueryclasses='{"wide-narrow":"min-width:25em"}' data-elementquerymatch='matchMultiColumn' data-elementqueryunmatch='unmatchMultiColumn' aria-labelledby="quickLinksHeaderb78192d8-4472-4435-8950-3f3d246f128c">
+			<header class="widgetHeader" id="quickLinksHeaderb78192d8-4472-4435-8950-3f3d246f128c">
+		<div class="">
+					<h3><a  style="" href="/QuickLinks.aspx?CID=50" >Helpful Links</a></h3>
+						</div>
+	</header>
+	<div class="widgetBody cpGrid cpGrid1 ">
+        <div class="row  narrow">
+				<div class="col col1 first last">
+					<ol class="semanticList">
+
+
+
+
+    <li style="position:relative" class="widgetItem QuickLinks">
+        <a class="widgetDesc widgetQuickLinksLink" href="/" target="_self" aria-label="Home Page - Using the Site" rel="">Home Page</a>
+        <div class="widgetMeta"></div>
+    </li>
+
+
+
+
+    <li style="position:relative" class="widgetItem QuickLinks">
+        <a class="widgetDesc widgetQuickLinksLink" href="/3539/Americans-with-Disabilities-Act-Informat" target="_blank" aria-label="Americans with Disabilities Act Information - Using the Site opens in new window" rel="noopener">Americans with Disabilities Act Information</a>
+        <div class="widgetMeta"></div>
+    </li>
+
+
+
+
+    <li style="position:relative" class="widgetItem QuickLinks">
+        <a class="widgetDesc widgetQuickLinksLink" href="/4144/Title-VI-Information" target="_blank" aria-label="Title VI Information - Using the Site opens in new window" rel="noopener">Title VI Information</a>
+        <div class="widgetMeta"></div>
+    </li>
+
+
+
+
+    <li style="position:relative" class="widgetItem QuickLinks">
+        <a class="widgetDesc widgetQuickLinksLink" href="/accessibility" target="_self" aria-label="Accessibility - Using the Site" rel="">Accessibility</a>
+        <div class="widgetMeta"></div>
+    </li>
+
+
+
+
+    <li style="position:relative" class="widgetItem QuickLinks">
+        <a class="widgetDesc widgetQuickLinksLink" href="/3597/OneSite---Login-Portal" target="_blank" aria-label="OneSite Portal - Using the Site opens in new window" rel="noopener">OneSite Portal</a>
+        <div class="widgetMeta"></div>
+    </li>
+
+
+
+
+    <li style="position:relative" class="widgetItem QuickLinks">
+        <a class="widgetDesc widgetQuickLinksLink" href="/sitemap" target="_self" aria-label="Site Map - Using the Site" rel="">Site Map</a>
+        <div class="widgetMeta"></div>
+    </li>
+					</ol>
+				</div>
+		</div>
+        
+	</div>
+	<div class="widgetFooter">
+	</div>
+	<div class="addItemModal hidden">
+		<div class="url hidden">/QuickLinks.aspx</div>
+	</div>
+
+	</section>
+</div>
+
+	</div> <!-- inner column -->
+
+	</div> <!-- inner row -->
+
+			</div><!-- outer column --><!--		--></div> <!-- outer row -->
+		<div class="row outer wide"><!--
+--><div class="outer col col24 first last" style="" data-widgetcontainerid="e8f35a3a-4c9c-4940-afe8-ec292a87c6de">				
+	<div class="row nest first last wide">
+	
+	<div class="inner col col24 first last id20c926f8-3c00-4a2c-986c-b4e754299cd5" style="" data-widgetcontainerid="20c926f8-3c00-4a2c-986c-b4e754299cd5">	
+ 
+	<div data-widget-id='e276ca4c-13c8-43f4-84e6-feb14638ba59' data-moduleName="customHtml" id='widgetCustomHtmle276ca4c-13c8-43f4-84e6-feb14638ba59' class="widget widgetCustomHtml skin21 narrow" >
+	<div class="widgetBody pageStyles" id="widgetBodye276ca4c-13c8-43f4-84e6-feb14638ba59">
+		<div id="customHtmle276ca4c-13c8-43f4-84e6-feb14638ba59"><div><style>
+  /* CP icon */
+  .cpBylineIconTS {
+    color: #fff;
+  }
+  /* CP Text */
+  .cpBylineTextTS,
+  .cpBylineTextTS a:link {
+    color: #fff;
+  }
+
+  .cpBylineTS {
+    text-align: center;
+  }
+  
+  .cpBylineIconTS {
+    fill: currentColor;
+    width: 39px;
+    height: 26px;
+    display: inline;
+    vertical-align: middle;
+  }
+</style>
+
+<div class="widgetItem cpBylineTS">
+  <svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 100 100" class="cpBylineIconTS">
+    <path class="c" d="M73.4,23.2h-19v16.7h19c2.8,0,5,2.2,5,5c0,2.8-2.2,5-5,5h-19v28.4h5.5l11.3-11.7h2.2c11.9,0,21.6-9.7,21.6-21.6C95,33,85.3,23.2,73.4,23.2"></path>
+    <path class="p" d="M45.8,66.5H26.6C14.7,66.5,5,56.8,5,44.9C5,33,14.7,23.2,26.6,23.2h19.1v16.7H26.6c-2.8,0-5,2.2-5,5c0,2.8,2.2,5,5,5h19.1V66.5z"></path>
+  </svg>
+  <span class="cpBylineTextTS">Government Websites by <a href="https://connect.civicplus.com/referral">CivicPlus&reg;</a></span>
+</div>
+</div></div>
+	</div>
+
+	</div>
+
+	</div> <!-- inner column -->
+
+	</div> <!-- inner row -->
+
+			</div><!-- outer column --><!--		--></div> <!-- outer row -->
+
+
+	</div>
+</div></div></div>
+</footer>
+</div>
+
+            </div>
+        </div>
+    </div>
+
+<link href="/745732998.css" rel="stylesheet" type="text/css" />
+
+<div id="SplashMessageWrapper" class="cp-Splash-wrapper">
+	<div role="dialog" aria-labelledby="cp-Splash-title" aria-describedby="editorContentDesc" aria-modal="true" tabindex="-1" id="SplashMessage" class="hidden cp-Splash cp-Splash--modal is-open">
+		<div class="cp-Splash-header">
+			<h2 class="cp-Splash-title" id="cp-Splash-title">Loading</h2>
+			<button class="cp-Splash-Btn cp-Splash-close" aria-label="Close this modal" title="Close this window">
+				<svg id="iconClose" viewBox="0 0 25 25">
+					<polygon style="fill:currentcolor"
+							 points="18.806,6.98 18.075,6.248 12.532,11.792 6.989,6.248 6.257,6.98 11.786,12.508 6.212,18.084 6.943,18.815 12.532,13.224 18.12,18.815 18.851,18.084 13.277,12.508"></polygon>
+				</svg>
+			</button>
+		</div>
+		<div class="cp-Splash-body">
+			<div class="cp-Splash-Prose editorContent fr-view" id="editorContentDesc">
+				<!-- Content from the Froala Editor will go here. -->
+				Loading
+			</div>
+		</div>
+		<div class="cp-Splash-footer">
+			<button class="cp-Splash-Btn cp-Splash-Btn--NoShow">Do Not Show Again</button>
+			<button class="cp-Splash-Btn cp-Splash-Btn--Close">Close</button>
+		</div>
+	</div>
+</div>
+
+<script src="/Assets/Scripts/APIClient.js"></script>
+<script src="/Assets/Mystique/Shared/Scripts/Moment/Moment.min.js"></script>
+<script src="/Assets/Scripts/SplashModal/SplashModalRender.js"></script>
+<script>
+
+		$(document).ready(function () {
+			var filter = {
+				targetId: '531',
+				targetType: 1
+			}
+
+			new SplashModalRender().triggerRender(filter);
+		});
+</script>
+
+
+	
+	
+	
+	
+
+
+
+	
+
+
+
+
+
+
+    <script src="/-1442400649.js" type="text/javascript"></script>
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-139336507-1"></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'UA-139336507-1');
+
+</script>
+
+<!-- End Google Analytics code -->
+
+
+<!-- Fixed Nav Adjustment -->
+<script>
+  function getValueTS(elem, attr) {
+    const val = elem.css(attr);
+    if (val === undefined) return undefined;
+    const num = parseInt(val, 10);
+    if (num === NaN) return undefined;
+    return num;
+  }
+
+  function clampTS(number, min, max) {
+    return Math.min(Math.max(number, min), max);
+  }
+
+  function isPageEditingTS() {
+    return (
+      $("#doneEditing").length > 0 || // In live edit
+      typeof DesignCenter !== "undefined" // In theme manager
+    );
+  }
+
+  const bgColorRegexTS = /rgba\((\d+), (\d+), (\d+), (\d*\.?\d*)\)/;
+  function isTransparentTS(elem) {
+    const bg = elem.css('background-color');
+    if (typeof bg !== "string" || !bg.startsWith('rgba(')) return false;
+    const matchState = bg.match(bgColorRegexTS);
+    if (!matchState || matchState.length !== 5) return false;
+    const alpha = parseFloat(matchState[4], 10);
+    if (!(alpha >= 0 && alpha < 1)) return false;
+    return true;
+  }
+
+  function iterateLeftpads(cb) {
+    const containersTS = $("[class^='siteWrap'],[class*=' siteWrap']");
+    for (let i = 0; i < containersTS.length; i++) {
+      const containerTS = containersTS[i];
+      // Skip the body container and anything with data-skip-leftpad
+      if (
+        containerTS.id !== "bodyContainerTS" &&
+        containerTS.getAttribute('data-skip-leftpad') === null
+      ) {
+        cb(containerTS);
+      }
+    }
+  }
+
+  const anchor = $("#divToolbars");
+
+  // Outer banner padding (push banner down)
+  const outerSizingTS = $("#bannerContainerTS");
+  // Inner banner padding (push banner content down) - Transparent header OR on attaching headers
+  const innerSizingTS = $("#bannerSizingTS");
+  const bodyContainerTS = $("#bodyContainerTS");
+
+  const forceUnfixClassTS = "forceUnfixTS";
+
+  const fixedTopTS = $(".fixedTopTS");
+  const fixedBottomTS = $(".fixedBottomTS");
+  const fixedLeftTS = $(".fixedLeftTS");
+
+  var initialTopTS;
+  var topAttachTS;
+  if (fixedTopTS && fixedTopTS.length === 1) {
+    initialTopTS = getValueTS(fixedTopTS, 'top');
+    const attachment = fixedTopTS.attr('data-attach');
+    if (attachment) topAttachTS = $("#" + attachment);
+    if (!topAttachTS || topAttachTS.length !== 1) topAttachTS = undefined;
+  }
+
+  function resizeAdjustmentTS() {
+    const editing = isPageEditingTS();
+
+    // Fixed top script
+    (function () {
+      if (!fixedTopTS || fixedTopTS.length !== 1 || initialTopTS === undefined) return;
+
+      if (editing) {
+        fixedTopTS[0].classList.add(forceUnfixClassTS);
+      } else {
+        fixedTopTS[0].classList.remove(forceUnfixClassTS);
+      }
+
+      const topPosition = fixedTopTS.css('position');
+      if (topPosition === 'fixed') {
+        if (topAttachTS) {
+          scrollAdjustmentTS();
+        } else {
+          const anchorHeight = anchor.outerHeight() - 1;
+          fixedTopTS.css('top', anchorHeight + initialTopTS);
+        }
+      } else {
+        fixedTopTS.css('top', initialTopTS);
+      }
+
+      if (topPosition === 'fixed' || topPosition === 'absolute') {
+        // Bump the banner content down
+        if (isTransparentTS(fixedTopTS)) {
+          innerSizingTS.css('padding-top', initialTopTS + fixedTopTS.outerHeight() - 1);
+          outerSizingTS.css('padding-top', '');
+
+          try {
+            window.Pages.onResizeHandlersExecute();
+          } catch (e) { }
+        } else {
+          outerSizingTS.css('padding-top', fixedTopTS.outerHeight() - 1);
+          innerSizingTS.css('padding-top', '');
+        }
+      } else {
+        innerSizingTS.css('padding-top', '');
+        outerSizingTS.css('padding-top', '');
+      }
+    })();
+
+    // Fixed bottom script
+    (function () {
+      if (!fixedBottomTS || fixedBottomTS.length === 0) return;
+
+      // If the widget has gone narrow, force unfix
+      if (editing || fixedBottomTS.outerHeight() > 200) {
+        fixedBottomTS[0].classList.add(forceUnfixClassTS);
+      } else {
+        fixedBottomTS[0].classList.remove(forceUnfixClassTS);
+      }
+
+      if (fixedBottomTS.css('position') === 'fixed') {
+        bodyContainerTS.css('padding-bottom', fixedBottomTS.outerHeight());
+      } else {
+        bodyContainerTS.css('padding-bottom', '');
+      }
+    })();
+
+    // Fixed left script
+    (function () {
+      if (!fixedLeftTS || fixedLeftTS.length === 0) return;
+
+      if (editing) {
+        fixedLeftTS[0].classList.add(forceUnfixClassTS);
+      } else {
+        fixedLeftTS[0].classList.remove(forceUnfixClassTS);
+      }
+
+      if (fixedLeftTS.css('position') === 'fixed') {
+        const anchorHeight = anchor.outerHeight() - 1;
+        fixedLeftTS.css('top', anchorHeight);
+        const leftBoundingTS = fixedLeftTS[0].getBoundingClientRect();
+        iterateLeftpads(function (containerTS) {
+          const containerBoundingTS = containerTS.getBoundingClientRect();
+          if (containerBoundingTS.left <= leftBoundingTS.right) {
+            $(containerTS).css('padding-left', leftBoundingTS.width + 16);
+          }
+        });
+      } else {
+        fixedLeftTS.css('top', '');
+        iterateLeftpads(function (containerTS) {
+          $(containerTS).css('padding-left', '');
+        });
+      }
+    })();
+  }
+
+  function scrollAdjustmentTS() {
+    if (!fixedTopTS || fixedTopTS.length !== 1 || !topAttachTS || topAttachTS.length !== 1) return;
+    const topPosition = fixedTopTS.css('position');
+    if (topPosition === 'fixed' || topPosition === 'absolute') {
+      const anchorBounding = anchor[0].getBoundingClientRect();
+      const attachBounding = topAttachTS[0].getBoundingClientRect();
+      const scrollTop = $(window).scrollTop();
+
+      fixedTopTS.css('top', Math.max(anchorBounding.bottom - 1, attachBounding.bottom));
+    } else {
+      fixedTopTS.css('top', initialTopTS);
+    }
+  }
+
+  $(window).load(function () {
+    setTimeout(function () {
+      resizeAdjustmentTS();
+    }, 350);
+
+    $(window).scroll(function () {
+      scrollAdjustmentTS();
+    });
+
+    var adjustTimeoutTS;
+    $(window).resize(function () {
+      clearTimeout(adjustTimeoutTS);
+      adjustTimeoutTS = setTimeout(function () {
+        resizeAdjustmentTS();
+      }, 350);
+    });
+
+    $.when(window.Pages.angularToolbarComplete).done(function () {
+      resizeAdjustmentTS();
+    });
+  });
+</script>
+<!-- End Fixed Nav Adjustment -->
+
+
+<!----------Google Translate (Mobile Friendly)--------->
+
+
+
+<style>#google-translate-container {float: right;padding: 3px 5px 0px 0px;}.goog-te-combo,.goog-te-banner *,.goog-te-ftab *,.goog-te-menu *,.goog-te-menu2 *,.goog-te-balloon * {font-family: arial;font-size: 10pt;background-image: url("https://theme.zdassets.com/theme_assets/958586/bae8aa24db8d43595871692a9d259186f2db3fb4.png");background-position: 3px 4px;background-size: 22px;background-repeat: no-repeat;text-indent: 20px;background-color: #fff;color: #000 !important;}.goog-logo-link {display: none !important;}.goog-te-gadget {color: transparent !important;}.goog-te-gadget .goog-te-combo {margin: 2px 0 !important;border-radius: 15px !important;}.goog-te-combo{border: 1px solid !important;border-color: #bcc9d7 #96a3b1 #96a3b1 #bcc9d7 !important;border-radius: 0 !important;height:32px; !important;padding: 0 1px 0 .25rem !important;}
+
+#launcher-wrapper {bottom: 50px !important;}
+
+</style>
+
+<div id="google-translate-container">
+
+<div id="google_translate_element" style="position: fixed; bottom: 0px; right: 20px; z-index: 5;"></div>
+
+</div>
+
+<script>
+
+function googleTranslateElementInit() {
+var el = document.getElementById("google_translate_element");
+if (el && el.innerHTML.trim() !== "") {
+    return;
+}
+
+
+new google.translate.TranslateElement({ pageLanguage: "en" }, "google_translate_element");
+
+// begin accessibility compliance
+
+$('img.goog-te-gadget-icon').attr('alt','Google Translate');
+
+$('div#goog-gt-tt div.logo img').attr('alt','translate');
+
+$('div#goog-gt-tt .original-text').css('text-align','left');
+
+$('.goog-te-gadget-simple .goog-te-menu-value span').css('color','#000000');
+
+$('.goog-te-combo').attr('aria-label','google translate languages');
+
+$('svg.goog-te-spinner').attr('title','Google Translate Spinner');
+
+$('.goog-te-gadget-simple .goog-te-menu-value span').css('color','#000000');
+
+}
+
+$(function() {
+
+$.getScript("//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit");
+
+});
+
+</script>
+
+
+
+<!--------------End Google Translate----------------->
+
+
+    <script type="text/javascript">
+        $(function () {
+            document.cookie = "responsiveGhost=0; path=/";
+        });
+        $(window).on("load", function () {
+            $('body').addClass('doneLoading').removeClass('hideContent');
+
+            if ($('#404Content').length > 0)
+                $('div#bodyWrapper').css('padding', '0px');
+        });
+    </script>
+
+    <noscript>
+        <style>
+            body.hideContent {
+                opacity: 1 !important;
+            }
+        </style>
+    </noscript>
+
+        
+<div style="display: none;">
+	<svg xmlns="http://www.w3.org/2000/svg" style="display:none;">
+
+		<symbol id="iconArrow--left" viewbox="0 0 25 25">
+			<title>Arrow Left</title>
+			<polygon style="fill:currentcolor" points="18.044,25 19.498,23.545 8.409,12.454 19.408,1.455 17.954,0 5.502,12.452"></polygon>
+		</symbol>
+
+		<symbol id="iconArrow--right" viewbox="0 0 25 25">
+			<title>Arrow Right</title>
+			<polygon style="fill:currentcolor" points="6.957,0 5.502,1.455 16.591,12.546 5.592,23.545 7.047,25 19.498,12.548"></polygon>
+		</symbol>
+
+	</svg>
+</div>
+    <script type="text/javascript">loadCSS('//fonts.googleapis.com/css?family=Open+Sans:300,300italic,600,600italic,700,700italic,800,800italic,italic,regular|Oswald:500,600,700,regular|Source+Sans+Pro:600,600italic,700,700italic,900,900italic,italic,regular|');</script>
+    
+
+    <div class="hidden activeWidgetSkinComponentsOnPageJson">[]</div>
+        <div style="display: none;">
+            <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+                <symbol id="iconSlideshowArrowLeft" viewBox="0 0 22.68 40">
+                    <title>Slideshow Left Arrow</title>
+                    <g>
+                        <path style="fill:currentcolor;" d="M20,40a2.67,2.67,0,0,1-1.9-.79L.79,21.9a2.68,2.68,0,0,1,0-3.79L18.1.79a2.68,2.68,0,1,1,3.79,3.79L6.47,20,21.89,35.42A2.68,2.68,0,0,1,20,40Z"></path>
+                    </g>
+                </symbol>
+                <symbol id="iconSlideshowArrowRight" viewBox="0 0 22.68 40">
+                    <title>Slideshow Right Arrow</title>
+                    <g>
+                        <path style="fill:currentcolor;" d="M2.68,0a2.67,2.67,0,0,1,1.9.79L21.89,18.1a2.68,2.68,0,0,1,0,3.79L4.58,39.21A2.68,2.68,0,0,1,.79,35.42L16.21,20,.79,4.58A2.68,2.68,0,0,1,2.68,0Z"></path>
+                    </g>
+                </symbol>
+            </svg>
+        </div>
+    
+	
+	
+
+    <div id="root-picker-outlet"></div>
+</body>
+</html>

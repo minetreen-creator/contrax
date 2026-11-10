@@ -42,8 +42,8 @@ export const MD_MONTGOMERY_API_URL = "https://data.montgomerycountymd.gov/resour
 export const MD_MONTGOMERY_PAGE_URL = "https://data.montgomerycountymd.gov/Government/Solicitations/eeq6-nnwe";
 const COUNTY = "Montgomery County, MD";
 
-const UA =
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36";
+/** Contrax names itself on every request (owner rule: keep the ContraxBot UA, never pose as a browser). */
+const UA = "Mozilla/5.0 (compatible; ContraxBot/1.0; +https://www.contrax.company)";
 
 export interface MdMontgomeryItem {
   status?: string | null;

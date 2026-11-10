@@ -60,8 +60,8 @@ check(
   isBlockedIp(mkReq({ "cf-connecting-ip": "34.214.71.218" })) === false,
 );
 check(
-  "test IP 73.40.36.204 -> NOT blocked",
-  isBlockedIp(mkReq({ "x-real-ip": "73.40.36.204" })) === false,
+  "test IP 198.51.100.24 -> NOT blocked",
+  isBlockedIp(mkReq({ "x-real-ip": "198.51.100.24" })) === false,
 );
 check(
   "no relevant header -> NOT blocked",

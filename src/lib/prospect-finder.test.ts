@@ -9,8 +9,8 @@ describe("extractEmails", () => {
   });
 
   test("a URL-encoded space before an address is dropped; template boxes are skipped (owner 2026-10-29)", () => {
-    const html = `<a href="mailto:%20info@canroofconstruction.com">Email</a> example@thermodirectinc.com`;
-    expect(extractEmails(html, "canroofconstruction.com")).toEqual(["info@canroofconstruction.com"]);
+    const html = `<a href="mailto:%20info@sunridgeroofing.com">Email</a> example@coolairinc.com`;
+    expect(extractEmails(html, "sunridgeroofing.com")).toEqual(["info@sunridgeroofing.com"]);
   });
 
   test("undoes encoded @ and drops images, placeholders and no-reply", () => {

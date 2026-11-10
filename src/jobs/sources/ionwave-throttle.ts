@@ -5,7 +5,9 @@
  * rate-limited the last ones. Every IonWave request now waits its turn, at least IONWAVE_GAP_MS after
  * the previous one, across all boards in the process.
  */
-export const IONWAVE_GAP_MS = 12_000;
+// 12 s (2026-11-10 08:00 UTC sync) still drew 429s for Plano and Irving after the fifth and sixth
+// requests in under a minute; Georgetown, next, went through. 20 s keeps it to three a minute.
+export const IONWAVE_GAP_MS = 20_000;
 
 export const ionwaveThrottleDeps = {
   now: () => Date.now(),

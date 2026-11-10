@@ -11,7 +11,6 @@
  *   3. isStrongTradeMatch (trade-registry): only title/NAICS-corroborated rows
  *      are default matches.
  */
-import { setAsidePred } from "~/lib/open-bids";
 import { certMatches, FEDERAL_SOURCE_LABELS, sbCertFragment } from "~/lib/cert-matching";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { geoRelevant, locationConflict, matchGeographyBucket, resolveBidState } from "~/lib/location-state";
@@ -29,7 +28,7 @@ export async function fetchStrictRadarRows(
   sql: any,
   o: { trade: string; state: string; certId: string; window?: "federal_no_set_aside" },
 ): Promise<StrictRadarRows> {
-  const { trade, state, certId } = o;
+  const { trade, state } = o;
   const isNaics = /^\d{6}$/.test(trade);
   const expansion = expandTrade(trade);
   // Set-aside predicate fragment (PR-C.0, owner 09-13: Small Business
@@ -38,12 +37,10 @@ export async function fetchStrictRadarRows(
   // portal publishes no set-aside metadata. The text-level include/exclude
   // decision runs in JS via the same certMatches predicate. Non-sb certs keep
   // their literal set_aside patterns UNCHANGED (mirrors /trades).
-  const certFrag =
-    o.window === "federal_no_set_aside"
-      ? federalNoSetAsideFragment(sql)
-      : certId === "sb"
-        ? sbCertFragment(sql)
-        : setAsidePred(certId, sql);
+  // Owner 2026-11-10 (a Houston SDVOSB construction search showed 15 Texas bids while 356 were open to
+  // small businesses): a certified business is also a small business, so every certification reads the
+  // small-business window; radarRowPasses then adds its own set-asides (radarCertPasses).
+  const certFrag = o.window === "federal_no_set_aside" ? federalNoSetAsideFragment(sql) : sbCertFragment(sql);
   // Trade/NAICS predicate: exact NAICS equality when a 6-digit code is given,
   // otherwise the EXPANDED keyword set (trade-registry). Every term is a bound
   // parameter (injection-safe by construction).
@@ -78,8 +75,21 @@ export async function fetchStrictRadarRows(
  * exclusion (owner 09-13) and state relevance — computed from existing fields.
  */
 export function radarRowPasses(r: any, certId: string, state: string): boolean {
-  if (certMatches(r.set_aside, [r.source], certId as any) !== "include") return false;
+  if (!radarCertPasses(r.set_aside, r.source, certId)) return false;
   return radarGeoPasses(r, state);
+}
+
+/**
+ * Whether a bid is open to a business with this certification (owner 2026-11-10): its own set-aside
+ * (SDVOSB for an SDVOSB) OR anything a small business can bid (state/local bids with no set-aside,
+ * small-business and unrestricted set-asides). Set-asides for certifications it doesn't hold stay out.
+ * PURE.
+ */
+export function radarCertPasses(setAside: string | null | undefined, source: string | null | undefined, certId: string): boolean {
+  const sa = setAside == null ? null : String(setAside);
+  const src = [String(source ?? "")];
+  if (certMatches(sa, src, certId as any) === "include") return true;
+  return certId !== "sb" && certMatches(sa, src, "sb") === "include";
 }
 
 /** The location half of radarRowPasses: no contradictory location, and relevant to the state. */

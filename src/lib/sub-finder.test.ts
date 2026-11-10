@@ -189,6 +189,7 @@ describe("Tampa partnership on the homepage (owner 2026-11-09)", () => {
     const at = home.indexOf("<HomeTampaPartner />");
     expect(at).toBeGreaterThan(home.indexOf("<HomeContractFinder"));
     expect(at).toBeLessThan(home.indexOf("<StarterPassStrip />"));
+    expect(home.split("<HomeTampaPartner />").length).toBe(2);
     expect(home).toContain("TAMPA_FACTS.federalConstruction");
     expect(home).toContain('rel="sponsored noopener"');
   });

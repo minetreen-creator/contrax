@@ -932,6 +932,7 @@ export const LOCAL_AGENCIES: LocalAgency[] = [
   { source: "va_vbcps_beacon", slug: "virginia-beach-schools-va", name: "Virginia Beach City Public Schools, Virginia" },
   { source: "va_grtc_beacon", slug: "grtc-va", name: "GRTC Transit System, Virginia" },
   { source: "pa_pittsburgh_schools_beacon", slug: "pittsburgh-public-schools-pa", name: "Pittsburgh Public Schools, Pennsylvania" },
+  { source: "tx_new_braunfels_beacon", slug: "city-of-new-braunfels-tx", name: "City of New Braunfels, Texas" },
   { source: "ca_la_county", slug: "los-angeles-county-ca", name: "Los Angeles County, California" },
   { source: "ca_port_of_oakland", slug: "port-of-oakland-ca", name: "Port of Oakland, California" },
   { source: "ca_berkeley", slug: "city-of-berkeley-ca", name: "City of Berkeley, California" },

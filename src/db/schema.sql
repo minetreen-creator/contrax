@@ -1341,6 +1341,9 @@ CREATE TABLE IF NOT EXISTS trade_package_responses (
     message TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+-- License number on quotes (owner 2026-11-10), self-reported.
+ALTER TABLE trade_package_responses ADD COLUMN IF NOT EXISTS license_number TEXT;
+ALTER TABLE trade_package_responses ADD COLUMN IF NOT EXISTS license_state TEXT;
 CREATE TABLE IF NOT EXISTS trade_package_requests (
     package_id INTEGER NOT NULL REFERENCES trade_packages(id),
     profile_id INTEGER NOT NULL,

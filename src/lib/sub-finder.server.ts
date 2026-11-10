@@ -59,6 +59,9 @@ export async function ensureSubFinderTables(): Promise<void> {
     )`;
   // Subs Wanted board (owner 2026-11-10): a package is public only when its owner lists it.
   await sql()`ALTER TABLE trade_packages ADD COLUMN IF NOT EXISTS on_board BOOLEAN NOT NULL DEFAULT FALSE`;
+  // License number on quotes (owner 2026-11-10), self-reported.
+  await sql()`ALTER TABLE trade_package_responses ADD COLUMN IF NOT EXISTS license_number TEXT`;
+  await sql()`ALTER TABLE trade_package_responses ADD COLUMN IF NOT EXISTS license_state TEXT`;
 }
 
 /** What the package is for: a bid (public record) or a megaproject (public/data/megaprojects.json). */
@@ -188,17 +191,18 @@ export async function getPackage(slug: string): Promise<TradePackage | null> {
 export async function packageResponses(pkg: TradePackage, viewerId: number | null) {
   if (viewerId == null || viewerId !== pkg.primeUserId) return null;
   return (await sql()`
-    SELECT company, contact_name, email, phone, certifications, message, created_at FROM trade_package_responses
+    SELECT company, contact_name, email, phone, certifications, license_number, license_state, message, created_at FROM trade_package_responses
     WHERE package_id = ${pkg.id} ORDER BY created_at DESC LIMIT 200
-  `) as { company: string; contact_name: string | null; email: string; phone: string | null; certifications: string[]; message: string | null; created_at: string }[];
+  `) as { company: string; contact_name: string | null; email: string; phone: string | null; certifications: string[]; license_number: string | null; license_state: string | null; message: string | null; created_at: string }[];
 }
 
 export async function addResponse(pkg: TradePackage, input: ResponseInput): Promise<{ ok: boolean; error?: string }> {
   const today = (await sql()`SELECT COUNT(*)::int AS n FROM trade_package_responses WHERE package_id = ${pkg.id} AND created_at > NOW() - INTERVAL '1 day'`) as { n: number }[];
   if (Number(today[0]?.n ?? 0) >= MAX_RESPONSES_PER_PACKAGE_PER_DAY) return { ok: false, error: "This package has had many responses today. Please try again tomorrow or contact the prime directly." };
   await sql()`
-    INSERT INTO trade_package_responses (package_id, company, contact_name, email, phone, certifications, message)
-    VALUES (${pkg.id}, ${input.company}, ${input.contactName || null}, ${input.email}, ${input.phone || null}, ${JSON.stringify(input.certifications)}::jsonb, ${input.message || null})
+    INSERT INTO trade_package_responses (package_id, company, contact_name, email, phone, certifications, license_number, license_state, message)
+    VALUES (${pkg.id}, ${input.company}, ${input.contactName || null}, ${input.email}, ${input.phone || null}, ${JSON.stringify(input.certifications)}::jsonb,
+            ${input.licenseNumber || null}, ${input.licenseNumber ? input.licenseState || null : null}, ${input.message || null})
   `;
   // Tell the prime (the member who made the package): transactional, to our own user.
   try {

@@ -3,6 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { SiteHeader } from "~/components/SiteHeader";
 import { SUB_FINDER_CERTS, certNames } from "~/lib/sub-finder";
+import { STATE_NAMES } from "~/lib/contract-map";
 import { trackEvent } from "~/lib/track";
 
 /**
@@ -78,7 +79,8 @@ function TradePackagePage() {
     const r = await submitQuote({
       data: {
         slug, company: f.get("company"), contactName: f.get("contactName"), email: f.get("email"), phone: f.get("phone"),
-        certifications: f.getAll("certifications"), message: f.get("message"), website: f.get("website"),
+        certifications: f.getAll("certifications"), licenseNumber: f.get("licenseNumber"), licenseState: f.get("licenseState"),
+        message: f.get("message"), website: f.get("website"),
       },
     }).catch(() => ({ ok: false, error: "Could not send just now. Please try again." }));
     if (!r.ok) {
@@ -118,6 +120,9 @@ function TradePackagePage() {
                   <p className="font-semibold text-slate-900">{r.company}</p>
                   <p className="text-slate-700">{[r.contact_name, r.email, r.phone].filter(Boolean).join(" · ")}</p>
                   {r.certifications?.length ? <p className="text-xs text-emerald-700">{certNames(r.certifications).join(", ")} (self-reported)</p> : null}
+                  <p className="text-xs text-slate-600">
+                    {r.license_number ? `License: ${r.license_state ? `${r.license_state} ` : ""}${r.license_number} (self-reported; check it with the state licensing board)` : "License: not given"}
+                  </p>
                   {r.message ? <p className="mt-1 text-slate-700">{r.message}</p> : null}
                 </li>
               ))}
@@ -159,6 +164,19 @@ function TradePackagePage() {
             <label className="block"><span className="text-xs text-slate-500">Your name</span><input name="contactName" className="mt-1 w-full rounded-lg border border-slate-300 px-2 py-1.5" /></label>
             <label className="block"><span className="text-xs text-slate-500">Email</span><input name="email" type="email" required className="mt-1 w-full rounded-lg border border-slate-300 px-2 py-1.5" /></label>
             <label className="block"><span className="text-xs text-slate-500">Phone (optional)</span><input name="phone" className="mt-1 w-full rounded-lg border border-slate-300 px-2 py-1.5" /></label>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-[1fr_140px]">
+            <label className="block">
+              <span className="text-xs text-slate-500">Contractor license number (if your trade is licensed)</span>
+              <input name="licenseNumber" maxLength={40} className="mt-1 w-full rounded-lg border border-slate-300 px-2 py-1.5" />
+            </label>
+            <label className="block">
+              <span className="text-xs text-slate-500">License state</span>
+              <select name="licenseState" defaultValue={pkg.state ?? ""} className="mt-1 w-full rounded-lg border border-slate-300 px-2 py-1.5">
+                <option value="">State</option>
+                {Object.keys(STATE_NAMES).map((code) => <option key={code} value={code}>{code}</option>)}
+              </select>
+            </label>
           </div>
           <fieldset>
             <legend className="text-xs text-slate-500">Certifications (optional)</legend>

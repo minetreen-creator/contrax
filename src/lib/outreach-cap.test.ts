@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { DAILY_OUTREACH_CAP, MAX_SEND_PER_BATCH, NOT_A_FIT, outreachRoomToday } from "./outreach";
+import { DAILY_OUTREACH_CAP, MAX_SEND_PER_BATCH, outreachRoomToday } from "./outreach";
 
 // Owner 2026-11-02: "always keep outreach to less than 100 due to resend daily limits".
 describe("daily outreach cap", () => {
@@ -27,7 +27,7 @@ describe("daily outreach cap", () => {
     expect(readFileSync(".github/workflows/outreach-trim.yml", "utf8")).toContain("bun run outreach-trim");
   });
 
-  test("the claims adjuster the owner ruled out is never emailed", () => {
-    expect(NOT_A_FIT).toContain("icsclaims@comcast.net");
+  test("the claims adjuster the owner ruled out stays suppressed (stored in outreach_suppressions)", () => {
+    expect(readFileSync("src/lib/outreach.ts", "utf8")).toContain("'not_a_fit'");
   });
 });

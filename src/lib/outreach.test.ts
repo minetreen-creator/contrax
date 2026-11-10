@@ -1,7 +1,7 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
 import {
   addressState,
-  CONTACTED_BY_HAND,
   daysUntil,
   bidFitsTrade,
   bidIsServiceJob,
@@ -89,28 +89,28 @@ describe("daily bid outreach (owner 2026-10-23)", () => {
     expect(verifyUnsubscribeToken("garbage", ENV)).toBeNull();
   });
 
-  test("the businesses emailed by hand are never emailed again", () => {
-    expect(CONTACTED_BY_HAND).toHaveLength(19);
-    expect(CONTACTED_BY_HAND.every((e) => e === e.toLowerCase() && e.includes("@"))).toBe(true);
+  test("no outreach address is written in the code (owner 2026-11-10: public repository)", () => {
+    const src = readFileSync(new URL("./outreach.ts", import.meta.url), "utf8");
+    expect(src).not.toMatch(/export const (CONTACTED_BY_HAND|NOT_A_FIT)/);
   });
 
   test("only addresses that belong to the business are used", () => {
     expect(emailFitsSite("info@acmecleaning.com", "acmecleaning.com")).toBe(true);
     expect(emailFitsSite("office@mail.acmecleaning.com", "acmecleaning.com")).toBe(true);
     expect(emailFitsSite("acmecleaning@gmail.com", "acmecleaning.com")).toBe(true);
-    expect(emailFitsSite("team@latofonts.com", "texasranchlandscaping.com")).toBe(false);
+    expect(emailFitsSite("team@examplefonts.com", "texasranchlandscaping.com")).toBe(false);
     expect(emailFitsSite("hello@webdesigner.io", "acmecleaning.com")).toBe(false);
     expect(emailFitsSite("broken", "acmecleaning.com")).toBe(false);
   });
 
   test("a personal mailbox must share a word with the business; no hiring mailboxes", () => {
     // 2026-10-23 batch: a font designer's gmail credited on a cleaner's site.
-    expect(emailFitsSite("impallari@gmail.com", "marketreadycleaning.com", "Market-Ready Cleaning LLC")).toBe(false);
-    expect(emailFitsSite("geauxjanitorial@gmail.com", "geauxjanitorial.com", "Geaux Janitorial")).toBe(true);
-    expect(emailFitsSite("phillipslandscaping74@gmail.com", "phillipslandscapingaz.com", "Phillip's Landscaping Services")).toBe(true);
-    expect(emailFitsSite("kylejaworski@comcast.net", "kmbjaworski.com", "KMB Jaworski Plumbing & Remodeling LLc")).toBe(true);
-    expect(emailFitsSite("jobs@southtexasplumbing.com", "southtexasplumbing.com", "D P South Texas Plumbing")).toBe(false);
-    expect(emailFitsSite("info@southtexasplumbing.com", "southtexasplumbing.com", "D P South Texas Plumbing")).toBe(true);
+    expect(emailFitsSite("fontmaker@gmail.com", "sparkleready.com", "Sparkle-Ready Cleaning LLC")).toBe(false);
+    expect(emailFitsSite("bayoujanitorial@gmail.com", "bayoujanitorial.com", "Bayou Janitorial")).toBe(true);
+    expect(emailFitsSite("carterslandscaping74@gmail.com", "carterslandscapingaz.com", "Carter's Landscaping Services")).toBe(true);
+    expect(emailFitsSite("danbrezinski@comcast.net", "dmbbrezinski.com", "DMB Brezinski Plumbing & Remodeling LLc")).toBe(true);
+    expect(emailFitsSite("jobs@riverbendplumbing.com", "riverbendplumbing.com", "R B Riverbend Plumbing")).toBe(false);
+    expect(emailFitsSite("info@riverbendplumbing.com", "riverbendplumbing.com", "R B Riverbend Plumbing")).toBe(true);
   });
 
   test("supply, materials, parts and prequalified-pool bids are not service jobs", () => {
@@ -175,9 +175,9 @@ describe("daily bid outreach (owner 2026-10-23)", () => {
   });
 
   test("placeholder and garbled addresses are never used (owner 2026-10-29)", () => {
-    expect(emailFitsSite("example@thermodirectinc.com", "thermodirectinc.com")).toBe(false);
-    expect(emailFitsSite("%20info@canroofconstruction.com", "canroofconstruction.com")).toBe(false);
-    expect(emailFitsSite("info@canroofconstruction.com", "canroofconstruction.com")).toBe(true);
+    expect(emailFitsSite("example@coolairinc.com", "coolairinc.com")).toBe(false);
+    expect(emailFitsSite("%20info@sunridgeroofing.com", "sunridgeroofing.com")).toBe(false);
+    expect(emailFitsSite("info@sunridgeroofing.com", "sunridgeroofing.com")).toBe(true);
   });
 
   test("a place must be a town, county or agency, not a state or purchasing group", () => {

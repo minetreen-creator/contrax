@@ -454,34 +454,10 @@ export function validPostalAddress(a: string | null | undefined): boolean {
 }
 
 /**
- * Addresses Contrax emailed by hand from Gmail on 2026-10-22/23 (first email
- * and follow-up both sent). The engine never emails them again.
+ * Addresses Contrax emailed by hand from Gmail on 2026-10-22/23 (19) and the one
+ * the owner ruled out (owner 2026-11-02, "not a fit") are suppressed in the
+ * database (outreach_suppressions, reasons 'contacted_by_hand' and 'not_a_fit'),
+ * so the engine never emails them. The addresses were taken out of this public
+ * code on 2026-11-10 (owner: "remove the emails"); all 20 were confirmed stored.
  */
-export const CONTACTED_BY_HAND: readonly string[] = [
-  "rglaze@dependablepestcontrol.com",
-  "info@lambexterminating.com",
-  "genewestpainting@gmail.com",
-  "micah@micahrich.com",
-  "estimating@gerloffpainting.com",
-  "info@frenchpaintingcompany.com",
-  "info@evergreencontractors.com",
-  "kyle@douglasroofs.com",
-  "john@dealsheatingandcooling.com",
-  "bud9218@aol.com",
-  "electrical@huttonpowerandlight.com",
-  "info@coastalhc.com",
-  "ezlawncare14@gmail.com",
-  "reesolutions22@gmail.com",
-  "contact@blisslawnandlandscape.com",
-  "info@thecleaningcompanyva.com",
-  "blue.ridge@comcast.net",
-  "galvanhousekeeper@gmail.com",
-  "jamesljordanjr@aol.com",
-];
 
-/**
- * Addresses the owner ruled out by hand (owner 2026-11-02: "delete those ones
- * you said skip"). Never emailed. Insurance Claims Specialist is a claims
- * adjuster, not an insurance seller, so Award Leads is no fit.
- */
-export const NOT_A_FIT: readonly string[] = ["icsclaims@comcast.net"];

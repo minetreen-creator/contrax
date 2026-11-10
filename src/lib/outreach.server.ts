@@ -15,13 +15,11 @@ import { sql } from "~/db";
 import {
   bidFitsTrade,
   bidIsServiceJob,
-  CONTACTED_BY_HAND,
   DAILY_OUTREACH_CAP,
   emailFitsSite,
   FOLLOWUP_AFTER_DAYS,
   FOLLOWUP_MIN_DAYS_TO_DUE,
   MAX_SEND_PER_BATCH,
-  NOT_A_FIT,
   outreachEmail,
   outreachRoomToday,
   validPostalAddress,
@@ -64,14 +62,7 @@ export async function ensureOutreach(): Promise<void> {
     postal_address TEXT,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )`;
-  await db.query(
-    `INSERT INTO outreach_suppressions (email, reason) SELECT UNNEST($1::text[]), 'contacted_by_hand' ON CONFLICT DO NOTHING`,
-    [[...CONTACTED_BY_HAND]],
-  );
-  await db.query(
-    `INSERT INTO outreach_suppressions (email, reason) SELECT UNNEST($1::text[]), 'not_a_fit' ON CONFLICT DO NOTHING`,
-    [[...NOT_A_FIT]],
-  );
+  // The hand-contacted and not-a-fit addresses are already stored here (see src/lib/outreach.ts).
 }
 
 // ── Unsubscribe tokens ───────────────────────────────────────────────────────

@@ -115,3 +115,23 @@ export function parseSamLine(line: string): SamRegistrant | null {
 }
 
 export const SAM_SOURCE_NOTE = "From SAM.gov public registration data. Business types are as each business reported them in SAM.gov; 8(a) and HUBZone are SBA certifications.";
+
+/**
+ * Whether a signed-in member's email domain matches the business website on its SAM.gov
+ * registration ("bob@acmemech.com" and "https://www.acmemech.com"). Free mail never matches. PURE.
+ */
+export function emailMatchesSite(email: string, url: string | null): boolean {
+  if (!url) return false;
+  const domain = email.split("@")[1]?.toLowerCase().trim() ?? "";
+  if (!domain || /^(gmail|yahoo|hotmail|outlook|aol|icloud|live|msn|me|comcast|att|verizon|protonmail|proton)\./.test(domain)) return false;
+  let host = "";
+  try {
+    host = new URL(url).hostname.toLowerCase().replace(/^www\./, "");
+  } catch {
+    return false;
+  }
+  return host === domain || host.endsWith(`.${domain}`) || domain.endsWith(`.${host}`);
+}
+
+/** Merge two lists without duplicates, keeping order. PURE. */
+export const mergeList = (a: unknown, b: string[]): string[] => [...new Set([...(Array.isArray(a) ? a.map(String) : []), ...b])];

@@ -60,3 +60,38 @@ describe("SAM.gov public extract → Sub Finder registrants (owner 2026-11-09, i
     expect(readFileSync(new URL("../db/schema.sql", import.meta.url), "utf8")).toContain("CREATE TABLE IF NOT EXISTS sam_registrants");
   });
 });
+
+describe("subs for primes: claim, onboarding checkbox, join page (owner 2026-11-10)", () => {
+  test("email domain matches the registered website; free mail never matches", async () => {
+    const { emailMatchesSite, mergeList } = await import("./sam-registrants");
+    expect(emailMatchesSite("bob@acmemech.com", "https://www.acmemech.com")).toBe(true);
+    expect(emailMatchesSite("bob@mail.acmemech.com", "https://acmemech.com")).toBe(true);
+    expect(emailMatchesSite("bob@gmail.com", "https://gmail.com")).toBe(false);
+    expect(emailMatchesSite("bob@other.com", "https://www.acmemech.com")).toBe(false);
+    expect(emailMatchesSite("bob@acmemech.com", null)).toBe(false);
+    expect(mergeList(["VA"], ["VA", "MD"])).toEqual(["VA", "MD"]);
+    expect(mergeList(null, ["FL"])).toEqual(["FL"]);
+  });
+
+  test("claiming lists the business, one account per business; the claim page says so", () => {
+    const srv = readFileSync(new URL("./sam-registrants.server.ts", import.meta.url), "utf8");
+    expect(srv).toContain("listed_for_primes = TRUE");
+    expect(srv).toContain("This business was already claimed by another account");
+    const page = readFileSync(new URL("../routes/sub-finder_.claim.tsx", import.meta.url), "utf8");
+    expect(page).toContain("Only claim a business you own or work for. One account per business.");
+    expect(page).toContain('{ name: "robots", content: "noindex" }');
+  });
+
+  test("onboarding asks once, unchecked; registered entries link to claim; the join page searches SAM.gov", () => {
+    const onb = readFileSync(new URL("../routes/onboarding.tsx", import.meta.url), "utf8");
+    expect(onb).toContain("useState(false)");
+    expect(onb).toContain("List my business for primes");
+    expect(onb).toContain("if (listForPrimes)");
+    expect(readFileSync(new URL("../routes/sub-finder.tsx", import.meta.url), "utf8")).toContain("/sub-finder/claim?uei=");
+    expect(readFileSync(new URL("../routes/tampa-contractors.tsx", import.meta.url), "utf8")).toContain("/sub-finder/claim?uei=");
+    const join = readFileSync(new URL("../routes/sub-finder_.join.tsx", import.meta.url), "utf8");
+    expect(join).toContain("searchRegistrants");
+    expect(join).toContain("This is mine: claim it");
+    expect(readFileSync(new URL("../../scripts/generate-sitemap.mjs", import.meta.url), "utf8")).toContain('["/sub-finder/join", "weekly", "0.6"]');
+  });
+});

@@ -167,6 +167,7 @@ function TampaPage() {
                     {r.url ? (
                       <a href={r.url} target="_blank" rel="nofollow noopener noreferrer" className="text-xs font-semibold text-blue-700 hover:underline">Website →</a>
                     ) : null}
+                    <a href={`/sub-finder/claim?uei=${r.uei}`} className="ml-3 text-xs text-slate-500 hover:underline">Your business? Claim it</a>
                   </li>
                 ))}
               </ul>
@@ -174,7 +175,7 @@ function TampaPage() {
             </div>
           ) : null}
           <p className="mt-3 text-sm text-slate-700">
-            A Tampa sub? <a href="/sub-finder#listing" className="font-semibold text-blue-700">List your business for primes →</a>
+            A Tampa sub? <a href="/sub-finder/join" className="font-semibold text-blue-700">Get listed for primes →</a>
           </p>
         </section>
 

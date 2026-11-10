@@ -10,12 +10,11 @@ rows=list(csv.DictReader(open('/tmp/web_name.csv',encoding='latin-1',errors='rep
 print('vendors',len(rows))
 keys=list(rows[0].keys()); print('cols',keys)
 def k(name):
-    return next((x for x in keys if name in x.upper()),None)
+    return next((x for x in keys if x and name in x.upper()),None)
 hs=k('HUB_STATUS') or k('HUB STATUS'); eth=k('ETHNIC'); sdv=k('SDV'); st=k('STATE'); web=k('EMAIL') or k('INTERNET'); desc=k('DESC')
 print('hub status',collections.Counter(r[hs] for r in rows).most_common(8))
 hub=[r for r in rows if r[hs].strip()=='A']
 print('active HUB',len(hub),'| in TX',sum(1 for r in hub if r[st].strip()=='TX'))
-print('eligibility',collections.Counter(r[eth] for r in hub).most_common(8))
 print('sdv',collections.Counter(r[sdv] for r in hub).most_common(4))
 import re
 kw={'construction':r'construct|contractor|remodel|roof|concrete|paving|demolition|carpent|drywall|framing|masonry|excavat|general contract','hvac':r'hvac|air condition|heating|mechanical|plumb|refriger','electrical':r'electric','janitorial':r'janitor|custodial|cleaning','landscaping':r'landscap|lawn|mow|tree|irrigation','security':r'security guard|security service|patrol','trucking':r'trucking|hauling|freight','it':r'software|it services|information technology|computer|network'}

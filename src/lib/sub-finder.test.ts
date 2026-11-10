@@ -176,7 +176,7 @@ describe("Tampa Contractor Support Network (owner 2026-11-09)", () => {
     expect(isBuildWork("HVAC Chiller Replacement - Building 5")).toBe(true);
     expect(isBuildWork("Legal advertising services")).toBe(false);
     expect(CASA.url).toContain("utm_source=contrax");
-    const page = readFileSync(new URL("../routes/tampa-contractors.tsx", import.meta.url), "utf8");
+    const page = readFileSync(new URL("../components/MarketPage.tsx", import.meta.url), "utf8");
     expect(page).toContain('rel="sponsored noopener"');
     expect(page).toContain("Find the work. Build the team. House the crew.");
     expect(readFileSync(new URL("../../scripts/generate-sitemap.mjs", import.meta.url), "utf8")).toContain('["/tampa-contractors", "daily", "0.6"]');
@@ -197,13 +197,16 @@ describe("Tampa partnership on the homepage (owner 2026-11-09)", () => {
 
 describe("pages stay readable in dark mode (owner 2026-11-10 screenshot)", () => {
   test("new pages paint their own light background", () => {
-    for (const f of ["roadmap", "prime-finder", "sub-finder", "sub-finder_.partners", "sub-finder_.unlist", "trade-package.$slug", "find-subcontractors.$state.$trade", "find-subcontractors.index", "tampa-contractors", "pathway", "gap-map"]) {
-      expect(readFileSync(new URL(`../routes/${f}.tsx`, import.meta.url), "utf8")).toContain('className="min-h-screen bg-slate-50 text-slate-900 [color-scheme:light]"');
+    const files = ["roadmap", "prime-finder", "sub-finder", "sub-finder_.partners", "sub-finder_.unlist", "trade-package.$slug", "find-subcontractors.$state.$trade", "find-subcontractors.index", "pathway", "gap-map", "markets.index", "markets.$slug_.partners"]
+      .map((f) => `../routes/${f}.tsx`)
+      .concat(["../components/MarketPage.tsx"]); // Tampa and every market page render MarketPage (owner 2026-11-10)
+    for (const f of files) {
+      expect(readFileSync(new URL(f, import.meta.url), "utf8")).toContain('className="min-h-screen bg-slate-50 text-slate-900 [color-scheme:light]"');
     }
   });
 
   test("Tampa page and homepage card show Tampa subs", () => {
-    expect(readFileSync(new URL("../routes/tampa-contractors.tsx", import.meta.url), "utf8")).toContain("registeredSubsInCities");
+    expect(readFileSync(new URL("./markets.server.ts", import.meta.url), "utf8")).toContain("registeredSubsInCities");
     expect(readFileSync(new URL("../routes/index.tsx", import.meta.url), "utf8")).toContain("Find Tampa subs →");
   });
 });
@@ -214,7 +217,7 @@ describe("no zero headlines when registered subs exist (owner 2026-11-10)", () =
     expect(page).toContain("d.registered + d.listed > 0");
     expect(page).not.toContain("subs listed in ${d.name} yet");
     expect(readFileSync(new URL("../routes/sub-finder.tsx", import.meta.url), "utf8")).toContain("registered with the government are below");
-    expect(readFileSync(new URL("../routes/tampa-contractors.tsx", import.meta.url), "utf8")).toContain('href="/sub-finder?trade=hvac&state=FL"');
+    expect(readFileSync(new URL("../components/MarketPage.tsx", import.meta.url), "utf8")).toContain("/sub-finder?trade=hvac&state=${st}");
   });
 });
 
@@ -223,8 +226,8 @@ describe("joint announcement line (owner 2026-11-10)", () => {
     const { TAMPA_HEADLINE, CASA_PRICE_NOTE } = await import("./tampa");
     expect(`${TAMPA_HEADLINE.win} ${TAMPA_HEADLINE.house}, ${TAMPA_HEADLINE.saving}`).toBe("Win the Tampa job on Contrax. House the crew with Casa Blue Collar, for 3x less than hotels");
     expect(CASA_PRICE_NOTE).toContain("Figures from Casa Blue Collar");
-    for (const f of ["index", "tampa-contractors"]) {
-      const src = readFileSync(new URL(`../routes/${f}.tsx`, import.meta.url), "utf8");
+    for (const f of ["../routes/index.tsx", "./markets.ts"]) {
+      const src = readFileSync(new URL(f, import.meta.url), "utf8");
       expect(src).toContain("TAMPA_HEADLINE.saving");
       expect(src).toContain("CASA_PRICE_NOTE");
     }
@@ -236,10 +239,10 @@ describe("Casa details from their site (owner 2026-11-10)", () => {
     const { CASA } = await import("./tampa");
     expect(CASA.phone).toBe("(716) 598-2666");
     expect(CASA.amenities).toContain("Truck and trailer parking");
-    const page = readFileSync(new URL("../routes/tampa-contractors.tsx", import.meta.url), "utf8");
-    expect(page).toContain("CASA.amenities.map");
-    expect(page).toContain("tel:${CASA.tel}");
-    expect(page).toContain("Crew and year counts are also from {CASA.name}");
+    const page = readFileSync(new URL("../components/MarketPage.tsx", import.meta.url), "utf8");
+    expect(page).toContain("p.amenities.map");
+    expect(page).toContain("tel:${p.tel}");
+    expect(page).toContain("Crew and year counts are also from {p.name}");
     expect(page).not.toMatch(/Nemeci|Wallas/);
   });
 });

@@ -10,6 +10,7 @@ import { PATHWAY_LINE, PATHWAY_STEPS } from "~/lib/pathway";
 import { trackEvent } from "~/lib/track";
 import { CASA, CASA_PRICE_NOTE, TAMPA_FACTS, TAMPA_HEADLINE, TAMPA_PATH } from "~/lib/tampa";
 import { BRAND_MESSAGE, BRAND_STEPS } from "~/lib/brand-message";
+import { MARKETS } from "~/lib/markets";
 import { STARTER_PASS_NOTE } from "~/lib/starter-pass";
 import { STARTER_FIRST_MONTH_PRICE as STARTER_PRICE } from "~/lib/starter-offer";
 import { SiteHeader } from "~/components/SiteHeader";
@@ -413,6 +414,15 @@ function HomeTampaPartner() {
             </a>
           </p>
           <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">{TAMPA_FACTS.asOf}. Source: {TAMPA_FACTS.source}. *{CASA_PRICE_NOTE}</p>
+          <p className="mt-3 text-sm text-slate-700 dark:text-slate-300">
+            Next markets:{" "}
+            {MARKETS.filter((m) => m.slug !== "tampa").map((m, i) => (
+              <span key={m.slug}>
+                {i > 0 ? " · " : ""}
+                <a href={m.path} onClick={() => trackEvent("home_market_click", m.slug)} className="font-semibold text-blue-700 hover:text-blue-600 dark:text-blue-300">{m.name}</a>
+              </span>
+            ))}
+          </p>
         </div>
         <div className="flex flex-col justify-center gap-3 rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Housing referral partner</p>

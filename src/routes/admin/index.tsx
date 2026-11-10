@@ -402,6 +402,7 @@ function AdminOverviewPage() {
         <div className="admin-hero">
           <div><p className="admin-eyebrow">YOUR BUSINESS AT A GLANCE</p><h1>Command center</h1><p>Track your traffic, spot promising leads, and follow the path to revenue.</p></div>
           <a href="/admin/journeys" className="admin-hero-action">Explore visitors <span aria-hidden="true">↗</span></a>
+          <a href="/admin/partners" className="admin-hero-action">Partner results <span aria-hidden="true">↗</span></a>
         </div>
         <AdminTabs active="overview" />
 

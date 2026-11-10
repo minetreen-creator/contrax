@@ -88,7 +88,7 @@ describe("subs for primes: claim, onboarding checkbox, join page (owner 2026-11-
     expect(onb).toContain("List my business for primes");
     expect(onb).toContain("if (listForPrimes)");
     expect(readFileSync(new URL("../routes/sub-finder.tsx", import.meta.url), "utf8")).toContain("/sub-finder/claim?uei=");
-    expect(readFileSync(new URL("../routes/tampa-contractors.tsx", import.meta.url), "utf8")).toContain("/sub-finder/claim?uei=");
+    expect(readFileSync(new URL("../components/MarketPage.tsx", import.meta.url), "utf8")).toContain("/sub-finder/claim?uei=");
     const join = readFileSync(new URL("../routes/sub-finder_.join.tsx", import.meta.url), "utf8");
     expect(join).toContain("searchRegistrants");
     expect(join).toContain("This is mine: claim it");

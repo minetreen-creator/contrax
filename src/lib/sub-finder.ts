@@ -91,6 +91,9 @@ export interface ResponseInput {
   email: string;
   phone: string;
   certifications: string[];
+  /** Contractor license (owner 2026-11-10), self-reported; optional, since not every trade is licensed. */
+  licenseNumber: string;
+  licenseState: string;
   message: string;
 }
 
@@ -106,8 +109,11 @@ export function cleanResponseInput(raw: Record<string, unknown>): { ok: true; in
     email: clip(raw.email, 200).toLowerCase(),
     phone: clip(raw.phone, 30),
     certifications: [...new Set(certs)],
+    licenseNumber: clip(raw.licenseNumber, 40),
+    licenseState: /^[A-Za-z]{2}$/.test(String(raw.licenseState ?? "").trim()) ? String(raw.licenseState).trim().toUpperCase() : "",
     message: String(raw.message ?? "").trim().slice(0, 1500),
   };
+  if (input.licenseNumber && !/^[A-Za-z0-9][A-Za-z0-9 .\-/#]*$/.test(input.licenseNumber)) return { ok: false, error: "Use letters, numbers and dashes for the license number." };
   if (!input.company) return { ok: false, error: "Add your company name." };
   if (!EMAIL_RE.test(input.email)) return { ok: false, error: "Add an email the prime can reply to." };
   return { ok: true, input };
@@ -131,6 +137,7 @@ export function responseEmail(p: { title: string; trade: string; url: string }, 
     "",
     `Contact: ${r.contactName || "(not given)"} · ${r.email}${r.phone ? ` · ${r.phone}` : ""}`,
     `Certifications (self-reported): ${certs}`,
+    r.licenseNumber ? `License (self-reported): ${r.licenseState ? `${r.licenseState} ` : ""}${r.licenseNumber}. Check it with the state licensing board.` : "License: not given",
     r.message ? `Message: ${r.message}` : "",
     "",
     `Reply to this email to answer them directly. See every response: ${p.url}`,

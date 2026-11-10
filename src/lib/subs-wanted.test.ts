@@ -28,3 +28,18 @@ test("the board shows only listed, still-open jobs, never contact details, and i
   expect(read("../routes/sub-finder_.join.tsx")).toContain('href="/subs-wanted"');
   expect(read("../routes/sub-finder.tsx")).toContain('name="listOnBoard"');
 });
+
+test("quotes carry an optional, self-reported license number and state (owner 2026-11-10)", async () => {
+  const { cleanResponseInput, responseEmail } = await import("~/lib/sub-finder");
+  const base = { company: "Peach Air LLC", email: "quotes@peachair.example", licenseNumber: "CR123456", licenseState: "ga" };
+  const r = cleanResponseInput(base);
+  expect(r.ok && r.input.licenseNumber).toBe("CR123456");
+  expect(r.ok && r.input.licenseState).toBe("GA");
+  expect(cleanResponseInput({ ...base, licenseNumber: "<script>" }).ok).toBe(false);
+  const none = cleanResponseInput({ company: "Peach Air LLC", email: "quotes@peachair.example" });
+  expect(none.ok && none.input.licenseNumber).toBe("");
+  if (r.ok) expect(responseEmail({ title: "HVAC work in Atlanta", trade: "HVAC and plumbing", url: "https://x" }, r.input).text).toContain("License (self-reported): GA CR123456");
+  if (none.ok) expect(responseEmail({ title: "t", trade: "t", url: "https://x" }, none.input).text).toContain("License: not given");
+  expect(read("../routes/trade-package.$slug.tsx")).toContain('name="licenseNumber"');
+  expect(read("./sub-finder.server.ts")).toContain("license_number, license_state, message, created_at FROM trade_package_responses");
+});

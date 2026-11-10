@@ -98,6 +98,9 @@ function JoinPage() {
           Primes bidding government jobs need local subs, often on short notice. List your business on Sub Finder and they can send you the scope and deadline by email. You
           answer the ones you want.
         </p>
+        <p className="mt-2 text-sm">
+          <a href="/subs-wanted" className="font-semibold text-blue-700">See jobs contractors need subs for right now →</a>
+        </p>
         {d.primesWithPlans > 0 ? (
           <p className="mt-3 rounded-xl bg-sky-50 p-3 text-sm text-slate-800">
             <strong>{d.primesWithPlans.toLocaleString("en-US")}</strong> prime contractors hold federal subcontracting plans, which means they must give part of their work to

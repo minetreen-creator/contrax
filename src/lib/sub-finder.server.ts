@@ -57,6 +57,8 @@ export async function ensureSubFinderTables(): Promise<void> {
       sent_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       PRIMARY KEY (package_id, profile_id)
     )`;
+  // Subs Wanted board (owner 2026-11-10): a package is public only when its owner lists it.
+  await sql()`ALTER TABLE trade_packages ADD COLUMN IF NOT EXISTS on_board BOOLEAN NOT NULL DEFAULT FALSE`;
 }
 
 /** What the package is for: a bid (public record) or a megaproject (public/data/megaprojects.json). */
@@ -143,9 +145,9 @@ export async function createPackage(primeUserId: number, ctx: Awaited<ReturnType
   const slug = packageSlug(randomBytes(10));
   const title = ctx?.title ?? `${input.trade} work${input.location ? ` in ${input.location}` : ""}`;
   await sql()`
-    INSERT INTO trade_packages (slug, prime_user_id, bid_id, mega_slug, title, agency, trade, state, location, scope, quotes_due, company, contact_name)
+    INSERT INTO trade_packages (slug, prime_user_id, bid_id, mega_slug, title, agency, trade, state, location, scope, quotes_due, company, contact_name, on_board)
     VALUES (${slug}, ${primeUserId}, ${ctx?.kind === "bid" ? ctx.id : null}, ${ctx?.kind === "mega" ? ctx.slug : null}, ${title}, ${ctx?.agency ?? null},
-            ${input.trade}, ${input.state || ctx?.state || null}, ${input.location || ctx?.location || null}, ${input.scope}, ${input.quotesDue}, ${input.company}, ${input.contactName || null})
+            ${input.trade}, ${input.state || ctx?.state || null}, ${input.location || ctx?.location || null}, ${input.scope}, ${input.quotesDue}, ${input.company}, ${input.contactName || null}, ${input.listOnBoard})
   `;
   return { slug, url: `${BASE}/trade-package/${slug}` };
 }
@@ -241,7 +243,61 @@ export async function sendQuoteRequests(pkg: TradePackage, primeUserId: number, 
 export async function myPackages(userId: number) {
   await ensureSubFinderTables();
   return (await sql()`
-    SELECT p.slug, p.title, p.trade, p.created_at, (SELECT COUNT(*)::int FROM trade_package_responses r WHERE r.package_id = p.id) AS responses
+    SELECT p.slug, p.title, p.trade, p.created_at, p.on_board, p.state, (SELECT COUNT(*)::int FROM trade_package_responses r WHERE r.package_id = p.id) AS responses
     FROM trade_packages p WHERE p.prime_user_id = ${userId} ORDER BY p.created_at DESC LIMIT 10
-  `) as { slug: string; title: string; trade: string; created_at: string; responses: number }[];
+  `) as { slug: string; title: string; trade: string; created_at: string; on_board: boolean; state: string | null; responses: number }[];
+}
+
+/** The package's owner puts it on, or takes it off, the Subs Wanted board. Only the owner can. */
+export async function setPackageOnBoard(userId: number, slug: string, on: boolean): Promise<boolean> {
+  await ensureSubFinderTables();
+  const rows = (await sql()`
+    UPDATE trade_packages SET on_board = ${on}
+    WHERE slug = ${slug} AND prime_user_id = ${userId} AND (${!on} OR state ~ '^[A-Z]{2}$')
+    RETURNING id`) as unknown[];
+  return rows.length > 0;
+}
+
+export interface BoardJob {
+  slug: string;
+  title: string;
+  trade: string;
+  state: string;
+  location: string | null;
+  scope: string;
+  quotesDue: string | null;
+  company: string;
+  postedAt: string;
+}
+
+/**
+ * Open jobs on the Subs Wanted board: listed by their owner, quotes not yet due (or no date), posted
+ * in the last 90 days. Optionally one trade (its label) and one state. Empty when the table isn't there.
+ */
+export async function boardJobs(q: { trade?: string | null; state?: string | null; limit?: number }): Promise<BoardJob[]> {
+  try {
+    await ensureSubFinderTables();
+    const s = sql();
+    const tradePred = q.trade ? s`AND trade = ${q.trade}` : s``;
+    const statePred = q.state ? s`AND state = ${q.state}` : s``;
+    const rows = (await s`
+      SELECT slug, title, trade, state, location, scope, quotes_due, company, created_at FROM trade_packages
+      WHERE on_board AND state IS NOT NULL AND (quotes_due IS NULL OR quotes_due >= CURRENT_DATE)
+        AND created_at > NOW() - INTERVAL '90 days' ${tradePred} ${statePred}
+      ORDER BY created_at DESC LIMIT ${Math.min(q.limit ?? 100, 200)}
+    `) as Record<string, any>[];
+    return rows.map((r) => ({
+      slug: r.slug,
+      title: r.title,
+      trade: r.trade,
+      state: r.state,
+      location: r.location ?? null,
+      scope: String(r.scope ?? ""),
+      quotesDue: r.quotes_due ? new Date(r.quotes_due).toISOString().slice(0, 10) : null,
+      company: r.company,
+      postedAt: new Date(r.created_at).toISOString(),
+    }));
+  } catch {
+    return [];
+  }
 }

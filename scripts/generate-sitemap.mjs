@@ -81,6 +81,7 @@ const PRODUCT_PATHS = [
   ["/sub-finder", "weekly", "0.6"],
   ["/find-subcontractors", "weekly", "0.6"],
   ["/sub-finder/join", "weekly", "0.6"],
+  ["/subs-wanted", "daily", "0.6"],
   ["/tampa-contractors", "daily", "0.6"],
   ["/markets", "weekly", "0.6"],
   ["/markets/hampton-roads", "daily", "0.6"],

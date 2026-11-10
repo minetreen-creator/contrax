@@ -99,6 +99,19 @@ const createTradePackage = createServerFn({ method: "POST" })
     return { ok: true as const, ...pkg };
   });
 
+const togglePackageBoard = createServerFn({ method: "POST" })
+  .validator((d: unknown) => {
+    const o = (d ?? {}) as { slug?: unknown; on?: unknown };
+    return { slug: String(o.slug ?? "").slice(0, 20), on: o.on === true };
+  })
+  .handler(async ({ data }) => {
+    const { getCurrentUser } = await import("~/lib/auth");
+    const user = await getCurrentUser();
+    if (!user) return { ok: false };
+    const { setPackageOnBoard } = await import("~/lib/sub-finder.server");
+    return { ok: await setPackageOnBoard(user.id, data.slug, data.on) };
+  });
+
 const requestQuotes = createServerFn({ method: "POST" })
   .validator((d: unknown) => {
     const o = (d ?? {}) as { slug?: unknown; profileIds?: unknown };
@@ -169,6 +182,7 @@ function SubFinderPage() {
       data: {
         bid: d.bid, mega: d.mega, trade: f.get("trade"), state: f.get("state"), location: f.get("location"),
         scope: f.get("scope"), quotesDue: f.get("quotesDue"), company: f.get("company"), contactName: f.get("contactName"),
+        listOnBoard: f.get("listOnBoard") === "on",
       },
     }).catch(() => ({ ok: false as const, error: "Could not save just now. Please try again." }));
     setSaving(false);
@@ -318,7 +332,13 @@ function SubFinderPage() {
                     {SEO_TRADES.map((t) => <option key={t.slug} value={t.label}>{t.label}</option>)}
                   </select>
                 </label>
-                <input type="hidden" name="state" value={d.state} />
+                <label className="block">
+                  <span className="text-xs text-slate-500">State</span>
+                  <select name="state" defaultValue={d.state} className="mt-1 w-full rounded-lg border border-slate-300 px-2 py-1.5">
+                    <option value="">Pick a state</option>
+                    {Object.entries(STATE_NAMES).map(([code, name]) => <option key={code} value={code}>{name}</option>)}
+                  </select>
+                </label>
                 <label className="block">
                   <span className="text-xs text-slate-500">Job location</span>
                   <input name="location" defaultValue={d.context?.location ?? ""} className="mt-1 w-full rounded-lg border border-slate-300 px-2 py-1.5" />
@@ -338,6 +358,13 @@ function SubFinderPage() {
                 <label className="block">
                   <span className="text-xs text-slate-500">Your name (optional)</span>
                   <input name="contactName" className="mt-1 w-full rounded-lg border border-slate-300 px-2 py-1.5" />
+                </label>
+                <label className="flex items-start gap-2 rounded-lg bg-slate-50 p-2">
+                  <input type="checkbox" name="listOnBoard" className="mt-0.5 h-4 w-4" />
+                  <span className="text-xs text-slate-700">
+                    Also post it on the public <a href="/subs-wanted" className="font-semibold text-blue-700">Subs Wanted board</a> so subs can find it. Shows your company, trade, location,
+                    scope and due date; never your email or phone. You can take it down any time.
+                  </span>
                 </label>
                 {error ? <p className="text-sm text-red-700">{error}</p> : null}
                 <button type="submit" disabled={saving} className="w-full rounded-lg bg-slate-900 px-4 py-2 font-semibold text-white disabled:opacity-50">
@@ -381,6 +408,7 @@ function SubFinderPage() {
                   <li key={p.slug}>
                     <a href={`/trade-package/${p.slug}`} className="text-blue-700 hover:underline">{p.trade}: {p.title.slice(0, 60)}</a>{" "}
                     <span className="text-xs text-slate-500">· {p.responses} response{p.responses === 1 ? "" : "s"}</span>
+                    <BoardToggle slug={p.slug} on={Boolean(p.on_board)} hasState={Boolean(p.state)} />
                   </li>
                 ))}
               </ul>
@@ -389,6 +417,34 @@ function SubFinderPage() {
         </aside>
       </div>
     </main>
+  );
+}
+
+/** Put one of your packages on, or take it off, the Subs Wanted board (owner 2026-11-10). */
+function BoardToggle({ slug, on, hasState }: { slug: string; on: boolean; hasState: boolean }) {
+  const [listed, setListed] = useState(on);
+  const [busy, setBusy] = useState(false);
+  if (!hasState && !listed) return <span className="block text-xs text-slate-400">Add a state to post it on the Subs Wanted board.</span>;
+  return (
+    <label className="mt-0.5 flex items-center gap-2 text-xs text-slate-600">
+      <input
+        type="checkbox"
+        checked={listed}
+        disabled={busy}
+        onChange={async (e) => {
+          const want = e.target.checked;
+          setBusy(true);
+          const r = await togglePackageBoard({ data: { slug, on: want } }).catch(() => ({ ok: false }));
+          setBusy(false);
+          if (r.ok) {
+            setListed(want);
+            trackEvent(want ? "subs_wanted_listed" : "subs_wanted_unlisted", slug);
+          }
+        }}
+        className="h-3.5 w-3.5"
+      />
+      On the Subs Wanted board
+    </label>
   );
 }
 

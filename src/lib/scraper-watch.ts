@@ -33,6 +33,8 @@ export interface ScraperSignal {
 
 const AUTOMATION_UA = [
   "headless",
+  "lighthouse",
+  "ptst/",
   "python",
   "curl",
   "wget",

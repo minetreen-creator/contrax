@@ -76,6 +76,11 @@ export const BOT_EXCLUSION_SQL = `
     OR LOWER(COALESCE(user_agent,'')) LIKE '%crawler%'
     OR LOWER(COALESCE(user_agent,'')) LIKE '%spider%'
     OR LOWER(COALESCE(user_agent,'')) LIKE '%headlesschrome%'
+    -- Page-speed testers (owner 2026-11-10: a "Council Bluffs, IA" Moto G (4) on
+    -- "Chrome 157" with PTST/261109 in its browser string): WebPageTest-style
+    -- agents stamp PTST/<build>; Lighthouse and PageSpeed Insights say Lighthouse.
+    OR LOWER(COALESCE(user_agent,'')) LIKE '%ptst/%'
+    OR LOWER(COALESCE(user_agent,'')) LIKE '%lighthouse%'
     OR LOWER(COALESCE(user_agent,'')) LIKE '%puppeteer%'
     OR LOWER(COALESCE(user_agent,'')) LIKE '%playwright%'
     OR LOWER(COALESCE(user_agent,'')) LIKE '%python%'

@@ -1,37 +1,30 @@
-// Read-only probe: are the purchasing co-ops' own solicitation lists public and readable? One GET each
-// as ContraxBot (plus robots.txt); a refusal or bot check means leave that site alone.
+// Read-only probe: capture the public open-solicitation sections of Sourcewell and BuyBoard (robots
+// allow both) so their readers are built against real pages. One GET each as ContraxBot.
 const UA = "Mozilla/5.0 (compatible; ContraxBot/1.0; +https://www.contrax.company)";
-const URLS = [
-  "https://tips.ionwave.net/robots.txt",
-  "https://tips.ionwave.net/SourcingEvents.aspx?SourceType=1",
-  "https://www.sourcewell-mn.gov/robots.txt",
-  "https://www.sourcewell-mn.gov/solicitations",
-  "https://www.buyboard.com/robots.txt",
-  "https://www.buyboard.com/vendor",
-  "https://www.buyboard.com/vendor/current-proposal-invitations",
-  "https://www.naspovaluepoint.org/robots.txt",
-  "https://www.naspovaluepoint.org/?p=5322",
-  "https://hgacbuy.org/robots.txt",
-  "https://hgacbuy.org/bid-notices",
-  "https://www.omniapartners.com/robots.txt",
-  "https://www.omniapartners.com/for-suppliers/solicitations",
-];
-const strip = (h: string) => h.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/&nbsp;|&amp;/g, " ").replace(/\s+/g, " ");
-for (const url of URLS) {
-  await new Promise((r) => setTimeout(r, 1500));
-  try {
-    const res = await fetch(url, { headers: { "user-agent": UA, accept: "text/html,text/plain" }, redirect: "follow", signal: AbortSignal.timeout(20000) });
-    const raw = await res.text();
-    const bot = /just a moment|cf-chl|captcha|access denied/i.test(raw.slice(0, 6000));
-    console.log(`\n== ${url} → HTTP ${res.status} ${res.url !== url ? `(→ ${res.url})` : ""} ${raw.length}b${bot ? " BOT CHECK" : ""}`);
-    if (url.endsWith("robots.txt")) { console.log(raw.slice(0, 600)); continue; }
-    if (!res.ok || bot) continue;
-    const t = strip(raw);
-    console.log(t.slice(0, 1800));
-    const links = [...raw.matchAll(/href="([^"]+)"[^>]*>([^<]{6,120})</g)].map((m) => `${m[2].trim()} -> ${m[1]}`).filter((l) => /rfp|proposal|solicit|bid|invitation|\.pdf/i.test(l)).slice(0, 25);
-    console.log("LINKS:\n" + links.join("\n"));
-  } catch (e) {
-    console.log(`\n== ${url} → no answer (${(e as Error).name}: ${(e as Error).message})`);
-  }
-}
+const get = async (u: string) => (await fetch(u, { headers: { "user-agent": UA, accept: "text/html,text/plain" }, signal: AbortSignal.timeout(20000) })).text();
+const robots = await get("https://www.sourcewell-mn.gov/robots.txt");
+console.log("SOURCEWELL ROBOTS DISALLOW:", robots.split("\n").filter((l) => /disallow/i.test(l)).join(" | "));
+await new Promise((r) => setTimeout(r, 2000));
+const sw = await get("https://www.sourcewell-mn.gov/solicitations");
+const a = sw.indexOf("These solicitations are currently accepting responses");
+const b = sw.indexOf("We have closed the window", a);
+const swPart = sw.slice(Math.max(0, a - 2000), b > 0 ? b + 200 : a + 30000);
+console.log("SOURCEWELL_B64_BEGIN");
+for (const c of Buffer.from(swPart).toString("base64").match(/.{1,4000}/g) ?? []) console.log("SW " + c);
+console.log("SOURCEWELL_B64_END");
+await new Promise((r) => setTimeout(r, 2000));
+const bb = await get("https://www.buyboard.com/vendor/proposal-invitations?rname=proposals");
+const c0 = bb.indexOf("Current Proposal Invitations");
+const c1 = bb.indexOf("</table>", bb.indexOf("<table", c0));
+const up = bb.indexOf("Upcoming", c1);
+const bbPart = bb.slice(Math.max(0, c0 - 500), up > 0 ? Math.min(bb.length, up + 12000) : c1 + 12000);
+console.log("BUYBOARD_B64_BEGIN");
+for (const c of Buffer.from(bbPart).toString("base64").match(/.{1,4000}/g) ?? []) console.log("BB " + c);
+console.log("BUYBOARD_B64_END");
+await new Promise((r) => setTimeout(r, 2000));
+const one = await get("https://www.sourcewell-mn.gov/solicitations/11254");
+const d0 = one.indexOf("<main");
+console.log("SWDETAIL_B64_BEGIN");
+for (const c of Buffer.from(one.slice(d0 > 0 ? d0 : 0, (d0 > 0 ? d0 : 0) + 20000)).toString("base64").match(/.{1,4000}/g) ?? []) console.log("SD " + c);
+console.log("SWDETAIL_B64_END");
 process.exit(0);

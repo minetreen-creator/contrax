@@ -172,20 +172,34 @@ const getAwardsData = createServerFn({ method: "GET" })
     source_url: r.source_url || null,
   }));
 
+  // Similar open bids per card. Owner 2026-11-10 (production review: /awards took 15-19 s): this was
+  // 100 searches one after another. Cards with the same category and place share one search (it asks
+  // for one extra row so the card's own bid can be left out), and searches run 8 at a time.
   const similarBids: Record<number, SimilarBid[]> = {};
+  const byKey = new Map<string, { cat: string; parts: string; ids: number[] }>();
   for (const award of awards) {
     const cat = award.category;
-    const loc = award.location;
     if (!cat) { similarBids[award.id] = []; continue; }
-    const parts = loc ? loc.split(",")[0].trim() : "";
-    const bidRows = parts
-      ? await sql()`SELECT id, title, agency, due_date, estimated_value, category, source FROM bids WHERE id <> ${award.id} AND ${sql().unsafe(LOW_CONTENT_SQL)} AND due_date > NOW() AND ${sql().unsafe(AWARD_EXCLUSION_SQL)} AND (category ILIKE ${"%" + cat + "%"} OR location ILIKE ${"%" + parts + "%"}) ORDER BY due_date ASC NULLS LAST LIMIT 5`
-      : await sql()`SELECT id, title, agency, due_date, estimated_value, category, source FROM bids WHERE id <> ${award.id} AND ${sql().unsafe(LOW_CONTENT_SQL)} AND due_date > NOW() AND ${sql().unsafe(AWARD_EXCLUSION_SQL)} AND category ILIKE ${"%" + cat + "%"} ORDER BY due_date ASC NULLS LAST LIMIT 5`;
-    similarBids[award.id] = (bidRows as any[]).map((b) => ({
-      id: Number(b.id), title: b.title, agency: b.agency,
-      due_date: b.due_date ? (toISODate(b.due_date) || "Not specified") : "Not specified",
-      estimated_value: b.estimated_value || "Not specified", category: b.category || "",
-      source: b.source ? String(b.source) : null,
+    const parts = award.location ? award.location.split(",")[0].trim() : "";
+    const key = `${cat.toLowerCase()}|${parts.toLowerCase()}`;
+    const g = byKey.get(key) ?? { cat, parts, ids: [] };
+    g.ids.push(award.id);
+    byKey.set(key, g);
+  }
+  const groups = [...byKey.values()];
+  for (let i = 0; i < groups.length; i += 8) {
+    await Promise.all(groups.slice(i, i + 8).map(async ({ cat, parts, ids }) => {
+      const limit = 5 + ids.length;
+      const bidRows = parts
+        ? await sql()`SELECT id, title, agency, due_date, estimated_value, category, source FROM bids WHERE ${sql().unsafe(LOW_CONTENT_SQL)} AND due_date > NOW() AND ${sql().unsafe(AWARD_EXCLUSION_SQL)} AND (category ILIKE ${"%" + cat + "%"} OR location ILIKE ${"%" + parts + "%"}) ORDER BY due_date ASC NULLS LAST LIMIT ${limit}`
+        : await sql()`SELECT id, title, agency, due_date, estimated_value, category, source FROM bids WHERE ${sql().unsafe(LOW_CONTENT_SQL)} AND due_date > NOW() AND ${sql().unsafe(AWARD_EXCLUSION_SQL)} AND category ILIKE ${"%" + cat + "%"} ORDER BY due_date ASC NULLS LAST LIMIT ${limit}`;
+      const mapped = (bidRows as any[]).map((b) => ({
+        id: Number(b.id), title: b.title, agency: b.agency,
+        due_date: b.due_date ? (toISODate(b.due_date) || "Not specified") : "Not specified",
+        estimated_value: b.estimated_value || "Not specified", category: b.category || "",
+        source: b.source ? String(b.source) : null,
+      }));
+      for (const id of ids) similarBids[id] = mapped.filter((b) => b.id !== id).slice(0, 5);
     }));
   }
   return { awards, similarBids };
@@ -303,7 +317,8 @@ export const Route = createFileRoute("/awards")({
     // Resolve the current user + their saved bid ids so SSR renders the correct
     // logged-in/logged-out button state (and the saved state) in the HTML.
     const currentUser = await getCurrentUser();
-    const [data, savedBidIds, paidAccess] = await Promise.all([
+    // The federal awards section loads alongside, not after (owner 2026-11-10: /awards was slow).
+    const [data, savedBidIds, paidAccess, federal] = await Promise.all([
       getAwardsData({ data: { search: deps.q } }),
       currentUser
         ? getSavedBidIds({ data: { userId: currentUser.id } })
@@ -315,8 +330,8 @@ export const Route = createFileRoute("/awards")({
       // FAIL-CLOSED: a lookup error means "not paid" — a paying member briefly
       // sees the teaser, never a free viewer seeing paid data.
       getPaidBidAccess(),
+      getFederalAwards({ data: { q: deps.q, state: deps.state } }),
     ]);
-    const federal = await getFederalAwards({ data: { q: deps.q, state: deps.state } });
     return { ...data, currentUser, savedBidIds, paidAccess, federal };
   },
   component: AwardsPage,

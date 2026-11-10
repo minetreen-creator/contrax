@@ -185,9 +185,22 @@ async function request(path: string, init?: RequestInit, deadline?: AbortSignal)
   }
   return response.json();
 }
+/**
+ * The NAICS filter USAspending accepts: a 2-, 4- or 6-digit code (owner 2026-11-10 production review:
+ * "invalid NAICS filters"). Bids store whatever their source printed: "238", "23622", "561720, 561790",
+ * "N/A". A 3- or 5-digit code is cut to its 2- or 4-digit parent; anything else drops the NAICS
+ * filter. PURE.
+ */
+export function usaSpendingNaics(raw: string | null | undefined): string | undefined {
+  const code = /\d{2,6}/.exec(String(raw ?? ""))?.[0];
+  if (!code) return undefined;
+  if (code.length === 3 || code.length === 5) return code.slice(0, code.length - 1);
+  return code;
+}
+
 function filters(naicsCode: string, agency: string, keywords: string, years?: boolean) {
   const now = new Date(); const end = now.toISOString().slice(0, 10); const start = new Date(now.getFullYear() - 5, 0, 1).toISOString().slice(0, 10);
-  return { filters: { time_period: years ? [{ start_date: start, end_date: end }] : undefined, naics_codes: naicsCode ? [naicsCode] : undefined, keywords: [keywords, agency].filter(Boolean), award_type_codes: ["A", "B", "C", "D"] }, fields: USA_SPENDING_FIELDS, limit: 100, page: 1, subawards: false };
+  return { filters: { time_period: years ? [{ start_date: start, end_date: end }] : undefined, naics_codes: usaSpendingNaics(naicsCode) ? [usaSpendingNaics(naicsCode)!] : undefined, keywords: [keywords, agency].filter(Boolean), award_type_codes: ["A", "B", "C", "D"] }, fields: USA_SPENDING_FIELDS, limit: 100, page: 1, subawards: false };
 }
 async function search(body: unknown, deadline?: AbortSignal) { return request("/search/spending_by_award/", { method: "POST", body: JSON.stringify(body) }, deadline); }
 
@@ -242,7 +255,7 @@ export async function searchFPDSIncumbent(naicsCode: string, agency: string, key
   }
 }
 export async function fetchHistoricalPricing(naicsCode: string, agency: string, keywords: string): Promise<HistoricalPrice[]> {
-  if (!naicsCode) return [];
+  if (!usaSpendingNaics(naicsCode)) return [];
   const deadline = new AbortController();
   const timer = setTimeout(() => deadline.abort(), FPDS_LOOKUP_TIMEOUT_MS);
   try {

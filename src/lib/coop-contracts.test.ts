@@ -27,3 +27,8 @@ test("co-op contracts are Pathway step 5, in the menu, the sitemap and on Radar;
   expect(read("../../.github/workflows/coop-sync.yml")).toContain("bun src/jobs/coop-sync.ts");
   expect(read("../db/schema.sql")).toContain("CREATE TABLE IF NOT EXISTS coop_solicitations");
 });
+
+test("the homepage's three steps use plain words, not product names (owner 2026-11-10)", async () => {
+  const { BRAND_STEPS } = await import("~/lib/brand-message");
+  for (const s of BRAND_STEPS) expect(`${s.detail} ${s.cta}`).not.toMatch(/\bMax\b|Auto-Pilot|Pathway/);
+});

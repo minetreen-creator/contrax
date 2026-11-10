@@ -142,7 +142,7 @@ function CoopPage() {
                   <span className="font-semibold text-slate-800">Who buys:</span> {c.members}
                 </p>
                 <p className="mt-1 text-slate-600">
-                  <span className="font-semibold text-slate-800">How to get on:</span> {c.howToGetOn}
+                  <span className="font-semibold text-slate-800">How to get awarded:</span> {c.howToGetOn}
                 </p>
                 <a href={c.postsAt.url} target="_blank" rel="noopener noreferrer" onClick={() => trackEvent("coop_site_click", c.key)} className="mt-2 inline-block font-semibold text-blue-700 hover:underline">
                   {c.postsAt.label} →

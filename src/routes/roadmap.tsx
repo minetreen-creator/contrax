@@ -267,7 +267,7 @@ export function Roadmap({ r }: { r: RoadmapInput }) {
                   </ul>
                 </>
               ) : null}
-              <a href={`/gap-map?trade=${r.trade}`} className="mt-3 inline-block text-sm font-semibold text-blue-700">Compare states on the gap map →</a>
+              <a href={`/gap-map?trade=${r.trade}`} className="mt-3 inline-block text-sm font-semibold text-blue-700">Compare states on the Gap Map →</a>
             </>
           ) : (
             <p className="mt-2 text-sm text-slate-700">
@@ -294,7 +294,7 @@ export function Roadmap({ r }: { r: RoadmapInput }) {
           ) : (
             <p className="mt-2 text-sm text-slate-700">
               {trade && stateName ? `No prime with a subcontracting plan holds ${trade.label.toLowerCase()} work in ${stateName} right now.` : "Set your trade and a state to see the primes holding work near you."}{" "}
-              <a href={`/prime-finder${q}`} className="font-semibold text-blue-700">Open the prime finder →</a>
+              <a href={`/prime-finder${q}`} className="font-semibold text-blue-700">Open Prime Finder →</a>
             </p>
           )}
         </section>

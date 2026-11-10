@@ -110,7 +110,7 @@ function PrimeFinderPage() {
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">
       <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">
-        <a href="/pathway" className="hover:underline">Contrax Pathway</a> · Step 4 · Prime contractor finder
+        <a href="/pathway" className="hover:underline">Contrax Pathway</a> · Step 4 · Prime Finder
       </p>
       <h1 className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl">Work under the primes that already hold the contracts</h1>
       <p className="mt-2 max-w-3xl text-sm text-slate-600">

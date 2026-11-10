@@ -2329,7 +2329,7 @@ function RadarLanding() {
                   });
                   return (
                   <a
-                    href={`/signup?plan=starter&next=${encodeURIComponent("/upgrade?plan=starter")}`}
+                    href="/upgrade?plan=starter"
                     onClick={(e) => {
                       // Pay first, account after (CEO 2026-10-22): straight to Stripe.
                       e.preventDefault();

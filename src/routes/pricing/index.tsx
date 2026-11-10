@@ -53,7 +53,7 @@ const plans = [
     price: 14,
     yearly: 190,
     slug: "starter",
-    href: `/signup?plan=starter&next=${encodeURIComponent("/upgrade?plan=starter")}`,
+    href: "/upgrade?plan=starter",
     headline: "Every new bid in your trade and states, emailed at 6 AM.",
     description: PLAN_COPY.starter.description,
     // The yearly line is dropped here because the Monthly/Yearly switch below
@@ -209,7 +209,7 @@ function PricingPage() {
       alive = false;
     };
   }, []);
-  const starterHref = plans.find((p) => p.slug === "starter")?.href ?? "/signup?plan=starter";
+  const starterHref = plans.find((p) => p.slug === "starter")?.href ?? "/upgrade?plan=starter";
   // Owner 2026-10-30 ("3"): the button says what $5 opens in the visitor's own
   // state, using the same live count as the line above it.
   const starterLabel = near

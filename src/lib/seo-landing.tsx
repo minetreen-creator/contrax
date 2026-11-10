@@ -1114,7 +1114,7 @@ export function DailyEmailOffer({ tradeLabel, stateName, count }: { tradeLabel: 
         trade every weekday morning and opens every official notice, for 30 days.
       </p>
       <a
-        href={`/signup?plan=starter&next=${encodeURIComponent("/upgrade?plan=starter")}`}
+        href="/upgrade?plan=starter"
         onClick={(e) => {
           e.preventDefault();
           trackEvent("seo_daily_email_offer_click", `${trade}|${stateName}`);

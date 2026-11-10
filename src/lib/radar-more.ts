@@ -27,8 +27,12 @@ export function neighborStates(state: string): readonly string[] {
   return NEIGHBOR_STATES[state.toUpperCase()] ?? [];
 }
 
-/** Radar shows the extra options when a state search finds this many bids or fewer. */
-export const RADAR_MORE_THRESHOLD = 3;
+/**
+ * Radar shows the extra options when a state search finds this many bids IN THE STATE or fewer
+ * (owner 2026-11-10: a Connecticut janitorial search found 6, about 3 real cleaning jobs, and saw
+ * nothing about Massachusetts, Rhode Island or New York; was 3).
+ */
+export const RADAR_MORE_THRESHOLD = 10;
 
 export function wantsRadarMore(matches: number, state: string | null | undefined): boolean {
   return Boolean(state) && matches <= RADAR_MORE_THRESHOLD;

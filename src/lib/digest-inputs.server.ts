@@ -7,6 +7,7 @@
 import { sql } from "~/db";
 import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
+import { collapseAggregatorMirrors, isAggregatorMirror } from "~/lib/notice-dedupe";
 import type { NewBidSummary } from "~/lib/email";
 import { digestWindowStart, type DigestUserRow } from "~/lib/digest-recipients";
 import type { DigestBidFields, DigestProfile } from "~/lib/digest-match";
@@ -41,7 +42,7 @@ export async function loadDigestBids(now = new Date()): Promise<{ since: Date; b
       AND ${sql().unsafe(LOW_CONTENT_SQL)}
       AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
   `) as any[];
-  const bids = rows.map((b) => ({
+  const bids = (await dropAggregatorMirrors(rows)).map((b) => ({
     bid_id: Number(b.bid_id),
     title: String(b.title ?? ""),
     agency: String(b.agency ?? ""),
@@ -60,6 +61,33 @@ export async function loadDigestBids(now = new Date()): Promise<{ since: Date; b
     },
   }));
   return { since, bids };
+}
+
+/**
+ * BidNet Direct copies of an agency's own listing are dropped (owner 2026-11-10: the same Connecticut
+ * janitorial job came from CTsource and from BidNet, a day apart), both when the agency's row is in
+ * the same window and when it was stored earlier and is still open. Fail-soft: on a lookup error the
+ * in-window collapse still applies.
+ */
+async function dropAggregatorMirrors<T extends { bid_id: unknown; title?: string | null; agency?: string | null; source?: string | null; due_date?: string | Date | null }>(
+  rows: T[],
+): Promise<T[]> {
+  const titles = [...new Set(rows.filter((r) => isAggregatorMirror(r)).map((r) => String(r.title ?? "").trim().toLowerCase()).filter(Boolean))];
+  let twins: { bid_id: number; title: string; agency: string | null; source: string | null; due_date: string | Date | null }[] = [];
+  if (titles.length) {
+    try {
+      twins = (await sql()`
+        SELECT id AS bid_id, title, agency, source, due_date FROM bids
+        WHERE due_date > NOW() AND LOWER(BTRIM(title)) = ANY(${titles}) AND COALESCE(source, '') NOT ILIKE '%bidnet%'
+        LIMIT 2000`) as typeof twins;
+    } catch (e) {
+      console.warn("[digest] mirror lookup failed; in-window collapse only:", (e as Error).message);
+    }
+  }
+  const inWindow = new Set(rows.map((r) => Number(r.bid_id)));
+  const extra = twins.filter((t) => !inWindow.has(Number(t.bid_id))).map((t) => ({ ...t, __twin: true }));
+  const kept = collapseAggregatorMirrors([...extra, ...rows] as (T & { __twin?: boolean })[]).rows;
+  return kept.filter((r) => !(r as { __twin?: boolean }).__twin) as T[];
 }
 
 /**

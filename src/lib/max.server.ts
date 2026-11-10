@@ -4,7 +4,7 @@ import { fetchOpenAIWithRetry, sanitizeLogString } from "~/lib/ai";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
 import { AWARD_NOTICE_EXCLUSION_SQL, CLOSED_EXCLUSION_SQL, OPEN_BID_SQL, setAsidePred } from "~/lib/open-bids";
-import { noticeKeySql } from "~/lib/notice-dedupe";
+import { collapseAggregatorMirrors, noticeKeySql } from "~/lib/notice-dedupe";
 import { expandTrade, isStrongTradeMatch, tradeKeywordPred } from "~/lib/trade-registry";
 import { filterBidsToState, mapSeoBid, type SeoBid } from "~/lib/seo-landing";
 import { STATE_CODE_TO_NAME } from "~/lib/location-state";
@@ -79,7 +79,8 @@ export async function searchOpenBids(query: string, state: string | null, setAsi
     ) t
     LIMIT 5000
   `) as any[];
-  const strong = rows.filter((r) => isStrongTradeMatch(r.title, null, r.description, r.naics_code, expansion)).map(mapSeoBid);
+  // BidNet copies of an agency's own listing count once (owner 2026-11-10), as in Radar.
+  const strong = collapseAggregatorMirrors(rows).rows.filter((r) => isStrongTradeMatch(r.title, null, r.description, r.naics_code, expansion)).map(mapSeoBid);
   return state ? filterBidsToState(strong, state) : strong.sort((a, b) => String(a.due_date ?? "9999").localeCompare(String(b.due_date ?? "9999")));
 }
 

@@ -46,7 +46,8 @@ describe("bid page: the job is free to read", () => {
     expect(agencyDisplay("693JK4 OST")).toBe("Federal agency");
     expect(agencyDisplay("36C250")).toBe("Federal agency");
     expect(agencyDisplay("City of Waco")).toBe("City of Waco");
-    expect(agencyDisplay("Washington Purchasing Group (BidNet Direct)")).toBe("Washington Purchasing Group (BidNet Direct)");
+    // Owner 2026-11-10: a BidNet purchasing group is not the buyer (the buyer is members-only on BidNet).
+    expect(agencyDisplay("Washington Purchasing Group (BidNet Direct)")).toBe("A Washington public agency (posted on BidNet Direct)");
   });
   test("the $5 button keeps the bid through signup to the plan page", () => {
     expect(bidStarterHref(42, true)).toBe("/upgrade?plan=starter&bid=42");

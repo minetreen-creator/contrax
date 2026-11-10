@@ -79,6 +79,14 @@ export function daysLeftLabel(due: string | null | undefined, now: number = Date
 export function agencyDisplay(agency: string | null | undefined): string | null {
   const a = String(agency ?? "").trim();
   if (!a) return null;
+  // BidNet Direct rows carry the purchasing group, not the buyer: the issuing organization is a
+  // members-only cell on BidNet and is never read (owner 2026-11-10: "Connecticut Purchasing Group"
+  // read as if it were the buyer).
+  const g = /^(.+?) Purchasing Group(?: \([^)]*\))? \(BidNet Direct\)$/.exec(a);
+  if (g) {
+    const place = g[1] === "Empire State" ? "New York" : g[1].replace(/ & DC$/, " or DC");
+    return `A ${place} public agency (posted on BidNet Direct)`;
+  }
   const words = a.split(/\s+/);
   const codeLike = words.length <= 3 && /\d/.test(words[0]!) && /^[0-9A-Z]{4,8}$/.test(words[0]!) && words.slice(1).every((w) => /^[A-Z]{1,5}$/.test(w));
   return codeLike ? "Federal agency" : a;

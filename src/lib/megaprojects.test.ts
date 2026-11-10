@@ -86,16 +86,22 @@ describe("megaprojects data", () => {
 });
 
 describe("homepage highlight and the 2026-11-07 additions", () => {
-  test("newest entries lead the homepage highlight; the two new projects are listed with their sources", () => {
+  test("newest entries lead the highlight; the 2026-11-07 projects are listed with their sources", () => {
     const top = featuredMegaprojects(MEGAPROJECTS, 4);
     expect(top).toHaveLength(4);
     const slugs = top.map((p) => p.slug);
-    expect(slugs).toContain("exxonmobil-project-holly-port-allen-la");
+    expect(slugs[0]).toBe("honda-ohio-assembly-oh");
     expect(slugs).toContain("modot-improve-i70-kingdom-city-warrenton-mo");
     const i70 = MEGAPROJECTS.find((p) => p.slug === "modot-improve-i70-kingdom-city-warrenton-mo")!;
     expect([i70.amount, i70.sector, i70.source.url]).toEqual([583000000, "infrastructure", "https://www.modot.org/node/99519"]);
     expect(MEGA_SECTORS.infrastructure.label).toBe("Highways & infrastructure");
     const xom = MEGAPROJECTS.find((p) => p.slug === "exxonmobil-project-holly-port-allen-la")!;
     expect([xom.amount, xom.jobs, xom.state]).toEqual([250000000, 45, "LA"]);
+  });
+
+  test("Honda's Ohio hybrid assembly plant (announced 2026-11-09) is listed with its source", () => {
+    const h = MEGAPROJECTS.find((p) => p.slug === "honda-ohio-assembly-oh")!;
+    expect([h.company, h.state, h.sector, h.amount, h.jobs]).toEqual(["Honda", "OH", "automotive", 3000000000, 2000]);
+    expect(h.source.url).toBe("https://www.cnbc.com/2026/11/09/honda-to-invest-3-billion-in-new-vehicle-assembly-plant-in-ohio.html");
   });
 });

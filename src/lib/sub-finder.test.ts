@@ -255,3 +255,12 @@ describe("homepage card for subs (owner 2026-11-10)", () => {
     expect(readFileSync(new URL("../routes/sub-finder_.join.tsx", import.meta.url), "utf8")).toContain("if (initial.name) void search(initial.name");
   });
 });
+
+describe("homepage map is a data tool, not a second form (owner 2026-11-10)", () => {
+  test("the map shows ranked 'buying most' bars and no 'What does your business do?' picker", () => {
+    const map = readFileSync(new URL("../components/HomeStateMap.tsx", import.meta.url), "utf8");
+    expect(map).not.toContain("What does your business do?");
+    expect(map).toContain("is buying most");
+    expect(map).toContain("home_map_work_click");
+  });
+});

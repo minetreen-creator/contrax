@@ -9,7 +9,7 @@ import {
   lightUpOrder,
   shadeIndex,
 } from "~/lib/home-map";
-import { getNearYou, NEAR_YOU_TRADES, nearYouRadarHref } from "~/lib/near-you";
+import { getNearYou, nearYouRadarHref } from "~/lib/near-you";
 import { trackEvent } from "~/lib/track";
 
 type Paths = { viewBox: { width: number; height: number }; paths: Record<string, string> };
@@ -17,7 +17,7 @@ type Paths = { viewBox: { width: number; height: number }; paths: Record<string,
 /**
  * Homepage "Spin the map" (owner 2026-10-29: "Do 3"). States light up busiest
  * first; the visitor's own state starts selected. Tapping a state shows its open
- * bids, what closes this week and what it buys most, with one-tap trade chips
+ * bids, what closes this week and what it buys most, with ranked "buying most" bars (owner 2026-11-10: no second trade picker)
  * into Radar. The 42 KB of state outlines load after the page is up, so the
  * hero's first paint is unchanged; the picker below the map works without them.
  */
@@ -56,7 +56,6 @@ export function HomeStateMap({ contractMap }: { contractMap: ContractMapAggregat
     setSelected(code);
     trackEvent("home_map_state_pick", `${code}:${how}`);
   };
-  const trades = Array.from(new Set([...info.topWork.map((w) => categoryTrade(w.name)), ...NEAR_YOU_TRADES])).slice(0, 7);
 
   return (
     <section aria-labelledby="home-map-title" className="mx-auto max-w-[1120px] px-4 py-10 sm:px-6">
@@ -148,37 +147,42 @@ export function HomeStateMap({ contractMap }: { contractMap: ContractMapAggregat
             {info.closingSoon > 0 && (
               <p className="mt-2 text-sm font-semibold text-rose-300">⏰ {info.closingSoon.toLocaleString("en-US")} close in the next 7 days</p>
             )}
+            {/* Owner 2026-11-10: the hero already asks for the trade, so the map shows data, not a second
+                picker: what this state buys most, as ranked bars that open those bids. */}
             {info.topWork.length > 0 && (
-              <p className="mt-3 text-sm text-slate-300">
-                Buying most:{" "}
-                {info.topWork.map((w, i) => (
-                  <span key={w.name}>
-                    {i > 0 && " · "}
-                    <span className="font-semibold text-white">{w.name}</span> {w.count.toLocaleString("en-US")}
-                  </span>
-                ))}
-              </p>
+              <div className="mt-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">What {name} is buying most</p>
+                <ul className="mt-2 space-y-1.5">
+                  {info.topWork.map((w) => {
+                    const pct = Math.max(6, Math.round((100 * w.count) / Math.max(1, info.topWork[0].count)));
+                    return (
+                      <li key={w.name}>
+                        <a
+                          href={nearYouRadarHref(shown, categoryTrade(w.name))}
+                          onClick={() => trackEvent("home_map_work_click", `${shown}:${w.name}`)}
+                          className="group block rounded-lg px-1 py-0.5 hover:bg-slate-800/60"
+                        >
+                          <span className="flex items-baseline justify-between text-sm">
+                            <span className="font-semibold text-white group-hover:text-amber-200">{w.name}</span>
+                            <span className="tabular-nums text-slate-300">{w.count.toLocaleString("en-US")}</span>
+                          </span>
+                          <span className="mt-1 block h-1.5 rounded-full bg-slate-700">
+                            <span className="block h-1.5 rounded-full bg-amber-400" style={{ width: `${pct}%` }} />
+                          </span>
+                        </a>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
             )}
-            <p className="mt-4 text-sm text-slate-300">What does your business do?</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {trades.map((t) => (
-                <a
-                  key={t}
-                  href={nearYouRadarHref(shown, t)}
-                  onClick={() => trackEvent("home_map_trade_click", `${shown}:${t}`)}
-                  className="rounded-full border border-slate-600 bg-slate-900/60 px-3.5 py-1.5 text-sm font-semibold text-white transition hover:border-amber-400 hover:bg-amber-500/15"
-                >
-                  {t}
-                </a>
-              ))}
-              <a
-                href={nearYouRadarHref(shown)}
-                onClick={() => trackEvent("home_map_trade_click", `${shown}:other`)}
-                className="rounded-full px-3.5 py-1.5 text-sm font-semibold text-amber-300 hover:text-amber-200"
-              >
-                Something else →
-              </a>
-            </div>
+            <a
+              href={nearYouRadarHref(shown)}
+              onClick={() => trackEvent("home_map_work_click", `${shown}:all`)}
+              className="mt-4 inline-block text-sm font-semibold text-amber-300 hover:text-amber-200"
+            >
+              See all {info.count.toLocaleString("en-US")} open bids in {name} →
+            </a>
           </div>
         </div>
       </div>

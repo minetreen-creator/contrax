@@ -271,6 +271,7 @@ describe("'From opportunity to execution.' near the top (owner 2026-11-10)", () 
     const line = home.indexOf("<HomeExecutionLine />");
     expect(line).toBeGreaterThan(home.indexOf("<HomeContractFinder"));
     expect(line).toBeLessThan(home.indexOf("<HomeTampaPartner />"));
-    expect(home).toContain("From opportunity to execution.");
+    expect(home).toContain("From opportunity to execution");
+    expect(home).toContain("{BRAND_MESSAGE}");
   });
 });

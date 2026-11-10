@@ -1328,6 +1328,8 @@ CREATE TABLE IF NOT EXISTS trade_packages (
     contact_name TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+-- Subs Wanted board (owner 2026-11-10): listed only when the package's owner opts in.
+ALTER TABLE trade_packages ADD COLUMN IF NOT EXISTS on_board BOOLEAN NOT NULL DEFAULT FALSE;
 CREATE TABLE IF NOT EXISTS trade_package_responses (
     id SERIAL PRIMARY KEY,
     package_id INTEGER NOT NULL REFERENCES trade_packages(id),

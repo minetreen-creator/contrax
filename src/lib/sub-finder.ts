@@ -59,6 +59,8 @@ export interface PackageInput {
   quotesDue: string | null;
   company: string;
   contactName: string;
+  /** Also list it on the public Subs Wanted board (owner 2026-11-10). Opt-in, off by default. */
+  listOnBoard: boolean;
 }
 
 const clip = (v: unknown, n: number) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, n);
@@ -73,8 +75,10 @@ export function cleanPackageInput(raw: Record<string, unknown>, today: string): 
     quotesDue: /^\d{4}-\d{2}-\d{2}$/.test(String(raw.quotesDue ?? "")) ? String(raw.quotesDue) : null,
     company: clip(raw.company, 120),
     contactName: clip(raw.contactName, 80),
+    listOnBoard: raw.listOnBoard === true || raw.listOnBoard === "on" || raw.listOnBoard === "true",
   };
   if (!input.trade) return { ok: false, error: "Pick the trade you need." };
+  if (input.listOnBoard && !/^[A-Z]{2}$/.test(input.state)) return { ok: false, error: "Pick the state so subs near the job find it on the board." };
   if (input.scope.length < 20) return { ok: false, error: "Describe the scope in a sentence or two (what, where, how big)." };
   if (!input.company) return { ok: false, error: "Add your company name so subs know who is asking." };
   if (input.quotesDue && input.quotesDue < today) return { ok: false, error: "The quote due date is in the past." };

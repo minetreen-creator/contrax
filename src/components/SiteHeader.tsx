@@ -21,6 +21,7 @@ const WIN_WORK_LINKS = [
   { href: "/co-op-contracts", label: "Co-op contracts", note: "Get on contracts agencies buy from without a bid" },
   { href: "/sub-finder", label: "Sub Finder", note: "Find subs and collect quotes for your bid" },
   { href: "/sub-finder/join", label: "Get listed (subs)", note: "Get quote requests from primes" },
+  { href: "/subs-wanted", label: "Subs Wanted", note: "Jobs contractors need subs for now" },
 ];
 
 /** "Win work ▾": the Pathway tools. A <details> menu, so it works before hydration; closes on an outside click or Escape. */

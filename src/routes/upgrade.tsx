@@ -71,7 +71,9 @@ function Upgrade() {
           {signedIn ? "Keep going with Contrax" : "Get every new bid in your trade"}
         </h1>
         <p className="mt-3 text-center text-slate-600">
-          {!signedIn
+          {!signedIn && plan === "starter" && checkout !== "cancelled"
+            ? "Starter is $5 for your first 30 days, one time, with no automatic renewal."
+            : !signedIn
             ? "Starter is $5 for your first 30 days, one time, with no automatic renewal. Or create a free account and keep searching."
             : plan && checkout !== "cancelled" ? "Continue with your selected plan, or explore Contrax first." : status?.active
             ? `Your trial ends in ${status.daysLeft} day${status.daysLeft === 1 ? "" : "s"}${
@@ -84,7 +86,9 @@ function Upgrade() {
             Checkout was canceled. No payment was made. You can choose a plan below whenever you’re ready.
           </p>
         )}
-        {plan && checkout !== "cancelled" && (
+        {/* Not for a signed-out $5 visitor (owner 2026-11-10): "subscribing starts paid billing" contradicted
+            the one-time $5 card right below it. */}
+        {plan && checkout !== "cancelled" && signedIn && (
           <div className="mt-5 text-center">
             <p className="text-sm text-slate-600">Subscribing starts paid billing now. You can also continue without subscribing.</p>
             <a href="/radar?first_run=1" className="mt-3 inline-block font-semibold text-blue-700 underline">

@@ -17,6 +17,8 @@ test("the plan page gives a signed-out $5 visitor one button to Stripe, with the
   expect(page).toContain('await redirectToCheckout("starter", { interval: "month" })');
   expect(page).toContain("No account needed first.");
   expect(page).toContain("<CheckoutTrust");
+  // No "subscribing starts paid billing" or free-account pitch above the one-time $5 card.
+  expect(page).toContain('{plan && checkout !== "cancelled" && signedIn && (');
   // Guest Starter checkout is allowed by the server and the account is made after payment.
   expect(readFileSync("src/routes/api/stripe/create-checkout-session.ts", "utf8")).toContain("guestCheckoutAllowed(body)");
   expect(readFileSync("src/routes/post-checkout.tsx", "utf8")).toContain("creates/links the user account");

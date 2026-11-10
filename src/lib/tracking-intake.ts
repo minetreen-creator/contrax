@@ -251,6 +251,9 @@ export function isBot(userAgent: string | null): boolean {
   const botPatterns = [
     "bot", "crawler", "spider", "scraper", "headless",
     "chrome-lighthouse", "lighthouse",
+    // Page-speed test agents stamp "PTST/<build>" (owner 2026-11-10: a
+    // "Council Bluffs, IA" Moto G (4) on "Chrome 157" in the visitor trail).
+    "ptst/",
     "ahrefs", "semrush", "mozdot", "rogerbot", "mj12bot", "dotbot",
     "baiduspider", "yandex", "sogou", "exabot", "facebot",
     "python-requests", "python-urllib", "go-http-client", "node-fetch",

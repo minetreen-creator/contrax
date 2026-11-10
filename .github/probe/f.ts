@@ -1,9 +1,0 @@
-// Read-only, counts only (no visitor ids, emails or IPs): Radar searches by certification and the week's funnel.
-import { sql } from "~/db";
-const s = sql();
-const out = async (label: string, p: Promise<unknown>) => { try { console.log(label, JSON.stringify(await p)); } catch (e) { console.log(label, "ERR", (e as Error).message.slice(0, 140)); } };
-await out("searches by cert (7d)", s`SELECT cert, COUNT(*)::int AS searches, ROUND(AVG(matched))::int AS avg_matched, COUNT(*) FILTER (WHERE matched < 10)::int AS under_10, COUNT(*) FILTER (WHERE matched = 0)::int AS zero FROM radar_search_log WHERE created_at > NOW() - INTERVAL '7 days' GROUP BY cert ORDER BY 2 DESC`);
-await out("searches by cert (30d)", s`SELECT cert, COUNT(*)::int AS searches FROM radar_search_log WHERE created_at > NOW() - INTERVAL '30 days' GROUP BY cert ORDER BY 2 DESC`);
-await out("funnel 7d (distinct visitors)", s`SELECT event_name, COUNT(DISTINCT visitor_id)::int AS visitors, COUNT(*)::int AS events FROM funnel_events WHERE created_at > NOW() - INTERVAL '7 days' AND event_name IN ('radar_scan_started','radar_scan_completed','radar_results_viewed','starter_pass_click','pass_cta_click','checkout_started','plan_checkout_started','plan_checkout_redirected','checkout_redirected','signup_success','app_install_banner_shown','app_install_tap','app_installed','pwa_installed','home_tampa_click','tampa_housing_referral_click','sub_finder_claim_click','sub_finder_claimed','home_subs_search') GROUP BY 1 ORDER BY 2 DESC`);
-await out("top events 7d", s`SELECT event_name, COUNT(DISTINCT visitor_id)::int AS visitors FROM funnel_events WHERE created_at > NOW() - INTERVAL '7 days' GROUP BY 1 ORDER BY 2 DESC LIMIT 40`);
-await out("paid ever", s`SELECT COUNT(*)::int FROM users WHERE subscription_status = 'active' OR plan_tier IN ('starter','professional')`);

@@ -216,6 +216,8 @@ function Home() {
       <HomeContractFinder sample={sample} openTotal={contractMap?.totals?.totalOpen ?? 0} />
       {/* Tampa partnership (owner 2026-11-10: "just below the main hero"): Contrax + Casa Blue Collar. */}
       <HomeTampaPartner />
+      {/* Subs for primes (owner 2026-11-10: "below the new partnership card"): find and claim your business. */}
+      <HomeSubsJoin />
       {/* The $5 Starter pass, right under the search (owner 2026-10-31 funnel
           check: the homepage never mentioned the offer). Owner 2026-11-09: it now
           also says what the 6 AM email brings (Auto-Pilot), and it is the only one. */}
@@ -407,6 +409,38 @@ function HomeTampaPartner() {
             Visit {CASA.name} →
           </a>
         </div>
+      </div>
+    </section>
+  );
+}
+
+// For subcontractors (owner 2026-11-10): primes look for subs on Sub Finder; find your business
+// (SAM.gov registration) and claim it. The search opens /sub-finder/join with the results.
+function HomeSubsJoin() {
+  return (
+    <section aria-labelledby="home-subs-title" className="mx-auto max-w-[1120px] px-4 pt-6 sm:px-6">
+      <div className="grid gap-5 rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 lg:grid-cols-[1.2fr_1fr] dark:border-slate-700 dark:bg-slate-900">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300">🔨 For subcontractors</p>
+          <h2 id="home-subs-title" className={`${SERIF} mt-1 text-[clamp(24px,3vw,30px)] leading-[1.15] font-bold`}>Prime contractors are looking for you</h2>
+          <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
+            Over 4,000 primes hold federal subcontracting plans, so they must give part of their government work to small businesses. They use Sub Finder to find local subs by
+            trade, state and certification and send quote requests by email.
+          </p>
+          <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
+            Registered in SAM.gov? Your business may already be in Sub Finder, one of over 160,000. Find it and claim it in two minutes.
+          </p>
+        </div>
+        <form action="/sub-finder/join" method="get" onSubmit={() => trackEvent("home_subs_search", "submit")} className="flex flex-col justify-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-950">
+          <label className="text-sm font-semibold" htmlFor="home-subs-name">Find your business</label>
+          <input id="home-subs-name" name="name" required minLength={3} placeholder="Business name" className="rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-slate-900 dark:border-slate-600" />
+          <button type="submit" className="inline-flex items-center justify-center gap-1 rounded-xl bg-indigo-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-600 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600">
+            Find and claim it <ArrowRight aria-hidden="true" className="h-4 w-4" />
+          </button>
+          <a href="/sub-finder/join?source=home" onClick={() => trackEvent("home_subs_search", "join")} className="text-center text-sm font-semibold text-blue-700 hover:text-blue-600 dark:text-blue-300">
+            Not registered? Get listed →
+          </a>
+        </form>
       </div>
     </section>
   );

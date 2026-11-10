@@ -8,6 +8,9 @@ import {
   FDOT_PAGES, fdotWorkCell, fetchFdotPage, fetchFlLeeBids, FL_DIRECT_SOURCES, flCountyLocation, flDirectDeps, leeClose, mapLeeBoard,
   parseFdotLettings, parsePolkBids, parseTampaConstruction, readLeePage, tampaOpening,
 } from "./fl-direct";
+import { ionwaveThrottleDeps } from "./ionwave-throttle";
+
+ionwaveThrottleDeps.gapMs = 0; // the shared IonWave pace is tested in ionwave-throttle.test.ts
 
 // Owner 2026-11-07: "Yes do the Florida batch".
 const fx = (f: string) => readFileSync(new URL(`./fixtures/fl-direct/${f}-2026-11-07.html`, import.meta.url), "utf8");

@@ -6,6 +6,9 @@ import { SOURCE_HOME_JURISDICTIONS, resolveStateFromText } from "~/lib/location-
 import { LOCAL_AGENCIES } from "~/lib/local-agencies";
 import { CIVICENGAGE_NOT_A_BID_TITLE } from "./civicengage-bids";
 import { AR_IONWAVE_BOARDS, arIonwaveDeps, fetchIonwaveBoard, ionwaveClose, mapIonwaveBoard, readIonwavePage } from "./ar-ionwave";
+import { ionwaveThrottleDeps } from "./ionwave-throttle";
+
+ionwaveThrottleDeps.gapMs = 0; // the shared IonWave pace is tested in ionwave-throttle.test.ts
 
 // Owner 2026-11-07: "Add Arkansas city and county boards".
 const fx = (f: string) => readFileSync(new URL(`./fixtures/ar-ionwave/${f}-2026-11-07.html`, import.meta.url), "utf8");

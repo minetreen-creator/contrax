@@ -22,6 +22,7 @@ import type { FetchResult } from "../runner";
 import { SourceUnreachableError } from "../fetch-failure";
 import type { RawBid } from "./sam-gov";
 import { zonedIso } from "./revize-bids";
+import { ionwaveTurn } from "./ionwave-throttle";
 
 const UA = "Mozilla/5.0 (compatible; ContraxBot/1.0; +https://www.contrax.company)";
 
@@ -161,6 +162,7 @@ export const arIonwaveDeps = { fetch: (url: string, init: RequestInit) => fetch(
 export async function fetchIonwaveBoard(board: IonwaveBoard, now: number = Date.now()): Promise<FetchResult> {
   const url = `${board.origin}/SourcingEvents.aspx?SourceType=1`;
   const get = async (init: RequestInit = {}) => {
+    await ionwaveTurn();
     const res = await arIonwaveDeps.fetch(url, { redirect: "follow", signal: AbortSignal.timeout(30000), ...init, headers: { "user-agent": UA, accept: "text/html", ...(init.headers as Record<string, string>) } });
     if (!res.ok) throw new SourceUnreachableError(board.source, [`HTTP ${res.status}`]);
     return res;

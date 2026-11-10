@@ -41,6 +41,7 @@ import {
   type StateAggregate,
 } from "~/lib/contract-map";
 import { trackEvent } from "~/lib/track";
+import { CheckoutTrust } from "~/components/CheckoutTrust";
 import { redirectToCheckout } from "~/lib/checkout";
 import { STARTER_FIRST_MONTH_PRICE } from "~/lib/starter-offer";
 import { resolveBidState } from "~/lib/location-state";
@@ -1123,6 +1124,7 @@ export function DailyEmailOffer({ tradeLabel, stateName, count }: { tradeLabel: 
       >
         Start for ${STARTER_FIRST_MONTH_PRICE} · 30 days, no auto-renew →
       </a>
+      <CheckoutTrust tone="dark" className="mt-2" />
     </div>
   );
 }

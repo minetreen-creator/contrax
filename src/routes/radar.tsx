@@ -12,6 +12,7 @@ import { BasicUpgradeBar } from "~/components/BasicUpgradeBar";
 import { NAICS_NAMES } from "~/lib/naics-names";
 import { trackEvent } from "~/lib/track";
 import { AppInstallBanner } from "~/components/AppInstallBanner";
+import { CheckoutTrust } from "~/components/CheckoutTrust";
 import { trackingIds } from "~/lib/visitor";
 import { markEmailGiven } from "~/lib/return-visitor";
 import { getTrackingUser } from "~/lib/identity";
@@ -2338,6 +2339,7 @@ function RadarLanding() {
                     <span className="mt-3 inline-block rounded-lg bg-amber-400 px-4 py-2.5 text-sm font-bold text-slate-950">
                       ${STARTER_FIRST_MONTH_PRICE} for 30 days, no auto-renew →
                     </span>
+                    <CheckoutTrust tone="dark" className="mt-2" />
                   </a>
                   );
                 })()}

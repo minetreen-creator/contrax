@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createServerFn } from "@tanstack/react-start";
 import { trackEvent } from "~/lib/track";
 import { APP_INSTALLED_KEY, markAppInstalled } from "~/lib/app-install";
 
@@ -11,20 +12,36 @@ import { APP_INSTALLED_KEY, markAppInstalled } from "~/lib/app-install";
  * dismissing it or opening the install steps hides it for good on that phone.
  */
 const SEEN_KEY = "contrax-app-banner";
+
+/**
+ * Owner 2026-11-10 ("no app downloads and no sales"): bid alerts need a paid plan, so the banner
+ * goes only to paid members (and admins). Visitors see the $5 offer instead; buyers are offered the
+ * app on the success page and here on their dashboard.
+ */
+const appBannerEligible = createServerFn({ method: "GET" }).handler(async () => {
+  try {
+    const { getCurrentUser } = await import("~/lib/auth");
+    const { hasPaidBidAccess } = await import("~/lib/head-start.server");
+    return { paid: await hasPaidBidAccess(await getCurrentUser()) };
+  } catch {
+    return { paid: false };
+  }
+});
 /**
  * Radar waits longer (owner 2026-11-08: a Winchester visitor got the banner and
  * closed it while their search was still loading); bid pages are read at once.
  */
-const SHOW_AFTER_MS = { radar: 20000, bid: 6000 } as const;
+const SHOW_AFTER_MS = { radar: 20000, bid: 6000, dashboard: 5000 } as const;
 
 type Platform = "ios" | "android";
 
-export function AppInstallBanner({ where, hold = false }: { where: "radar" | "bid"; hold?: boolean }) {
+export function AppInstallBanner({ where, hold = false }: { where: "radar" | "bid" | "dashboard"; hold?: boolean }) {
   const [platform, setPlatform] = useState<Platform | null>(null);
   const [visible, setVisible] = useState(false);
   // `hold` (owner 2026-11-09): bid pages keep the banner back until the visitor has seen the $5
   // offer. It still mounts at once so Android's install event is not missed.
   const [due, setDue] = useState(false);
+  const [paid, setPaid] = useState(false);
   const shown = useRef(false);
   const [sheet, setSheet] = useState(false);
   const [installEvt, setInstallEvt] = useState<any>(null);
@@ -53,6 +70,9 @@ export function AppInstallBanner({ where, hold = false }: { where: "radar" | "bi
       setVisible(false);
     };
     window.addEventListener("appinstalled", onInstalled);
+    appBannerEligible()
+      .then((r) => setPaid(r.paid))
+      .catch(() => setPaid(false));
     const t = window.setTimeout(() => setDue(true), SHOW_AFTER_MS[where]);
     return () => {
       window.clearTimeout(t);
@@ -62,11 +82,11 @@ export function AppInstallBanner({ where, hold = false }: { where: "radar" | "bi
   }, [where]);
 
   useEffect(() => {
-    if (!due || hold || shown.current || !platform) return;
+    if (!due || hold || !paid || shown.current || !platform) return;
     shown.current = true;
     setVisible(true);
     trackEvent("app_banner_shown", `${where}:${platform}`);
-  }, [due, hold, platform, where]);
+  }, [due, hold, paid, platform, where]);
 
   const remember = () => {
     try {

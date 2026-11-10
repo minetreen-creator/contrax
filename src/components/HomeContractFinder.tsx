@@ -13,6 +13,7 @@ import { publishedDateOnlyFor } from "~/lib/deadline-label";
 import { raceRadarScan } from "~/lib/radar-scan-runner";
 import { getTrackingUser } from "~/lib/identity";
 import { trackEvent } from "~/lib/track";
+import { CheckoutTrust } from "~/components/CheckoutTrust";
 import { redirectToCheckout } from "~/lib/checkout";
 import { ADDRESS_TIP, ADDRESS_TIP_ES, isKnownTrade, looksLikeAddress, notATradeLine } from "~/lib/trade-input";
 import { STARTER_FIRST_MONTH_PRICE } from "~/lib/starter-offer";
@@ -528,6 +529,7 @@ export function HomeContractFinder({ sample, openTotal = 0 }: { sample: Everyday
                     >
                       See all {result.total} for ${STARTER_FIRST_MONTH_PRICE} →
                     </a>
+                    <CheckoutTrust tone="dark" className="mt-2" />
                     <p className="mt-3 text-sm text-slate-300">
                       Not ready?{" "}
                       <a

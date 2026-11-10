@@ -3,6 +3,7 @@ import { redirectToCheckout } from "~/lib/checkout";
 import { rememberCheckoutBid } from "~/lib/checkout-resume";
 import { STARTER_FIRST_MONTH_PRICE } from "~/lib/starter-offer";
 import { trackEvent } from "~/lib/track";
+import { CheckoutTrust } from "~/components/CheckoutTrust";
 
 /**
  * The bid-page $5 confirm step (owner 2026-11-08, "yes 2"): 4 of the day's 6 Stripe checkouts came
@@ -90,7 +91,8 @@ export function UnlockBidSheet({ bidId, bid, onClose }: { bidId: number; bid?: U
         >
           {opening ? "Opening secure checkout…" : `Continue to secure checkout: $${STARTER_FIRST_MONTH_PRICE}`}
         </button>
-        <p className="mt-2 text-center text-xs text-slate-500">Payment is handled by Stripe. You&apos;ll come right back to this bid.</p>
+        <CheckoutTrust className="mt-2 text-center" />
+        <p className="mt-1 text-center text-xs text-slate-500">You&apos;ll come right back to this bid.</p>
         <button type="button" onClick={onClose} className="mt-2 w-full py-1 text-center text-sm text-slate-500 underline">
           Not now
         </button>

@@ -99,7 +99,7 @@ function JoinPage() {
           answer the ones you want.
         </p>
         <p className="mt-2 text-sm">
-          <a href="/subs-wanted" className="font-semibold text-blue-700">See jobs contractors need subs for right now →</a>
+          <a href="/subs-wanted" className="font-semibold text-blue-700">See public or private jobs that need subs right now →</a>
         </p>
         {d.primesWithPlans > 0 ? (
           <p className="mt-3 rounded-xl bg-sky-50 p-3 text-sm text-slate-800">

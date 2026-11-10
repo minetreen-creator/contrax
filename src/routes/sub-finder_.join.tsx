@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { SiteHeader } from "~/components/SiteHeader";
 import { STATE_NAMES } from "~/lib/contract-map";
 import { SEO_TRADE_BY_SLUG } from "~/lib/seo-trades";
@@ -44,6 +44,11 @@ const findMine = createServerFn({ method: "GET" })
   });
 
 export const Route = createFileRoute("/sub-finder_/join")({
+  // The homepage card sends ?name=…&state=… so the search runs as the page opens (owner 2026-11-10).
+  validateSearch: (s: Record<string, unknown>): { name?: string; state?: string } => ({
+    ...(typeof s.name === "string" && s.name.trim() ? { name: s.name.slice(0, 80) } : {}),
+    ...(typeof s.state === "string" && STATE_NAMES[s.state.toUpperCase()] ? { state: s.state.toUpperCase() } : {}),
+  }),
   loader: () => getJoin(),
   head: () => ({
     meta: [
@@ -62,19 +67,24 @@ type Found = Awaited<ReturnType<typeof findMine>>;
 
 function JoinPage() {
   const d = Route.useLoaderData();
-  const [name, setName] = useState("");
-  const [st, setSt] = useState("");
+  const initial = Route.useSearch();
+  const [name, setName] = useState(initial.name ?? "");
+  const [st, setSt] = useState(initial.state ?? "");
   const [found, setFound] = useState<Found | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const search = async () => {
-    if (name.trim().length < 3) return;
+  const search = async (q = name, state = st) => {
+    if (q.trim().length < 3) return;
     setBusy(true);
-    const rows = await findMine({ data: { name, state: st } }).catch(() => [] as Found);
+    const rows = await findMine({ data: { name: q, state } }).catch(() => [] as Found);
     setFound(rows);
     setBusy(false);
     trackEvent("sub_finder_join_search", rows.length ? "found" : "none");
   };
+  useEffect(() => {
+    if (initial.name) void search(initial.name, initial.state ?? "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 [color-scheme:light]">

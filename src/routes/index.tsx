@@ -8,7 +8,7 @@ import { HomeStateMap } from "~/components/HomeStateMap";
 import { PATHWAY_LINE, PATHWAY_STEPS } from "~/lib/pathway";
 
 import { trackEvent } from "~/lib/track";
-import { CASA, TAMPA_FACTS, TAMPA_PATH } from "~/lib/tampa";
+import { CASA, CASA_PRICE_NOTE, TAMPA_FACTS, TAMPA_HEADLINE, TAMPA_PATH } from "~/lib/tampa";
 import { STARTER_PASS_NOTE } from "~/lib/starter-pass";
 import { STARTER_FIRST_MONTH_PRICE as STARTER_PRICE } from "~/lib/starter-offer";
 import { SiteHeader } from "~/components/SiteHeader";
@@ -351,7 +351,9 @@ function HomeTampaPartner() {
       <div className="grid gap-5 rounded-3xl border border-slate-200 bg-gradient-to-br from-sky-50 to-white p-6 sm:p-8 lg:grid-cols-[1.4fr_1fr] dark:border-slate-700 dark:from-slate-900 dark:to-slate-950">
         <div>
           <p className="text-xs font-bold uppercase tracking-wider text-sky-700 dark:text-sky-300">🌴 New in Tampa · Partnership</p>
-          <h2 id="home-tampa-title" className={`${SERIF} mt-1 text-[clamp(24px,3vw,30px)] leading-[1.15] font-bold`}>Find the work. Build the team. House the crew.</h2>
+          <h2 id="home-tampa-title" className={`${SERIF} mt-1 text-[clamp(24px,3vw,30px)] leading-[1.15] font-bold`}>
+            {TAMPA_HEADLINE.win} {TAMPA_HEADLINE.house}, <span className="text-sky-700 dark:text-sky-300">{TAMPA_HEADLINE.saving}*</span>.
+          </h2>
           <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
             Contrax and {CASA.name} teamed up for contractors working Tampa government jobs: open bids, certified local subs, and housing for traveling crews.
           </p>
@@ -378,7 +380,7 @@ function HomeTampaPartner() {
               Find Tampa subs →
             </a>
           </p>
-          <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">{TAMPA_FACTS.asOf}. Source: {TAMPA_FACTS.source}.</p>
+          <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">{TAMPA_FACTS.asOf}. Source: {TAMPA_FACTS.source}. *{CASA_PRICE_NOTE}</p>
         </div>
         <div className="flex flex-col justify-center gap-3 rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Housing referral partner</p>

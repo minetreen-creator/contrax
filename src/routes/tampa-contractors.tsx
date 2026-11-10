@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { SiteHeader } from "~/components/SiteHeader";
-import { CASA, TAMPA_BAY_CITIES, TAMPA_FACTS, TAMPA_PATH, TAMPA_PLACES, TAMPA_SUB_TRADES, isBuildWork, isTampaBay } from "~/lib/tampa";
+import { CASA, CASA_PRICE_NOTE, TAMPA_HEADLINE, TAMPA_BAY_CITIES, TAMPA_FACTS, TAMPA_PATH, TAMPA_PLACES, TAMPA_SUB_TRADES, isBuildWork, isTampaBay } from "~/lib/tampa";
 import { certNames } from "~/lib/sub-finder";
 import { radarHrefFor, SEO_TRADE_BY_SLUG } from "~/lib/seo-trades";
 import { trackEvent } from "~/lib/track";
@@ -181,8 +181,8 @@ function TampaPage() {
         <section id="housing" className="mt-8 scroll-mt-20 rounded-2xl border-2 border-slate-900 bg-white p-5">
           <h2 className="text-xl font-bold text-slate-900">3. House the crew</h2>
           <p className="mt-1 text-sm text-slate-700">
-            Bringing a crew into Tampa for a project? Our housing referral partner, {CASA.name}, provides housing for traveling work crews. Ask them about availability, rates and
-            locations near your job site, and book with them directly.
+            Bringing a crew into Tampa for a project? Our housing referral partner, {CASA.name}, houses traveling work crews {TAMPA_HEADLINE.saving}.* Ask them about availability,
+            rates and locations near your job site, and book with them directly.
           </p>
           <a
             href={CASA.url}
@@ -193,7 +193,7 @@ function TampaPage() {
           >
             Ask {CASA.name} about crew housing →
           </a>
-          <p className="mt-2 text-xs text-slate-500">{CASA.name} is an independent company and Contrax's housing referral partner. Bookings and rates are between you and them.</p>
+          <p className="mt-2 text-xs text-slate-500">*{CASA_PRICE_NOTE} {CASA.name} is an independent company and Contrax's housing referral partner. Bookings and rates are between you and them.</p>
         </section>
 
         <p className="mt-8 text-xs text-slate-500">Powered by Contrax LLC · Housing referral partner: {CASA.name}</p>

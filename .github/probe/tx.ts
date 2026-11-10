@@ -1,4 +1,4 @@
-// Read-only, counts only: why a Texas construction Radar search shows few matches.
+// Read-only, counts only: Texas construction Radar search after the certification fix (run 2).
 import { sql } from "~/db";
 import { defaultRadarMatches, fetchStrictRadarRows, radarGeoPasses, splitByGeography } from "~/lib/radar-candidates";
 import { certMatches } from "~/lib/cert-matching";

@@ -87,6 +87,7 @@ import { HeadStartLock } from "~/components/HeadStartLock";
 import { WinnerPriceLine } from "~/components/WinnerPriceLine";
 import { headStartUntil } from "~/lib/head-start";
 import { CoopCallout } from "~/components/CoopCallout";
+import { agencyDisplay } from "~/lib/bid-job-summary";
 
 /**
  * /radar — "Contract Radar" interactive lead-generation experience.
@@ -2462,7 +2463,7 @@ function RadarLanding() {
                 </div>
               </div>
             )}
-            {wantsRadarMore(scan.matches.length, state) && (
+            {wantsRadarMore(localKnown ? localMatches : scan.matches.length, state) && (
               <RadarMoreOptions
                 trade={trade.trim()}
                 state={state}
@@ -2502,7 +2503,7 @@ function RadarLanding() {
                         <p className="mt-1 text-xs text-slate-400">
                           {displayPlaceOfPerformance(m.title, m.location, m.agency) ??
                             "Place of performance not specified"}
-                          {m.agency ? ` · ${m.agency}` : ""}
+                          {m.agency ? ` · ${agencyDisplay(m.agency) ?? m.agency}` : ""}
                           {m.due_date
                             ? ` · Due ${new Date(m.due_date).toLocaleDateString("en-US", {
                                 month: "short",
@@ -2778,7 +2779,7 @@ export function RadarCard({
         )}
         <h3 className="text-base font-bold leading-snug text-white">{shownTitle.title || "Solicitation"}</h3>
         {shownTitle.reference && <p className="mt-0.5 text-[11px] text-slate-500">Ref. {shownTitle.reference}</p>}
-        {match.agency && <p className="mt-0.5 text-sm text-slate-400">{match.agency}</p>}
+        {match.agency && <p className="mt-0.5 text-sm text-slate-400">{agencyDisplay(match.agency) ?? match.agency}</p>}
         {/* v6.2: ACTUAL place of performance + eligibility tag — "nationalwide"
             is a separate ELIGIBILITY tag, never the location. State-local cards
             show their verified state. */}

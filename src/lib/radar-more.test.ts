@@ -13,7 +13,10 @@ describe("radar more options", () => {
   test("shows only for thin state searches", () => {
     expect(wantsRadarMore(0, "VA")).toBe(true);
     expect(wantsRadarMore(3, "VA")).toBe(true);
-    expect(wantsRadarMore(4, "VA")).toBe(false);
+    // Owner 2026-11-10: Connecticut janitorial found 6 (about 3 real cleaning jobs); thin up to 10.
+    expect(wantsRadarMore(6, "CT")).toBe(true);
+    expect(wantsRadarMore(10, "VA")).toBe(true);
+    expect(wantsRadarMore(11, "VA")).toBe(false);
     expect(wantsRadarMore(0, "")).toBe(false);
   });
   test("maps free-text trades to rebid data", () => {

@@ -94,3 +94,26 @@ export async function registeredSubCounts(trade: string, state: string): Promise
     return { total: 0, certs: {} };
   }
 }
+
+/** Registered small businesses in a set of cities (e.g. Tampa Bay) for some trades, certified first. */
+export async function registeredSubsInCities(q: { state: string; cities: readonly string[]; trades: string[]; limit: number }): Promise<{ total: number; certs: Record<string, number>; rows: (RegisteredSub & { trades: string[] })[] }> {
+  try {
+    const s = sql();
+    const cities = q.cities.map((c) => c.toLowerCase());
+    const [count, rows] = await Promise.all([
+      s`SELECT COUNT(*)::int AS total,
+               COUNT(*) FILTER (WHERE 'vosb' = ANY(certs))::int AS vosb,
+               COUNT(*) FILTER (WHERE 'sdvosb' = ANY(certs))::int AS sdvosb,
+               COUNT(*) FILTER (WHERE 'wosb' = ANY(certs))::int AS wosb
+        FROM sam_registrants WHERE state = ${q.state} AND LOWER(city) = ANY(${cities}) AND trades && ${q.trades}`,
+      s`SELECT uei, name, city, url, certs, trades FROM sam_registrants
+        WHERE state = ${q.state} AND LOWER(city) = ANY(${cities}) AND trades && ${q.trades}
+        ORDER BY cardinality(certs) DESC, (url IS NOT NULL) DESC, name ASC
+        LIMIT ${q.limit}`,
+    ]);
+    const c = (count as Record<string, number>[])[0] ?? {};
+    return { total: Number(c.total ?? 0), certs: { vosb: Number(c.vosb ?? 0), sdvosb: Number(c.sdvosb ?? 0), wosb: Number(c.wosb ?? 0) }, rows: rows as (RegisteredSub & { trades: string[] })[] };
+  } catch {
+    return { total: 0, certs: {}, rows: [] };
+  }
+}

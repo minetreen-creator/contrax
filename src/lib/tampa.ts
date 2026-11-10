@@ -35,3 +35,30 @@ export const CASA = {
 } as const;
 
 export const TAMPA_PATH = "/tampa-contractors";
+
+/**
+ * City of Tampa facts (read 2026-11-09). Federal: USAspending.gov contract awards with place of
+ * performance in Tampa, FY2026 (Oct 2025 - Sep 2026), NAICS 23; "out of state" = the company's
+ * registered address is outside Florida. Registered: SAM.gov public extract, Tampa addresses.
+ */
+export const TAMPA_FACTS = {
+  asOf: "FY2026 (Oct 2025 – Sep 2026)",
+  federalConstruction: "$94.5M",
+  outOfStateShare: "83%",
+  outOfStateFirms: 26,
+  endingSoonCount: 38,
+  endingSoonValue: "$133.4M",
+  registeredContractors: 369,
+  source: "USAspending.gov federal awards and SAM.gov registrations",
+} as const;
+
+/** Tampa Bay cities as SAM.gov registrations spell them (lower-cased compare). */
+export const TAMPA_BAY_CITIES = [
+  "tampa", "st petersburg", "st. petersburg", "saint petersburg", "clearwater", "largo", "brandon", "plant city", "temple terrace",
+  "riverview", "ruskin", "apollo beach", "valrico", "seffner", "lutz", "land o lakes", "land o' lakes", "wesley chapel", "zephyrhills",
+  "new port richey", "port richey", "holiday", "hudson", "spring hill", "brooksville", "dade city", "tarpon springs", "palm harbor",
+  "dunedin", "oldsmar", "safety harbor", "seminole", "pinellas park", "odessa", "gibsonton", "thonotosassa", "dover", "lithia", "wimauma", "sun city center",
+] as const;
+
+/** The trades a Tampa construction job needs subs for. */
+export const TAMPA_SUB_TRADES = ["construction", "hvac", "electrical"];

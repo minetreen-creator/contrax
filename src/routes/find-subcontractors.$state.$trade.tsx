@@ -118,13 +118,13 @@ function FindSubsPage() {
   const d = Route.useLoaderData();
   if (!d) {
     return (
-      <>
+      <div className="min-h-screen bg-slate-50 text-slate-900 [color-scheme:light]">
         <SiteHeader />
         <main className="mx-auto max-w-2xl px-4 py-12">
           <h1 className="text-2xl font-bold text-slate-900">We don't have that page</h1>
           <a href="/sub-finder" className="mt-3 inline-block font-semibold text-blue-700">Go to Sub Finder →</a>
         </main>
-      </>
+      </div>
     );
   }
   const label = tradeWords(d.trade.label);
@@ -134,7 +134,7 @@ function FindSubsPage() {
   const otherTrades = SEO_TRADES.filter((t) => t.slug !== d.trade.slug);
 
   return (
-    <>
+    <div className="min-h-screen bg-slate-50 text-slate-900 [color-scheme:light]">
       <SiteHeader />
       <main className="mx-auto max-w-3xl px-4 py-8">
         <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">
@@ -230,6 +230,6 @@ function FindSubsPage() {
           <a href="/find-subcontractors" className="mt-2 inline-block text-blue-700 hover:underline">All states →</a>
         </nav>
       </main>
-    </>
+    </div>
   );
 }

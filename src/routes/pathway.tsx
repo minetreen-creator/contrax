@@ -48,10 +48,10 @@ const getPathwayStats = createServerFn({ method: "GET" }).handler(async () => {
 export const Route = createFileRoute("/pathway")({
   loader: () => getPathwayStats(),
   component: () => (
-    <>
+    <div className="min-h-screen bg-slate-50 text-slate-900 [color-scheme:light]">
       <SiteHeader />
       <PathwayPage />
-    </>
+    </div>
   ),
   head: () => ({
     meta: [

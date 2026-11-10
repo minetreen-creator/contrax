@@ -40,10 +40,10 @@ export const Route = createFileRoute("/gap-map")({
   loaderDeps: ({ search }) => search,
   loader: ({ deps }) => getGapMap({ data: deps }),
   component: () => (
-    <>
+    <div className="min-h-screen bg-slate-50 text-slate-900 [color-scheme:light]">
       <SiteHeader />
       <GapMapPage />
-    </>
+    </div>
   ),
   head: () => ({
     meta: [

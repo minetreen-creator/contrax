@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { SiteHeader } from "~/components/SiteHeader";
-import { CASA, TAMPA_PATH, TAMPA_PLACES, isBuildWork, isTampaBay } from "~/lib/tampa";
+import { CASA, TAMPA_BAY_CITIES, TAMPA_FACTS, TAMPA_PATH, TAMPA_PLACES, TAMPA_SUB_TRADES, isBuildWork, isTampaBay } from "~/lib/tampa";
+import { certNames } from "~/lib/sub-finder";
 import { radarHrefFor, SEO_TRADE_BY_SLUG } from "~/lib/seo-trades";
 import { trackEvent } from "~/lib/track";
 
@@ -17,7 +18,13 @@ interface TampaBid {
   due: string | null;
 }
 
-let cache: { at: number; data: { open: number; build: number; bids: TampaBid[] } } | null = null;
+interface TampaSubs {
+  total: number;
+  certs: Record<string, number>;
+  rows: { uei: string; name: string; city: string | null; url: string | null; certs: string[]; trades: string[] }[];
+}
+
+let cache: { at: number; data: { open: number; build: number; bids: TampaBid[]; subs: TampaSubs } } | null = null;
 
 const getTampa = createServerFn({ method: "GET" }).handler(async () => {
   if (cache && Date.now() - cache.at < 30 * 60 * 1000) return cache.data;
@@ -36,9 +43,12 @@ const getTampa = createServerFn({ method: "GET" }).handler(async () => {
       ORDER BY due_date ASC
       LIMIT 2000
     `) as { id: number; title: string; agency: string | null; location: string | null; due_date: string | Date | null }[];
+    const { registeredSubsInCities } = await import("~/lib/sam-registrants.server");
+    const subs = await registeredSubsInCities({ state: "FL", cities: TAMPA_BAY_CITIES, trades: TAMPA_SUB_TRADES, limit: 12 });
     const here = rows.filter((r) => isTampaBay(r.location, r.agency));
     const build = here.filter((r) => isBuildWork(r.title));
     const data = {
+      subs,
       open: here.length,
       build: build.length,
       bids: build.slice(0, 10).map((r) => ({
@@ -52,7 +62,7 @@ const getTampa = createServerFn({ method: "GET" }).handler(async () => {
     return data;
   } catch (e) {
     console.error("[tampa-contractors] load failed:", e);
-    return { open: 0, build: 0, bids: [] as TampaBid[] };
+    return { open: 0, build: 0, bids: [] as TampaBid[], subs: { total: 0, certs: {}, rows: [] } as TampaSubs };
   }
 });
 
@@ -77,7 +87,7 @@ const fmtDue = (d: string | null) =>
 function TampaPage() {
   const d = Route.useLoaderData();
   return (
-    <>
+    <div className="min-h-screen bg-slate-50 text-slate-900 [color-scheme:light]">
       <SiteHeader />
       <main className="mx-auto max-w-4xl px-4 py-8">
         <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">Tampa Contractor Support Network</p>
@@ -86,6 +96,12 @@ function TampaPage() {
           For contractors working government jobs in Tampa Bay (Hillsborough, Pinellas, Pasco and Hernando): open bids, certified subcontractors, and housing for traveling crews.
         </p>
 
+        <p className="mt-4 rounded-xl bg-sky-50 p-3 text-sm text-slate-800">
+          Federal construction in Tampa, {TAMPA_FACTS.asOf}: <strong>{TAMPA_FACTS.federalConstruction}</strong>, and {TAMPA_FACTS.outOfStateShare} of it went to{" "}
+          {TAMPA_FACTS.outOfStateFirms} firms based outside Florida. {TAMPA_FACTS.endingSoonCount} contracts worth {TAMPA_FACTS.endingSoonValue} come up for rebid in the next 12
+          months, and {TAMPA_FACTS.registeredContractors} construction contractors in Tampa are registered for federal work.{" "}
+          <span className="text-xs text-slate-500">Source: {TAMPA_FACTS.source}.</span>
+        </p>
         <div className="mt-6 grid gap-4 sm:grid-cols-3">
           <a href="#work" className="rounded-2xl border border-slate-200 bg-white p-4 hover:border-blue-400">
             <p className="text-2xl font-bold text-slate-900">{d.build > 0 ? d.build : "Live"}</p>
@@ -131,6 +147,32 @@ function TampaPage() {
             <a href="/find-subcontractors/florida/electrical" className="rounded-lg border border-slate-300 px-4 py-2 text-slate-800">Electrical subs</a>
             <a href="/find-subcontractors/florida/construction" className="rounded-lg border border-slate-300 px-4 py-2 text-slate-800">Construction subs</a>
           </div>
+          {d.subs.total > 0 ? (
+            <div className="mt-5">
+              <h3 className="font-bold text-slate-900">
+                {d.subs.total.toLocaleString("en-US")} construction, HVAC and electrical subs registered in Tampa Bay
+              </h3>
+              <p className="text-sm text-slate-600">
+                {[d.subs.certs.vosb ? `${d.subs.certs.vosb} veteran-owned` : null, d.subs.certs.sdvosb ? `${d.subs.certs.sdvosb} SDVOSB` : null, d.subs.certs.wosb ? `${d.subs.certs.wosb} WOSB` : null]
+                  .filter(Boolean)
+                  .join(" · ")}
+                {" · "}small businesses registered with the government (SAM.gov). Contrax doesn't contact them; reach out through their website.
+              </p>
+              <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+                {d.subs.rows.map((r) => (
+                  <li key={r.uei} className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
+                    <p className="font-semibold text-slate-900">{r.name}</p>
+                    <p className="text-xs text-slate-600">{[r.city, r.trades.filter((t) => TAMPA_SUB_TRADES.includes(t)).map((t) => (t === "hvac" ? "HVAC/plumbing" : t)).join(", ")].filter(Boolean).join(" · ")}</p>
+                    {r.certs.length ? <p className="text-xs text-emerald-700">{certNames(r.certs.filter((c) => c !== "vosb" || !r.certs.includes("sdvosb"))).join(", ")}</p> : null}
+                    {r.url ? (
+                      <a href={r.url} target="_blank" rel="nofollow noopener noreferrer" className="text-xs font-semibold text-blue-700 hover:underline">Website →</a>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+              <a href="/sub-finder?trade=construction&state=FL" className="mt-3 inline-block text-sm font-semibold text-blue-700">See more Florida subs in Sub Finder →</a>
+            </div>
+          ) : null}
           <p className="mt-3 text-sm text-slate-700">
             A Tampa sub? <a href="/sub-finder#listing" className="font-semibold text-blue-700">List your business for primes →</a>
           </p>
@@ -156,6 +198,6 @@ function TampaPage() {
 
         <p className="mt-8 text-xs text-slate-500">Powered by Contrax LLC · Housing referral partner: {CASA.name}</p>
       </main>
-    </>
+    </div>
   );
 }

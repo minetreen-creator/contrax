@@ -36,7 +36,7 @@ function PartnersPage() {
     }
   };
   return (
-    <>
+    <div className="min-h-screen bg-slate-50 text-slate-900 [color-scheme:light]">
       <div className="print:hidden">
         <SiteHeader />
       </div>
@@ -93,6 +93,6 @@ function PartnersPage() {
           <a href="mailto:contrax.companyllc@gmail.com?subject=Sub%20Finder%20partner" className="font-semibold text-blue-700">contrax.companyllc@gmail.com</a>.
         </p>
       </main>
-    </>
+    </div>
   );
 }

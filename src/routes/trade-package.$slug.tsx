@@ -43,10 +43,10 @@ const submitQuote = createServerFn({ method: "POST" })
 export const Route = createFileRoute("/trade-package/$slug")({
   loader: ({ params }) => getPackageView({ data: { slug: params.slug } }),
   component: () => (
-    <>
+    <div className="min-h-screen bg-slate-50 text-slate-900 [color-scheme:light]">
       <SiteHeader />
       <TradePackagePage />
-    </>
+    </div>
   ),
   head: () => ({
     meta: [

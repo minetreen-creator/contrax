@@ -222,11 +222,24 @@ describe("joint announcement line (owner 2026-11-10)", () => {
   test("homepage and Tampa page carry the line; the hotel comparison is credited to Casa", async () => {
     const { TAMPA_HEADLINE, CASA_PRICE_NOTE } = await import("./tampa");
     expect(`${TAMPA_HEADLINE.win} ${TAMPA_HEADLINE.house}, ${TAMPA_HEADLINE.saving}`).toBe("Win the Tampa job on Contrax. House the crew with Casa Blue Collar, for 3x less than hotels");
-    expect(CASA_PRICE_NOTE).toBe("Hotel comparison provided by Casa Blue Collar.");
+    expect(CASA_PRICE_NOTE).toContain("Figures from Casa Blue Collar");
     for (const f of ["index", "tampa-contractors"]) {
       const src = readFileSync(new URL(`../routes/${f}.tsx`, import.meta.url), "utf8");
       expect(src).toContain("TAMPA_HEADLINE.saving");
       expect(src).toContain("CASA_PRICE_NOTE");
     }
+  });
+});
+
+describe("Casa details from their site (owner 2026-11-10)", () => {
+  test("Tampa page shows Casa's amenities, phone and their own figures, labeled as theirs; no guest reviews", async () => {
+    const { CASA } = await import("./tampa");
+    expect(CASA.phone).toBe("(716) 598-2666");
+    expect(CASA.amenities).toContain("Truck and trailer parking");
+    const page = readFileSync(new URL("../routes/tampa-contractors.tsx", import.meta.url), "utf8");
+    expect(page).toContain("CASA.amenities.map");
+    expect(page).toContain("tel:${CASA.tel}");
+    expect(page).toContain("Crew and year counts are also from {CASA.name}");
+    expect(page).not.toMatch(/Nemeci|Wallas/);
   });
 });

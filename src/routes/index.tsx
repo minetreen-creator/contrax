@@ -9,6 +9,7 @@ import { PATHWAY_LINE, PATHWAY_STEPS } from "~/lib/pathway";
 
 import { trackEvent } from "~/lib/track";
 import { CASA, CASA_PRICE_NOTE, TAMPA_FACTS, TAMPA_HEADLINE, TAMPA_PATH } from "~/lib/tampa";
+import { BRAND_MESSAGE, BRAND_STEPS } from "~/lib/brand-message";
 import { STARTER_PASS_NOTE } from "~/lib/starter-pass";
 import { STARTER_FIRST_MONTH_PRICE as STARTER_PRICE } from "~/lib/starter-offer";
 import { SiteHeader } from "~/components/SiteHeader";
@@ -349,12 +350,27 @@ function HomeMegaprojects({ featured, projects, amount }: { featured: Megaprojec
 
 // "From opportunity to execution." (owner 2026-11-10): Contrax doesn't stop at the bid list.
 function HomeExecutionLine() {
+  // Owner 2026-11-10: the whole marketing story is one line (src/lib/brand-message.ts).
   return (
-    <section aria-labelledby="home-execution-title" className="mx-auto max-w-[1120px] px-4 pt-12 text-center sm:px-6">
-      <h2 id="home-execution-title" className={`${SERIF} text-[clamp(26px,3.4vw,36px)] leading-[1.15] font-bold`}>From opportunity to execution.</h2>
-      <p className="mx-auto mt-2 max-w-2xl text-sm text-slate-600 sm:text-base dark:text-slate-300">
-        Find the bid, line up the subs, house the crew and win the work, all from Contrax.
-      </p>
+    <section aria-labelledby="home-execution-title" className="mx-auto max-w-[1120px] px-4 pt-12 sm:px-6">
+      <p className="text-center text-xs font-bold uppercase tracking-wider text-blue-700 dark:text-blue-300">From opportunity to execution</p>
+      <h2 id="home-execution-title" className={`${SERIF} mt-1 text-center text-[clamp(26px,3.4vw,38px)] leading-[1.15] font-bold`}>{BRAND_MESSAGE}</h2>
+      <ol className="mt-6 grid gap-3 sm:grid-cols-3">
+        {BRAND_STEPS.map((st, i) => (
+          <li key={st.title}>
+            <a
+              href={`${st.href}?source=home_message`}
+              onClick={() => trackEvent("home_message_step_click", String(i + 1))}
+              className="group flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-5 transition hover:-translate-y-0.5 hover:border-blue-400 hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
+            >
+              <span className="text-xs font-bold text-blue-700 dark:text-blue-300">Step {i + 1}</span>
+              <span className="mt-1 text-lg font-bold">{st.title}</span>
+              <span className="mt-1 text-sm text-slate-600 dark:text-slate-300">{st.detail}</span>
+              <span className="mt-auto pt-3 text-sm font-semibold text-blue-700 group-hover:text-blue-600 dark:text-blue-300">{st.cta} →</span>
+            </a>
+          </li>
+        ))}
+      </ol>
     </section>
   );
 }

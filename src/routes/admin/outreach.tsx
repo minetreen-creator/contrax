@@ -40,7 +40,16 @@ interface Overview {
   drafts: Draft[];
   recent: Draft[];
   stats: { sentFirst: number; sentFollowup: number; sentToday: number; suppressed: number; drafts: number };
+  doNotContact?: { email: string; reason: string; created_at: string }[];
 }
+
+/** Plain words for a suppression reason. */
+const REASON_LABEL: Record<string, string> = {
+  contacted_by_hand: "Emailed by hand (Oct 22–23)",
+  not_a_fit: "Ruled out: not a fit",
+  manual: "Added here",
+  unsubscribed: "Unsubscribed",
+};
 
 function OutreachPage() {
   const [data, setData] = useState<Overview | null>(null);
@@ -232,6 +241,21 @@ function OutreachPage() {
           <h2 className="text-lg font-bold text-slate-900">Do not contact</h2>
           <p className="mt-1 text-sm text-slate-600">Someone replied "stop"? Add their address and they will never be emailed again.</p>
           <DoNotContact busy={busy} onAdd={(email) => act({ action: "suppress", email }, () => `${email} will never be emailed.`)} />
+          {data?.doNotContact?.length ? (
+            <details className="mt-4">
+              <summary className="cursor-pointer text-sm font-semibold text-slate-800">See all {data.doNotContact.length} addresses never emailed</summary>
+              <ul className="mt-2 divide-y divide-slate-100 text-sm">
+                {data.doNotContact.map((r) => (
+                  <li key={r.email} className="flex flex-wrap justify-between gap-2 py-1.5">
+                    <span className="break-all text-slate-900">{r.email}</span>
+                    <span className="text-slate-500">
+                      {REASON_LABEL[r.reason] ?? r.reason} · {timeFmt(r.created_at)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          ) : null}
         </section>
 
         {data && data.recent.length > 0 && (

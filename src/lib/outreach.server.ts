@@ -262,6 +262,8 @@ export async function outreachOverview(): Promise<{
   drafts: ContactRow[];
   recent: ContactRow[];
   stats: { sentFirst: number; sentFollowup: number; sentToday: number; suppressed: number; drafts: number };
+  /** Every address never to email (admin only; the list lives in the database, not in the public code). */
+  doNotContact: { email: string; reason: string; created_at: string }[];
 }> {
   await ensureOutreach();
   const db = sql();
@@ -278,10 +280,14 @@ export async function outreachOverview(): Promise<{
       COUNT(*) FILTER (WHERE status = 'draft')::int AS drafts
     FROM outreach_contacts`) as { sent_first: number; sent_followup: number; sent_today: number; drafts: number }[];
   const [sup] = (await db`SELECT COUNT(*)::int AS n FROM outreach_suppressions WHERE reason <> 'contacted_by_hand'`) as { n: number }[];
+  const doNotContact = ((await db`SELECT email, reason, created_at FROM outreach_suppressions ORDER BY created_at DESC, email ASC LIMIT 1000`) as { email: string; reason: string; created_at: string | Date }[]).map(
+    (r) => ({ email: r.email, reason: r.reason, created_at: new Date(r.created_at).toISOString() }),
+  );
   return {
     postalAddress: await getPostalAddress(),
     drafts,
     recent,
+    doNotContact,
     stats: {
       sentFirst: s?.sent_first ?? 0,
       sentFollowup: s?.sent_followup ?? 0,

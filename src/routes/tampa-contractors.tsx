@@ -143,9 +143,9 @@ function TampaPage() {
           </p>
           <div className="mt-3 flex flex-wrap gap-3 text-sm font-semibold">
             <a href="/sub-finder?state=FL" className="rounded-lg bg-slate-900 px-4 py-2 text-white">Open Sub Finder</a>
-            <a href="/find-subcontractors/florida/hvac" className="rounded-lg border border-slate-300 px-4 py-2 text-slate-800">HVAC and plumbing subs</a>
-            <a href="/find-subcontractors/florida/electrical" className="rounded-lg border border-slate-300 px-4 py-2 text-slate-800">Electrical subs</a>
-            <a href="/find-subcontractors/florida/construction" className="rounded-lg border border-slate-300 px-4 py-2 text-slate-800">Construction subs</a>
+            <a href="/sub-finder?trade=hvac&state=FL" className="rounded-lg border border-slate-300 px-4 py-2 text-slate-800">HVAC and plumbing subs</a>
+            <a href="/sub-finder?trade=electrical&state=FL" className="rounded-lg border border-slate-300 px-4 py-2 text-slate-800">Electrical subs</a>
+            <a href="/sub-finder?trade=construction&state=FL" className="rounded-lg border border-slate-300 px-4 py-2 text-slate-800">Construction subs</a>
           </div>
           {d.subs.total > 0 ? (
             <div className="mt-5">

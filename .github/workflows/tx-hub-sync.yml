@@ -1,0 +1,38 @@
+name: Sync Texas HUB-certified firms
+# Sub Finder (owner 2026-11-10, "3"): Texas HUB-certified firms from the Comptroller's public downloads
+# (refreshed nightly; robots.txt allows /auto-data/). Rules: src/lib/tx-hub.ts. No vendor IDs, phones or
+# emails are stored. Contrax contacts none of these firms. Weekly on Mondays, and by hand.
+on:
+  schedule:
+    - cron: "37 11 * * 1"
+  workflow_dispatch:
+concurrency:
+  group: tx-hub-sync
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  sync:
+    name: Sync Texas HUB-certified firms
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Download the Comptroller's public files
+        run: |
+          set -euo pipefail
+          UA="ContraxBot/1.0 (+https://www.contrax.company/bot)"
+          curl -sSL --fail -m 600 -A "$UA" -o /tmp/web_name.csv https://comptroller.texas.gov/auto-data/purchasing/web_name.csv
+          curl -sSL --fail -m 600 -A "$UA" -o /tmp/vnr_clas.csv https://comptroller.texas.gov/auto-data/purchasing/vnr_clas.csv
+          ls -l /tmp/web_name.csv /tmp/vnr_clas.csv
+      - name: Load into the database
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: bun src/jobs/tx-hub-sync.ts /tmp/web_name.csv /tmp/vnr_clas.csv

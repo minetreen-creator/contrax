@@ -117,6 +117,12 @@ export function MarketPage({ market: m, data: d }: { market: Market; data: Marke
               <a href={`/sub-finder?trade=construction&state=${st}`} className="mt-3 inline-block text-sm font-semibold text-blue-700">See more {m.stateName} subs in Sub Finder →</a>
             </div>
           ) : null}
+          {d.txHub > 0 ? (
+            <p className="mt-3 text-sm text-slate-700">
+              Plus {d.txHub.toLocaleString("en-US")} {d.txHub === 1 ? "firm" : "firms"} in {m.name} certified by the State of Texas as Historically Underutilized Businesses (HUB) for this work.{" "}
+              <a href={`/sub-finder?trade=construction&state=${st}`} className="font-semibold text-blue-700">See them in Sub Finder →</a>
+            </p>
+          ) : null}
           <p className="mt-3 text-sm text-slate-700">
             A {m.name} sub? <a href="/sub-finder/join" className="font-semibold text-blue-700">Get listed for primes →</a>
           </p>

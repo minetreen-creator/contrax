@@ -19,9 +19,11 @@ test("only 2-, 4- or 6-digit NAICS codes reach USAspending", () => {
   expect(fpds).not.toContain("naics_codes: naicsCode ? [naicsCode]");
 });
 
-test("/awards shares similar-bid searches, runs them 8 at a time, and loads federal awards alongside", () => {
+test("/awards loads similar bids only when a card is opened, and federal awards alongside (owner 2026-11-10)", () => {
   const page = readFileSync("src/routes/awards.tsx", "utf8");
-  expect(page).toContain("groups.slice(i, i + 8).map(async");
-  expect(page).not.toMatch(/for \(const award of awards\) \{[\s\S]{0,400}await sql\(\)/);
+  const loader = page.slice(page.indexOf("const getAwardsData"), page.indexOf("const getSimilarBids"));
+  expect(loader).not.toContain("similarBids");
+  expect(page).toContain("getSimilarBids({ data: { id: award.id, category: award.category");
+  expect(page).toContain("Loading similar open bids…");
   expect(page).toContain("getFederalAwards({ data: { q: deps.q, state: deps.state } }),\n    ]);");
 });

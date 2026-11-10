@@ -85,7 +85,7 @@ const STATE_LOCATION_REGEX = new RegExp(
 
 const getAwardsData = createServerFn({ method: "GET" })
   .validator((d: unknown) => d as { search?: string })
-  .handler(async ({ data }: { data: { search?: string } }): Promise<{ awards: Award[]; similarBids: Record<number, SimilarBid[]> }> => {
+  .handler(async ({ data }: { data: { search?: string } }): Promise<{ awards: Award[] }> => {
   // The sync job stores procurement opportunities in `bids`.  Do not use the
   // legacy `awarded_contracts` table here: it is unrelated to synced data and
   // is not present in every production database.
@@ -172,38 +172,32 @@ const getAwardsData = createServerFn({ method: "GET" })
     source_url: r.source_url || null,
   }));
 
-  // Similar open bids per card. Owner 2026-11-10 (production review: /awards took 15-19 s): this was
-  // 100 searches one after another. Cards with the same category and place share one search (it asks
-  // for one extra row so the card's own bid can be left out), and searches run 8 at a time.
-  const similarBids: Record<number, SimilarBid[]> = {};
-  const byKey = new Map<string, { cat: string; parts: string; ids: number[] }>();
-  for (const award of awards) {
-    const cat = award.category;
-    if (!cat) { similarBids[award.id] = []; continue; }
-    const parts = award.location ? award.location.split(",")[0].trim() : "";
-    const key = `${cat.toLowerCase()}|${parts.toLowerCase()}`;
-    const g = byKey.get(key) ?? { cat, parts, ids: [] };
-    g.ids.push(award.id);
-    byKey.set(key, g);
-  }
-  const groups = [...byKey.values()];
-  for (let i = 0; i < groups.length; i += 8) {
-    await Promise.all(groups.slice(i, i + 8).map(async ({ cat, parts, ids }) => {
-      const limit = 5 + ids.length;
-      const bidRows = parts
-        ? await sql()`SELECT id, title, agency, due_date, estimated_value, category, source FROM bids WHERE ${sql().unsafe(LOW_CONTENT_SQL)} AND due_date > NOW() AND ${sql().unsafe(AWARD_EXCLUSION_SQL)} AND (category ILIKE ${"%" + cat + "%"} OR location ILIKE ${"%" + parts + "%"}) ORDER BY due_date ASC NULLS LAST LIMIT ${limit}`
-        : await sql()`SELECT id, title, agency, due_date, estimated_value, category, source FROM bids WHERE ${sql().unsafe(LOW_CONTENT_SQL)} AND due_date > NOW() AND ${sql().unsafe(AWARD_EXCLUSION_SQL)} AND category ILIKE ${"%" + cat + "%"} ORDER BY due_date ASC NULLS LAST LIMIT ${limit}`;
-      const mapped = (bidRows as any[]).map((b) => ({
-        id: Number(b.id), title: b.title, agency: b.agency,
-        due_date: b.due_date ? (toISODate(b.due_date) || "Not specified") : "Not specified",
-        estimated_value: b.estimated_value || "Not specified", category: b.category || "",
-        source: b.source ? String(b.source) : null,
-      }));
-      for (const id of ids) similarBids[id] = mapped.filter((b) => b.id !== id).slice(0, 5);
-    }));
-  }
-  return { awards, similarBids };
+  return { awards };
 });
+
+/**
+ * Similar open bids for ONE card, loaded when the card is opened (owner 2026-11-10: "do the awards
+ * lazy load"). The page used to run this for all 100 listings before it could render (15-19 s).
+ */
+const getSimilarBids = createServerFn({ method: "GET" })
+  .validator((d: unknown) => {
+    const o = (d ?? {}) as { id?: unknown; category?: unknown; location?: unknown };
+    return { id: Number(o.id) || 0, category: String(o.category ?? "").slice(0, 80), location: String(o.location ?? "").slice(0, 120) };
+  })
+  .handler(async ({ data }): Promise<SimilarBid[]> => {
+    if (!data.category) return [];
+    const cat = data.category;
+    const parts = data.location ? data.location.split(",")[0].trim() : "";
+    const bidRows = parts
+      ? await sql()`SELECT id, title, agency, due_date, estimated_value, category, source FROM bids WHERE id <> ${data.id} AND ${sql().unsafe(LOW_CONTENT_SQL)} AND due_date > NOW() AND ${sql().unsafe(AWARD_EXCLUSION_SQL)} AND (category ILIKE ${"%" + cat + "%"} OR location ILIKE ${"%" + parts + "%"}) ORDER BY due_date ASC NULLS LAST LIMIT 5`
+      : await sql()`SELECT id, title, agency, due_date, estimated_value, category, source FROM bids WHERE id <> ${data.id} AND ${sql().unsafe(LOW_CONTENT_SQL)} AND due_date > NOW() AND ${sql().unsafe(AWARD_EXCLUSION_SQL)} AND category ILIKE ${"%" + cat + "%"} ORDER BY due_date ASC NULLS LAST LIMIT 5`;
+    return (bidRows as any[]).map((b) => ({
+      id: Number(b.id), title: b.title, agency: b.agency,
+      due_date: b.due_date ? (toISODate(b.due_date) || "Not specified") : "Not specified",
+      estimated_value: b.estimated_value || "Not specified", category: b.category || "",
+      source: b.source ? String(b.source) : null,
+    }));
+  });
 
 /** What one card's lazy intel load returns. */
 export interface IncumbentIntelResult {
@@ -383,7 +377,9 @@ function fmtDate(d: string | null | undefined) {
 
 // ── Component ──────────────────────────────────────────────────────────────────
 function AwardsPage() {
-  const { awards, similarBids, currentUser, savedBidIds, paidAccess, federal } = Route.useLoaderData();
+  const { awards, currentUser, savedBidIds, paidAccess, federal } = Route.useLoaderData();
+  // Similar bids load when a card opens (owner 2026-11-10 lazy load). undefined = not asked yet.
+  const [similarBids, setSimilarBids] = useState<Record<number, SimilarBid[] | "loading">>({});
   const routeSearch = Route.useSearch();
   const [search, setSearch] = useState("");
   const inputSearch = search || routeSearch.search || "";
@@ -392,6 +388,15 @@ function AwardsPage() {
   const [stateFilter, setStateFilter] = useState("");
 
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  useEffect(() => {
+    if (expandedId == null || similarBids[expandedId] !== undefined) return;
+    const award = awards.find((a) => a.id === expandedId);
+    if (!award) return;
+    setSimilarBids((m) => ({ ...m, [award.id]: "loading" }));
+    getSimilarBids({ data: { id: award.id, category: award.category ?? "", location: award.location ?? "" } })
+      .then((rows) => setSimilarBids((m) => ({ ...m, [award.id]: rows })))
+      .catch(() => setSimilarBids((m) => ({ ...m, [award.id]: [] })));
+  }, [expandedId]);
   // One entry per expanded card: the lazy FPDS/USAspending intel plus any stored
   // SAM.gov Award Notice for that bid (see getIncumbentIntel). Undefined = not
   // loaded yet.
@@ -680,7 +685,8 @@ function AwardsPage() {
         <div id="feed" className="space-y-4">
           {filtered.slice(0, 20).map((award) => {
             const isExpanded = expandedId === award.id;
-            const bids = similarBids[award.id] || [];
+            const similar = similarBids[award.id];
+            const bids = Array.isArray(similar) ? similar : [];
             const isIncumbent = award.incumbent && award.incumbent === award.winning_company;
 
             return (
@@ -844,7 +850,9 @@ function AwardsPage() {
                     {/* Similar Future Opportunities */}
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-3">Similar Future Opportunities</p>
-                      {bids.length > 0 ? (
+                      {similar === undefined || similar === "loading" ? (
+                        <p className="text-sm text-slate-400">Loading similar open bids…</p>
+                      ) : bids.length > 0 ? (
                         <div className="space-y-2">
                           {bids.map((bid) => (
                             <a

@@ -1,4 +1,4 @@
-name: Temp probe (7-day funnel, read-only, counts only)
+name: Temp probe (Radar scan failures, read-only, counts only)
 on:
   push:
     branches: [claude/vibrant-cray-177q1d]

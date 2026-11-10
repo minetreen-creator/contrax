@@ -1094,6 +1094,7 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   va_vbcps_beacon: "VA",
   va_grtc_beacon: "VA",
   pa_pittsburgh_schools_beacon: "PA",
+  tx_new_braunfels_beacon: "TX",
   ca_la_county: "CA",
   ca_port_of_oakland: "CA",
   ca_berkeley: "CA",

@@ -6741,6 +6741,14 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
     searchScope: "city-open-data",
     recordType: "opportunity",
   },
+  // City of New Braunfels on Beacon (owner 2026-11-10: Texas cities work).
+  tx_new_braunfels_beacon: {
+    class: "local",
+    city: "New Braunfels",
+    scopeState: "TX",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
   // California read directly (owner 2026-11-07: "Yes start California").
   ca_la_county: {
     class: "local",

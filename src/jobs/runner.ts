@@ -66,6 +66,7 @@ import { fetchTnEpbBids, fetchTnKingsportBids } from "./sources/tn-epb-kingsport
 import { fetchTnUtCapitalBids } from "./sources/tn-ut-capital";
 import { CA_DIRECT_BATCH2, CA_DIRECT_SOURCES } from "./sources/ca-direct";
 import { PAVA_BEACON_SOURCES } from "./sources/pava-beacon";
+import { TX_BEACON_SOURCES } from "./sources/tx-beacon";
 import { REVIZE_SOURCES } from "./sources/revize-bids";
 import { FL_DIRECT_SOURCES } from "./sources/fl-direct";
 import { AR_IONWAVE_SOURCES, SC_IONWAVE_SOURCES, TX_IONWAVE_SOURCES } from "./sources/ar-ionwave";
@@ -570,6 +571,7 @@ export const TAIL_SOURCES: SyncSource[] = [
   ...CA_DIRECT_BATCH2,
   // Pennsylvania and Virginia buyers on Beacon (owner 2026-11-07).
   ...PAVA_BEACON_SOURCES,
+  ...TX_BEACON_SOURCES,
   // Revize "Bid Postings" boards (owner 2026-11-07).
   ...REVIZE_SOURCES,
   // Florida read directly: FDOT lettings, Polk, Lee, Tampa construction (owner 2026-11-07: "Yes do the Florida batch").

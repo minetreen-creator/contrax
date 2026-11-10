@@ -214,6 +214,8 @@ function Home() {
       />
       <Navbar />
       <HomeContractFinder sample={sample} openTotal={contractMap?.totals?.totalOpen ?? 0} />
+      {/* Owner 2026-11-10 ("one additional message near the top"): the line that ties the cards below together. */}
+      <HomeExecutionLine />
       {/* Tampa partnership (owner 2026-11-10: "just below the main hero"): Contrax + Casa Blue Collar. */}
       <HomeTampaPartner />
       {/* Subs for primes (owner 2026-11-10: "below the new partnership card"): find and claim your business. */}
@@ -345,11 +347,23 @@ function HomeMegaprojects({ featured, projects, amount }: { featured: Megaprojec
   );
 }
 
+// "From opportunity to execution." (owner 2026-11-10): Contrax doesn't stop at the bid list.
+function HomeExecutionLine() {
+  return (
+    <section aria-labelledby="home-execution-title" className="mx-auto max-w-[1120px] px-4 pt-12 text-center sm:px-6">
+      <h2 id="home-execution-title" className={`${SERIF} text-[clamp(26px,3.4vw,36px)] leading-[1.15] font-bold`}>From opportunity to execution.</h2>
+      <p className="mx-auto mt-2 max-w-2xl text-sm text-slate-600 sm:text-base dark:text-slate-300">
+        Find the bid, line up the subs, house the crew and win the work, all from Contrax.
+      </p>
+    </section>
+  );
+}
+
 // Tampa Contractor Support Network (owner 2026-11-09): a partnership with Casa Blue Collar.
 // Every figure is TAMPA_FACTS (src/lib/tampa.ts), the same numbers the Tampa page shows.
 function HomeTampaPartner() {
   return (
-    <section aria-labelledby="home-tampa-title" className="mx-auto max-w-[1120px] px-4 pt-12 sm:px-6">
+    <section aria-labelledby="home-tampa-title" className="mx-auto max-w-[1120px] px-4 pt-6 sm:px-6">
       <div className="grid gap-5 rounded-3xl border border-slate-200 bg-gradient-to-br from-sky-50 to-white p-6 sm:p-8 lg:grid-cols-[1.4fr_1fr] dark:border-slate-700 dark:from-slate-900 dark:to-slate-950">
         <div>
           <p className="text-xs font-bold uppercase tracking-wider text-sky-700 dark:text-sky-300">🌴 New in Tampa · Partnership</p>

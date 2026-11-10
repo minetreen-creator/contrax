@@ -149,27 +149,30 @@ function FindSubsPage() {
         </p>
 
         <section className="mt-5 rounded-2xl border-2 border-slate-900 bg-white p-5">
+          {/* Owner 2026-11-10: lead with every sub we know of (registered + listed), never a "0" headline. */}
           <h2 className="text-lg font-bold text-slate-900">
-            {d.listed > 0
-              ? `${d.listed} ${label} sub${d.listed === 1 ? "" : "s"} listed for primes in ${d.name}`
-              : `No ${label} subs listed in ${d.name} yet`}
+            {d.registered + d.listed > 0
+              ? `${(d.registered + d.listed).toLocaleString("en-US")} ${label} subs in ${d.name}`
+              : `No ${label} subs found in ${d.name} yet`}
           </h2>
-          {d.certs.length ? (
-            <p className="mt-1 text-sm text-slate-700">
-              Certifications (self-reported): {d.certs.map((c) => `${c.count} ${c.label}`).join(", ")}
-            </p>
-          ) : null}
-          <p className="mt-2 text-sm text-slate-600">
-            {d.listed > 0
-              ? "Open Sub Finder to see them and send a quote request. Only businesses that chose to be listed appear, and each request lets them stop."
-              : "Make a Trade Package anyway and share the link with the subs you know, by text or email. Every sub who opens it can list their business here."}
-          </p>
-          {d.registered > 0 ? (
-            <p className="mt-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-700">
-              <strong>{d.registered.toLocaleString("en-US")}</strong> small businesses in {d.name} are registered with the government (SAM.gov) for {label} work
-              {registeredCertText(d.registeredCerts) ? `, including ${registeredCertText(d.registeredCerts)}` : ""}. Sub Finder shows them by name with their websites.
-            </p>
-          ) : null}
+          <ul className="mt-2 space-y-1 text-sm text-slate-700">
+            {d.registered > 0 ? (
+              <li>
+                <strong>{d.registered.toLocaleString("en-US")}</strong> small businesses registered with the government (SAM.gov) for {label} work
+                {registeredCertText(d.registeredCerts) ? `, including ${registeredCertText(d.registeredCerts)}` : ""}. See them by name, with their websites.
+              </li>
+            ) : null}
+            <li>
+              {d.listed > 0 ? (
+                <>
+                  <strong>{d.listed}</strong> listed on Contrax for quote requests
+                  {d.certs.length ? ` (${d.certs.map((c) => `${c.count} ${c.label}`).join(", ")}, self-reported)` : ""}.
+                </>
+              ) : (
+                "None listed on Contrax for quote requests yet: make a Trade Package and share the link with subs by text or email."
+              )}
+            </li>
+          </ul>
           <a href={finder} onClick={() => trackEvent("find_subs_page_click", `${d.trade.slug}-${d.code}`)} className="mt-3 inline-block rounded-lg bg-slate-900 px-4 py-2.5 font-semibold text-white">
             {d.listed > 0 || d.registered > 0 ? `See ${label} subs in ${d.name} →` : "Make a Trade Package →"}
           </a>

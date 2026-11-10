@@ -237,7 +237,7 @@ function SubFinderPage() {
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_380px]">
         <section>
           <h2 className="text-lg font-bold text-slate-900">
-            Listed subs{tradeLabel ? ` · ${tradeLabel}` : ""}{d.state ? ` · ${STATE_NAMES[d.state]}` : ""}
+            Listed on Contrax{tradeLabel ? ` · ${tradeLabel}` : ""}{d.state ? ` · ${STATE_NAMES[d.state]}` : ""}
           </h2>
           {d.failed ? (
             <p className="mt-2 text-sm text-amber-800">The list could not load just now. Please try again in a minute.</p>
@@ -265,7 +265,9 @@ function SubFinderPage() {
             </ul>
           ) : (
             <p className="mt-2 rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
-              No listed subs match yet. Make a Trade Package and share the link with the subs you know: every sub who opens it can list their business here.
+              {d.registered?.total
+                ? `None have listed on Contrax yet for this search, but ${d.registered.total.toLocaleString("en-US")} registered with the government are below. Make a Trade Package and share the link with them.`
+                : "No listed subs match yet. Make a Trade Package and share the link with the subs you know: every sub who opens it can list their business here."}
             </p>
           )}
           {pkg && d.subs.length ? (

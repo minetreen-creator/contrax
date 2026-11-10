@@ -184,9 +184,12 @@ describe("Tampa Contractor Support Network (owner 2026-11-09)", () => {
 });
 
 describe("Tampa partnership on the homepage (owner 2026-11-09)", () => {
-  test("the homepage shows the Tampa card after megaprojects, with the shared facts and the Casa link", () => {
+  test("the homepage shows the Tampa card right under the hero, with the shared facts and the Casa link", () => {
     const home = readFileSync(new URL("../routes/index.tsx", import.meta.url), "utf8");
-    expect(home.indexOf("<HomeTampaPartner />")).toBeGreaterThan(home.indexOf("<HomeMegaprojects"));
+    const at = home.indexOf("<HomeTampaPartner />");
+    expect(at).toBeGreaterThan(home.indexOf("<HomeContractFinder"));
+    expect(at).toBeLessThan(home.indexOf("<StarterPassStrip />"));
+    expect(home.split("<HomeTampaPartner />").length).toBe(2);
     expect(home).toContain("TAMPA_FACTS.federalConstruction");
     expect(home).toContain('rel="sponsored noopener"');
   });
@@ -202,5 +205,15 @@ describe("pages stay readable in dark mode (owner 2026-11-10 screenshot)", () =>
   test("Tampa page and homepage card show Tampa subs", () => {
     expect(readFileSync(new URL("../routes/tampa-contractors.tsx", import.meta.url), "utf8")).toContain("registeredSubsInCities");
     expect(readFileSync(new URL("../routes/index.tsx", import.meta.url), "utf8")).toContain("Find Tampa subs →");
+  });
+});
+
+describe("no zero headlines when registered subs exist (owner 2026-11-10)", () => {
+  test("search pages count registered + listed; Sub Finder points to the registered list; Tampa buttons open the named list", () => {
+    const page = readFileSync(new URL("../routes/find-subcontractors.$state.$trade.tsx", import.meta.url), "utf8");
+    expect(page).toContain("d.registered + d.listed > 0");
+    expect(page).not.toContain("subs listed in ${d.name} yet");
+    expect(readFileSync(new URL("../routes/sub-finder.tsx", import.meta.url), "utf8")).toContain("registered with the government are below");
+    expect(readFileSync(new URL("../routes/tampa-contractors.tsx", import.meta.url), "utf8")).toContain('href="/sub-finder?trade=hvac&state=FL"');
   });
 });

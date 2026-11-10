@@ -214,6 +214,8 @@ function Home() {
       />
       <Navbar />
       <HomeContractFinder sample={sample} openTotal={contractMap?.totals?.totalOpen ?? 0} />
+      {/* Tampa partnership (owner 2026-11-10: "just below the main hero"): Contrax + Casa Blue Collar. */}
+      <HomeTampaPartner />
       {/* The $5 Starter pass, right under the search (owner 2026-10-31 funnel
           check: the homepage never mentioned the offer). Owner 2026-11-09: it now
           also says what the 6 AM email brings (Auto-Pilot), and it is the only one. */}
@@ -227,8 +229,6 @@ function Home() {
       <HomeAppStrip />
       {/* Megaprojects (owner 2026-11-07): the big plants and highway jobs hiring local subs. */}
       {megaprojects ? <HomeMegaprojects {...megaprojects} /> : null}
-      {/* Tampa partnership (owner 2026-11-09): Contrax + Casa Blue Collar, crew housing for Tampa jobs. */}
-      <HomeTampaPartner />
       {/* Owner 2026-11-02 (design critique, "fix all"): one path down the page,
           sized for a small trade business: search, the $5 pass, how it works,
           the state map, Max, sub leads, and the $5 pass again to close. The

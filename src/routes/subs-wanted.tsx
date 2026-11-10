@@ -12,8 +12,8 @@ import { trackEvent } from "~/lib/track";
  * scope and due date only: never an email or phone. Contrax doesn't verify companies or licenses.
  */
 const PROD_URL = "https://www.contrax.company";
-const TITLE = "Subs Wanted: Subcontractor Jobs by Trade and State | Contrax";
-const DESC = "Contractors looking for subs right now: HVAC, electrical, plumbing, construction, janitorial and more, by state. Open the job and send your quote.";
+const TITLE = "Subs Wanted: Public or Private Subcontractor Jobs by Trade and State | Contrax";
+const DESC = "Contractors looking for subs right now, on public or private jobs: HVAC, electrical, plumbing, construction, janitorial and more, by state. Open the job and send your quote.";
 const REPORT_EMAIL = "contrax.companyllc@gmail.com";
 
 const getBoard = createServerFn({ method: "GET" })
@@ -79,7 +79,8 @@ function BoardPage() {
           Subs wanted{tradeLabel ? ` · ${tradeLabel}` : ""}{stateName ? ` · ${stateName}` : ""}
         </h1>
         <p className="mt-2 text-slate-700">
-          Contractors looking for subcontractors right now, on public and private jobs. Open a job to see the scope and send your quote straight to the contractor.
+          Public or private: government work or private projects, contractors post the jobs they need subs for right now. Open a job to see the scope and send your quote
+          straight to the contractor.
         </p>
 
         <form method="get" action="/subs-wanted" className="mt-5 flex flex-wrap gap-2 text-sm">
@@ -138,7 +139,7 @@ function BoardPage() {
         <section className="mt-8 grid gap-3 sm:grid-cols-2">
           <div className="rounded-2xl border-2 border-slate-900 bg-white p-4 text-sm">
             <h2 className="font-bold">Need a sub?</h2>
-            <p className="mt-1 text-slate-700">Describe the job once in a Trade Package, check "post it on the Subs Wanted board", and share the link. Quotes come back to you in one place.</p>
+            <p className="mt-1 text-slate-700">Public or private job, describe it once in a Trade Package, check "post it on the Subs Wanted board", and share the link. Quotes come back to you in one place.</p>
             <a href="/sub-finder" onClick={() => trackEvent("subs_wanted_post_cta", "board")} className="mt-2 inline-block font-semibold text-blue-700">
               Post a job in Sub Finder →
             </a>

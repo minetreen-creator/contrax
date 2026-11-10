@@ -43,3 +43,12 @@ test("quotes carry an optional, self-reported license number and state (owner 20
   expect(read("../routes/trade-package.$slug.tsx")).toContain('name="licenseNumber"');
   expect(read("./sub-finder.server.ts")).toContain("license_number, license_state, message, created_at FROM trade_package_responses");
 });
+
+test("the boards are reachable on phones too: homepage footer, homepage subs card and Sub Finder (owner 2026-11-10)", () => {
+  const home = read("../routes/index.tsx");
+  expect(home).toContain('{ href: "/subs-wanted", label: "Subs Wanted" }');
+  expect(home).toContain('{ href: "/co-op-contracts", label: "Co-op contracts" }');
+  expect(home).toContain("See public or private jobs that need subs →");
+  expect(read("../routes/sub-finder.tsx")).toContain("Subs Wanted board: public or private jobs that need subs now →");
+  expect(read("../routes/subs-wanted.tsx")).toContain("Public or private");
+});

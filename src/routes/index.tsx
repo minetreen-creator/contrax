@@ -480,6 +480,9 @@ function HomeSubsJoin() {
           <a href="/sub-finder/join?source=home" onClick={() => trackEvent("home_subs_search", "join")} className="text-center text-sm font-semibold text-blue-700 hover:text-blue-600 dark:text-blue-300">
             Not registered? Get listed →
           </a>
+          <a href="/subs-wanted" onClick={() => trackEvent("home_subs_search", "board")} className="text-center text-sm font-semibold text-blue-700 hover:text-blue-600 dark:text-blue-300">
+            See public or private jobs that need subs →
+          </a>
         </form>
       </div>
     </section>
@@ -621,9 +624,11 @@ const FOOTER_GROUPS = [
     links: [
       { href: "/pathway", label: "The Contrax Pathway" },
       { href: "/gap-map", label: "Gap Map" },
-      { href: "/roadmap", label: "Your roadmap" },
-      { href: "/prime-finder", label: "Prime contractor finder" },
+      { href: "/roadmap", label: "Your Roadmap" },
+      { href: "/prime-finder", label: "Prime Finder" },
       { href: "/sub-finder", label: "Sub Finder" },
+      { href: "/subs-wanted", label: "Subs Wanted" },
+      { href: "/co-op-contracts", label: "Co-op contracts" },
     ],
   },
   {

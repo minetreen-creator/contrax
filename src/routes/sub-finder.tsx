@@ -214,6 +214,9 @@ function SubFinderPage() {
         See local subcontractors who listed their business for primes, filtered by trade, state and certification. Make a Trade Package (the job, your
         scope and your deadline) and share the link with any sub you work with; their quotes come to your inbox.
       </p>
+      <p className="mt-2 text-sm">
+        <a href="/subs-wanted" className="font-semibold text-blue-700">Subs Wanted board: public or private jobs that need subs now →</a>
+      </p>
 
       {d.context ? (
         <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4 text-sm">
@@ -362,7 +365,7 @@ function SubFinderPage() {
                 <label className="flex items-start gap-2 rounded-lg bg-slate-50 p-2">
                   <input type="checkbox" name="listOnBoard" className="mt-0.5 h-4 w-4" />
                   <span className="text-xs text-slate-700">
-                    Also post it on the public <a href="/subs-wanted" className="font-semibold text-blue-700">Subs Wanted board</a> so subs can find it. Shows your company, trade, location,
+                    Also post it on the public <a href="/subs-wanted" className="font-semibold text-blue-700">Subs Wanted board</a> so subs can find it, for a public or private job. Shows your company, trade, location,
                     scope and due date; never your email or phone. You can take it down any time.
                   </span>
                 </label>

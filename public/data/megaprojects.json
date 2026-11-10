@@ -537,6 +537,27 @@
     "checked": "2026-10-25"
   },
   {
+    "slug": "honda-ohio-assembly-oh",
+    "company": "Honda",
+    "project": "New hybrid vehicle assembly plant",
+    "city": "Marysville area",
+    "state": "OH",
+    "sector": "automotive",
+    "amount": 3000000000,
+    "amountNote": "about; Ohio counts $3.38 billion including engine and transmission plant upgrades",
+    "jobs": 2000,
+    "jobsNote": "more than 2,000; 2,390 counting the plant upgrades, per JobsOhio",
+    "status": "Announced November 9, 2026; production targeted for 2029, pending government approvals",
+    "summary": "Honda's first all-new U.S. mass-production assembly plant since 2008, built for hybrid demand, on land between its Marysville and East Liberty plants in Central Ohio. Planned capacity: 240,000 vehicles a year.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "CNBC, Nov 9, 2026",
+      "url": "https://www.cnbc.com/2026/11/09/honda-to-invest-3-billion-in-new-vehicle-assembly-plant-in-ohio.html"
+    },
+    "checked": "2026-11-10"
+  },
+  {
     "slug": "lh-battery-jeffersonville-oh",
     "company": "Honda & LG Energy Solution",
     "project": "L-H Battery cell plant",

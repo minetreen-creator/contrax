@@ -27,6 +27,7 @@ import type { FetchResult } from "../runner";
 import { SourceUnreachableError } from "../fetch-failure";
 import type { RawBid } from "./sam-gov";
 import { zonedIso } from "./revize-bids";
+import { ionwaveTurn } from "./ionwave-throttle";
 
 const UA = "Mozilla/5.0 (compatible; ContraxBot/1.0; +https://www.contrax.company)";
 type Zone = "America/New_York" | "America/Chicago";
@@ -377,6 +378,7 @@ export const fetchFlTampaConstruction = (now: number = Date.now()) => readHtml(F
 
 export async function fetchFlLeeBids(now: number = Date.now()): Promise<FetchResult> {
   try {
+    await ionwaveTurn();
     const first = await getPage(FL_LEE_SOURCE, LEE_URL);
     const cookie = (first.headers.getSetCookie?.() ?? []).map((c) => c.split(";")[0]).join("; ");
     let html = await first.text();
@@ -385,6 +387,7 @@ export async function fetchFlLeeBids(now: number = Date.now()): Promise<FetchRes
     if (pages > 20) throw new SourceUnreachableError(FL_LEE_SOURCE, ["Too many pages"]);
     const items = [...page.items];
     for (let p = 1; p < pages; p++) {
+      await ionwaveTurn();
       const res = await getPage(FL_LEE_SOURCE, LEE_URL, { method: "POST", body: leeNextPageForm(html), headers: { "content-type": "application/x-www-form-urlencoded", cookie } });
       html = await res.text();
       page = readLeePage(html);

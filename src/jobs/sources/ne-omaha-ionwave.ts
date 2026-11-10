@@ -6,6 +6,7 @@ import { mapCategory } from "~/lib/trade-classification";
 import type { FetchResult } from "../runner";
 import type { RawBid } from "./sam-gov";
 import { SourceUnreachableError } from "../fetch-failure";
+import { ionwaveTurn } from "./ionwave-throttle";
 export const OMAHA_SOURCE = "ne_omaha_ionwave";
 export const OMAHA_ORIGIN = "https://douglascountypurchasing.ionwave.net";
 export const OMAHA_LIST_URL = `${OMAHA_ORIGIN}/SourcingEvents.aspx?SourceType=1`;
@@ -81,6 +82,7 @@ export async function fetchOmahaBids(now=Date.now()): Promise<FetchResult> {
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),120000);
   const cookies=new Map<string,string>();
   const request=async(url:string,init:RequestInit={})=>{
+    await ionwaveTurn();
     const response=await fetch(url,{...init,signal:controller.signal,headers:{...init.headers,Cookie:[...cookies].map(([k,v])=>`${k}=${v}`).join("; ")}});
     for(const c of response.headers.getSetCookie()) {const pair=c.split(";")[0],i=pair.indexOf("=");if(i>0)cookies.set(pair.slice(0,i),pair.slice(i+1));}
     if(!response.ok)fail(`HTTP ${response.status}`);

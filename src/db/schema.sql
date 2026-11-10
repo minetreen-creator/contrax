@@ -1365,3 +1365,19 @@ CREATE TABLE IF NOT EXISTS sam_registrants (
 );
 CREATE INDEX IF NOT EXISTS sam_registrants_state_idx ON sam_registrants (state);
 CREATE INDEX IF NOT EXISTS sam_registrants_trades_idx ON sam_registrants USING GIN (trades);
+
+-- Texas HUB-certified firms (src/lib/tx-hub.ts) from the Comptroller's public downloads
+-- (src/jobs/tx-hub-sync.ts); mirror of src/lib/tx-hub.server.ts ensureTxHubTable. Keyed by a one-way
+-- hash: the vendor ID, phones, emails and contact names are never stored.
+CREATE TABLE IF NOT EXISTS tx_hub_firms (
+  key TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  city TEXT,
+  county TEXT,
+  description TEXT,
+  trades TEXT[] NOT NULL DEFAULT '{}',
+  expires DATE,
+  synced_on DATE NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS tx_hub_firms_trades_idx ON tx_hub_firms USING GIN (trades);

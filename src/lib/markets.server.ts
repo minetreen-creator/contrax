@@ -20,9 +20,11 @@ export interface MarketData {
   build: number;
   bids: MarketBid[];
   subs: MarketSubs;
+  /** Texas HUB-certified firms for the market's trades in its cities (Texas markets only). */
+  txHub: number;
 }
 
-const EMPTY: MarketData = { open: 0, build: 0, bids: [], subs: { total: 0, certs: {}, rows: [] } };
+const EMPTY: MarketData = { open: 0, build: 0, bids: [], subs: { total: 0, certs: {}, rows: [] }, txHub: 0 };
 const cache = new Map<string, { at: number; data: MarketData }>();
 const TTL = 30 * 60 * 1000;
 
@@ -46,10 +48,12 @@ export async function loadMarketData(m: Market): Promise<MarketData> {
     `) as { id: number; title: string; agency: string | null; location: string | null; due_date: string | Date | null }[];
     const { registeredSubsInCities } = await import("~/lib/sam-registrants.server");
     const subs = await registeredSubsInCities({ state: m.stateCode, cities: m.subCities, trades: m.subTrades, limit: 12 });
+    const txHub = m.stateCode === "TX" ? await (await import("~/lib/tx-hub.server")).txHubCountIn({ cities: m.subCities, trades: m.subTrades }) : 0;
     const here = rows.filter((r) => inMarket(m, r.location, r.agency));
     const build = here.filter((r) => isBuildWork(r.title));
     const data: MarketData = {
       subs,
+      txHub,
       open: here.length,
       build: build.length,
       bids: build.slice(0, 10).map((r) => ({

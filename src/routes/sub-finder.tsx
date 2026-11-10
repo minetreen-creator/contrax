@@ -6,6 +6,7 @@ import { STATE_NAMES } from "~/lib/contract-map";
 import { SEO_TRADES, SEO_TRADE_BY_SLUG } from "~/lib/seo-trades";
 import { MAX_QUOTE_REQUESTS_PER_PACKAGE, SUB_FINDER_CERTS, certNames, shareText, type ListedSub } from "~/lib/sub-finder";
 import { SAM_SOURCE_NOTE } from "~/lib/sam-registrants";
+import { TX_HUB_DIRECTORY_URL, TX_HUB_NOTE } from "~/lib/tx-hub-public";
 import { trackEvent } from "~/lib/track";
 
 /**
@@ -61,12 +62,15 @@ const getSubFinder = createServerFn({ method: "GET" })
       // SAM.gov registered small businesses (item 5): shown for one trade and state; more when signed in.
       const { findRegisteredSubs } = await import("~/lib/sam-registrants.server");
       const registered = data.trade && state ? await findRegisteredSubs({ trade: data.trade, state, cert: data.cert || null, limit: user ? 50 : 10 }) : null;
+      // Texas HUB-certified firms (owner 2026-11-10, "3": state certification directories).
+      const txHub = data.trade && state === "TX" ? await (await import("~/lib/tx-hub.server")).txHubFirms({ trade: data.trade, limit: user ? 50 : 10 }) : null;
       return {
         ...data,
         state,
         context,
         subs,
         registered,
+        txHub,
         signedIn: Boolean(user),
         listing: user ? await srv.myListing(user.id) : null,
         packages: user ? await srv.myPackages(user.id) : [],
@@ -74,7 +78,7 @@ const getSubFinder = createServerFn({ method: "GET" })
       };
     } catch (e) {
       console.error("[sub-finder] load failed:", e);
-      return { ...data, context: null, subs: [] as ListedSub[], registered: null, signedIn: Boolean(user), listing: null, packages: [], failed: true };
+      return { ...data, context: null, subs: [] as ListedSub[], registered: null, txHub: null, signedIn: Boolean(user), listing: null, packages: [], failed: true };
     }
   });
 
@@ -286,6 +290,7 @@ function SubFinderPage() {
           {d.registered ? <RegisteredSubs data={d.registered} trade={tradeLabel} state={d.state ? STATE_NAMES[d.state] : ""} signedIn={d.signedIn} pkgUrl={pkg ? pkg.url : null} /> : d.trade && !d.state ? (
             <p className="mt-6 text-sm text-slate-600">Pick a state to also see small businesses registered with the government for this trade.</p>
           ) : null}
+          {d.txHub ? <TxHubSubs data={d.txHub} trade={tradeLabel} signedIn={d.signedIn} /> : null}
         </section>
 
         <aside className="space-y-4">
@@ -412,6 +417,46 @@ function SharePanel({ url, text }: { url: string; text: string }) {
         <a href={`mailto:?subject=${encodeURIComponent("Quote request")}&body=${encodeURIComponent(text)}`} onClick={() => trackEvent("sub_finder_share", "email")} className="col-span-2 rounded-lg border border-slate-300 px-3 py-2 text-center font-semibold text-slate-800">Email it</a>
       </div>
       <p className="text-xs text-slate-500">Send it from your own phone or email to the subs you work with. Their quotes come to your inbox.</p>
+    </div>
+  );
+}
+
+/**
+ * Texas HUB-certified firms (src/lib/tx-hub.ts). Public state directory; no phones or emails are
+ * stored, so the prime looks them up in the state's own directory. Contrax contacts none of them.
+ */
+function TxHubSubs({ data, trade, signedIn }: { data: { total: number; rows: { key: string; name: string; city: string | null; description: string | null }[] }; trade: string; signedIn: boolean }) {
+  if (!data.total) return null;
+  return (
+    <div className="mt-8">
+      <h2 className="text-lg font-bold text-slate-900">Certified by the State of Texas (HUB){trade ? ` · ${trade}` : ""}</h2>
+      <p className="mt-1 text-sm text-slate-600">
+        {data.total.toLocaleString("en-US")} {data.total === 1 ? "firm is" : "firms are"} certified as a Texas Historically Underutilized Business for this work. They haven't joined Contrax, and
+        Contrax doesn't contact them: find their contact details in the state's directory.
+      </p>
+      <ul className="mt-2 grid gap-2 sm:grid-cols-2">
+        {data.rows.map((r) => (
+          <li key={r.key} className="rounded-xl border border-slate-200 bg-white p-3 text-sm">
+            <p className="font-semibold text-slate-900">{r.name}</p>
+            <p className="text-xs text-slate-600">{r.city ?? ""}{r.city ? ", TX" : ""}</p>
+            {r.description ? <p className="mt-1 line-clamp-2 text-xs text-slate-600">{r.description}</p> : null}
+          </li>
+        ))}
+      </ul>
+      {data.total > data.rows.length ? (
+        <p className="mt-2 text-sm text-slate-700">
+          {signedIn ? `Showing ${data.rows.length} of ${data.total.toLocaleString("en-US")}.` : (
+            <>
+              Showing {data.rows.length} of {data.total.toLocaleString("en-US")}.{" "}
+              <a href={`/signup?source=sub_finder_txhub&next=${encodeURIComponent("/sub-finder")}`} className="font-semibold text-blue-700">Create an account to see more →</a>
+            </>
+          )}
+        </p>
+      ) : null}
+      <a href={TX_HUB_DIRECTORY_URL} target="_blank" rel="noopener noreferrer" onClick={() => trackEvent("sub_finder_txhub_directory", trade)} className="mt-2 inline-block text-sm font-semibold text-blue-700 hover:underline">
+        Contact details in the Texas HUB directory →
+      </a>
+      <p className="mt-1 text-xs text-slate-500">{TX_HUB_NOTE} Is this your business and you'd like it removed? Email contrax.companyllc@gmail.com.</p>
     </div>
   );
 }

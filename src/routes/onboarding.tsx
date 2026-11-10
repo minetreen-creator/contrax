@@ -104,6 +104,14 @@ export function parseEstimatedValue(v: string | null | undefined): number | null
 // site-wide equivalent exists), applied in JS on the already-deduped rows using
 // the same state regex the /awards page uses. The count is therefore truthful
 // and server-side, never gameable.
+/** Sub Finder (owner 2026-11-10): the member chose "List my business for primes" during setup. */
+const listMeForPrimes = createServerFn({ method: "POST" }).handler(async () => {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false };
+  const { setListed } = await import("~/lib/sub-finder.server");
+  return { ok: await setListed(user.id, true) };
+});
+
 const countMatchOpportunities = createServerFn({ method: "GET" })
   .validator((d: unknown) => d as { certification?: string; query?: string; states?: string[]; range?: string; naicsCodes?: string[] })
   .handler(
@@ -216,6 +224,8 @@ function OnboardingPage({ currentUser }: { currentUser: AuthUser }) {
   const [naicsCodes, setNaicsCodes] = useState<string[]>(initCtx.naics);
   const [states, setStates] = useState<string[]>(initCtx.states);
   const [contractRange, setContractRange] = useState("any");
+  // Sub Finder (owner 2026-11-10): asked once at setup, unchecked; the member chooses.
+  const [listForPrimes, setListForPrimes] = useState(false);
 
   // Radar → signup → onboarding prefill (owner-directed, NO email capture). When
   // the visitor came through a Contract Radar scan, /signup stashed their radar
@@ -348,6 +358,10 @@ function OnboardingPage({ currentUser }: { currentUser: AuthUser }) {
         }),
       }).then((r) => r.json());
       if (!res.success) throw new Error(res.error || "Failed to save profile.");
+      if (listForPrimes) {
+        await listMeForPrimes().catch(() => null);
+        trackEvent("onboarding_listed_for_primes", "yes", "/onboarding");
+      }
     } catch (err) {
       // Fail-open — never block the activation moment on a profile write.
       console.error("[onboarding] profile save failed:", err);
@@ -553,6 +567,22 @@ function OnboardingPage({ currentUser }: { currentUser: AuthUser }) {
               </span>
             </a>
           </div>
+
+          {/* Sub Finder listing (owner 2026-11-10): primes looking for subs can send quote requests. */}
+          <label className="mt-6 flex items-start gap-3 rounded-xl border border-indigo-200 bg-indigo-50 p-4 text-sm">
+            <input
+              type="checkbox"
+              checked={listForPrimes}
+              onChange={(e) => setListForPrimes(e.target.checked)}
+              className="mt-0.5 h-4 w-4"
+            />
+            <span>
+              <span className="font-semibold text-slate-900">List my business for primes</span>
+              <span className="block text-slate-700">
+                Prime contractors bidding government jobs can find you on Sub Finder and send you quote requests by email. Every request has a one-click way to stop.
+              </span>
+            </span>
+          </label>
 
           {/* Result */}
           {count !== null && (

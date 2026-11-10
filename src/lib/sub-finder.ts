@@ -234,7 +234,7 @@ export const PARTNER_BLURB = [
   "Looking for subcontracting work on government jobs?",
   "Prime contractors use Sub Finder on Contrax to find local subs by trade, state and certification, and send them quote requests for specific bids.",
   "To get listed: create an account at contrax.company, add your trade, states and certifications, then turn on \"List my business for primes\" on the Sub Finder page. You can turn it off any time.",
-  "https://www.contrax.company/sub-finder",
+  "https://www.contrax.company/sub-finder/join",
 ].join("\n\n");
 
 /** A trade label inside a sentence: "Janitorial" → "janitorial", acronyms kept ("HVAC and plumbing", "IT services"). PURE. */

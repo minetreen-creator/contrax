@@ -345,6 +345,7 @@ function SubFinderPage() {
           <div id="listing" className="scroll-mt-20 rounded-2xl border border-slate-200 bg-white p-4 text-sm">
             <h2 className="font-bold text-slate-900">Are you a subcontractor?</h2>
             <p className="mt-1 text-slate-600">List your business so primes with government work can find you and ask for your quote. You can stop any time.</p>
+            <a href="/sub-finder/join" className="mt-1 inline-block text-xs font-semibold text-blue-700">Registered in SAM.gov? Find and claim your business →</a>
             {!d.signedIn ? (
               <a href={`/signup?source=sub_finder_listing&next=${encodeURIComponent("/sub-finder")}`} className="mt-2 inline-block font-semibold text-blue-700">Create an account to get listed →</a>
             ) : !d.listing?.hasProfile ? (
@@ -441,6 +442,9 @@ function RegisteredSubs({ data, trade, state, signedIn, pkgUrl }: { data: { tota
                 Website →
               </a>
             ) : null}
+            <a href={`/sub-finder/claim?uei=${r.uei}`} onClick={() => trackEvent("sub_finder_claim_click", "sub_finder")} className="ml-3 text-xs text-slate-500 hover:underline">
+              Your business? Claim it
+            </a>
           </li>
         ))}
       </ul>

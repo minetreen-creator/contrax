@@ -117,3 +117,79 @@ export async function registeredSubsInCities(q: { state: string; cities: readonl
     return { total: 0, certs: {}, rows: [] };
   }
 }
+
+export interface ClaimableRegistrant extends RegisteredSub {
+  state: string;
+  trades: string[];
+  naics: string[];
+}
+
+/** One registered business by UEI (public SAM.gov fields only). */
+export async function getRegistrant(uei: string): Promise<ClaimableRegistrant | null> {
+  if (!/^[A-Z0-9]{12}$/.test(uei)) return null;
+  try {
+    const rows = (await sql()`SELECT uei, name, city, state, url, certs, trades, naics FROM sam_registrants WHERE uei = ${uei}`) as ClaimableRegistrant[];
+    return rows[0] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Search registered businesses by name (and state) so a sub can find and claim their own. */
+export async function searchRegistrants(name: string, state: string | null, limit = 10): Promise<ClaimableRegistrant[]> {
+  const q = name.trim();
+  if (q.length < 3) return [];
+  try {
+    const statePred = state ? sql()`AND state = ${state}` : sql()``;
+    return (await sql()`
+      SELECT uei, name, city, state, url, certs, trades, naics FROM sam_registrants
+      WHERE name ILIKE ${`%${q.replace(/[%_]/g, "")}%`} ${statePred}
+      ORDER BY (LOWER(name) = LOWER(${q})) DESC, name ASC
+      LIMIT ${limit}
+    `) as ClaimableRegistrant[];
+  } catch {
+    return [];
+  }
+}
+
+/** Who (if anyone) already claimed this UEI. */
+export async function claimOwner(uei: string): Promise<number | null> {
+  const rows = (await sql()`SELECT user_id FROM business_profiles WHERE uei = ${uei} AND user_id IS NOT NULL ORDER BY id ASC LIMIT 1`) as { user_id: number }[];
+  return rows[0]?.user_id ?? null;
+}
+
+/**
+ * Claim a registered business for the signed-in member: their profile takes the SAM.gov name,
+ * UEI, trades (NAICS), state and certifications, and is listed for primes (the member asked).
+ * One account per UEI. Returns whether the email domain matched the registered website.
+ */
+export async function claimRegistrant(userId: number, email: string, uei: string): Promise<{ ok: true; emailMatch: boolean } | { ok: false; error: string }> {
+  const { emailMatchesSite, mergeList } = await import("~/lib/sam-registrants");
+  const { ensureSubFinderTables } = await import("~/lib/sub-finder.server");
+  const r = await getRegistrant(uei);
+  if (!r) return { ok: false, error: "We couldn't find that business. It may have left SAM.gov." };
+  await ensureSubFinderTables();
+  const owner = await claimOwner(uei);
+  if (owner && owner !== userId) return { ok: false, error: "This business was already claimed by another account. If that's wrong, email contrax.companyllc@gmail.com." };
+  const existing = (await sql()`
+    SELECT id, naics_codes, locations, certifications FROM business_profiles WHERE user_id = ${userId} ORDER BY id ASC LIMIT 1
+  `) as { id: number; naics_codes: unknown; locations: unknown; certifications: unknown }[];
+  const p = existing[0];
+  if (p) {
+    await sql()`
+      UPDATE business_profiles SET
+        business_name = ${r.name}, uei = ${r.uei},
+        naics_codes = ${JSON.stringify(mergeList(p.naics_codes, r.naics))}::jsonb,
+        locations = ${JSON.stringify(mergeList(p.locations, [r.state]))}::jsonb,
+        certifications = ${JSON.stringify(mergeList(p.certifications, r.certs))}::jsonb,
+        listed_for_primes = TRUE, updated_at = NOW()
+      WHERE id = ${p.id}
+    `;
+  } else {
+    await sql()`
+      INSERT INTO business_profiles (user_id, business_name, industry, locations, naics_codes, certifications, uei, listed_for_primes)
+      VALUES (${userId}, ${r.name}, '', ${JSON.stringify([r.state])}::jsonb, ${JSON.stringify(r.naics)}::jsonb, ${JSON.stringify(r.certs)}::jsonb, ${r.uei}, TRUE)
+    `;
+  }
+  return { ok: true, emailMatch: emailMatchesSite(email, r.url) };
+}

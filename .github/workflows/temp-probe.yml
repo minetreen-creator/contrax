@@ -1,0 +1,21 @@
+name: Temp capture (Laredo and New Braunfels bid portals, read-only)
+on:
+  push:
+    branches: [claude/vibrant-cray-177q1d]
+    paths: [".github/probe/**"]
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash .github/probe/capture.sh
+      - name: Commit captures
+        run: |
+          git config user.name "contrax-probe"
+          git config user.email "probe@users.noreply.github.com"
+          git add src/jobs/sources/fixtures/tx-cities || true
+          git commit -m "Temp capture: Laredo and New Braunfels bid portals (read-only)" || echo "nothing to commit"
+          git push origin HEAD:claude/vibrant-cray-177q1d

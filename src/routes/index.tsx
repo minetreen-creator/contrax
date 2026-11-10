@@ -385,7 +385,11 @@ function HomeTampaPartner() {
         <div className="flex flex-col justify-center gap-3 rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Housing referral partner</p>
           <p className="text-lg font-bold">{CASA.name}</p>
-          <p className="text-sm text-slate-700 dark:text-slate-300">Bringing a crew into Tampa? Ask {CASA.name} about housing near your job site and book with them directly.</p>
+          <p className="text-sm text-slate-700 dark:text-slate-300">{CASA.tagline}: full kitchen, laundry, truck and trailer parking, minutes from the job. {CASA.ask}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            {CASA.stats.filter((st) => st.value !== "3x").map((st) => `${st.value} ${st.label}`).join(" · ")} ·{" "}
+            <a href={`tel:${CASA.tel}`} onClick={() => trackEvent("tampa_housing_referral_click", "home_phone")} className="font-semibold text-blue-700 dark:text-blue-300">{CASA.phone}</a> · {CASA.spanish}
+          </p>
           <a
             href={`${TAMPA_PATH}?source=home`}
             onClick={() => trackEvent("home_tampa_click", "network")}

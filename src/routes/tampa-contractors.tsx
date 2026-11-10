@@ -180,20 +180,40 @@ function TampaPage() {
 
         <section id="housing" className="mt-8 scroll-mt-20 rounded-2xl border-2 border-slate-900 bg-white p-5">
           <h2 className="text-xl font-bold text-slate-900">3. House the crew</h2>
-          <p className="mt-1 text-sm text-slate-700">
-            Bringing a crew into Tampa for a project? Our housing referral partner, {CASA.name}, houses traveling work crews {TAMPA_HEADLINE.saving}.* Ask them about availability,
-            rates and locations near your job site, and book with them directly.
-          </p>
-          <a
-            href={CASA.url}
-            target="_blank"
-            rel="sponsored noopener"
-            onClick={() => trackEvent("tampa_housing_referral_click", "casa_blue_collar")}
-            className="mt-3 inline-block rounded-lg bg-slate-900 px-4 py-2.5 font-semibold text-white"
-          >
-            Ask {CASA.name} about crew housing →
-          </a>
-          <p className="mt-2 text-xs text-slate-500">*{CASA_PRICE_NOTE} {CASA.name} is an independent company and Contrax's housing referral partner. Bookings and rates are between you and them.</p>
+          <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-sky-700">Housing referral partner · {CASA.name}</p>
+          <p className="mt-1 text-lg font-bold text-slate-900">{CASA.tagline}: {TAMPA_HEADLINE.saving}.*</p>
+          <p className="mt-1 text-sm text-slate-700">{CASA.pitch} {CASA.proof}</p>
+          <dl className="mt-4 grid grid-cols-3 gap-3 text-center">
+            {CASA.stats.map((st) => (
+              <div key={st.label} className="rounded-xl bg-sky-50 p-3">
+                <dt className="sr-only">{st.label}</dt>
+                <dd className="text-2xl font-extrabold text-slate-900">{st.value}{st.value === "3x" ? "*" : ""}</dd>
+                <dd className="text-xs text-slate-600">{st.label}</dd>
+              </div>
+            ))}
+          </dl>
+          <ul className="mt-4 grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-slate-700 sm:grid-cols-4">
+            {CASA.amenities.map((a) => (
+              <li key={a}>✓ {a}</li>
+            ))}
+          </ul>
+          <p className="mt-4 text-sm font-semibold text-slate-900">{CASA.ask}</p>
+          <div className="mt-2 flex flex-wrap items-center gap-3">
+            <a
+              href={CASA.url}
+              target="_blank"
+              rel="sponsored noopener"
+              onClick={() => trackEvent("tampa_housing_referral_click", "casa_blue_collar")}
+              className="inline-block rounded-lg bg-slate-900 px-4 py-2.5 font-semibold text-white"
+            >
+              Get crew housing from {CASA.name} →
+            </a>
+            <a href={`tel:${CASA.tel}`} onClick={() => trackEvent("tampa_housing_referral_click", "casa_phone")} className="text-sm font-semibold text-blue-700">
+              Or call {CASA.phone}
+            </a>
+            <span className="text-sm text-slate-600">{CASA.spanish}</span>
+          </div>
+          <p className="mt-3 text-xs text-slate-500">*{CASA_PRICE_NOTE} Crew and year counts are also from {CASA.name}, an independent company and Contrax's housing referral partner. Bookings and rates are between you and them.</p>
         </section>
 
         <p className="mt-8 text-xs text-slate-500">Powered by Contrax LLC · Housing referral partner: {CASA.name}</p>

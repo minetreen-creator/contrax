@@ -248,13 +248,10 @@ describe("Casa details from their site (owner 2026-11-10)", () => {
 });
 
 describe("homepage card for subs (owner 2026-11-10)", () => {
-  test("sits right below the Tampa card and searches the join page", () => {
+  test("folded into the message section (owner 2026-11-10 cleanup) and still opens the join page", () => {
     const home = readFileSync(new URL("../routes/index.tsx", import.meta.url), "utf8");
-    const tampa = home.indexOf("<HomeTampaPartner />");
-    const subs = home.indexOf("<HomeSubsJoin />");
-    expect(subs).toBeGreaterThan(tampa);
-    expect(subs).toBeLessThan(home.indexOf("<StarterPassStrip />"));
-    expect(home).toContain('action="/sub-finder/join"');
+    expect(home).toContain('href="/sub-finder/join?source=home"');
+    expect(home).not.toContain("<HomeSubsJoin />");
     expect(readFileSync(new URL("../routes/sub-finder_.join.tsx", import.meta.url), "utf8")).toContain("if (initial.name) void search(initial.name");
   });
 });

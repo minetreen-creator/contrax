@@ -1,45 +1,40 @@
 import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 
-// Owner 2026-11-09: "clean up the homepage and add these new features there" (keep the app panel).
+// Owner 2026-11-10 homepage cleanup ("follow your recommendations"): five sections, one path down
+// the page; the Pathway, app, megaprojects and extra links moved to their pages and the footer.
 const page = readFileSync("src/routes/index.tsx", "utf8");
+const at = (s: string) => page.indexOf(s);
 
-test("the homepage shows the Pathway line and the four steps right after the $5 strip", () => {
-  expect(page).toContain("{PATHWAY_LINE}");
-  expect(page).toContain("PATHWAY_STEPS.map(");
-  expect(page.indexOf("<StarterPassStrip />")).toBeLessThan(page.indexOf("<HomePathway />"));
-  expect(page).toContain('href="/pathway"');
+test("the homepage is five sections in this order: search, message, AI proof, $5 pass, state map", () => {
+  const order = ["<HomeContractFinder", "<HomeExecutionLine />", "<HomeMaxProof />", "<StarterPassStrip />", "<HomeStateMap"].map(at);
+  expect(order.every((i) => i > 0)).toBe(true);
+  expect([...order].sort((a, b) => a - b)).toEqual(order);
 });
 
-test("the $5 strip says what the 6 AM email brings; the app panel stays; the map links to the gap map", () => {
+test("moved off the homepage: the Pathway steps, the app panel, megaprojects, the subs card and the tool links", () => {
+  for (const gone of ["<HomePathway />", "<HomeAppStrip />", "<HomeMegaprojects", "<HomeSubsJoin />", "PATHWAY_STEPS.map(", 'trackEvent("home_open_to_all_click")'])
+    expect(page).not.toContain(gone);
+});
+
+test("the Tampa card shows to Florida visitors only, decided in the browser so the cached page stays the same for everyone", () => {
+  expect(page).toContain("<FloridaOnly>\n        <HomeTampaPartner />\n      </FloridaOnly>");
+  expect(page).toContain('setShow(r.state === "FL")');
+  expect(page).toContain('{ href: "/tampa-contractors", label: "Tampa: work and crew housing" }');
+});
+
+test("subs are folded into the message section, and the footer keeps every moved tool", () => {
+  const line = page.slice(at("function HomeExecutionLine"), at("const getVisitorState"));
+  expect(line).toContain('href="/sub-finder/join?source=home"');
+  expect(line).toContain('href="/subs-wanted"');
+  for (const href of ['"/pathway"', '"/gap-map"', '"/roadmap"', '"/prime-finder"', '"/recompetes"', '"/megaprojects"', '"/subs-wanted"', '"/co-op-contracts"'])
+    expect(page).toContain(`href: ${href}`);
+});
+
+test("the $5 strip still says what the 6 AM email brings", () => {
   expect(page).toContain("Auto-Pilot reads each one against your business and leads with the best fits");
-  expect(page).toContain("<HomeAppStrip />");
-  expect(page.indexOf('href="/gap-map"')).toBeGreaterThan(page.indexOf("<HomeStateMap"));
 });
 
-test("the footer lists the Pathway tools", () => {
-  for (const href of ['"/pathway"', '"/gap-map"', '"/roadmap"', '"/prime-finder"']) expect(page).toContain(`href: ${href}`);
-});
-
-test("on phones the Pathway cards stay short: description hidden, number beside the title", () => {
-  expect(page).toContain('className="mt-2 hidden flex-1 text-sm leading-relaxed text-slate-600 sm:block');
-  expect(page).toContain('<div className="flex items-center gap-3 sm:block">');
-});
-
-test("under the map: the gap map, contracts ending soon and federal bids open to every business", () => {
-  const map = page.indexOf("<HomeStateMap");
-  for (const href of ['href="/gap-map"', 'href="/recompetes"', 'onClick={() => trackEvent("home_open_to_all_click")}']) {
-    expect(page.indexOf(href, map)).toBeGreaterThan(map);
-  }
-  expect(page).toContain("Federal bids open to every business, no certification needed");
-});
-
-test("the app install steps are collapsed behind one tap; the panel, alert note and buttons stay", () => {
-  const app = page.slice(page.indexOf("function HomeAppStrip"), page.indexOf("function StarterPassStrip"));
-  const open = app.indexOf('<details className="group mt-5">');
-  expect(open).toBeGreaterThan(-1);
-  expect(app.indexOf("APP_STEPS.map(")).toBeGreaterThan(open);
-  expect(app).toContain("How to install on iPhone or Android");
-  expect(app.indexOf("Phone alerts need a paid plan.")).toBeGreaterThan(app.indexOf("</details>"));
-  expect(app).toContain('href="/app?source=home"');
+test("megaprojects stay one tap away from a thin Radar search", () => {
+  expect(readFileSync("src/routes/radar.tsx", "utf8")).toContain('href="/megaprojects?source=radar_more"');
 });

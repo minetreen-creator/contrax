@@ -1,18 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState, type ReactNode } from "react";
 import { HomeMaxProof } from "~/components/HomeMaxProof";
 import { createServerFn } from "@tanstack/react-start";
 import { readFile } from "node:fs/promises";
 import { ArrowRight } from "lucide-react";
 import { HomeContractFinder } from "~/components/HomeContractFinder";
 import { HomeStateMap } from "~/components/HomeStateMap";
-import { PATHWAY_LINE, PATHWAY_STEPS } from "~/lib/pathway";
 
 import { trackEvent } from "~/lib/track";
 import { CASA, CASA_PRICE_NOTE, TAMPA_FACTS, TAMPA_HEADLINE, TAMPA_PATH } from "~/lib/tampa";
 import { BRAND_MESSAGE, BRAND_STEPS } from "~/lib/brand-message";
 import { MARKETS } from "~/lib/markets";
 import { STARTER_PASS_NOTE } from "~/lib/starter-pass";
-import { STARTER_FIRST_MONTH_PRICE as STARTER_PRICE } from "~/lib/starter-offer";
 import { SiteHeader } from "~/components/SiteHeader";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
@@ -27,7 +26,6 @@ import {
 } from "~/lib/contract-map";
 import { getEverydaySample } from "~/lib/sample-bids";
 import { MAX_PROOF, maxProofStillCurrent } from "~/lib/max-proof";
-import { featuredMegaprojects, MEGA_SECTORS, megaMoney, megaprojectHref, megaTotals, type Megaproject } from "~/lib/megaprojects";
 
 // ── Server Functions ──────────────────────────────────────────────────────────
 
@@ -104,21 +102,8 @@ const getBidStats = async (): Promise<{ activeCount: number; agencyCount: number
 // NO SESSION READ (owner 2026-10-02): the navbar resolves the viewer in the
 // browser (SiteHeader without a `user` prop), so this render is identical for
 // every visitor and can be served from the edge cache.
-// Homepage megaprojects highlight (owner 2026-11-07: "we need to highlight megaprojects on the main
-// page"): the newest and biggest entries from the same list /megaprojects shows. Null on any failure,
-// so the section simply hides.
-const getMegaprojectsHighlight = async (): Promise<{ featured: Megaproject[]; projects: number; amount: number } | null> => {
-  try {
-    const { default: list } = (await import("../../public/data/megaprojects.json")) as { default: Megaproject[] };
-    const totals = megaTotals(list);
-    return { featured: featuredMegaprojects(list, 4), projects: totals.projects, amount: totals.amount };
-  } catch {
-    return null;
-  }
-};
-
 const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
-  const [businessName, bidStats, contractMap, megaprojects] = await Promise.all([
+  const [businessName, bidStats, contractMap] = await Promise.all([
     (async () => {
       try {
         const cfg = JSON.parse(await readFile("site.json", "utf8")) as {
@@ -131,7 +116,6 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
     })(),
     getBidStats(),
     getContractMapAggregate(),
-    getMegaprojectsHighlight(),
   ]);
   // Date accuracy (owner 2026-11-09): the Max example shows only while its bid's due date in the
   // database still matches the example. Hidden on a confirmed mismatch; shown if the check fails.
@@ -143,7 +127,7 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
   } catch (e) {
     console.warn("[home] Max example date check failed (shown):", (e as Error).message);
   }
-  return { businessName, bidStats, contractMap, megaprojects, maxProofCurrent };
+  return { businessName, bidStats, contractMap, maxProofCurrent };
 });
 
 // ── Route ─────────────────────────────────────────────────────────────────────
@@ -193,7 +177,7 @@ const SERIF = "[font-family:Charter,'Iowan_Old_Style',Georgia,serif]";
 
 function Home() {
 
-  const { contractMap, megaprojects, maxProofCurrent } = Route.useLoaderData();
+  const { contractMap, maxProofCurrent } = Route.useLoaderData();
   const { sample } = Route.useLoaderData();
 
   const jsonLd = {
@@ -215,137 +199,23 @@ function Home() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <Navbar />
+      {/* Homepage cleanup (owner 2026-11-10: "follow your recommendations"): five sections, one path
+          down the page. Search → the one message (subs folded into its step 2) → the AI assistant's
+          proof → the $5 pass → the state map. The Tampa card shows only to Florida visitors; the
+          Pathway, app, megaprojects and the extra tool links moved to their own pages and the footer. */}
       <HomeContractFinder sample={sample} openTotal={contractMap?.totals?.totalOpen ?? 0} />
-      {/* Owner 2026-11-10 ("one additional message near the top"): the line that ties the cards below together. */}
       <HomeExecutionLine />
-      {/* Tampa partnership (owner 2026-11-10: "just below the main hero"): Contrax + Casa Blue Collar. */}
-      <HomeTampaPartner />
-      {/* Subs for primes (owner 2026-11-10: "below the new partnership card"): find and claim your business. */}
-      <HomeSubsJoin />
-      {/* The $5 Starter pass, right under the search (owner 2026-10-31 funnel
-          check: the homepage never mentioned the offer). Owner 2026-11-09: it now
-          also says what the 6 AM email brings (Auto-Pilot), and it is the only one. */}
-      <StarterPassStrip />
-      {/* The Contrax Pathway (owner 2026-11-09: "clean up the homepage and add these new
-          features"): the owner's line and the four steps, in place of "How Contrax works". */}
-      <HomePathway />
+      <FloridaOnly>
+        <HomeTampaPartner />
+      </FloridaOnly>
       {/* Before/after proof (owner 2026-11-08): a real bid's notice next to Max's real answer. */}
       {maxProofCurrent !== false ? <HomeMaxProof /> : null}
-      {/* The Contrax app (owner 2026-11-07: "Today is launch day"). */}
-      <HomeAppStrip />
-      {/* Megaprojects (owner 2026-11-07): the big plants and highway jobs hiring local subs. */}
-      {megaprojects ? <HomeMegaprojects {...megaprojects} /> : null}
-      {/* Owner 2026-11-02 (design critique, "fix all"): one path down the page,
-          sized for a small trade business: search, the $5 pass, how it works,
-          the state map, Max, sub leads, and the $5 pass again to close. The
-          federal money counter, contracts ending soon and the tools strip
-          moved off the homepage (they told a lawn crew "not for you"). */}
+      {/* The $5 Starter pass (src/lib/starter-pass.ts): the only offer on the page. */}
+      <StarterPassStrip />
       {/* "Spin the map" (owner 2026-10-29: "Do 3"): tap a state, then a trade. */}
       <HomeStateMap contractMap={contractMap} />
-      {/* Owner 2026-11-09 ("yes add both links"): the gap map, contracts ending soon and the
-          federal bids open to every business (listed apart when a Radar search names a trade). */}
-      <ul className="mx-auto mt-4 flex max-w-[1120px] list-none flex-col items-center gap-2 px-4 text-center text-sm sm:px-6">
-        <li>
-          <a href="/gap-map" onClick={() => trackEvent("home_gap_map_click")} className="font-semibold text-blue-700 hover:text-blue-600 dark:text-blue-300">
-            Federal money by state: where your trade's spending is big and few companies hold the work →
-          </a>
-        </li>
-        <li>
-          <a href="/recompetes" onClick={() => trackEvent("home_recompetes_click")} className="font-semibold text-blue-700 hover:text-blue-600 dark:text-blue-300">
-            Contracts ending soon: federal work in your trade that will be bid again, and who holds it now →
-          </a>
-        </li>
-        <li>
-          <a href="/radar" onClick={() => trackEvent("home_open_to_all_click")} className="font-semibold text-blue-700 hover:text-blue-600 dark:text-blue-300">
-            Federal bids open to every business, no certification needed: listed apart when you search your trade →
-          </a>
-        </li>
-      </ul>
-      {/* Owner 2026-11-09: the second $5 strip at the bottom repeated the first one; removed. */}
       <Footer />
     </div>
-  );
-}
-
-// The Contrax Pathway on the homepage (owner 2026-11-09): the line and the five steps, each
-// linked to its tool (src/lib/pathway.ts). Replaces the 3-card "How Contrax works" and the
-// collapsed example AI brief.
-function HomePathway() {
-  return (
-    <section aria-labelledby="pathway-title" className="mx-auto max-w-[1120px] px-4 pt-12 sm:px-6">
-      <p className="text-xs font-bold uppercase tracking-wider text-blue-700 dark:text-blue-300">The Contrax Pathway</p>
-      <h2 id="pathway-title" className={`${SERIF} mt-1 max-w-3xl text-[clamp(22px,2.8vw,30px)] leading-[1.2] font-bold`}>{PATHWAY_LINE}</h2>
-      <ol className="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-        {PATHWAY_STEPS.map((s) => (
-          <li key={s.n}>
-            <a
-              href={s.href}
-              onClick={() => trackEvent("home_pathway_click", s.event)}
-              className="group flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-4 transition sm:p-5 hover:-translate-y-1 hover:border-blue-400 hover:shadow-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600 dark:border-slate-700 dark:bg-slate-900"
-            >
-              {/* Phones: the number sits beside the title and the long description is hidden, so the
-                  steps stay short (owner 2026-11-09: the stacked cards made the page longer). */}
-              <div className="flex items-center gap-3 sm:block">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-900 text-sm font-bold text-white dark:bg-white dark:text-slate-900">{s.n}</span>
-                <h3 className="text-lg font-bold sm:mt-3">{s.name}</h3>
-              </div>
-              <p className="mt-1 flex-1 text-sm font-semibold text-blue-700 sm:flex-none dark:text-blue-300">{s.question}</p>
-              <p className="mt-2 hidden flex-1 text-sm leading-relaxed text-slate-600 sm:block dark:text-slate-300">{s.what}</p>
-              <p className="mt-3 flex items-center justify-between gap-2 text-sm font-semibold text-slate-900 dark:text-white">
-                {s.cta} <ArrowRight aria-hidden="true" className="h-4 w-4 text-blue-600 dark:text-blue-300" />
-              </p>
-              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{s.access}</p>
-            </a>
-          </li>
-        ))}
-      </ol>
-      <p className="mt-4 text-center text-sm">
-        <a href="/pathway" onClick={() => trackEvent("home_pathway_click", "pathway")} className="font-semibold text-blue-700 hover:text-blue-600 dark:text-blue-300">
-          See the whole Pathway →
-        </a>
-      </p>
-    </section>
-  );
-}
-
-// Megaprojects highlight: newest and biggest projects from public/data/megaprojects.json.
-function HomeMegaprojects({ featured, projects, amount }: { featured: Megaproject[]; projects: number; amount: number }) {
-  if (!featured.length) return null;
-  return (
-    <section aria-labelledby="home-mega-title" className="mx-auto max-w-[1120px] px-4 pt-12 sm:px-6">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">🏗️ Megaprojects</p>
-          <h2 id="home-mega-title" className={`${SERIF} mt-1 text-[clamp(24px,3vw,30px)] leading-[1.15] font-bold`}>Big projects hiring local subcontractors</h2>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-            {projects} plants, factories and highway jobs{megaMoney(amount) ? ` worth ${megaMoney(amount)}` : ""}: who's building them and how to get on the sub list.
-          </p>
-        </div>
-        <a href="/megaprojects?source=home" onClick={() => trackEvent("home_megaprojects_click", "all")} className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-blue-700 hover:text-blue-600 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600 dark:text-blue-300">
-          See all {projects} <ArrowRight aria-hidden="true" className="h-4 w-4" />
-        </a>
-      </div>
-      <ul className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {featured.map((p) => (
-          <li key={p.slug}>
-            <a
-              href={`${megaprojectHref(p)}?source=home`}
-              onClick={() => trackEvent("home_megaprojects_click", p.slug)}
-              className="group flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-5 transition hover:-translate-y-1 hover:border-amber-400 hover:shadow-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600 dark:border-slate-700 dark:bg-slate-900"
-            >
-              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                {MEGA_SECTORS[p.sector]?.icon} {MEGA_SECTORS[p.sector]?.label} · {p.city}, {p.state}
-              </p>
-              <p className="mt-2 text-base font-bold leading-snug">{p.company}</p>
-              <p className="text-sm text-slate-700 dark:text-slate-300">{p.project}</p>
-              {megaMoney(p.amount) ? <p className="mt-3 text-2xl font-extrabold text-emerald-700 dark:text-emerald-400">{megaMoney(p.amount)}</p> : null}
-              {p.jobs ? <p className="text-xs text-slate-500 dark:text-slate-400">{p.jobs.toLocaleString("en-US")} jobs</p> : null}
-              <p className="mt-auto pt-3 text-sm font-semibold text-blue-700 group-hover:text-blue-600 dark:text-blue-300">How to get on the sub list →</p>
-            </a>
-          </li>
-        ))}
-      </ul>
-    </section>
   );
 }
 
@@ -372,8 +242,49 @@ function HomeExecutionLine() {
           </li>
         ))}
       </ol>
+      {/* Subs (owner 2026-11-10 cleanup: the separate "find and claim your business" card folded in here). */}
+      <p className="mt-4 text-center text-sm text-slate-600 dark:text-slate-300">
+        A subcontractor?{" "}
+        <a href="/sub-finder/join?source=home" onClick={() => trackEvent("home_subs_search", "join")} className="font-semibold text-blue-700 hover:text-blue-600 dark:text-blue-300">
+          Get listed so contractors find you
+        </a>{" "}
+        ·{" "}
+        <a href="/subs-wanted" onClick={() => trackEvent("home_subs_search", "board")} className="font-semibold text-blue-700 hover:text-blue-600 dark:text-blue-300">
+          See public or private jobs that need subs →
+        </a>
+      </p>
     </section>
   );
+}
+
+/**
+ * Florida visitors only (owner 2026-11-10 cleanup: the Tampa partnership card is for people near the
+ * work). The homepage is cached and the same for everyone, so the visitor's state is asked for in the
+ * browser; nothing shows until the answer is Florida. Everyone else reaches Tampa from the footer.
+ */
+const getVisitorState = createServerFn({ method: "GET" }).handler(async () => {
+  try {
+    const { getRequest } = await import("@tanstack/react-start/server");
+    const { stateFromGeoHeaders } = await import("~/lib/radar-geo");
+    const h = getRequest().headers;
+    return { state: stateFromGeoHeaders(h.get("x-vercel-ip-country"), h.get("x-vercel-ip-country-region")) };
+  } catch {
+    return { state: "" };
+  }
+});
+
+function FloridaOnly({ children }: { children: ReactNode }) {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    let live = true;
+    getVisitorState()
+      .then((r) => live && setShow(r.state === "FL"))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, []);
+  return show ? <>{children}</> : null;
 }
 
 // Tampa Contractor Support Network (owner 2026-11-09): a partnership with Casa Blue Collar.
@@ -454,122 +365,6 @@ function HomeTampaPartner() {
   );
 }
 
-// For subcontractors (owner 2026-11-10): primes look for subs on Sub Finder; find your business
-// (SAM.gov registration) and claim it. The search opens /sub-finder/join with the results.
-function HomeSubsJoin() {
-  return (
-    <section aria-labelledby="home-subs-title" className="mx-auto max-w-[1120px] px-4 pt-6 sm:px-6">
-      <div className="grid gap-5 rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 lg:grid-cols-[1.2fr_1fr] dark:border-slate-700 dark:bg-slate-900">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300">🔨 For subcontractors</p>
-          <h2 id="home-subs-title" className={`${SERIF} mt-1 text-[clamp(24px,3vw,30px)] leading-[1.15] font-bold`}>Prime contractors are looking for you</h2>
-          <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
-            Over 4,000 primes hold federal subcontracting plans, so they must give part of their government work to small businesses. They use Sub Finder to find local subs by
-            trade, state and certification and send quote requests by email.
-          </p>
-          <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
-            Registered in SAM.gov? Your business may already be in Sub Finder, one of over 160,000. Find it and claim it in two minutes.
-          </p>
-        </div>
-        <form action="/sub-finder/join" method="get" onSubmit={() => trackEvent("home_subs_search", "submit")} className="flex flex-col justify-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-950">
-          <label className="text-sm font-semibold" htmlFor="home-subs-name">Find your business</label>
-          <input id="home-subs-name" name="name" required minLength={3} placeholder="Business name" className="rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-slate-900 dark:border-slate-600" />
-          <button type="submit" className="inline-flex items-center justify-center gap-1 rounded-xl bg-indigo-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-600 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600">
-            Find and claim it <ArrowRight aria-hidden="true" className="h-4 w-4" />
-          </button>
-          <a href="/sub-finder/join?source=home" onClick={() => trackEvent("home_subs_search", "join")} className="text-center text-sm font-semibold text-blue-700 hover:text-blue-600 dark:text-blue-300">
-            Not registered? Get listed →
-          </a>
-          <a href="/subs-wanted" onClick={() => trackEvent("home_subs_search", "board")} className="text-center text-sm font-semibold text-blue-700 hover:text-blue-600 dark:text-blue-300">
-            See public or private jobs that need subs →
-          </a>
-        </form>
-      </div>
-    </section>
-  );
-}
-
-// The Contrax app (owner 2026-11-07): what it does and how to install it,
-// step by step, and plainly that phone alerts need a paid plan.
-const APP_STEPS: { device: string; steps: string[] }[] = [
-  {
-    device: "iPhone",
-    steps: [
-      "Open contrax.company/app in Safari",
-      "Tap the Share button ⬆️ at the bottom of the screen",
-      "Scroll down and tap Add to Home Screen, then Add",
-      "Open Contrax from your home screen, sign in and tap Turn on bid alerts",
-    ],
-  },
-  {
-    device: "Android",
-    steps: [
-      "Open contrax.company/app in Chrome",
-      "Tap Install (or the menu ⋮, then Install app)",
-      "Open Contrax from your home screen or app drawer",
-      "Sign in and tap Turn on bid alerts",
-    ],
-  },
-];
-
-function HomeAppStrip() {
-  return (
-    <section id="app" aria-labelledby="home-app-title" className="mx-auto max-w-[1120px] px-4 pt-6 sm:px-6">
-      <div className="rounded-2xl border border-slate-200 bg-[#0b1220] p-5 text-white sm:p-6 dark:border-slate-700">
-        <div className="flex items-center gap-4">
-          <img src="/app-icon-192.png" alt="" width={56} height={56} className="h-14 w-14 shrink-0 rounded-2xl" />
-          <div className="min-w-0">
-            <p className="text-xs font-bold uppercase tracking-wider text-amber-300">📱 New: the Contrax app</p>
-            <h2 id="home-app-title" className={`${SERIF} text-[clamp(20px,2.6vw,26px)] leading-tight font-bold`}>Your phone buzzes when a bid in your trade posts</h2>
-            <p className="mt-1 text-sm text-slate-300">Bids near you, reminders before saved bids are due, and winning prices. No app store: it installs from your browser in seconds.</p>
-          </div>
-        </div>
-        {/* Owner 2026-11-09: the install steps sit behind one tap so they don't take permanent space. */}
-        <details className="group mt-5">
-          <summary className="cursor-pointer list-none text-sm font-semibold text-amber-300 hover:text-amber-200 [&::-webkit-details-marker]:hidden">
-            <span className="group-open:hidden">How to install on iPhone or Android ↓</span>
-            <span className="hidden group-open:inline">Hide the install steps ↑</span>
-          </summary>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          {APP_STEPS.map((d) => (
-            <div key={d.device} className="rounded-xl border border-slate-700 bg-slate-900/70 p-4">
-              <p className="text-sm font-bold text-white">How to install on {d.device}</p>
-              <ol className="mt-2 space-y-2 text-sm text-slate-200">
-                {d.steps.map((step, i) => (
-                  <li key={step} className="flex gap-2">
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-400 text-xs font-bold text-slate-950">{i + 1}</span>
-                    <span>{step}</span>
-                  </li>
-                ))}
-              </ol>
-            </div>
-          ))}
-        </div>
-        </details>
-        <p className="mt-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
-          🔐 <b>Phone alerts need a paid plan.</b> Anyone can install the app and browse bids near them. Bid alerts come with Starter: ${STARTER_PRICE} for your first 30 days, no automatic renewal.
-        </p>
-        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-          <a
-            href="/app?source=home"
-            onClick={() => trackEvent("home_app_click", "open")}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-400 px-5 py-3 text-sm font-bold text-slate-950 hover:bg-amber-300 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600"
-          >
-            Open the Contrax app <ArrowRight aria-hidden="true" className="h-4 w-4" />
-          </a>
-          <a
-            href="/upgrade?plan=starter&source=home-app"
-            onClick={() => trackEvent("home_app_click", "starter")}
-            className="inline-flex items-center justify-center rounded-xl border border-slate-600 px-5 py-3 text-sm font-semibold text-white hover:border-amber-300"
-          >
-            Get alerts with Starter, ${STARTER_PRICE}
-          </a>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 // The $5 Starter pass offer (src/lib/starter-pass.ts), one compact strip.
 function StarterPassStrip({ where = "strip" }: { where?: "strip" | "closing" }) {
   return (
@@ -629,6 +424,10 @@ const FOOTER_GROUPS = [
       { href: "/sub-finder", label: "Sub Finder" },
       { href: "/subs-wanted", label: "Subs Wanted" },
       { href: "/co-op-contracts", label: "Co-op contracts" },
+      // Moved off the homepage (owner 2026-11-10 cleanup).
+      { href: "/recompetes", label: "Contracts ending soon" },
+      { href: "/megaprojects", label: "Megaprojects" },
+      { href: "/tampa-contractors", label: "Tampa: work and crew housing" },
     ],
   },
   {

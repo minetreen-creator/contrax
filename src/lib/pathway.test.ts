@@ -28,3 +28,12 @@ test("the Pathway tools are in the header Win work menu (not on phones), the sit
   expect(read("../routes/roadmap.tsx")).toContain("Contrax Pathway</a> · Step 2");
   expect(read("../routes/prime-finder.tsx")).toContain("Contrax Pathway</a> · Step 4");
 });
+
+test("copy pass (owner 2026-11-10): tool names capitalized, each plan named exactly", async () => {
+  const { PATHWAY_STEPS } = await import("./pathway");
+  const all = PATHWAY_STEPS.map((s) => `${s.what} ${s.cta} ${s.access} ${s.bullets.join(" ")}`).join(" ");
+  expect(all).not.toMatch(/\bgap map\b|\bprime finder\b|\bfor members\b|how to get on\b/);
+  expect(PATHWAY_STEPS[2].access).toBe("Search free; Auto-Pilot with any paid plan");
+  expect(PATHWAY_STEPS[3].access).toBe("First 3 free; unlimited with Professional");
+  for (const s of PATHWAY_STEPS) for (const sentence of s.what.split(/(?<=\.)\s+/)) expect(sentence.split(/\s+/).length).toBeLessThanOrEqual(30);
+});

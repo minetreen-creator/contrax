@@ -620,7 +620,7 @@ const FOOTER_GROUPS = [
     title: "Win contracts",
     links: [
       { href: "/pathway", label: "The Contrax Pathway" },
-      { href: "/gap-map", label: "Opportunity gap map" },
+      { href: "/gap-map", label: "Gap Map" },
       { href: "/roadmap", label: "Your roadmap" },
       { href: "/prime-finder", label: "Prime contractor finder" },
       { href: "/sub-finder", label: "Sub Finder" },

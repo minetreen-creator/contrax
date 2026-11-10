@@ -76,7 +76,7 @@ function GapMapPage() {
   return (
     <main className="mx-auto max-w-6xl px-4 py-8">
       <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
-        <a href="/pathway" className="hover:underline">Contrax Pathway</a> · Step 1 · Opportunity gap map
+        <a href="/pathway" className="hover:underline">Contrax Pathway</a> · Step 1 · Gap Map
       </p>
       <h1 className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl">Where the federal {trade.label.toLowerCase()} work is, and who already has it</h1>
       <p className="mt-2 max-w-3xl text-sm text-slate-600">

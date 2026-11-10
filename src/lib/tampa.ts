@@ -62,3 +62,7 @@ export const TAMPA_BAY_CITIES = [
 
 /** The trades a Tampa construction job needs subs for. */
 export const TAMPA_SUB_TRADES = ["construction", "hvac", "electrical"];
+
+/** Joint announcement line (owner 2026-11-10). The hotel comparison is Casa Blue Collar's own claim and is labeled that way. */
+export const TAMPA_HEADLINE = { win: "Win the Tampa job on Contrax.", house: `House the crew with ${CASA.name}`, saving: "for 3x less than hotels" } as const;
+export const CASA_PRICE_NOTE = `Hotel comparison provided by ${CASA.name}.`;

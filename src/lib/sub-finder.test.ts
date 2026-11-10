@@ -217,3 +217,16 @@ describe("no zero headlines when registered subs exist (owner 2026-11-10)", () =
     expect(readFileSync(new URL("../routes/tampa-contractors.tsx", import.meta.url), "utf8")).toContain('href="/sub-finder?trade=hvac&state=FL"');
   });
 });
+
+describe("joint announcement line (owner 2026-11-10)", () => {
+  test("homepage and Tampa page carry the line; the hotel comparison is credited to Casa", async () => {
+    const { TAMPA_HEADLINE, CASA_PRICE_NOTE } = await import("./tampa");
+    expect(`${TAMPA_HEADLINE.win} ${TAMPA_HEADLINE.house}, ${TAMPA_HEADLINE.saving}`).toBe("Win the Tampa job on Contrax. House the crew with Casa Blue Collar, for 3x less than hotels");
+    expect(CASA_PRICE_NOTE).toBe("Hotel comparison provided by Casa Blue Collar.");
+    for (const f of ["index", "tampa-contractors"]) {
+      const src = readFileSync(new URL(`../routes/${f}.tsx`, import.meta.url), "utf8");
+      expect(src).toContain("TAMPA_HEADLINE.saving");
+      expect(src).toContain("CASA_PRICE_NOTE");
+    }
+  });
+});

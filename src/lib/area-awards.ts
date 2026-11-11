@@ -74,6 +74,27 @@ export function shortDollars(n: number): string {
   return `$${Math.round(n)}`;
 }
 
+/** Fewer awards than this → no size estimate (a range from a handful of contracts is a guess). */
+export const AREA_AWARDS_MIN_RANGE = 5;
+
+/**
+ * The typical contract size for a set of awards: the 25th and 75th percentile, or null when the
+ * set is too small or the numbers are unusable. PURE.
+ */
+export function typicalRange(total: number, p25: unknown, p75: unknown): { low: number; high: number } | null {
+  const low = Math.round(Number(p25));
+  const high = Math.round(Number(p75));
+  if (total < AREA_AWARDS_MIN_RANGE || !Number.isFinite(low) || !Number.isFinite(high) || low <= 0 || high < low) return null;
+  return { low, high };
+}
+
+/** "$80K to $420K", or one figure when both ends round the same. PURE. */
+export function typicalRangeText(t: { low: number; high: number }): string {
+  const a = shortDollars(t.low);
+  const b = shortDollars(t.high);
+  return a === b ? `about ${a}` : `${a} to ${b}`;
+}
+
 export interface AreaAward {
   winner: string;
   amount: number;
@@ -89,6 +110,11 @@ export interface AreaAwards {
   total: number;
   /** Earliest award date in the set (YYYY-MM-DD). */
   since: string | null;
+  /**
+   * The middle half of those awards (25th to 75th percentile), shown to everyone as an estimate of
+   * contract size (owner 2026-11-11: "add the budget estimate"). null when there are too few awards.
+   */
+  typical: { low: number; high: number } | null;
   /** Paid viewers only; null for everyone else. */
   detail: { median: number; low: number; high: number; awards: AreaAward[] } | null;
 }

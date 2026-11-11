@@ -10,6 +10,7 @@ import { intelTeaser, recompeteLine, type IntelTeaser } from "~/lib/intel-teaser
 import { AreaAwardsBox } from "~/components/AreaAwardsBox";
 import { AppInstallBanner } from "~/components/AppInstallBanner";
 import type { AreaAwards } from "~/lib/area-awards";
+import { typicalRangeText } from "~/lib/area-awards";
 import { deriveWinnerPrice } from "~/lib/winner-price";
 import type { FPDSIntel } from "~/lib/fpds";
 import { STARTER_FIRST_MONTH_PRICE, STARTER_FULL_PRICE } from "~/lib/starter-offer";
@@ -537,6 +538,16 @@ function BidDetailPage() {
                     <>
                       <span aria-hidden="true">·</span>
                       <span>{valueLabel(bid.estimated_value)} estimated</span>
+                    </>
+                  )}
+                  {/* Owner 2026-11-11 ("add the budget estimate"): when the bid states no value, the
+                      typical size of similar federal contracts in the state, labelled as an estimate. */}
+                  {!valueLabel(bid.estimated_value) && areaAwards?.typical && (
+                    <>
+                      <span aria-hidden="true">·</span>
+                      <a href="#typical-size" onClick={() => trackEvent("bid_typical_size_click")} className="underline decoration-dotted hover:text-white">
+                        Similar jobs: {typicalRangeText(areaAwards.typical)} (estimate)
+                      </a>
                     </>
                   )}
                   <span aria-hidden="true">·</span>

@@ -44,3 +44,14 @@ test("the privacy policy also has one copy (the live page showed September 24; t
   expect(entry).not.toContain('url.pathname === "/privacy"');
   expect(readFileSync("src/routes/privacy/index.tsx", "utf8")).toContain("Last updated: October 4, 2026");
 });
+
+// Owner 2026-11-11 ("add them"), after reading a competitor's Terms: three protections ours lacked.
+test("the Terms cover bulk copying by hand, an injunction without a bond, and monitoring", () => {
+  const t = readFileSync("src/routes/terms/index.tsx", "utf8");
+  expect(t).toContain("You also may not copy, download, or collect the content of the Service in bulk by hand.");
+  expect(t).toContain("irreparable harm for which money damages alone are inadequate");
+  expect(t).toContain("without posting a bond");
+  expect(t).toContain("Contrax may monitor and log use of the Service");
+  // The set amount per page stays.
+  expect(t).toContain("$10 for each page of the Service you access or copy");
+});

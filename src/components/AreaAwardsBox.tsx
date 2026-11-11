@@ -1,5 +1,5 @@
 import type { AreaAwards } from "~/lib/area-awards";
-import { shortDollars } from "~/lib/area-awards";
+import { shortDollars, typicalRangeText } from "~/lib/area-awards";
 import { STARTER_FIRST_MONTH_PRICE } from "~/lib/starter-offer";
 
 const day = (d: string | null) =>
@@ -15,12 +15,20 @@ export function AreaAwardsBox({ data, stateName }: { data: AreaAwards; stateName
   const since = day(data.since);
   const count = `${data.total} federal contract${data.total === 1 ? "" : "s"}`;
   return (
-    <section aria-label="Federal winning prices" className="mt-5 rounded-2xl border border-emerald-500/40 bg-slate-900 px-5 py-4">
+    <section id="typical-size" aria-label="Federal winning prices" className="mt-5 rounded-2xl border border-emerald-500/40 bg-slate-900 px-5 py-4">
       <h2 className="text-sm font-bold text-emerald-200">💰 What similar federal jobs in {where} went for</h2>
       <p className="mt-1 text-sm text-slate-300">
         {count} for {data.label} work in {where}
         {since ? ` since ${since}` : ""}, from USAspending.gov.
       </p>
+      {data.typical && (
+        <p className="mt-3 text-sm text-slate-200">
+          Typical contract size <b className="text-base text-white">{typicalRangeText(data.typical)}</b>
+          <span className="block text-xs text-slate-400">
+            An estimate: the middle half of those contracts. It is not this bid&apos;s budget.
+          </span>
+        </p>
+      )}
       {data.detail ? (
         <>
           <p className="mt-3 text-sm text-slate-200">
@@ -51,7 +59,7 @@ export function AreaAwardsBox({ data, stateName }: { data: AreaAwards; stateName
         </>
       ) : (
         <>
-          <p className="mt-2 text-sm text-slate-300">See who won each one, what they were paid, and the typical price for this work.</p>
+          <p className="mt-2 text-sm text-slate-300">See who won each one and what each was paid.</p>
           <a href="/upgrade?plan=starter" className="mt-2 inline-block text-sm font-semibold text-emerald-300 hover:text-emerald-200">
             Unlock with Starter, ${STARTER_FIRST_MONTH_PRICE} for 30 days →
           </a>

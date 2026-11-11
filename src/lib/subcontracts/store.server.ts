@@ -115,6 +115,8 @@ export interface SubcontractSyncCounts {
   /** Notices whose detail page this sweep fetched. */
   detailsFetched: number;
   detailsSkipped: number;
+  /** Notices whose own page was refused or gone this sweep; stored from the list row. */
+  detailsRefused?: number;
   pagesFetched: number;
   requests: number;
   /** How the index sweep ended (the pager's own stop signal). */

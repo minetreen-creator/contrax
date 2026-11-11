@@ -29,7 +29,7 @@ if (result.status === "ok") {
       `unchanged ${c.unchanged} (timestamps refreshed), ` +
       `open ${c.open}, closed-hidden ${c.closed}, unverified-hidden ${c.unverified} — ` +
       `requests ${c.requests} (index pages ${c.pagesFetched}, detail pages ${c.detailsFetched}, ` +
-      `detail pages skipped ${c.detailsSkipped}), duplicate slugs collapsed ${c.collisions}, ` +
+      `detail pages skipped ${c.detailsSkipped}, refused by the site ${c.detailsRefused ?? 0}), duplicate slugs collapsed ${c.collisions}, ` +
       `pager stop: ${c.stoppedBecause}${result.runId ? ` (run ${result.runId})` : ""}`,
   );
   if (c.unverified > 0) {

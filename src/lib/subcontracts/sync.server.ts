@@ -284,6 +284,7 @@ export async function runSubcontractSync(
     unverified: byStatus("unverified"),
     detailsFetched: stats.detailsFetched,
     detailsSkipped: stats.detailsSkipped,
+    detailsRefused: stats.detailsRefused ?? 0,
     pagesFetched: stats.pagesFetched,
     requests: stats.requests,
     stoppedBecause: stats.stoppedBecause,

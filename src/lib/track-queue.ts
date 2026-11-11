@@ -71,7 +71,11 @@ function listen(): void {
 
 /** True for events that must be sent without waiting. */
 export function isImmediateEvent(event: unknown): boolean {
-  return typeof event === "string" && event.startsWith("signup_");
+  // A tap on a link leaves the page at once. On a phone the queued send on
+  // pagehide did not go out (2026-11-11: 58 visitors saw the Radar bid list in
+  // three days, 33 reached a bid page, and no radar_bids_first_click was stored),
+  // so a click is sent the moment it happens.
+  return typeof event === "string" && (event.startsWith("signup_") || event.endsWith("_click"));
 }
 
 /** Queue one /api/track-visitor payload. */

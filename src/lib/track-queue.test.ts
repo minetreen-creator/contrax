@@ -54,6 +54,8 @@ describe("client tracking queue (owner 2026-10-02)", () => {
     expect((sent[0].body as { batch: unknown[] }).batch.length).toBe(2);
     expect(isImmediateEvent("signup_start")).toBe(true);
     expect(isImmediateEvent("radar_scan_start")).toBe(false);
+    expect(isImmediateEvent("radar_bids_first_click")).toBe(true);
+    expect(isImmediateEvent("radar_bids_first_shown")).toBe(false);
   });
 
   test("a full queue flushes at MAX_BATCH", () => {

@@ -5,7 +5,8 @@
  * first, then its 4-digit industry group), and opens Radar on that search.
  */
 
-export const SIMILAR_BIDS_LIMIT = 3;
+/** Owner 2026-11-11: 3 → 8, so each bid page links to more open bids (for visitors and search engines). */
+export const SIMILAR_BIDS_LIMIT = 8;
 
 /** NAICS prefixes to try, most specific first. Empty when the code is unusable. */
 export function similarNaicsPrefixes(naics: string | null | undefined): string[] {

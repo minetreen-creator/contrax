@@ -37,6 +37,8 @@ import { redirectToCheckout } from "~/lib/checkout";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { AWARD_EXCLUSION_SQL, SAMPLE_EXCLUSION_SQL } from "~/lib/source-class";
 import { SIMILAR_BIDS_LIMIT, similarNaicsPrefixes, similarRadarHref } from "~/lib/similar-bids";
+import { bidBreadcrumbs, bidKeyFacts, breadcrumbJsonLd } from "~/lib/bid-facts";
+import { BidBreadcrumbs, BidKeyFacts } from "~/components/BidKeyFacts";
 import {
   effectiveAutopsyTier,
   LEARNING_TIERS,
@@ -118,6 +120,13 @@ interface PublicBid extends Omit<BidDetail, "learned" | "contact" | "signed_in">
   similar: SimilarBids;
   /** Invisible per-render watermark token (src/lib/bid-watermark.ts); null when not recorded. */
   wm: string | null;
+  /** Free facts for the page and for search engines (src/lib/bid-facts.ts, owner 2026-11-11). */
+  category: string | null;
+  posted_at: string | null;
+  /** NAICS name or category in plain words. */
+  work_type: string | null;
+  /** Typical size of similar federal contracts: two rounded percentiles, no winner, no single award. */
+  size: { text: string; scope: "state" | "nation"; count: number } | null;
 }
 
 interface SimilarBid {
@@ -191,6 +200,29 @@ async function loadSimilar(id: number, state: string | null, naics: string | nul
  * accounts and visitors see what the job is, members get the link to act on
  * it). getBid unlocks it for paying members and active trials.
  */
+/**
+ * The plain-words type of work and the size estimate for the Key facts box, loaded with the page so
+ * a search engine reads them. A failure leaves both out; it never stops the page.
+ */
+async function loadBidFacts(state: string | null, naics: string | null, category: string | null): Promise<Pick<PublicBid, "work_type" | "size">> {
+  let work_type: string | null = null;
+  let size: PublicBid["size"] = null;
+  try {
+    const { NAICS_NAMES } = await import("~/lib/naics-names");
+    work_type = (naics && NAICS_NAMES[naics]) || (category && category !== "Other" ? category : null);
+  } catch {
+    work_type = category && category !== "Other" ? category : null;
+  }
+  try {
+    const { loadAreaAwards } = await import("~/lib/area-awards.server");
+    const a = await loadAreaAwards(state, naics, category, false);
+    if (a?.typical) size = { text: typicalRangeText(a.typical), scope: a.typical.scope, count: a.typical.count };
+  } catch (e) {
+    console.error("[bid/$id] key facts size failed (left out):", e);
+  }
+  return { work_type, size };
+}
+
 const getPublicBid = createServerFn({ method: "GET" })
   .validator((d: unknown) => {
     const id = Number((d as any)?.id);
@@ -201,7 +233,7 @@ const getPublicBid = createServerFn({ method: "GET" })
     try {
       const rows = (await sql()`
         SELECT id, title, agency, description, location, set_aside,
-               due_date, estimated_value, source_url, naics_code, created_at, solicitation_number
+               due_date, estimated_value, source_url, naics_code, created_at, solicitation_number, category
         FROM bids
         WHERE id = ${id} AND ${sql().unsafe(SAMPLE_EXCLUSION_SQL)}
         LIMIT 1
@@ -234,6 +266,9 @@ const getPublicBid = createServerFn({ method: "GET" })
         similar: await loadSimilar(Number(r.id), code ?? null, r.naics_code ? String(r.naics_code) : null),
         // Owner 2026-11-05 ("Do all"): traces copied listings back to the visit (src/lib/bid-watermark.ts).
         wm: await (await import("~/lib/bid-watermark.server")).recordBidWatermark(Number(r.id)),
+        category: r.category ? String(r.category) : null,
+        posted_at: r.created_at ? new Date(r.created_at).toISOString() : null,
+        ...(await loadBidFacts(code ?? null, r.naics_code ? String(r.naics_code) : null, r.category ? String(r.category) : null)),
       };
     } catch (e) {
       console.error("[bid/$id] public load failed:", e);
@@ -455,6 +490,7 @@ function BidDetailPage() {
     };
   }, [bidId]);
   const stateHref = stateLandingPath(bid?.state_name);
+  const crumbs = bid ? bidBreadcrumbs({ title: bid.title, state_name: bid.state_name, naics_code: bid.naics_code, category: bid.category }) : [];
   const sourceUrl = bid?.source_url ?? unlockedUrl;
   const locked = !!bid?.head_start_until && !sourceUrl;
   const membersOnly = !!bid?.has_link && !locked && !sourceUrl && checked;
@@ -513,7 +549,11 @@ function BidDetailPage() {
                 </p>
               </div>
             )}
-            <article className="mt-6 overflow-hidden rounded-2xl border border-slate-700 bg-slate-900">
+            {/* Owner 2026-11-11 ("build it"): a trail up to the state and trade pages, for visitors and
+                search engines. The JSON-LD says the same thing in the form Google reads. */}
+            <BidBreadcrumbs crumbs={crumbs} />
+            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd(crumbs, `https://www.contrax.company/bid/${bid.id}`)) }} />
+            <article className="mt-3 overflow-hidden rounded-2xl border border-slate-700 bg-slate-900">
               <div className="border-b border-slate-800 px-5 py-4">
                 <h1 className="text-lg font-extrabold leading-snug text-white">
                   {bid.title || "Solicitation"}
@@ -628,6 +668,25 @@ function BidDetailPage() {
               naicsCode={bid.naics_code}
               stateCode={bid.state_code}
               heading="Not ready to bid this one? Get the next ones by email"
+            />
+
+            {/* Owner 2026-11-11 ("build it"): the facts we hold, free on every bid. The notice link,
+                documents and contact stay for members. */}
+            <BidKeyFacts
+              facts={bidKeyFacts({
+                buyer: agencyDisplay(bid.agency),
+                place: bid.location,
+                state_name: bid.state_name,
+                work_type: bid.work_type,
+                naics_code: bid.naics_code,
+                set_aside: bid.set_aside,
+                posted: dueDayText(bid.posted_at),
+                due: due ?? null,
+                days_left: daysLeftLabel(bid.due_date) ?? null,
+                stated_value: valueLabel(bid.estimated_value) ?? null,
+                size: bid.size,
+                similar_total: bid.similar.total,
+              })}
             />
 
             {/* Red-flag scanner (owner 2026-11-08). */}

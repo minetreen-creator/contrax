@@ -40,5 +40,6 @@ test("public bid lists show the readable buyer label, not the BidNet group", asy
     expect({ f, uses: src.includes("agencyDisplay(") }).toEqual({ f, uses: true });
     expect({ f, raw: /\{\[(?:b|bid)\.agency,|>\{(?:b|bid|m)\.agency\}</.test(src) }).toEqual({ f, raw: false });
   }
-  expect(readFileSync("src/routes/radar.tsx", "utf8")).toContain("{[agencyDisplay(b.agency), due(b.due_date) && `due ${due(b.due_date)}`]");
+  // Owner 2026-11-11: the landing rows became cards; the agency line uses the short card label.
+  expect(readFileSync("src/routes/radar.tsx", "utf8")).toContain("{agencyCardLabel(b.agency)}");
 });

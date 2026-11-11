@@ -11,6 +11,9 @@ import { feedUserFromRequest } from "~/lib/data-feed.server";
  *   Authorization: Bearer <key>
  *   ?state=VA,NC (work or winner state)  ?naics=2382  ?since=2026-10-01
  *   ?min_amount=100000  ?limit=1..1000 (default 100)  ?after=<next_after>
+ *
+ * Without ?since the feed is new awards only; older contracts loaded as history are returned
+ * when ?since asks for that date range (see AWARD_FEED_LATE_DAYS).
  */
 async function handler({ request }: { request: Request }) {
   try {

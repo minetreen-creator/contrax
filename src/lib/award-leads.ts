@@ -119,6 +119,45 @@ export interface AwardLeadQuery {
 
 export const LEADS_MAX_LIMIT = 1000;
 
+/**
+ * Loading older contracts (owner 2026-11-11, for the bid page's size estimate). A contract stored
+ * more than this many days after it was awarded was loaded as history, not found as news. The feed
+ * and the CSV leave those out unless the buyer asks for a date range with `since`, so a buyer who
+ * pages for "what is new" never receives last year's contracts as new leads.
+ */
+export const AWARD_FEED_LATE_DAYS = 45;
+
+/** The longest slice one run may load: the job keeps the largest awards first, so a long slice would drop the small ones. */
+export const AWARD_SYNC_MAX_DAYS = 31;
+
+/**
+ * The dates one sync run covers. With no `end` it is the last `days` days (the daily job). With
+ * `end` it is the `days` days up to and including that date (a slice of history). PURE.
+ */
+export function awardSyncWindow(
+  opts: { days?: number; end?: string | null },
+  now: Date = new Date(),
+): { ok: true; start: string; end: string; history: boolean } | { ok: false; error: string } {
+  const days = opts.days ?? 10;
+  if (!Number.isInteger(days) || days < 1 || days > AWARD_SYNC_MAX_DAYS) return { ok: false, error: `days must be 1 to ${AWARD_SYNC_MAX_DAYS}.` };
+  const today = now.toISOString().slice(0, 10);
+  let end = today;
+  if (opts.end) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(opts.end) || Number.isNaN(Date.parse(`${opts.end}T00:00:00Z`))) return { ok: false, error: "end must be a date like 2026-08-31." };
+    if (opts.end > today) return { ok: false, error: "end cannot be in the future." };
+    end = opts.end;
+  }
+  const start = new Date(Date.parse(`${end}T00:00:00Z`) - days * 86_400_000).toISOString().slice(0, 10);
+  return { ok: true, start, end, history: end !== today };
+}
+
+/** `--end=2026-08-31 --days=10 --max-pages=150 --dry-run` → options. Unknown flags are ignored. PURE. */
+export function parseAwardSyncArgs(argv: string[]): { days?: number; end?: string; maxPages?: number; dryRun: boolean } {
+  const get = (k: string) => argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3).trim() || undefined;
+  const num = (v: string | undefined) => (v && /^\d+$/.test(v) ? Number(v) : undefined);
+  return { days: num(get("days")), end: get("end"), maxPages: num(get("max-pages")), dryRun: argv.includes("--dry-run") };
+}
+
 /** Validate a leads query string (API and CSV). Never throws. */
 export function parseLeadQuery(p: URLSearchParams): { ok: true; query: AwardLeadQuery } | { ok: false; error: string } {
   const list = (v: string | null) => (v ?? "").split(",").map((s) => s.trim()).filter(Boolean);

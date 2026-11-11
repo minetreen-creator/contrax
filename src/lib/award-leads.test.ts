@@ -87,3 +87,54 @@ describe("award leads plan access", async () => {
     expect(validatePlanStates("leads", "VA")).toEqual({ ok: true, states: [] });
   });
 });
+
+// Owner 2026-11-11: loading a longer history of contracts for the bid page's size estimate,
+// without sending old contracts to the two paying customers as new leads.
+import { readFileSync as readSrc } from "node:fs";
+import { AWARD_FEED_LATE_DAYS, AWARD_SYNC_MAX_DAYS, awardSyncWindow, parseAwardSyncArgs } from "./award-leads";
+
+describe("loading a slice of contract history", () => {
+  const now = new Date("2026-11-11T15:00:00Z");
+
+  test("the daily run is unchanged: the last 10 days", () => {
+    expect(awardSyncWindow({}, now)).toEqual({ ok: true, start: "2026-11-01", end: "2026-11-11", history: false });
+  });
+
+  test("a slice is the days up to its end date", () => {
+    expect(awardSyncWindow({ end: "2026-08-31", days: 10 }, now)).toEqual({ ok: true, start: "2026-08-21", end: "2026-08-31", history: true });
+  });
+
+  test("a slice that is too long, in the future or not a date is refused", () => {
+    expect(awardSyncWindow({ days: AWARD_SYNC_MAX_DAYS + 1 }, now).ok).toBe(false);
+    expect(awardSyncWindow({ days: 0 }, now).ok).toBe(false);
+    expect(awardSyncWindow({ end: "2027-01-01" }, now).ok).toBe(false);
+    expect(awardSyncWindow({ end: "last month" }, now).ok).toBe(false);
+  });
+
+  test("the job reads its flags, and no flags means the normal run", () => {
+    expect(parseAwardSyncArgs([])).toEqual({ days: undefined, end: undefined, maxPages: undefined, dryRun: false });
+    expect(parseAwardSyncArgs(["--end=2026-08-31", "--days=10", "--max-pages=150", "--dry-run"])).toEqual({ days: 10, end: "2026-08-31", maxPages: 150, dryRun: true });
+    expect(parseAwardSyncArgs(["--days=abc"]).days).toBeUndefined();
+  });
+
+  test("an award dated after the slice is not kept, and a cut-off slice fails loudly", () => {
+    const server = readSrc("src/lib/award-leads.server.ts", "utf8");
+    expect(server).toContain("l.awarded_on >= startStr && l.awarded_on <= endStr");
+    const job = readSrc("src/jobs/award-leads-sync.ts", "utf8");
+    expect(job).toContain("if (r.truncated) {");
+    expect(job.indexOf("if (r.truncated) {")).toBeLessThan(job.indexOf("process.exit(0);"));
+  });
+
+  test("the feed and CSV leave history out unless the buyer asks for a date range", () => {
+    expect(AWARD_FEED_LATE_DAYS).toBe(45);
+    const server = readSrc("src/lib/award-leads.server.ts", "utf8");
+    expect(server).toContain("first_seen_at::date - awarded_on <= ${AWARD_FEED_LATE_DAYS}");
+    expect(server.indexOf("? s`AND awarded_on >= ${q.since}`")).toBeLessThan(server.indexOf("first_seen_at::date - awarded_on"));
+  });
+
+  test("the workflow only passes well-formed inputs to the job", () => {
+    const wf = readSrc(".github/workflows/sync-award-leads.yml", "utf8");
+    expect(wf).toContain('if [[ "$SLICE_END" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]');
+    expect(wf).not.toContain("--end=${{"); // inputs reach the shell as env vars, never pasted into the command
+  });
+});

@@ -29,3 +29,18 @@ test("the Terms limit what Contrax data may be used for", () => {
   expect(t.indexOf("4A. Automated Access")).toBeLessThan(t.indexOf("4B. Use of Contrax Data"));
   expect(t.indexOf("4B. Use of Contrax Data")).toBeLessThan(t.indexOf("5. AI-Generated Content"));
 });
+
+// Owner 2026-11-11: /terms was answered by a hard-coded September 24 copy in vercel-entry.ts, so the
+// scraping section (Nov 6) and the data-use section (Nov 11) never reached a visitor.
+test("there is one copy of the Terms: the app route, not a hard-coded page", () => {
+  const entry = readFileSync("vercel-entry.ts", "utf8");
+  expect(entry).not.toContain("TERMS_HTML");
+  expect(entry).not.toContain('url.pathname === "/terms"');
+});
+
+test("the privacy policy also has one copy (the live page showed September 24; the real one is October 4)", () => {
+  const entry = readFileSync("vercel-entry.ts", "utf8");
+  expect(entry).not.toContain("PRIVACY_HTML");
+  expect(entry).not.toContain('url.pathname === "/privacy"');
+  expect(readFileSync("src/routes/privacy/index.tsx", "utf8")).toContain("Last updated: October 4, 2026");
+});

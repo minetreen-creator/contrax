@@ -1,4 +1,5 @@
 import { isLearnRadarVisit } from "~/lib/learn-radar";
+import { dueDayText } from "~/lib/deadline-label";
 import { OpenToAllBids } from "~/components/OpenToAllBids";
 import { passFacts, radarPassPitch, type PassFacts } from "~/lib/radar-pass-pitch";
 import { createFileRoute } from "@tanstack/react-router";
@@ -1189,7 +1190,7 @@ export function isSamGovUrl(url: string): boolean {
 }
 
 export function buildNextAction(bid: Pick<RadarBidRow, "due_date" | "source_url">): string {
-  const due = bid.due_date ? new Date(bid.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : null;
+  const due = dueDayText(bid.due_date);
   const base = due ? `Review the full solicitation and prepare your response before the ${due} deadline.` : "Review the full solicitation and prepare your response before the deadline.";
   if (!bid.source_url) return `${base} The original notice link is not yet available in our system.`;
   // Name SAM.gov only when the link really goes there (owner 2026-10-03: a
@@ -2503,11 +2504,7 @@ function RadarLanding() {
                             "Place of performance not specified"}
                           {m.agency ? ` · ${agencyDisplay(m.agency) ?? m.agency}` : ""}
                           {m.due_date
-                            ? ` · Due ${new Date(m.due_date).toLocaleDateString("en-US", {
-                                month: "short",
-                                day: "numeric",
-                                year: "numeric",
-                              })}`
+                            ? ` · Due ${dueDayText(m.due_date)}`
                             : ""}
                         </p>
                         {m.reasons.slice(0, 2).map((r) => (
@@ -2696,7 +2693,7 @@ export function RadarCard({
   // Item 5 — the post-save tracking confirmation for THIS card (set by the
   // SaveToPipeline success hook below).
   const [trackedPrompt, setTrackedPrompt] = useState(false);
-  const due = match.due_date ? new Date(match.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : null;
+  const due = dueDayText(match.due_date);
   // v6.2: the REAL place of performance + whether this card is in the
   // nationwide-eligibility bucket (never a location claim — see the tag below).
   // Owner 09-14: a national-scope location is never state-local — the card's
@@ -3933,7 +3930,7 @@ function BidsFirst({ signedIn }: { signedIn: boolean | null }) {
     if (!iso) return null;
     const d = new Date(iso);
     const otherYear = d.getUTCFullYear() !== new Date().getUTCFullYear();
-    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", ...(otherYear ? { year: "numeric" } : {}), timeZone: "UTC" });
+    return dueDayText(d, { year: otherYear });
   };
   return (
     <div className="mt-5 rounded-2xl border border-emerald-500/40 bg-slate-900 px-4 py-4">

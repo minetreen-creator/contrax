@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { dueDayText } from "~/lib/deadline-label";
 import { UnlockBidSheet } from "~/components/UnlockBidSheet";
 import { rememberCheckoutBid } from "~/lib/checkout-resume";
 import { createServerFn } from "@tanstack/react-start";
@@ -479,13 +480,7 @@ function BidDetailPage() {
     return () => window.removeEventListener("scroll", onScroll);
   }, [lockShown, offerSeen]);
 
-  const due = bid?.due_date
-    ? new Date(bid.due_date).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      })
-    : null;
+  const due = dueDayText(bid?.due_date);
 
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100">
@@ -710,8 +705,7 @@ function SimilarBidsBox({
   const where = stateName ? ` in ${stateName}` : "";
   const heading = similar.scope === "naics" ? `Similar open bids${where}` : `More open bids${where}`;
   const allHref = similar.scope === "naics" && radarHref ? radarHref : stateHref;
-  const due = (iso: string | null) =>
-    iso ? new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" }) : null;
+  const due = (iso: string | null) => dueDayText(iso, { year: false });
   return (
     <section aria-label={heading} className="mt-6 rounded-2xl border border-amber-500/40 bg-slate-900 px-5 py-4">
       <h2 className="text-sm font-bold uppercase tracking-wide text-amber-300">{heading}</h2>

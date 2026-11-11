@@ -160,3 +160,13 @@ test("a slice can be run as a count that writes nothing", () => {
   const server = readSrc("src/lib/award-leads.server.ts", "utf8");
   expect(server).toContain("if (!opts.dryRun && leads.length) inserted += await insertAwardLeads(leads);");
 });
+
+// 2026-11-11: a part-loaded period holds only its largest awards, so it stays out of the estimate.
+test("history rows stay out of the bid page figures until the load is complete", async () => {
+  const { AWARD_HISTORY_IN_ESTIMATES } = await import("./award-leads");
+  expect(AWARD_HISTORY_IN_ESTIMATES).toBe(false);
+  const area = readSrc("src/lib/area-awards.server.ts", "utf8");
+  expect(area).toContain("AWARD_HISTORY_IN_ESTIMATES ? s`` : s`AND (awarded_on IS NULL OR first_seen_at::date - awarded_on <= ${AWARD_FEED_LATE_DAYS})`");
+  // Every figure on the box uses it: the two aggregates and the two paid queries.
+  expect(area.split("${settled}").length - 1).toBe(4);
+});

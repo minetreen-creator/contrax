@@ -5,7 +5,7 @@
  */
 import { sql } from "~/db";
 import { ensureAwardLeadsTable } from "~/lib/award-leads.server";
-import { usaspendingUrl } from "~/lib/award-leads";
+import { AWARD_FEED_LATE_DAYS, AWARD_HISTORY_IN_ESTIMATES, usaspendingUrl } from "~/lib/award-leads";
 import { NAICS_NAMES } from "~/lib/naics-names";
 import {
   AREA_AWARDS_LIST,
@@ -28,6 +28,9 @@ export async function loadAreaAwards(
   if (!scopes.length) return null;
   await ensureAwardLeadsTable();
   const s = sql();
+  // Until a period of history is loaded in full, leave history rows out of every figure here
+  // (see AWARD_HISTORY_IN_ESTIMATES): a part-loaded period holds only its largest awards.
+  const settled = AWARD_HISTORY_IN_ESTIMATES ? s`` : s`AND (awarded_on IS NULL OR first_seen_at::date - awarded_on <= ${AWARD_FEED_LATE_DAYS})`;
   type Agg = { n: number; since: string | null; p25: number | null; p75: number | null };
   const aggregate = async (pattern: string, inState: boolean): Promise<Agg> => {
     const [row] = (inState
@@ -36,13 +39,13 @@ export async function loadAreaAwards(
                  (percentile_cont(0.25) WITHIN GROUP (ORDER BY amount))::float AS p25,
                  (percentile_cont(0.75) WITHIN GROUP (ORDER BY amount))::float AS p75
           FROM award_leads
-          WHERE pop_state = ${state} AND naics_code ~ ${pattern} AND amount > 0`
+          WHERE pop_state = ${state} AND naics_code ~ ${pattern} AND amount > 0 ${settled}`
       : await s`
           SELECT COUNT(*)::int AS n, MIN(awarded_on)::text AS since,
                  (percentile_cont(0.25) WITHIN GROUP (ORDER BY amount))::float AS p25,
                  (percentile_cont(0.75) WITHIN GROUP (ORDER BY amount))::float AS p75
           FROM award_leads
-          WHERE naics_code ~ ${pattern} AND amount > 0`) as Agg[];
+          WHERE naics_code ~ ${pattern} AND amount > 0 ${settled}`) as Agg[];
     return { n: Number(row?.n ?? 0), since: row?.since ?? null, p25: row?.p25 ?? null, p75: row?.p75 ?? null };
   };
   const sized = (a: Agg, scope: "state" | "nation"): TypicalSize | null => {
@@ -62,12 +65,12 @@ export async function loadAreaAwards(
     if (paid) {
       const amounts = (await s`
         SELECT amount::float AS amount FROM award_leads
-        WHERE pop_state = ${state} AND naics_code ~ ${pattern} AND amount > 0
+        WHERE pop_state = ${state} AND naics_code ~ ${pattern} AND amount > 0 ${settled}
       `) as { amount: number }[];
       const list = (await s`
         SELECT award_key, recipient_name, amount::float AS amount, agency, sub_agency, awarded_on::text AS awarded_on
         FROM award_leads
-        WHERE pop_state = ${state} AND naics_code ~ ${pattern} AND amount > 0
+        WHERE pop_state = ${state} AND naics_code ~ ${pattern} AND amount > 0 ${settled}
         ORDER BY awarded_on DESC NULLS LAST, amount DESC
         LIMIT ${AREA_AWARDS_LIST}
       `) as { award_key: string; recipient_name: string; amount: number; agency: string | null; sub_agency: string | null; awarded_on: string | null }[];

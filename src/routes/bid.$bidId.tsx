@@ -615,6 +615,15 @@ function BidDetailPage() {
               )}
             </article>
 
+            {/* Owner 2026-11-11: this sat at the very bottom of the page (the third screen on a phone);
+                152 visitors were counted as shown an email ask in a week and 4 gave one. It is now the
+                first thing under the bid, for visitors without an account. */}
+            <BidAlertCapture
+              naicsCode={bid.naics_code}
+              stateCode={bid.state_code}
+              heading="Not ready to bid this one? Get the next ones by email"
+            />
+
             {/* Red-flag scanner (owner 2026-11-08). */}
             <RedFlagScanner noticeText={bid.description} bidId={bid.id} />
 
@@ -646,8 +655,6 @@ function BidDetailPage() {
             </a>
 
             <MaxAssistant bid={{ id: bid.id, title: bid.title }} />
-
-            <BidAlertCapture naicsCode={bid.naics_code} stateCode={bid.state_code} />
 
             <a
               href="/app?source=bid"

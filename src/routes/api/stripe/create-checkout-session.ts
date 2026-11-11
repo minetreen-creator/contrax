@@ -115,6 +115,7 @@ async function handler({ request }: { request: Request }) {
         label: `${body.planTier}:${body.interval === "year" ? "year" : "month"}`,
         ip: (request.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() || null,
         userAgent: request.headers.get("user-agent"),
+        cookieHeader: request.headers.get("cookie"),
       });
     }
     return Response.json({ url: result.url });

@@ -85,7 +85,8 @@ export function agencyDisplay(agency: string | null | undefined): string | null 
   const g = /^(.+?) Purchasing Group(?: \([^)]*\))? \(BidNet Direct\)$/.exec(a);
   if (g) {
     const place = g[1] === "Empire State" ? "New York" : g[1].replace(/ & DC$/, " or DC");
-    return `A ${place} public agency (posted on BidNet Direct)`;
+    // "An Ohio", "An Idaho", but "A Utah" (said "yoo-tah").
+    return `${/^[AEIO]/.test(place) ? "An" : "A"} ${place} public agency (posted on BidNet Direct)`;
   }
   const words = a.split(/\s+/);
   const codeLike = words.length <= 3 && /\d/.test(words[0]!) && /^[0-9A-Z]{4,8}$/.test(words[0]!) && words.slice(1).every((w) => /^[A-Z]{1,5}$/.test(w));

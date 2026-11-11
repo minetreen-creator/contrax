@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { CHECKOUT_OPENED_EVENT, linkVisitorToUser, VISITOR_COOKIE, visitorIdFromCookieHeader } from "./checkout-attribution.server";
 import { VISITOR_COOKIE_NAME } from "./visitor";
+import { parseAttributionCookie } from "./attribution";
 
 // Owner 2026-11-04: the first $5 buyer paid first (account 11 s later), so the
 // visit was not tied to the account and Mission Control read "Checkouts 0".
@@ -30,6 +31,24 @@ describe("checkout attribution", () => {
     const stripe = read("src/lib/stripe.ts");
     expect(stripe).toContain("if (opts.visitorId) metadata.visitor_id = String(opts.visitorId).slice(0, 64);");
     expect(stripe).toContain("await linkVisitorToUser(session.metadata.visitor_id, Number(userId));");
+  });
+
+  // Owner 2026-11-11: 8 of 12 "Stripe opens" were ad-click robots. Their page views were already
+  // hidden (old Android Chrome arriving on a paid ad), but the checkout row had no source, so the
+  // robot filter could not see it.
+  test("the checkout row carries where the visitor came from, so the robot filter applies to it", () => {
+    const src = read("src/lib/checkout-attribution.server.ts");
+    expect(src).toContain("const attr = parseAttributionCookie(o.cookieHeader);");
+    expect(src).toContain("(event_name, label, path, visitor_id, user_id, ip, user_agent, source, medium, campaign, click_id)");
+    for (const f of ["src/routes/api/stripe/create-checkout-session.ts", "vercel-entry.ts", "serve.ts"]) {
+      expect({ f, passes: /recordCheckoutOpened\(\{[\s\S]{0,500}?cookieHeader/.test(read(f)) }).toEqual({ f, passes: true });
+    }
+    // The hidden ad-click rule keys on the browser string plus medium = 'cpc'.
+    expect(read("src/lib/blocked-user-agents.ts")).toContain("COALESCE(medium,'') = 'cpc'");
+    expect(parseAttributionCookie(`contrax_attr=${encodeURIComponent(JSON.stringify({ source: "google", medium: "cpc", campaign: "c1", click_id: "g1" }))}`)).toEqual({
+      source: "google", medium: "cpc", campaign: "c1", click_id: "g1",
+    });
+    expect(parseAttributionCookie("other=1")).toBeNull();
   });
 
   test("Mission Control counts the server-side checkout too", () => {

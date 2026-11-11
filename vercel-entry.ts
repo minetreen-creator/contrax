@@ -675,6 +675,7 @@ async function handleCreateCheckoutSession(
         label: `${parsed.planTier}:${parsed.interval === "year" ? "year" : "month"}`,
         ip: String(Array.isArray(fwd) ? fwd[0] : fwd ?? "").split(",")[0].trim() || null,
         userAgent: (req.headers["user-agent"] as string | undefined) ?? null,
+        cookieHeader,
       });
     }
     return { status: 200, body: JSON.stringify({ url: result.url }) };

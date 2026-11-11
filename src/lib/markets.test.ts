@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { HAMPTON_ROADS_MARKET, MARKETS, PARTNER_MONTHLY_FEE, PARTNER_TERMS, PARTNER_TRIAL_DAYS, SAN_ANTONIO_MARKET, SAN_DIEGO_MARKET, TAMPA_MARKET, inMarket, marketBySlug, marketPitchPath } from "./markets";
+import { HAMPTON_ROADS_MARKET, MARKETS, PARTNER_MONTHLY_FEE, PARTNER_PROOF_MIN_PEOPLE, PARTNER_TERMS, PARTNER_TRIAL_DAYS, showPartnerProof,SAN_ANTONIO_MARKET, SAN_DIEGO_MARKET, TAMPA_MARKET, inMarket, marketBySlug, marketPitchPath } from "./markets";
 import { isTampaBay } from "./tampa";
 
 const read = (p: string) => readFileSync(new URL(p, import.meta.url), "utf8");
@@ -61,5 +61,14 @@ describe("Contractor Support Network markets", () => {
     expect(pitch).toContain("{PARTNER_TERMS}");
     expect(pitch).toContain("How it starts and what it costs");
     expect(pitch).not.toContain("referral arrangement");
+  });
+
+  // Owner 2026-11-11 ("hide it"): the pitch read "5 times (2 different people)" beside the $99 ask.
+  test("the Tampa result shows on the pitch only once enough people have reached the partner", () => {
+    expect(PARTNER_PROOF_MIN_PEOPLE).toBe(25);
+    expect([showPartnerProof(0), showPartnerProof(2), showPartnerProof(24), showPartnerProof(25)]).toEqual([false, false, false, true]);
+    const pitch = read("../routes/markets.$slug_.partners.tsx");
+    expect(pitch).toContain("{showPartnerProof(r.tampaVisitors) ? (");
+    expect(pitch).not.toContain("r.tampaClicks > 0");
   });
 });

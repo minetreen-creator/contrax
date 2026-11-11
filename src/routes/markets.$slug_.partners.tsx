@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { SiteHeader } from "~/components/SiteHeader";
-import { PARTNER_CONTACT, PARTNER_TERMS, TAMPA_MARKET, marketBySlug, networkName } from "~/lib/markets";
+import { PARTNER_CONTACT, PARTNER_TERMS, TAMPA_MARKET, marketBySlug, networkName, showPartnerProof } from "~/lib/markets";
 import { trackEvent } from "~/lib/track";
 
 /**
@@ -102,7 +102,7 @@ function PitchPage() {
           <p className="mt-1 text-slate-600">Each month you get the count of clicks and calls we sent you, so you can judge it yourself.</p>
         </section>
 
-        {r.tampaClicks > 0 ? (
+        {showPartnerProof(r.tampaVisitors) ? (
           <section className="mt-5 rounded-2xl border border-sky-200 bg-sky-50 p-5 text-sm">
             <h2 className="text-lg font-bold">How it's going in Tampa</h2>
             <p className="mt-1 text-slate-800">

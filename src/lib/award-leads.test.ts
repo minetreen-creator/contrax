@@ -121,8 +121,10 @@ describe("loading a slice of contract history", () => {
     const server = readSrc("src/lib/award-leads.server.ts", "utf8");
     expect(server).toContain("l.awarded_on >= startStr && l.awarded_on <= endStr");
     const job = readSrc("src/jobs/award-leads-sync.ts", "utf8");
-    expect(job).toContain("if (r.truncated) {");
-    expect(job.indexOf("if (r.truncated) {")).toBeLessThan(job.indexOf("process.exit(0);"));
+    expect(job).toContain("if (r.truncated && args.end) {");
+    expect(job.indexOf("if (r.truncated && args.end) {")).toBeLessThan(job.indexOf("process.exit(0);"));
+    // The daily run stops at its page limit by design and must not fail for it.
+    expect(job).toContain("daily run reached its page limit");
   });
 
   test("the feed and CSV leave history out unless the buyer asks for a date range", () => {

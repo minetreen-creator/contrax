@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { SiteHeader } from "~/components/SiteHeader";
-import { PARTNER_CONTACT, TAMPA_MARKET, marketBySlug, networkName } from "~/lib/markets";
+import { PARTNER_CONTACT, PARTNER_TERMS, TAMPA_MARKET, marketBySlug, networkName } from "~/lib/markets";
 import { trackEvent } from "~/lib/track";
 
 /**
@@ -97,8 +97,9 @@ function PitchPage() {
         </section>
 
         <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-5 text-sm">
-          <h2 className="text-lg font-bold">How it starts</h2>
-          <p className="mt-1 text-slate-700">A trial period first, then a simple referral arrangement or reciprocal referrals. No long contract; we agree the details together.</p>
+          <h2 className="text-lg font-bold">How it starts and what it costs</h2>
+          <p className="mt-1 text-slate-700">{PARTNER_TERMS}</p>
+          <p className="mt-1 text-slate-600">Each month you get the count of clicks and calls we sent you, so you can judge it yourself.</p>
         </section>
 
         {r.tampaClicks > 0 ? (

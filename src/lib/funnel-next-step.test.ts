@@ -22,11 +22,15 @@ test("Radar results: the email field is the first thing under the count, before 
   expect(radar).toContain("if (shownRef.current || compact) return;");
 });
 
-test("Radar bid list: the whole row is the link and says so", () => {
+// Owner 2026-11-11 ("I do like their layout better"): the rows became cards, two across on a wide screen.
+test("Radar bid list: each bid is a card, the whole card is the link and says so", () => {
   const i = radar.indexOf('trackEvent("radar_bids_first_click", tab)');
-  const row = radar.slice(i - 200, i + 900);
+  const row = radar.slice(i - 200, i + 1300);
   expect(row).toContain("href={`/bid/${b.id}`}");
-  expect(row).toContain("View →");
+  expect(row).toContain("See the job and how to bid →");
+  expect(radar).toContain('<ul className="mt-2 grid grid-cols-1 gap-2.5 sm:grid-cols-2">');
+  expect(row).toContain("uppercase tracking-wider"); // agency sits above the title
+  expect(row.indexOf("agencyDisplay(b.agency)")).toBeLessThan(row.indexOf("{b.title}"));
   expect(row).toContain("{b.title}");
   expect(row.indexOf("b.agency")).toBeLessThan(row.indexOf("</a>")); // agency and due date are inside the link
   expect(radar).toContain("Tap a bid to see the job, the due date and how to bid.");

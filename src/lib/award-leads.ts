@@ -127,6 +127,14 @@ export const LEADS_MAX_LIMIT = 1000;
  */
 export const AWARD_FEED_LATE_DAYS = 45;
 
+/**
+ * Whether contracts loaded as history count toward the bid page's size estimate and winning
+ * prices. OFF until a period is loaded in full: on 2026-11-11 the Sep 18-28 slice stored only its
+ * 929 largest awards (USAspending's 10,000-record limit), which would push every range upward.
+ * Turn on once the history load is complete.
+ */
+export const AWARD_HISTORY_IN_ESTIMATES = false;
+
 /** The longest slice one run may load: the job keeps the largest awards first, so a long slice would drop the small ones. */
 export const AWARD_SYNC_MAX_DAYS = 31;
 

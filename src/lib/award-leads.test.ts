@@ -138,3 +138,35 @@ describe("loading a slice of contract history", () => {
     expect(wf).not.toContain("--end=${{"); // inputs reach the shell as env vars, never pasted into the command
   });
 });
+
+// 2026-11-11: the Sep 18-28 slice saw exactly 10,000 records and exited as if complete.
+test("a slice cut off by USAspending's 10,000-record limit is reported as incomplete", () => {
+  const server = readSrc("src/lib/award-leads.server.ts", "utf8");
+  expect(server).toContain("export const USASPENDING_MAX_RECORDS = 10_000;");
+  expect(server).toContain("truncated = seen >= USASPENDING_MAX_RECORDS;");
+  // A last page that is all small awards still counts as complete, whatever the count.
+  expect(server.indexOf("truncated = false;")).toBeLessThan(server.indexOf("truncated = seen >= USASPENDING_MAX_RECORDS;"));
+});
+
+// 2026-11-11: two days at fiscal year end passed 10,000 records with 387 new awards among them.
+test("a history slice asks USAspending for new awards only; the daily run is unchanged", () => {
+  const server = readSrc("src/lib/award-leads.server.ts", "utf8");
+  expect(server).toContain('w.history ? { start_date: startStr, end_date: endStr, date_type: "new_awards_only" } : { start_date: startStr, end_date: endStr }');
+});
+
+test("a slice can be run as a count that writes nothing", () => {
+  const wf = readSrc(".github/workflows/sync-award-leads.yml", "utf8");
+  expect(wf).toContain('if [[ "$SLICE_DRY_RUN" == "yes" ]]; then args="$args --dry-run"; fi');
+  const server = readSrc("src/lib/award-leads.server.ts", "utf8");
+  expect(server).toContain("if (!opts.dryRun && leads.length) inserted += await insertAwardLeads(leads);");
+});
+
+// 2026-11-11: a part-loaded period holds only its largest awards, so it stays out of the estimate.
+test("history rows stay out of the bid page figures until the load is complete", async () => {
+  const { AWARD_HISTORY_IN_ESTIMATES } = await import("./award-leads");
+  expect(AWARD_HISTORY_IN_ESTIMATES).toBe(false);
+  const area = readSrc("src/lib/area-awards.server.ts", "utf8");
+  expect(area).toContain("AWARD_HISTORY_IN_ESTIMATES ? s`` : s`AND (awarded_on IS NULL OR first_seen_at::date - awarded_on <= ${AWARD_FEED_LATE_DAYS})`");
+  // Every figure on the box uses it: the two aggregates and the two paid queries.
+  expect(area.split("${settled}").length - 1).toBe(4);
+});

@@ -17,7 +17,7 @@ try {
     `[award-leads] ${r.start} to ${r.end} pages=${r.pages} seen=${r.seen} kept=${r.kept} inserted=${r.inserted}${args.dryRun ? " (dry run)" : ""}`,
   );
   if (r.truncated) {
-    console.error("[award-leads] page limit reached before the small awards: this slice is incomplete. Use fewer days or a higher --max-pages.");
+    console.error("[award-leads] the search was cut off before the small awards (our page limit, or USAspending's 10,000-record limit): this slice is incomplete. Use fewer days.");
     process.exit(1);
   }
   process.exit(0);

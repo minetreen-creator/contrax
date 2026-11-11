@@ -46,7 +46,7 @@ function TermsPage() {
     <div className="min-h-screen bg-white">
       <div className="mx-auto max-w-3xl px-6 py-16 sm:py-24">
         <h1 className="text-3xl font-bold text-slate-900 sm:text-4xl">Terms of Service</h1>
-        <p className="mt-2 text-sm text-slate-500">Last updated: November 6, 2026</p>
+        <p className="mt-2 text-sm text-slate-500">Last updated: November 11, 2026</p>
         <div className="mt-10 space-y-8 text-slate-700 leading-relaxed">
           <section>
             <h2 className="text-xl font-semibold text-slate-900">1. Acceptance of Terms</h2>
@@ -70,7 +70,15 @@ function TermsPage() {
             <h2 className="text-xl font-semibold text-slate-900">4A. Automated Access and Scraping</h2>
             <p className="mt-3">You may not access, copy, download, or collect any part of the Service or its content by automated means, including bots, scrapers, crawlers, headless browsers, or scripts, and you may not use proxies, rotating IP addresses, altered browser identities, or any other method to avoid or get around our rate limits, blocks, or other access controls. The only exceptions are (a) search engines indexing public pages as our robots.txt allows, and (b) access under a written data license from Contrax LLC. Licensed access to Contrax data is available; see <a href="/data" className="text-blue-600 hover:text-blue-500">contrax.company/data</a>.</p>
             <p className="mt-3">Unauthorized copying of the Service causes harm that is difficult to measure precisely. If you access or copy the Service in violation of this section, you agree to pay Contrax LLC, as liquidated damages and not as a penalty, the greater of (i) $10 for each page of the Service you access or copy, or (ii) the fee Contrax would have charged under its standard data license for the period of the violation. This is a reasonable estimate of Contrax&apos;s loss and is in addition to Contrax&apos;s right to seek an injunction and any other remedy available by law.</p>
-            <p className="mt-3">In any action to enforce Section 4 or this Section 4A, the prevailing party is entitled to recover its reasonable attorneys&apos; fees and costs.</p>
+            <p className="mt-3">In any action to enforce Section 4, this Section 4A or Section 4B, the prevailing party is entitled to recover its reasonable attorneys&apos; fees and costs.</p>
+          </section>
+          {/* Owner 2026-11-11 ("yes check and add it"): the Terms banned scraping but did not say what
+              may be done with Contrax data however it was obtained. */}
+          <section>
+            <h2 className="text-xl font-semibold text-slate-900">4B. Use of Contrax Data</h2>
+            <p className="mt-3">Individual government notices are public at their original sources. The Contrax database is not: our selection and arrangement of listings, and the summaries, descriptions, classifications, matches and other content Contrax creates, are the work product of Contrax LLC. You may use the Service for your own business&apos;s search for work and share individual listings in the normal course of that work.</p>
+            <p className="mt-3">Without a written data license from Contrax LLC, you may not, however the data was obtained: (a) use data or content from the Service to build, train, or improve a product or service that competes with Contrax, or any database, dataset or index of bid or contract opportunities; (b) use it to train or fine-tune a machine learning or AI model; or (c) resell, redistribute, republish, sublicense, or make it available to third parties in bulk. An AI assistant or search engine may read a public page to answer a person&apos;s question and link to that page; it may not store or reuse Contrax content beyond that.</p>
+            <p className="mt-3">Pages of the Service may carry identifying marks that let Contrax trace copies. Removing or altering them is a violation of these terms. The liquidated damages in Section 4A apply to a violation of this section, counted for each page or listing used.</p>
           </section>
           <section>
             <h2 className="text-xl font-semibold text-slate-900">5. AI-Generated Content</h2>

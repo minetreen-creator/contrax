@@ -64,6 +64,18 @@ export const SUBNET_MAX_ATTEMPTS = 3;
  * for the pager's "past the end redisplayed page 1" behaviour — never a stopping rule
  * by itself, and never a "total pages" assumption (the HTML publishes no such number). */
 export const SUBNET_PAGE_CAP = 40;
+/**
+ * Owner 2026-11-11 ("find our missing data"): one notice's own page
+ * (/opportunity/install-main-grounding-electrode-conductors) answered 403 every day from
+ * 2026-10-29, and because any failed detail request aborted the sweep, no notice was
+ * stored for 13 days. A refused or missing notice page (403, 404, 410) is now asked for
+ * ONCE, never retried, and that notice is stored from its list row alone. More than this
+ * many refusals in one sweep reads as SBA refusing the crawler, not one bad page, and
+ * the sweep stops with nothing written (403 = stop).
+ */
+export const SUBNET_MAX_REFUSED_DETAILS = 3;
+/** A page the site will not serve: asking again would not change the answer. PURE. */
+export const isPageRefusal = (status: number | null | undefined): boolean => status === 403 || status === 404 || status === 410;
 
 /** A page that cannot be read as a SUBNet page. Always fatal to the run. */
 export class SubnetParseError extends Error {
@@ -74,7 +86,8 @@ export class SubnetParseError extends Error {
   }
 }
 
-/** A request that failed after every attempt. Always fatal to the run. */
+/** A request that failed after every attempt. Fatal to the run, except one notice's own
+ * page being refused (see SUBNET_MAX_REFUSED_DETAILS). */
 export class SubnetFetchError extends Error {
   readonly stage = "fetch" as const;
   constructor(message: string, readonly url: string, readonly status: number | null) {
@@ -444,7 +457,9 @@ export function createSubnetFetcher(options: {
     assertApprovedSubnetUrl(url);
     let lastError: Error | null = null;
     let lastStatus: number | null = null;
+    let made = 0;
     for (let attempt = 1; attempt <= attempts; attempt++) {
+      made = attempt;
       if (intervalMs > 0) {
         const elapsed = now() - lastStartedAt;
         if (lastStartedAt > 0 && elapsed < intervalMs) await sleep(intervalMs - elapsed);
@@ -470,11 +485,13 @@ export function createSubnetFetcher(options: {
         return body;
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
+        // A refusal is an answer, not a glitch: do not ask again.
+        if (isPageRefusal(lastStatus)) break;
         if (attempt < attempts) await sleep(500 * attempt);
       }
     }
     throw new SubnetFetchError(
-      `GET ${url} failed after ${attempts} attempt(s): ${lastError?.message ?? "unknown error"}`,
+      `GET ${url} failed after ${made} attempt(s): ${lastError?.message ?? "unknown error"}`,
       url,
       lastStatus,
     );
@@ -489,6 +506,8 @@ export interface SubnetCrawlStats {
   pagesFetched: number;
   detailsFetched: number;
   detailsSkipped: number;
+  /** Notices whose own page was refused or gone; stored from the list row alone. */
+  detailsRefused: number;
   stoppedBecause: string;
   durationMs: number;
 }
@@ -627,21 +646,38 @@ export async function crawlSubnet(options: {
   const details = new Map<string, SubnetDetail>();
   const unchangedIndexIds = new Set<string>();
   let detailsSkipped = 0;
+  let detailsRefused = 0;
   for (const row of rows) {
     if (indexRowMatchesStored(row, storedIndex.get(row.externalId))) {
       detailsSkipped += 1;
       unchangedIndexIds.add(row.externalId);
       continue;
     }
-    const html = await fetchText(row.detailUrl);
+    let html: string;
+    try {
+      html = await fetchText(row.detailUrl);
+    } catch (e) {
+      if (!(e instanceof SubnetFetchError) || !isPageRefusal(e.status)) throw e;
+      detailsRefused += 1;
+      if (detailsRefused > SUBNET_MAX_REFUSED_DETAILS) {
+        throw new SubnetFetchError(
+          `SBA refused ${detailsRefused} notice pages in one sweep (last: ${row.detailUrl}, HTTP ${e.status}) — stopping; this reads as the crawler being refused, not one bad page`,
+          row.detailUrl,
+          e.status,
+        );
+      }
+      console.warn(`[subcontracts] notice page refused (HTTP ${e.status}), kept from its list row: ${row.detailUrl}`);
+      continue;
+    }
     details.set(row.externalId, parseSubnetDetailPage(html));
   }
 
   const stats: SubnetCrawlStats = {
-    requests: pagesFetched + details.size,
+    requests: pagesFetched + details.size + detailsRefused,
     pagesFetched,
     detailsFetched: details.size,
     detailsSkipped,
+    detailsRefused,
     stoppedBecause,
     durationMs: Date.now() - startedAt,
   };

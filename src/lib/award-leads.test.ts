@@ -147,3 +147,16 @@ test("a slice cut off by USAspending's 10,000-record limit is reported as incomp
   // A last page that is all small awards still counts as complete, whatever the count.
   expect(server.indexOf("truncated = false;")).toBeLessThan(server.indexOf("truncated = seen >= USASPENDING_MAX_RECORDS;"));
 });
+
+// 2026-11-11: two days at fiscal year end passed 10,000 records with 387 new awards among them.
+test("a history slice asks USAspending for new awards only; the daily run is unchanged", () => {
+  const server = readSrc("src/lib/award-leads.server.ts", "utf8");
+  expect(server).toContain('w.history ? { start_date: startStr, end_date: endStr, date_type: "new_awards_only" } : { start_date: startStr, end_date: endStr }');
+});
+
+test("a slice can be run as a count that writes nothing", () => {
+  const wf = readSrc(".github/workflows/sync-award-leads.yml", "utf8");
+  expect(wf).toContain('if [[ "$SLICE_DRY_RUN" == "yes" ]]; then args="$args --dry-run"; fi');
+  const server = readSrc("src/lib/award-leads.server.ts", "utf8");
+  expect(server).toContain("if (!opts.dryRun && leads.length) inserted += await insertAwardLeads(leads);");
+});

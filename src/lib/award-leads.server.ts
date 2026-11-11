@@ -133,7 +133,13 @@ export async function syncAwardLeads(opts: { days?: number; end?: string | null;
       method: "POST",
       headers: { "Content-Type": "application/json", "User-Agent": "Contrax/1.0 (+https://www.contrax.company)" },
       body: JSON.stringify({
-        filters: { award_type_codes: ["A", "B", "C", "D"], time_period: [{ start_date: startStr, end_date: endStr }] },
+        // A history slice asks for new awards only. The default asks for every award with any
+        // activity in the window, and at fiscal year end two days of that passed 10,000 records
+        // with 387 new awards among them (2026-11-11). The daily run is left as it was.
+        filters: {
+          award_type_codes: ["A", "B", "C", "D"],
+          time_period: [w.history ? { start_date: startStr, end_date: endStr, date_type: "new_awards_only" } : { start_date: startStr, end_date: endStr }],
+        },
         fields: AWARD_LEAD_FIELDS,
         sort: "Award Amount",
         order: "desc",

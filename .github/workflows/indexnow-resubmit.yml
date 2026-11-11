@@ -1,0 +1,42 @@
+name: Resubmit pages to IndexNow
+# Tells Bing (IndexNow) that pages changed, so it reads the new version without waiting for its own
+# schedule. ChatGPT's web search leans on Bing's index. Only our own public page addresses are sent.
+#
+# Weekly: the state, trade, city and guide pages, whose bid lists change daily.
+# Manual with scope "all": also every open bid page, for use after the bid page itself changes.
+on:
+  schedule:
+    - cron: "23 11 * * 1"
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: "pages = state, trade, city and guide pages; all = those plus every open bid page"
+        type: choice
+        options:
+          - pages
+          - all
+        default: pages
+concurrency:
+  group: indexnow-resubmit
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  resubmit:
+    name: Resubmit to IndexNow
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SCOPE: ${{ inputs.scope }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Resubmit
+        run: |
+          if [[ "$SCOPE" == "all" ]]; then bun run src/jobs/indexnow-submit.ts --all; else bun run src/jobs/indexnow-submit.ts --pages; fi

@@ -30,6 +30,21 @@ export function indexNowBodies(urls: readonly string[]): { host: string; key: st
   return bodies;
 }
 
+/** Every page address in a sitemap file. PURE. */
+export function sitemapLocs(xml: string): string[] {
+  return [...String(xml ?? "").matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/g)].map((m) => m[1]!.replace(/&amp;/g, "&"));
+}
+
+/**
+ * Which sitemaps a resubmission covers (owner away 2026-11-11; search traffic work). "pages" is the
+ * state, trade, city and guide pages, whose bid lists change every day. "all" adds every open bid
+ * page, for use after a change to the bid page itself.
+ */
+export const INDEXNOW_SITEMAPS = {
+  pages: ["/sitemap.xml", "/sitemap-local.xml"],
+  all: ["/sitemap.xml", "/sitemap-local.xml", "/sitemap-bids.xml"],
+} as const;
+
 export const indexNowDeps = { fetch: (url: string, init: RequestInit) => fetch(url, init) };
 
 /** Submits the URLs; returns how many were accepted. Never throws: a failure is logged and the sync carries on. */

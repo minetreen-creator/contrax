@@ -42,5 +42,22 @@ if (result.status === "ok") {
     `[subcontracts] FAILED at ${result.error?.stage}: ${result.error?.message} ` +
       `(run ${result.runId ?? "unrecorded"}) — zero notice rows written`,
   );
+  // Owner 2026-11-11: this job failed 13 days in a row without telling anyone. Warn the owner the
+  // first time it has failed twice running (same email and phone alert as a dead bid source).
+  if (!dryRun) {
+    try {
+      const { recentSubcontractSyncStatuses } = await import("~/lib/subcontracts/store.server");
+      const { SUBNET_SOURCE } = await import("~/lib/subcontracts/connector");
+      const { alertJobFailedTwice } = await import("./source-alerts");
+      const statuses = await recentSubcontractSyncStatuses(SUBNET_SOURCE.sourceKey, 3);
+      await alertJobFailedTwice(
+        { name: "Subcontracting notices (SBA SUBNet)", effect: "the notices on /subcontracts are not updating" },
+        result.error?.message ?? "unknown error",
+        statuses,
+      );
+    } catch (e) {
+      console.error("[subcontracts] owner warning failed (non-fatal):", (e as Error).message);
+    }
+  }
 }
 process.exit(result.status === "ok" ? 0 : 1);

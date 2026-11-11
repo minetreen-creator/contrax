@@ -142,3 +142,57 @@ export async function alertNewlyDeadSources(sql: any, failedThisRun: readonly st
   }
   return dead;
 }
+
+// ── Whole jobs, not bid sources (owner 2026-11-11: "yes add it") ─────────────────────────────────────
+// The subcontracting sweep failed 13 days in a row (2026-10-29 to 11-10) and told no one: it is its own
+// job with its own run table, so the bid-source warning above never saw it.
+
+/** Newest-first run statuses → true exactly when the last two runs failed and the one before did not. PURE. */
+export function newlyFailedTwice(statuses: readonly string[]): boolean {
+  return statuses[0] === "error" && statuses[1] === "error" && statuses[2] !== "error";
+}
+
+export interface WatchedJob {
+  /** "Subcontracting notices (SBA SUBNet)". */
+  name: string;
+  /** What a visitor is missing, e.g. "the notices on /subcontracts are not updating". */
+  effect: string;
+}
+
+export function deadJobEmail(job: WatchedJob, error: string): { subject: string; text: string; push: { title: string; body: string; tag: string } } {
+  return {
+    subject: `Contrax: ${job.name} has stopped working`,
+    text:
+      `This update has failed two runs in a row, so ${job.effect}:\n\n` +
+      `- ${job.name}: ${likelyCause(error)}\n  Error: ${error.slice(0, 300)}\n\n` +
+      `Ask Claude to look at it. You will not get this email again for this update unless it recovers and fails again.`,
+    push: { title: `${job.name} stopped working`, body: likelyCause(error), tag: "job-dead" },
+  };
+}
+
+/**
+ * Call after a job's failed run is recorded, with its newest-first run statuses. Warns the owner the
+ * first time it has failed twice in a row. Never throws: a failed alert must not change the job's result.
+ */
+export async function alertJobFailedTwice(job: WatchedJob, error: string, statuses: readonly string[]): Promise<boolean> {
+  if (!newlyFailedTwice(statuses)) return false;
+  const msg = deadJobEmail(job, error);
+  console.error(`🚨 ${msg.subject}`);
+  try {
+    const { alertOwner } = await import("~/lib/live-push.server");
+    await alertOwner(msg.push);
+  } catch (e) {
+    console.error("[source-alerts] owner push failed:", (e as Error).message);
+  }
+  if (process.env.RESEND_API_KEY) {
+    try {
+      const { Resend } = await import("resend");
+      await new Resend(process.env.RESEND_API_KEY).emails.send({ from: "Contrax <hello@contrax.company>", to: OWNER_EMAIL, subject: msg.subject, text: msg.text });
+    } catch (e) {
+      console.error("[source-alerts] owner email failed:", (e as Error).message);
+    }
+  } else {
+    console.error("[source-alerts] RESEND_API_KEY not set; the owner email was not sent");
+  }
+  return true;
+}

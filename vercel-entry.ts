@@ -55,106 +55,7 @@ console.log("[contrax] DATABASE_URL present:", !!process.env.DATABASE_URL);
 
 // ── Static Legal Pages ─────────────────────────────────────────────────────────
 
-const PRIVACY_HTML = `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Privacy Policy — Contrax</title>
-<meta name="description" content="Contrax privacy policy — how we collect, use, and protect your data.">
-<meta name="robots" content="index, follow">
-<style>
-  body { font-family: system-ui, -apple-system, sans-serif; color: #1e293b; line-height: 1.7; margin: 0; }
-  .container { max-width: 720px; margin: 0 auto; padding: 3rem 1.5rem; }
-  h1 { font-size: 2rem; font-weight: 700; color: #0f172a; }
-  h2 { font-size: 1.25rem; font-weight: 600; color: #0f172a; margin-top: 2rem; }
-  .date { font-size: 0.875rem; color: #64748b; margin-top: 0.25rem; }
-  section { margin-top: 1.5rem; }
-  ul.list { margin: 0.5rem 0 0; padding-left: 1.25rem; list-style: disc; }
-  ul.list li { margin-top: 0.375rem; }
-  a { color: #2563eb; text-decoration: none; }
-  a:hover { text-decoration: underline; }
-  .nav { background: #0f172a; border-bottom: 1px solid #334155; }
-  .nav-inner { max-width: 1280px; margin: 0 auto; display: flex; gap: 0.25rem; padding: 0.5rem 1.5rem; }
-  .nav a { color: #cbd5e1; padding: 0.5rem 1rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 500; }
-  .nav a:hover { color: #fff; background: #1e293b; text-decoration: none; }
-  footer { border-top: 1px solid #e2e8f0; background: #f8fafc; margin-top: 3rem; }
-  .f-inner { max-width: 1280px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 1.5rem; font-size: 0.875rem; color: #64748b; }
-  @media (max-width: 640px) { .f-inner { flex-direction: column; gap: 0.75rem; } }
-</style>
-</head>
-<body>
-<div class="nav"><div class="nav-inner"><a href="/">📄 Contracts</a></div></div>
-<div class="container">
-<h1>Privacy Policy</h1>
-<p class="date">Last updated: September 24, 2026</p>
-<p>Contrax LLC, doing business as Contrax, is responsible for the personal information described in this Policy. Contrax respects your privacy. This Privacy Policy explains what information we collect when you visit or use Contrax, how we use that information, and the choices available to you.</p>
-<section><h2>1. Information We Collect</h2><p><strong>Information You Provide</strong></p><p>When you create an account, contact us, use Contrax, or otherwise provide information to us, we may collect information such as your name, email address, business information, contracting preferences, certifications, saved searches, proposal activity, and other information you choose to provide.</p><p><strong>Information Collected Automatically</strong></p><p>When you visit or interact with Contrax, we may automatically collect technical and usage information, including:</p><ul class="list"><li>IP address;</li><li>approximate geographic location derived from network or IP information;</li><li>browser type and operating system;</li><li>device type;</li><li>referring website or traffic source;</li><li>landing page;</li><li>pages viewed and features used;</li><li>dates and times of visits;</li><li>anonymous visitor and session identifiers;</li><li>interactions with features such as contract listings, Contrax Radar, example briefs, pricing pages, signup pages, and account activation; and</li><li>information about the sequence of interactions during a visit or across return visits.</li></ul><p>This information allows Contrax to understand how visitors use the service, maintain security, diagnose technical problems, measure engagement, and improve the user experience.</p><p><strong>Anonymous Visitor and Account Attribution</strong></p><p>Contrax may assign an anonymous identifier to a browser or device so that we can recognize return visits and understand activity across sessions.</p><p>If a visitor later creates a Contrax account, we may associate prior activity connected with that anonymous visitor identifier with the newly created account. This helps us understand how users discover and evaluate Contrax and improve the signup and customer experience.</p></section>
-<section><h2>2. How We Use Information</h2><p>We may use information we collect to:</p><ul class="list"><li>provide, operate, maintain, and improve Contrax;</li><li>match businesses with federal, state, and local government contracting opportunities;</li><li>provide AI-powered summaries, analysis, proposal assistance, contracting intelligence, incumbent research, scoring, and compliance-related functionality;</li><li>personalize the service based on business and contracting preferences;</li><li>maintain accounts and authentication;</li><li>understand how visitors navigate and interact with Contrax;</li><li>measure engagement and conversion;</li><li>identify signup or usability problems;</li><li>determine which marketing, referral, or traffic sources result in visits, registrations, or customers;</li><li>recognize repeat visits using first-party identifiers;</li><li>associate pre-registration activity with an account after registration;</li><li>detect bots, abuse, fraud, unauthorized access, and other security threats;</li><li>diagnose technical problems and maintain service reliability;</li><li>communicate with users and provide customer support;</li><li>send service-related notifications and other communications permitted by law; and</li><li>comply with applicable legal obligations and enforce our agreements.</li></ul><p>Contrax may use aggregated or de-identified information to analyze service performance, usage patterns, and business trends.</p></section>
-<section><h2>3. IP Addresses and Network Information</h2><p>Contrax may collect and retain IP addresses and related network information when visitors access the service.</p><p>We may use this information for security, fraud and abuse prevention, troubleshooting, analytics, approximate geographic attribution, service improvement, and understanding traffic and usage patterns.</p><p>An IP address does not necessarily identify a particular individual. IP addresses may represent households, businesses, mobile networks, Internet service providers, VPNs, proxies, shared networks, or other infrastructure. Contrax therefore does not treat an IP address alone as definitive proof of a person's identity.</p><p>Access to raw IP addresses is restricted to authenticated administrators. Administrative access is logged and is intended for security, troubleshooting, analytics, and customer-support purposes.</p></section>
-<section><h2>4. Cookies, Local Storage, and Similar Technologies</h2><p>Contrax uses cookies, browser storage, and similar first-party technologies where necessary to operate and improve the service.</p><p>These technologies may be used for:</p><ul class="list"><li>authentication and login sessions;</li><li>security;</li><li>maintaining user preferences;</li><li>anonymous visitor identifiers;</li><li>session identifiers;</li><li>recognizing return visits;</li><li>first-party analytics;</li><li>attribution; and</li><li>measuring product and signup engagement.</li></ul><p>Contrax does not sell personal information in exchange for money.</p><p>If Contrax later introduces advertising technologies, third-party behavioral tracking, or other materially different tracking practices, this Privacy Policy may be updated and consent mechanisms will be implemented where required by applicable law.</p></section>
-<section><h2>5. Artificial Intelligence</h2><p>Contrax uses artificial intelligence to provide features such as contract analysis, summaries, proposal assistance, opportunity evaluation, contracting intelligence, and related functionality.</p><p>Information submitted to AI-powered features may be processed by service providers used to operate those features.</p><p>Users should not submit sensitive personal information, classified information, export-controlled information, or other information they are not authorized to provide through AI-powered features.</p></section>
-<section><h2>6. Third-Party Service Providers</h2><p>Contrax uses third-party providers to operate portions of the service. These may include providers for hosting and infrastructure, databases, artificial-intelligence processing, payment processing, email delivery, security, and other operational services.</p><p>Current providers may include Vercel, Neon, OpenAI, Stripe, and Resend.</p><p>These providers may process information on our behalf as necessary to provide their services. Their handling of information is also governed by their respective terms and privacy practices.</p><p>Contrax does not authorize service providers to use information provided by Contrax for purposes unrelated to providing their services to Contrax, except as permitted or required by law or their applicable agreements.</p></section>
-<section><h2>7. Data Security</h2><p>Contrax uses reasonable administrative, technical, and organizational safeguards designed to protect information against unauthorized access, alteration, disclosure, or destruction.</p><p>These measures may include encryption, access controls, authentication, infrastructure security, and monitoring.</p><p>However, no Internet transmission, computer system, or electronic storage method can be guaranteed to be completely secure.</p></section>
-<section><h2>8. Data Retention</h2><p>Contrax retains information for as long as reasonably necessary for the purposes described in this Policy, including providing the service, maintaining security, analyzing service performance, complying with legal obligations, resolving disputes, and enforcing agreements.</p><p>Different categories of information may be retained for different periods depending on their purpose and legal requirements.</p><p>Raw IP addresses used for first-party visitor analytics are retained for up to 90 days. After that period, Contrax removes the raw network identifier while retaining non-identifying event and aggregate analytics, except where a longer period is reasonably necessary for security, fraud or abuse investigation, legal compliance, or dispute resolution.</p><p>Contrax may retain aggregated or de-identified information that can no longer reasonably be associated with an identifiable individual.</p></section>
-<section><h2>9. Disclosure of Information</h2><p>Contrax may disclose information:</p><ul class="list"><li>to service providers operating on our behalf;</li><li>when necessary to provide a feature requested by a user;</li><li>to protect the security, rights, property, or safety of Contrax, its users, or others;</li><li>when required by law, legal process, court order, or governmental request;</li><li>in connection with a merger, financing, acquisition, reorganization, bankruptcy, sale of assets, or similar business transaction; or</li><li>with the user's direction or consent.</li></ul><p>Contrax does not sell personal information for money.</p></section>
-<section><h2>10. Your Privacy Rights</h2><p>Depending on where you live, you may have rights regarding personal information Contrax maintains about you, including rights to request access, correction, deletion, or a copy of certain information, and rights to object to or restrict certain processing.</p><p>Requests may be submitted to <a href="mailto:contrax.companyllc@gmail.com">contrax.companyllc@gmail.com</a>.</p><p>We may need to verify your identity before fulfilling certain requests. Some information may be retained when required or permitted by law, including for security, fraud prevention, recordkeeping, or legal compliance.</p></section>
-<section><h2>11. California Residents</h2><p>California residents may have additional rights under applicable California privacy laws, including rights concerning access, correction, deletion, and information about how personal information is collected, used, or disclosed.</p><p>Contrax does not sell personal information for monetary consideration.</p><p>California privacy requests may be submitted to <a href="mailto:contrax.companyllc@gmail.com">contrax.companyllc@gmail.com</a>.</p></section>
-<section><h2>12. European Economic Area, United Kingdom, and Similar Jurisdictions</h2><p>Where applicable, Contrax processes personal information based on one or more lawful bases, including performance of a contract, legitimate interests, consent where required, and compliance with legal obligations.</p><p>Applicable rights may include access, correction, deletion, portability, restriction, objection, and withdrawal of consent where processing relies upon consent.</p><p>Requests may be submitted to <a href="mailto:contrax.companyllc@gmail.com">contrax.companyllc@gmail.com</a>.</p></section>
-<section><h2>13. Children's Privacy</h2><p>Contrax is a business-oriented government contracting service and is not intended for children.</p><p>We do not knowingly collect personal information from children under 13. If we learn that such information has been collected, we will take reasonable steps to delete it.</p></section>
-<section><h2>14. Changes to This Privacy Policy</h2><p>Contrax may update this Privacy Policy periodically as the service, technology, or applicable legal requirements change.</p><p>The "Last Updated" date will indicate when the Policy was most recently revised. When appropriate or legally required, we may provide additional notice of material changes.</p></section>
-<section><h2>15. Contact</h2><p>Questions or privacy requests may be directed to:</p><p>Contrax LLC<br><a href="mailto:contrax.companyllc@gmail.com">contrax.companyllc@gmail.com</a><br><a href="https://www.contrax.company">contrax.company</a></p></section>
-</div>
-<footer><div class="f-inner"><span>© 2026 Contrax LLC. All rights reserved.</span><div style="display:flex;gap:1.5rem"><a href="/privacy" style="color:#64748b">Privacy Policy</a><a href="/terms" style="color:#64748b">Terms of Service</a><a href="/security" style="color:#64748b">Security</a><a href="mailto:contrax.companyllc@gmail.com" style="color:#64748b">Contact</a></div></div></footer>
-</body>
-</html>`;
 
-const TERMS_HTML = `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Terms of Service — Contrax</title>
-<meta name="description" content="Contrax terms of service — the rules and conditions for using our platform.">
-<meta name="robots" content="index, follow">
-<style>
-  body { font-family: system-ui, -apple-system, sans-serif; color: #1e293b; line-height: 1.7; margin: 0; }
-  .container { max-width: 720px; margin: 0 auto; padding: 3rem 1.5rem; }
-  h1 { font-size: 2rem; font-weight: 700; color: #0f172a; }
-  h2 { font-size: 1.25rem; font-weight: 600; color: #0f172a; margin-top: 2rem; }
-  .date { font-size: 0.875rem; color: #64748b; margin-top: 0.25rem; }
-  section { margin-top: 1.5rem; }
-  a { color: #2563eb; text-decoration: none; }
-  a:hover { text-decoration: underline; }
-  .nav { background: #0f172a; border-bottom: 1px solid #334155; }
-  .nav-inner { max-width: 1280px; margin: 0 auto; display: flex; gap: 0.25rem; padding: 0.5rem 1.5rem; }
-  .nav a { color: #cbd5e1; padding: 0.5rem 1rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 500; }
-  .nav a:hover { color: #fff; background: #1e293b; text-decoration: none; }
-  footer { border-top: 1px solid #e2e8f0; background: #f8fafc; margin-top: 3rem; }
-  .f-inner { max-width: 1280px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 1.5rem; font-size: 0.875rem; color: #64748b; }
-  @media (max-width: 640px) { .f-inner { flex-direction: column; gap: 0.75rem; } }
-</style>
-</head>
-<body>
-<div class="nav"><div class="nav-inner"><a href="/">📄 Contracts</a></div></div>
-<div class="container">
-<h1>Terms of Service</h1>
-<p class="date">Last updated: September 24, 2026</p>
-<section><h2>1. Acceptance of Terms</h2><p>By accessing or using Contrax ("the Service"), you agree to these Terms of Service. The Service is provided by Contrax LLC, doing business as Contrax, a Virginia limited liability company. If you do not agree, do not use the Service. We may update these terms at any time; continued use after changes constitutes acceptance.</p></section>
-<section><h2>2. Description of Service</h2><p>Contrax is an AI-powered platform that helps small businesses discover, understand, and respond to government contract opportunities.</p></section>
-<section><h2>3. Accounts and Billing</h2><p>You must create an account to access paid features. All fees are billed in advance on a monthly basis via Stripe. You may cancel at any time; cancellation takes effect at the end of the current billing period. No refunds for partial months.</p></section>
-<section><h2>4. Acceptable Use</h2><p>You agree not to use the Service for any unlawful purpose, submit false information, circumvent security features, resell or scrape the Service, submit fraudulent bids, or upload malicious code.</p></section>
-<section><h2>5. AI-Generated Content</h2><p>AI-generated content (summaries, proposals, recommendations) is provided as a starting point. Review and verify all AI output before use. We make no guarantees about accuracy or suitability. You are responsible for final content you submit using our tools.</p></section>
-<section><h2>6. Intellectual Property</h2><p>The Contrax platform (code, design, logos) is owned and operated by Contrax LLC. You retain ownership of content you create using the Service. By using the Service, you grant us a limited license to process your content solely to provide the Service.</p></section>
-<section><h2>7. Third-Party Services</h2><p>The Service integrates with government procurement databases, Stripe, OpenAI, and other third-party services. We are not responsible for their availability, accuracy, or content.</p></section>
-<section><h2>8. Limitation of Liability</h2><p>To the fullest extent permitted by law, Contrax shall not be liable for any indirect, incidental, or consequential damages. Our total liability is limited to amounts you paid us in the 12 months preceding the claim. The Service is provided "as is."</p></section>
-<section><h2>9. Termination</h2><p>We may suspend or terminate access for violation of these terms. Data is retained for 30 days after termination for export upon request.</p></section>
-<section><h2>10. Governing Law</h2><p>These terms are governed by the laws of the Commonwealth of Virginia, without regard to its conflict-of-laws principles. Disputes shall be resolved through binding arbitration.</p></section>
-<section><h2>11. Contact</h2><p>For questions, contact Contrax LLC at <a href="mailto:contrax.companyllc@gmail.com">contrax.companyllc@gmail.com</a>. Website: <a href="https://www.contrax.company">contrax.company</a>.</p></section>
-</div>
-<footer><div class="f-inner"><span>© 2026 Contrax LLC. All rights reserved.</span><div style="display:flex;gap:1.5rem"><a href="/privacy" style="color:#64748b">Privacy Policy</a><a href="/terms" style="color:#64748b">Terms of Service</a><a href="/security" style="color:#64748b">Security</a><a href="mailto:contrax.companyllc@gmail.com" style="color:#64748b">Contact</a></div></div></footer>
-</body>
-</html>`;
 
 // ── Static SEO Pages ──────────────────────────────────────────────────────────
 
@@ -951,23 +852,11 @@ export default async function vercelHandler(
       return;
     }
 
-    // Privacy Policy — static page
-    if (url.pathname === "/privacy" && req.method === "GET") {
-      res.statusCode = 200;
-      res.setHeader("content-type", "text/html; charset=utf-8");
-      res.setHeader("cache-control", PUBLIC_STATIC_CACHE_CONTROL);
-      res.end(PRIVACY_HTML);
-      return;
-    }
+    // Privacy Policy: served by the app route (src/routes/privacy/index.tsx), like the Terms below.
 
-    // Terms of Service — static page
-    if (url.pathname === "/terms" && req.method === "GET") {
-      res.statusCode = 200;
-      res.setHeader("content-type", "text/html; charset=utf-8");
-      res.setHeader("cache-control", PUBLIC_STATIC_CACHE_CONTROL);
-      res.end(TERMS_HTML);
-      return;
-    }
+    // Terms of Service: served by the app route (src/routes/terms/index.tsx). A hard-coded copy here
+    // answered /terms with the September 24 text, so the November 6 scraping section and the
+    // November 11 data-use section never reached a visitor (owner 2026-11-11). One copy only.
 
     // SEO: Learn hub
     if (url.pathname === "/learn" && req.method === "GET") {

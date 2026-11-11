@@ -74,6 +74,18 @@ export function shortDollars(n: number): string {
   return `$${Math.round(n)}`;
 }
 
+/**
+ * A size estimate and where it came from. "nation" means the state had too few contracts, so the
+ * range is from the same kind of work across the country (owner 2026-11-11: "Do the fallback").
+ */
+export interface TypicalSize {
+  low: number;
+  high: number;
+  scope: "state" | "nation";
+  /** Contracts the range was taken from. */
+  count: number;
+}
+
 /** Fewer awards than this → no size estimate (a range from a handful of contracts is a guess). */
 export const AREA_AWARDS_MIN_RANGE = 5;
 
@@ -114,7 +126,7 @@ export interface AreaAwards {
    * The middle half of those awards (25th to 75th percentile), shown to everyone as an estimate of
    * contract size (owner 2026-11-11: "add the budget estimate"). null when there are too few awards.
    */
-  typical: { low: number; high: number } | null;
+  typical: TypicalSize | null;
   /** Paid viewers only; null for everyone else. */
   detail: { median: number; low: number; high: number; awards: AreaAward[] } | null;
 }

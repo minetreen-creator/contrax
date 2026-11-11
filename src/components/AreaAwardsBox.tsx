@@ -16,20 +16,31 @@ export function AreaAwardsBox({ data, stateName }: { data: AreaAwards; stateName
   const count = `${data.total} federal contract${data.total === 1 ? "" : "s"}`;
   return (
     <section id="typical-size" aria-label="Federal winning prices" className="mt-5 rounded-2xl border border-emerald-500/40 bg-slate-900 px-5 py-4">
-      <h2 className="text-sm font-bold text-emerald-200">💰 What similar federal jobs in {where} went for</h2>
+      <h2 className="text-sm font-bold text-emerald-200">
+        {data.total > 0 ? `💰 What similar federal jobs in ${where} went for` : "💰 What similar federal jobs go for"}
+      </h2>
       <p className="mt-1 text-sm text-slate-300">
-        {count} for {data.label} work in {where}
-        {since ? ` since ${since}` : ""}, from USAspending.gov.
+        {data.total > 0 ? (
+          <>
+            {count} for {data.label} work in {where}
+            {since ? ` since ${since}` : ""}, from USAspending.gov.
+          </>
+        ) : (
+          <>No recent federal contracts for {data.label} work in {where} on record, so this is the picture nationwide, from USAspending.gov.</>
+        )}
       </p>
       {data.typical && (
         <p className="mt-3 text-sm text-slate-200">
-          Typical contract size <b className="text-base text-white">{typicalRangeText(data.typical)}</b>
+          Typical contract size{data.typical.scope === "nation" ? " nationwide" : ""}{" "}
+          <b className="text-base text-white">{typicalRangeText(data.typical)}</b>
           <span className="block text-xs text-slate-400">
-            An estimate: the middle half of those contracts. It is not this bid&apos;s budget.
+            {data.typical.scope === "nation"
+              ? `An estimate: the middle half of ${data.typical.count.toLocaleString("en-US")} federal contracts for this work across the country${data.total > 0 ? `, because ${where} has too few for a range of its own` : ""}. It is not this bid's budget.`
+              : "An estimate: the middle half of those contracts. It is not this bid's budget."}
           </span>
         </p>
       )}
-      {data.detail ? (
+      {data.total === 0 ? null : data.detail ? (
         <>
           <p className="mt-3 text-sm text-slate-200">
             Typical award <b className="text-white">{shortDollars(data.detail.median)}</b>

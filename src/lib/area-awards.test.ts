@@ -55,13 +55,43 @@ describe("typical contract size", () => {
   test("the page says it is an estimate and not the bid's budget; winners stay for members", () => {
     const box = readFileSync("src/components/AreaAwardsBox.tsx", "utf8");
     expect(box).toContain("Typical contract size");
-    expect(box).toContain("It is not this bid&apos;s budget.");
+    expect(box).toContain("It is not this bid's budget.");
     expect(box.indexOf("data.typical &&")).toBeLessThan(box.indexOf("data.detail ? ("));
     const page = readFileSync("src/routes/bid.$bidId.tsx", "utf8");
-    expect(page).toContain("Similar jobs: {typicalRangeText(areaAwards.typical)} (estimate)");
+    expect(page).toContain(': {typicalRangeText(areaAwards.typical)} (estimate)');
     expect(page).toContain("!valueLabel(bid.estimated_value) && areaAwards?.typical"); // a stated value wins
     const server = readFileSync("src/lib/area-awards.server.ts", "utf8");
     expect(server).toContain("percentile_cont(0.25)");
     expect(server.indexOf("if (paid) {")).toBeLessThan(server.indexOf("recipient_name")); // winners only inside the paid branch
+  });
+});
+
+// Owner 2026-11-11 ("Do the fallback"): most trade-and-state pairs had under five contracts, so
+// the estimate rarely showed. The state's own range wins; otherwise the same work nationwide, labelled.
+describe("nationwide fallback for the size estimate", () => {
+  const server = readFileSync("src/lib/area-awards.server.ts", "utf8");
+  const box = readFileSync("src/components/AreaAwardsBox.tsx", "utf8");
+  const page = readFileSync("src/routes/bid.$bidId.tsx", "utf8");
+
+  test("the state's own range is used first, and the nationwide one only when it is missing", () => {
+    expect(server).toContain('sized(agg, "state") ?? sized(await aggregate(pattern, false), "nation")');
+  });
+
+  test("a state with no contracts at all still gets a nationwide estimate, with nothing to unlock", () => {
+    expect(server).toContain("total: 0, since: null, typical, detail: null");
+    expect(box).toContain("data.total === 0 ? null : data.detail ? (");
+    expect(box).toContain("so this is the picture nationwide");
+  });
+
+  test("a nationwide figure is always labelled nationwide, with how many contracts it rests on", () => {
+    expect(box).toContain('data.typical.scope === "nation" ? " nationwide" : ""');
+    expect(box).toContain("federal contracts for this work across the country");
+    expect(page).toContain('areaAwards.typical.scope === "nation" ? " nationwide" : ""');
+  });
+
+  test("the nationwide numbers carry no winner and no single award", () => {
+    const fallback = server.slice(server.indexOf("// No contract in the state at all"));
+    expect(fallback).not.toContain("recipient_name");
+    expect(server.slice(server.indexOf("const aggregate"), server.indexOf("// The state's own contracts first"))).not.toContain("recipient_name");
   });
 });

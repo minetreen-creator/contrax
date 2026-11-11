@@ -2772,7 +2772,18 @@ export function RadarCard({
             </p>
           </div>
         )}
-        <h3 className="text-base font-bold leading-snug text-white">{shownTitle.title || "Solicitation"}</h3>
+        {/* Owner 2026-11-11: 26 Facebook visitors reached their results in two weeks and almost none
+            opened a bid, where the $5 offer is. The title now opens the bid for a visitor without an
+            account, and the button below says what a tap gets. */}
+        <h3 className="text-base font-bold leading-snug text-white">
+          {user ? (
+            shownTitle.title || "Solicitation"
+          ) : (
+            <a href={`/bid/${match.id}`} onClick={() => trackEvent("radar_match_title_click", String(match.id))} className="underline decoration-slate-600 underline-offset-4 hover:decoration-amber-400">
+              {shownTitle.title || "Solicitation"}
+            </a>
+          )}
+        </h3>
         {shownTitle.reference && <p className="mt-0.5 text-[11px] text-slate-500">Ref. {shownTitle.reference}</p>}
         {match.agency && <p className="mt-0.5 text-sm text-slate-400">{agencyDisplay(match.agency) ?? match.agency}</p>}
         {/* v6.2: ACTUAL place of performance + eligibility tag — "nationalwide"
@@ -2843,9 +2854,9 @@ export function RadarCard({
           <a
             href={`/bid/${match.id}`}
             onClick={() => trackEvent("radar_brief_cta", String(match.id))}
-            className="mt-4 inline-flex w-full items-center justify-center gap-1 rounded-xl border border-amber-500/50 bg-amber-500/10 px-4 py-2.5 text-sm font-semibold text-amber-300 transition-colors hover:bg-amber-500/20"
+            className="mt-4 inline-flex w-full items-center justify-center gap-1 rounded-xl bg-amber-500 px-4 py-3 text-sm font-bold text-slate-950 transition-colors hover:bg-amber-500/20"
           >
-            ✦ Get the AI Executive Brief <span aria-hidden="true">→</span>
+            See this bid: the job, the due date and how to bid <span aria-hidden="true">→</span>
           </a>
         )}
 

@@ -54,6 +54,28 @@ export async function recordCheckoutOpened(o: {
   }
 }
 
+export const PURCHASE_EVENT = "purchase_completed";
+
+/**
+ * One row when Stripe confirms a payment (owner 2026-11-11: with two paying customers, nothing
+ * recorded a sale as an event, so no report could say which traffic source they came from). The
+ * source is the one stored when this visitor's checkout was opened. Never throws.
+ */
+export async function recordPurchase(o: { visitorId: string | null | undefined; userId: number | null; label: string }): Promise<void> {
+  try {
+    const visitorId = o.visitorId && VISITOR_ID_RE.test(o.visitorId) ? o.visitorId : null;
+    const opened = visitorId
+      ? ((await sql()`SELECT source, medium, campaign, click_id FROM funnel_events
+          WHERE visitor_id = ${visitorId} AND event_name = ${CHECKOUT_OPENED_EVENT} ORDER BY created_at DESC LIMIT 1`) as Record<string, string | null>[])[0]
+      : undefined;
+    await sql()`INSERT INTO funnel_events (event_name, label, path, visitor_id, user_id, source, medium, campaign, click_id)
+      VALUES (${PURCHASE_EVENT}, ${o.label}, ${"/api/stripe/webhook"}, ${visitorId}, ${o.userId == null ? null : String(o.userId)},
+              ${opened?.source ?? null}, ${opened?.medium ?? null}, ${opened?.campaign ?? null}, ${opened?.click_id ?? null})`;
+  } catch (e) {
+    console.error("[checkout-attribution] purchase record failed (non-fatal):", (e as Error).message);
+  }
+}
+
 /** Tie a paying visitor's recent anonymous history to their account. */
 export async function linkVisitorToUser(visitorId: string | null | undefined, userId: number): Promise<void> {
   if (!visitorId || !VISITOR_ID_RE.test(visitorId)) return;

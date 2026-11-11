@@ -58,3 +58,14 @@ export const BLOCKED_USER_AGENT_SQL = `((COALESCE(user_agent,'') LIKE '%Android 
  * out of visitor counts.
  */
 export const HIDDEN_AD_CLICK_SQL = `(COALESCE(user_agent,'') LIKE '%Android 10; K)%Chrome/138.0.0.0 Mobile Safari/%' AND COALESCE(medium,'') = 'cpc')`;
+
+/**
+ * Email link scanners (owner 2026-11-11, funnel review). Mail security gateways open every link in an
+ * outreach email before the person sees it, with the tracking words scrambled so nothing is
+ * "clicked" on the person's behalf: utm_medium "outreach" arrives as "bhgefbdu" (and the campaign
+ * "bid_outreach_first" as "cve_bhgefbdu_avefg"). A read-only check (30 days): 39 of these "visitors",
+ * none on a phone, each opening the bid and the pricing link, no search, no email given, no account,
+ * no purchase. They made "email visitors look at pricing and never buy" look true. Real clicks keep
+ * the word "outreach" and still count.
+ */
+export const EMAIL_SCANNER_SQL = `(COALESCE(medium,'') = 'bhgefbdu')`;

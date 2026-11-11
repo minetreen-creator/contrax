@@ -93,6 +93,12 @@ export function agencyDisplay(agency: string | null | undefined): string | null 
   return codeLike ? "Federal agency" : a;
 }
 
+/** The buyer inside a sentence: "…, for an Ohio public agency (posted on BidNet Direct)". PURE. */
+export function agencyInSentence(agency: string | null | undefined): string | null {
+  const d = agencyDisplay(agency);
+  return d ? d.replace(/^(An?) (?=.+ public agency \(posted on BidNet Direct\)$)/, (_, a: string) => `${a.toLowerCase()} `) : d;
+}
+
 /**
  * Where the bid page's $5 button goes: the Starter plan page, signed in or not (owner 2026-11-10:
  * pay without making an account first). It carries the bid so the plan page can link back to it.

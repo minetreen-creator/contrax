@@ -448,6 +448,17 @@ export interface SubcontractSyncRunRow {
   finishedAt: string;
 }
 
+/** The newest run statuses for a source, newest first ("error" | "ok"), for the failed-twice warning. */
+export async function recentSubcontractSyncStatuses(sourceKey: string, limit = 3): Promise<string[]> {
+  const rows = (await sql()`
+    SELECT status FROM subcontract_sync_runs
+    WHERE source_key = ${sourceKey}
+    ORDER BY started_at DESC
+    LIMIT ${limit}
+  `) as { status: string }[];
+  return rows.map((r) => String(r.status));
+}
+
 /** The most recent sweep's run row (any status) — the honest "last checked" source. */
 export async function latestSubcontractSync(
   sourceKey: string,

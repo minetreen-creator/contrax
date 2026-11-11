@@ -36,7 +36,7 @@ row("CO14 last click before", await s`
             AND e.event_name ~ '(click|starter|checkout|continue|cta)' AND e.event_name <> 'checkout_session_created' ORDER BY e.created_at DESC LIMIT 1), '(none recorded)') AS last_click, COUNT(*)::int AS n
   FROM c GROUP BY 1 ORDER BY 2 DESC`);
 // Sales recorded.
-row("PASSES bought by day (30d)", await s`SELECT to_char(pass_bought_at AT TIME ZONE 'America/New_York', 'Mon DD') AS d, COUNT(*)::int AS n FROM users WHERE pass_bought_at > NOW() - INTERVAL '30 days' AND NOT COALESCE(is_admin, false) AND email NOT ILIKE '%@test.contrax' GROUP BY 1 ORDER BY MIN(pass_bought_at)`);
+row("PASSES bought by day (30d)", await s`SELECT to_char(starter_pass_bought_at AT TIME ZONE 'America/New_York', 'Mon DD') AS d, COUNT(*)::int AS n FROM users WHERE starter_pass_bought_at > NOW() - INTERVAL '30 days' AND NOT COALESCE(is_admin, false) AND email NOT ILIKE '%@test.contrax' GROUP BY 1 ORDER BY MIN(starter_pass_bought_at)`);
 row("FOLLOWUPS", await s`SELECT COUNT(*)::int AS abandoned_checkout_emails_sent_14d FROM checkout_followups WHERE sent_at > NOW() - INTERVAL '14 days'`);
 // Nov 9-10: what radar visitors did instead of searching.
 row("RADAR by day", await s`

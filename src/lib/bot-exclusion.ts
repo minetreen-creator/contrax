@@ -1,4 +1,4 @@
-import { BLOCKED_USER_AGENT_SQL, HIDDEN_AD_CLICK_SQL } from "./blocked-user-agents";
+import { BLOCKED_USER_AGENT_SQL, EMAIL_SCANNER_SQL, HIDDEN_AD_CLICK_SQL } from "./blocked-user-agents";
 
 /**
  * Bot/crawler exclusion predicate against the analytics tables' shared columns
@@ -25,6 +25,8 @@ export const BOT_EXCLUSION_SQL = `
     ${BLOCKED_USER_AGENT_SQL} OR
     -- Its likely twin on Chrome 138, hidden only when it arrives on a paid ad.
     ${HIDDEN_AD_CLICK_SQL} OR
+    -- Mail security scanners opening outreach-email links (scrambled utm_medium).
+    ${EMAIL_SCANNER_SQL} OR
     -- Our own test / scraper IP (exclude always). The owner's home address
     -- was removed 2026-10-20 (owner: count household visits);
     -- the owner's own browsing stays out through the admin-email exclusion.

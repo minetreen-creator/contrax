@@ -11,6 +11,8 @@
  * PURE and client-safe: no DB, no server imports.
  */
 
+import { agencyDisplay } from "~/lib/bid-job-summary";
+
 export const SITE_URL = "https://www.contrax.company";
 /** Google's per-file sitemap limit is 50,000 URLs; stay well under it. */
 export const BID_SITEMAP_MAX_URLS = 45_000;
@@ -50,10 +52,24 @@ export function isBidIndexable(bid: Pick<BidSeoFields, "due_date"> | null | unde
   return Number.isNaN(due) || due > now;
 }
 
+/**
+ * The buyer as search engines and AI assistants read it. A BidNet Direct row carries the purchasing
+ * group, not the buyer (bid-job-summary.ts agencyDisplay), so the title names the state and the
+ * description says "an Ohio public agency" (owner 2026-11-11: ChatGPT sends visitors to these pages,
+ * and the title read "Ohio Purchasing Group (BidNet Direct)" as if it were the buyer).
+ */
+function seoAgency(raw: string | null | undefined, short: boolean): string {
+  const a = collapse(raw);
+  const g = /^(.+?) Purchasing Group(?: \([^)]*\))? \(BidNet Direct\)$/.exec(a);
+  if (!g) return a;
+  const place = g[1] === "Empire State" ? "New York" : g[1].replace(/ & DC$/, " or DC");
+  return short ? `${place} public agency` : (agencyDisplay(a) ?? a);
+}
+
 /** "<title> — <agency> (due Oct 12, 2026) | Contrax" */
 export function bidSeoTitle(bid: BidSeoFields): string {
   const title = clip(collapse(bid.title) || "Government solicitation", 80);
-  const agency = collapse(bid.agency);
+  const agency = seoAgency(bid.agency, true);
   const due = dueLabel(bid.due_date);
   const parts = [title];
   if (agency && !title.toLowerCase().includes(agency.toLowerCase())) parts.push(`— ${clip(agency, 50)}`);
@@ -63,7 +79,7 @@ export function bidSeoTitle(bid: BidSeoFields): string {
 
 /** One-line summary for the meta description (≤ 160 chars), key facts first. */
 export function bidSeoDescription(bid: BidSeoFields): string {
-  const agency = collapse(bid.agency);
+  const agency = seoAgency(bid.agency, false);
   const location = collapse(bid.location);
   const due = dueLabel(bid.due_date);
   const facts = [

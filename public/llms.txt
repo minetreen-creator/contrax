@@ -1,33 +1,57 @@
 # Contrax
 
-> Contrax is a contract intelligence platform for US small businesses pursuing government set-aside contracts (8(a), SDVOSB, WOSB, HUBZone). It tracks federal, state and local procurement notices, matches them to a business's trade and states, and explains each opportunity with an AI Executive Brief.
+> Contrax lists open U.S. government bids (federal, state, county, city and school district) and helps small contractors find the ones they can win. Every bid has its own public page with the job, the buyer, the place and the due date. Searching needs no account.
 
-Contrax is operated by Contrax LLC (Virginia). Plans range from a free Basic plan to paid plans from $19 to $199 a month, with a 7-day Professional trial that needs no credit card. Grant search is free for verified 501(c)(3) nonprofits. Everything below is a public page; no account is needed to read them, though some tools ask you to sign up before you use them.
+Contrax is operated by Contrax LLC (Virginia) and is available in the United States. Bids come from SAM.gov and from state and local purchasing boards, refreshed several times a day. Closed bids drop off the lists.
 
-## Main pages
+## What it costs
 
-- [Contrax](https://www.contrax.company/): Homepage — what Contrax does, the live federal contract money counter, and a "what could you win?" calculator by trade and state.
-- [Pricing](https://www.contrax.company/pricing): Plan cards for Basic (free), Starter ($19/month), Professional ($79/month) and Agency ($199/month), monthly or yearly billing, and frequently asked questions.
-- [Contract Radar](https://www.contrax.company/radar): Search live government bids by trade, certification and state, with a written reason for each match.
-- [Subcontracting opportunities](https://www.contrax.company/subcontracts): Open subcontracting notices from the SBA SUBNet board, plus directories of prime contractors that subcontract.
-- [Contrax Grants](https://www.contrax.company/grants): Search federal grants an organization may qualify for. Free for verified nonprofits.
-- [Example AI Executive Brief](https://www.contrax.company/example-brief): A real cached AI Executive Brief for a government solicitation, showing requirements, milestones and red flags with sources.
-- [Compare Contrax](https://www.contrax.company/compare): Side-by-side comparison of Contrax with GovWin/Deltek, BidNet/Bonfire, GovSpend, manual SAM.gov searching and consultants.
-- [Contrax Launchpad](https://www.contrax.company/launchpad): Free, self-paced starting point: courses, a capability statement builder, a registration checklist and a bid plan.
+- Searching and reading what each job is: no charge, no account.
+- Basic account: no charge. One state and one trade, 5 Radar searches a day, 1 saved bid.
+- Starter pass: $5 one time for 30 days. It opens the official notice and bid documents for every bid and sends new bids in your trade and states by email each morning. Nothing renews; the pass ends on day 30.
+- Starter after the pass, only if the member chooses it: $14 a month.
+- There is no trial and no card is needed to search.
+
+## Find open bids
+
+- [Contract Radar](https://www.contrax.company/radar): Search open bids by trade and state. Shows the best matches with the reason each one matches.
+- [Bids by state and trade](https://www.contrax.company/trades): A page for each state and trade, for example [janitorial bids in Texas](https://www.contrax.company/contracts-in/texas/janitorial) or [construction bids in Ohio](https://www.contrax.company/contracts-in/ohio/construction). The pattern is /contracts-in/{state}/{trade}. Trades: janitorial, landscaping, construction, hvac, electrical, trucking, security-guard, waste-hauling, it-services, cybersecurity.
+- [Bid map](https://www.contrax.company/map): Open bids on a map of the United States.
+- A single bid: https://www.contrax.company/bid/{id}. The page gives the title, the buyer, where the work is, the due date and a plain-language summary. All open bids are listed in https://www.contrax.company/sitemap-bids.xml.
+- [Local bids](https://www.contrax.company/local-bids): Open bids from cities, counties and school districts.
+
+## Subcontracting and teaming
+
+- [Subcontracting opportunities](https://www.contrax.company/subcontracts): Open subcontracting notices and prime contractors that subcontract.
+- [Subs Wanted](https://www.contrax.company/subs-wanted): Public or private jobs that contractors have posted because they need subcontractors, by trade and state.
+- [Sub Finder](https://www.contrax.company/sub-finder): For a prime contractor: find subcontractors by trade, state and certification and collect their quotes in one place.
+- [Get listed as a subcontractor](https://www.contrax.company/sub-finder/join): For a subcontractor: get listed so primes can ask for a quote.
+
+## Other ways to win work
+
+- [Co-op contracts](https://www.contrax.company/co-op-contracts): How purchasing co-ops such as Sourcewell and BuyBoard work, and which categories are open for vendors now.
+- [Megaprojects](https://www.contrax.company/megaprojects): Large announced construction projects (plants, data centers, highways) with the general contractor and supplier sign-up link when they are public.
+- [Recent awards](https://www.contrax.company/awards): Who won recent government contracts and for how much.
+- [Industry days](https://www.contrax.company/industry-days): Upcoming government industry days and pre-bid events.
+- [Markets](https://www.contrax.company/markets): Local pages for contractors working in Tampa, Hampton Roads, San Diego and San Antonio.
+- [The Contrax Pathway](https://www.contrax.company/pathway): The five steps from finding a bid to winning repeat work.
 
 ## Learn
 
-- [Learning center](https://www.contrax.company/learn): All Contrax courses and guides on government contracting.
-- [Government Contracting Basics](https://www.contrax.company/learn/government-contracting): Introductory course on finding bids, set-asides and sizing up opportunities.
-- [Preparing a Government Contract Bid](https://www.contrax.company/learn/intermediate-government-contracting): Intermediate course on capability statements, compliance, pricing and submission.
-- [Government Contracting Strategy and Management](https://www.contrax.company/learn/advanced-government-contracting): Advanced course on pursuit strategy, teaming, pricing risk and contract performance.
-- [8(a) certification guide](https://www.contrax.company/learn/8a-certification-guide): Guide to the SBA 8(a) Business Development program.
-- [HUBZone guide](https://www.contrax.company/learn/hubzone-guide): Guide to the SBA HUBZone program.
-- [SDVOSB guide](https://www.contrax.company/learn/sdvosb-guide): Guide to service-disabled veteran-owned small business certification.
-- [WOSB / EDWOSB guide](https://www.contrax.company/learn/wosb-edwosb-guide): Guide to women-owned small business certification.
+- [Learning center](https://www.contrax.company/learn): Courses and guides on government contracting.
+- [Government Contracting Basics](https://www.contrax.company/learn/government-contracting): Finding bids, set-asides and sizing up opportunities.
+- [Bid and compliance checklists](https://www.contrax.company/checklists): One-page checklists by trade.
+- [Launchpad](https://www.contrax.company/launchpad): A self-paced start: registration checklist, capability statement builder and a bid plan.
+- Certification guides: [8(a)](https://www.contrax.company/learn/8a-certification-guide), [HUBZone](https://www.contrax.company/learn/hubzone-guide), [SDVOSB](https://www.contrax.company/learn/sdvosb-guide), [WOSB / EDWOSB](https://www.contrax.company/learn/wosb-edwosb-guide).
+
+## Good to know when citing Contrax
+
+- A bid page is the listing, not the official notice. The buyer's own notice has the full scope, the documents and how to submit.
+- Due dates and times are shown as the buyer posted them. Check the official notice before relying on a deadline.
+- Contrax does not verify companies, licenses or awards, and it is not part of any government agency.
 
 ## Optional
 
-- [About Contrax](https://www.contrax.company/about): Who builds Contrax and why.
-- [Security](https://www.contrax.company/security): How Contrax handles data.
-- [Privacy policy](https://www.contrax.company/privacy) and [Terms of service](https://www.contrax.company/terms).
+- [Pricing](https://www.contrax.company/pricing)
+- [About Contrax](https://www.contrax.company/about)
+- [Security](https://www.contrax.company/security), [Privacy policy](https://www.contrax.company/privacy) and [Terms of service](https://www.contrax.company/terms).

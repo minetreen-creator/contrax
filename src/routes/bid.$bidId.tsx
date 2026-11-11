@@ -28,7 +28,7 @@ import {
 import { getCurrentUser } from "~/lib/auth";
 import { applyHeadStart } from "~/lib/head-start";
 import { hasPaidBidAccess } from "~/lib/head-start.server";
-import { agencyDisplay, bidStarterHref, daysLeftLabel, jobSummary, valueLabel } from "~/lib/bid-job-summary";
+import { agencyDisplay, bidStarterHref, daysLeftLabel, jobSummary, valueLabel, agencyInSentence } from "~/lib/bid-job-summary";
 import { watermarkText } from "~/lib/bid-watermark";
 import { trackEvent } from "~/lib/track";
 import { redirectToCheckout } from "~/lib/checkout";
@@ -576,7 +576,7 @@ function BidDetailPage() {
                 <p className="mt-1 text-sm leading-relaxed text-slate-300">
                   {watermarkText(
                     jobSummary(bid.description, bid.title) ??
-                      `${bid.title || "This bid"}${bid.agency ? `, for ${agencyDisplay(bid.agency)}` : ""}. The agency's official notice has the full scope of work, the documents and how to submit.`,
+                      `${bid.title || "This bid"}${bid.agency ? `, for ${agencyInSentence(bid.agency)}` : ""}. The agency's official notice has the full scope of work, the documents and how to submit.`,
                     bid.wm,
                   )}
                 </p>

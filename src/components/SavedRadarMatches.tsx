@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { agencyDisplay } from "~/lib/bid-job-summary";
 import { trackEvent } from "~/lib/track";
 // Raw close-date render gate (owner ruling 2026-10-08): a zone-unverified
 // source's stored instant is the published Eastern wall-clock read as UTC.
@@ -202,7 +203,7 @@ export function SavedRadarMatches() {
                       {m.title || "Solicitation"}
                     </p>
                     <p className="mt-0.5 text-xs text-slate-500">
-                      {m.agency ? `${m.agency} · ` : ""}
+                      {m.agency ? `${agencyDisplay(m.agency) ?? m.agency} · ` : ""}
                       {m.set_aside ? `${m.set_aside} · ` : ""}
                       {m.due_date
                         ? `Due ${publishedDateOnlyFor(m.due_date, m.source) ?? fmtDate(m.due_date)}`

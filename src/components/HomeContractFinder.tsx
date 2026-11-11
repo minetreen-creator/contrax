@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { agencyDisplay } from "~/lib/bid-job-summary";
 import { ArrowRight, CheckCircle2, LoaderCircle } from "lucide-react";
 import type { EverydaySampleBid } from "~/lib/sample-bids";
 import type { RadarMatch } from "~/routes/radar";
@@ -612,7 +613,7 @@ export function HomeContractFinder({ sample, openTotal = 0 }: { sample: Everyday
                     {bid.title}
                   </span>
                   <span className="mt-2 block text-xs text-slate-400">
-                    {[bid.agency, bid.location, dueLabel(bid.due_date)].filter(Boolean).join(" · ")}
+                    {[agencyDisplay(bid.agency), bid.location, dueLabel(bid.due_date)].filter(Boolean).join(" · ")}
                   </span>
                 </a>
               ))}

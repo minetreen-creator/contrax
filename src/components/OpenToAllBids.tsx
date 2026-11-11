@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { agencyDisplay } from "~/lib/bid-job-summary";
 import { STATE_NAMES } from "~/lib/contract-map";
 import { getOpenToAllBids, OPEN_TO_ALL_FIRST, type OpenToAllData } from "~/lib/open-to-all";
 import { trackEvent } from "~/lib/track";
@@ -93,7 +94,7 @@ export function OpenToAllBids({
             >
               <p className={`text-sm font-semibold ${dark ? "text-white" : "text-slate-900"}`}>{b.title}</p>
               <p className={`mt-1 text-xs ${dark ? "text-slate-400" : "text-slate-500"}`}>
-                {[b.agency, b.local && stateName ? stateName : b.place ?? "Nationwide", due(b.due_date) ? `Due ${due(b.due_date)}` : null]
+                {[agencyDisplay(b.agency), b.local && stateName ? stateName : b.place ?? "Nationwide", due(b.due_date) ? `Due ${due(b.due_date)}` : null]
                   .filter(Boolean)
                   .join(" · ")}
               </p>

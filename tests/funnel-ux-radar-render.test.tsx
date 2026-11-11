@@ -105,12 +105,14 @@ describe("RadarCard — the best-match treatment (item 3)", () => {
 });
 
 describe("RadarCard — the anonymous card is untouched (item D)", () => {
-  test("no user ⇒ the one action it has today, full-width amber brief link", () => {
+  // Owner 2026-11-11 (running the company while the owner recovers): 26 Facebook visitors reached
+  // their results in two weeks and almost none opened a bid. The one action is still a single
+  // full-width link to the bid; it now says what a tap gets and is the card's main button.
+  test("no user ⇒ one action, a full-width button that opens the bid in plain words", () => {
     const plain = card();
-    expect(plain).toContain("✦ Get the AI Executive Brief");
-    expect(plain).toContain(
-      "mt-4 inline-flex w-full items-center justify-center gap-1 rounded-xl border border-amber-500/50 bg-amber-500/10 px-4 py-2.5 text-sm font-semibold text-amber-300 transition-colors hover:bg-amber-500/20",
-    );
+    expect(plain).toContain("See this bid: the job, the due date and how to bid");
+    expect(plain).not.toContain("✦ Get the AI Executive Brief");
+    expect(plain).toContain("mt-4 inline-flex w-full items-center justify-center gap-1 rounded-xl bg-amber-500 px-4 py-3 text-sm font-bold text-slate-950");
     expect(plain).toContain('href="/bid/4242"');
     // No save surface at all on an anonymous card.
     expect(plain).not.toContain("Save Opportunity");

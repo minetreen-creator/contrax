@@ -52,3 +52,16 @@ test("a bid card's agency line fits: BidNet bids say where they were posted, oth
   expect(agencyCardLabel("City of Hampton")).toBe("City of Hampton");
   expect(agencyCardLabel("")).toBeNull();
 });
+
+// Owner 2026-11-11: 79 Facebook visitors in 14 days, 26 reached their results, almost none opened a
+// bid (where the $5 offer is). The only link was a button labelled "Get the AI Executive Brief".
+test("a Radar result opens its bid in plain words, for a visitor without an account", () => {
+  expect(radar).toContain("See this bid: the job, the due date and how to bid");
+  expect(radar).toContain('trackEvent("radar_match_title_click", String(match.id))');
+  const i = radar.indexOf("See this bid: the job, the due date and how to bid");
+  const btn = radar.slice(i - 400, i);
+  expect(btn).toContain("href={`/bid/${match.id}`}");
+  expect(btn).toContain("bg-amber-500"); // the main button on the card, not an outline
+  // A signed-in member's card keeps its own wording.
+  expect(radar).toContain("✦ Get the AI Executive Brief");
+});

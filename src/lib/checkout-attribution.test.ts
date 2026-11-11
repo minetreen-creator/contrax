@@ -56,3 +56,19 @@ describe("checkout attribution", () => {
     expect(read("src/routes/api/admin/live-console.ts")).toContain("event_name IN ('plan_checkout_redirected', 'checkout_session_created')");
   });
 });
+
+// Owner 2026-11-11: nothing recorded a sale as an event, so no report could say where buyers came from.
+test("a confirmed payment is recorded as an event, with the source from the visitor's checkout", () => {
+  const { readFileSync } = require("node:fs");
+  const lib = readFileSync("src/lib/checkout-attribution.server.ts", "utf8");
+  expect(lib).toContain('export const PURCHASE_EVENT = "purchase_completed";');
+  expect(lib).toContain("AND event_name = ${CHECKOUT_OPENED_EVENT} ORDER BY created_at DESC LIMIT 1");
+  const fn = lib.slice(lib.indexOf("export async function recordPurchase"), lib.indexOf("/** Tie a paying visitor's recent anonymous history"));
+  expect(fn).toContain("} catch (e) {"); // never fails a payment
+  expect(fn).not.toContain("o.ip"); // no address stored with the sale
+  expect(fn).not.toContain("user_agent");
+  const stripe = readFileSync("src/lib/stripe.ts", "utf8");
+  expect(stripe).toContain("await recordPurchase({ visitorId: session.metadata?.visitor_id ?? null, userId: Number(userId), label: String(planTier ?? \"\") });");
+  // It runs for every confirmed checkout, not only when a visitor id is known.
+  expect(stripe.indexOf("await recordPurchase(")).toBeLessThan(stripe.indexOf("await linkVisitorToUser(session.metadata.visitor_id"));
+});

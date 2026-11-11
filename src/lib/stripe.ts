@@ -918,6 +918,11 @@ export async function handleStripeWebhook(
     // Starter 30-day pass dates (or clear them when this is a subscription).
     const { recordCheckoutPass } = await import("~/lib/starter-pass.server");
     await recordCheckoutPass(userId, session);
+    // A sale is an event too (owner 2026-11-11), with the source the visitor arrived from.
+    {
+      const { recordPurchase } = await import("~/lib/checkout-attribution.server");
+      await recordPurchase({ visitorId: session.metadata?.visitor_id ?? null, userId: Number(userId), label: String(planTier ?? "") });
+    }
     // Tie the buyer's visit to the account (owner 2026-11-04; never throws).
     if (session.metadata?.visitor_id) {
       const { linkVisitorToUser } = await import("~/lib/checkout-attribution.server");

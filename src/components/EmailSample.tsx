@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { agencyDisplay } from "~/lib/bid-job-summary";
 import { STATE_NAMES } from "~/lib/contract-map";
 import { getEmailSample, type EmailSampleBid } from "~/lib/near-you";
 import { trackEvent } from "~/lib/track";
@@ -46,7 +47,7 @@ export function EmailSample() {
             <li key={b.id} className="px-5 py-4">
               <p className="text-sm font-bold leading-snug text-slate-900">{b.title}</p>
               <p className="mt-1 text-xs text-slate-500">
-                {[b.agency, b.location].filter(Boolean).join(" · ")}
+                {[agencyDisplay(b.agency), b.location].filter(Boolean).join(" · ")}
               </p>
               <p className="mt-1 text-xs font-semibold text-rose-700">Due {dueLabel(b.due)}</p>
             </li>

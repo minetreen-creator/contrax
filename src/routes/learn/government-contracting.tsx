@@ -1,4 +1,5 @@
 import { introductoryRadarTrade } from "~/lib/learn-radar";
+import { agencyDisplay } from "~/lib/bid-job-summary";
 import { CourseOpportunity } from "~/components/CourseOpportunity";
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
@@ -264,7 +265,7 @@ function BidList({ title, bids }: { title: string; bids: CourseBid[] }) {
             <a href={`/bid/${b.id}`} onClick={() => trackEvent("course_bid_click", String(b.id))} className="font-semibold text-blue-700 underline">
               {b.title}
             </a>
-            <span className="block text-xs text-slate-500">{[b.agency, b.set_aside, b.due_date && `due ${due(b.due_date)}`].filter(Boolean).join(" · ")}</span>
+            <span className="block text-xs text-slate-500">{[agencyDisplay(b.agency), b.set_aside, b.due_date && `due ${due(b.due_date)}`].filter(Boolean).join(" · ")}</span>
           </li>
         ))}
       </ul>

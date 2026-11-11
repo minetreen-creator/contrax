@@ -22,6 +22,7 @@
  * the amber button matches the radar "Get the AI Executive Brief" treatment.
  */
 import { trackEvent } from "~/lib/track";
+import { agencyDisplay } from "~/lib/bid-job-summary";
 import type { LiveOpportunity } from "~/lib/live-opportunities";
 
 /** Normalize a raw SAM.gov set-aside label to the app's badge name (if known). */
@@ -128,7 +129,7 @@ export function LiveOpportunities({ bids }: { bids: LiveOpportunity[] | null | u
                     {bid.title}
                   </h3>
                   <p className="mt-1 text-xs font-medium text-gray-500">
-                    {bid.agency}
+                    {agencyDisplay(bid.agency) ?? bid.agency}
                   </p>
                   <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500">
                     {bid.location && (

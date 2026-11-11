@@ -26,3 +26,19 @@ test("Max's bid search and the morning email collapse BidNet copies too", async 
   expect(readFileSync("src/lib/max.server.ts", "utf8")).toContain("collapseAggregatorMirrors(rows).rows.filter(");
   expect(readFileSync("src/lib/digest-inputs.server.ts", "utf8")).toContain("await dropAggregatorMirrors(rows)");
 });
+
+// Owner 2026-11-11: the Radar bid list still read "Ohio Purchasing Group (BidNet Direct)" as the buyer.
+test("public bid lists show the readable buyer label, not the BidNet group", async () => {
+  const { readFileSync } = await import("node:fs");
+  const files = [
+    "src/routes/radar.tsx", "src/routes/app.tsx", "src/routes/map.tsx", "src/routes/awards.tsx", "src/routes/learn/government-contracting.tsx",
+    "src/routes/contracts-hvac-mechanical.tsx", "src/components/HomeContractFinder.tsx", "src/components/OpenToAllBids.tsx", "src/components/MarketPage.tsx",
+    "src/components/EmailSample.tsx", "src/components/LiveOpportunities.tsx", "src/components/RadarLoginNotify.tsx", "src/components/SavedRadarMatches.tsx",
+  ];
+  for (const f of files) {
+    const src = readFileSync(f, "utf8");
+    expect({ f, uses: src.includes("agencyDisplay(") }).toEqual({ f, uses: true });
+    expect({ f, raw: /\{\[(?:b|bid)\.agency,|>\{(?:b|bid|m)\.agency\}</.test(src) }).toEqual({ f, raw: false });
+  }
+  expect(readFileSync("src/routes/radar.tsx", "utf8")).toContain("{[agencyDisplay(b.agency), due(b.due_date) && `due ${due(b.due_date)}`]");
+});

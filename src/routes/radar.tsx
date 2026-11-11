@@ -4034,7 +4034,7 @@ function BidsFirst({ signedIn }: { signedIn: boolean | null }) {
                   <span className="min-w-0 flex-1">
                     <span className="line-clamp-2 text-sm font-semibold leading-snug text-white">{b.title}</span>
                     <span className="mt-0.5 line-clamp-1 block text-xs text-slate-400">
-                      {[b.agency, due(b.due_date) && `due ${due(b.due_date)}`].filter(Boolean).join(" · ")}
+                      {[agencyDisplay(b.agency), due(b.due_date) && `due ${due(b.due_date)}`].filter(Boolean).join(" · ")}
                     </span>
                   </span>
                   <span aria-hidden="true" className="shrink-0 text-sm font-bold text-amber-400">

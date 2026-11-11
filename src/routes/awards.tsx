@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { agencyDisplay } from "~/lib/bid-job-summary";
 import { createServerFn } from "@tanstack/react-start";
 import { FederalAwardsSection } from "~/components/FederalAwardsSection";
 import { getFederalAwards } from "~/lib/federal-awards";
@@ -862,7 +863,7 @@ function AwardsPage() {
                             >
                               <div className="min-w-0 flex-1">
                                 <p className="text-sm font-medium text-slate-800 truncate">{bid.title}</p>
-                                <p className="text-xs text-slate-500">{bid.agency} · Due {publishedDateOnlyFor(bid.due_date, bid.source) ?? fmtDate(bid.due_date)}</p>
+                                <p className="text-xs text-slate-500">{agencyDisplay(bid.agency) ?? bid.agency} · Due {publishedDateOnlyFor(bid.due_date, bid.source) ?? fmtDate(bid.due_date)}</p>
                               </div>
                               <div className="ml-3 shrink-0 text-right">
                                 <span className="text-sm font-semibold text-green-700">{bid.estimated_value}</span>

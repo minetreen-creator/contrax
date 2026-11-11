@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { agencyDisplay } from "~/lib/bid-job-summary";
 import { createServerFn } from "@tanstack/react-start";
 import { sql } from "~/db";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
@@ -366,7 +367,7 @@ function ContractsHvacMechanical() {
                         {bid.title}
                       </h3>
                       <p className="mt-1 text-xs font-medium text-slate-500">
-                        {bid.agency}
+                        {agencyDisplay(bid.agency) ?? bid.agency}
                       </p>
                       <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
                         {bid.location && (

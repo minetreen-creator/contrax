@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { agencyDisplay } from "~/lib/bid-job-summary";
 import { getRadarSeen, clearRadarSeen, type RadarSeen, type RadarSeenMatch } from "~/lib/radar-session";
 import { trackEvent } from "~/lib/track";
 import { STARTER_FIRST_MONTH_PRICE } from "~/lib/starter-offer";
@@ -118,7 +119,7 @@ export function RadarLoginNotify() {
         <li key={m.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-white px-3 py-2">
           <span className="min-w-0 flex-1 text-sm font-semibold text-slate-900">
             {m.title}
-            {m.agency ? <span className="block text-xs font-normal text-slate-500">{m.agency}</span> : null}
+            {m.agency ? <span className="block text-xs font-normal text-slate-500">{agencyDisplay(m.agency) ?? m.agency}</span> : null}
           </span>
           <a
             href={bidPageHref(m.id)}

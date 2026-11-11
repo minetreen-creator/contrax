@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { agencyDisplay } from "~/lib/bid-job-summary";
 import { markAppInstalled } from "~/lib/app-install";
 import { createServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
@@ -75,7 +76,7 @@ function BidList({ bids }: { bids: MiniBid[] }) {
         <li key={b.id}>
           <a href={`/bid/${b.id}`} className="block py-3 active:bg-slate-800/60">
             <span className="block text-sm font-semibold leading-snug text-white">{b.title}</span>
-            <span className="mt-0.5 block text-xs text-slate-400">{[b.agency, due(b.due_date)].filter(Boolean).join(" · ")}</span>
+            <span className="mt-0.5 block text-xs text-slate-400">{[agencyDisplay(b.agency), due(b.due_date)].filter(Boolean).join(" · ")}</span>
           </a>
         </li>
       ))}

@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { agencyDisplay } from "~/lib/bid-job-summary";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createServerFn } from "@tanstack/react-start";
 import { sql } from "~/db";
@@ -204,7 +205,7 @@ function BidCard({ bid }: { bid: DrillBid }) {
         ) : null}
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-400">
-        {bid.agency ? <span>{bid.agency}</span> : null}
+        {bid.agency ? <span>{agencyDisplay(bid.agency) ?? bid.agency}</span> : null}
         {bid.location ? (
           <span className="inline-flex items-center gap-1">📍 {bid.location}</span>
         ) : null}

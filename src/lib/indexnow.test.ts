@@ -33,3 +33,24 @@ test("submit: 200/202 count as accepted, errors are reported, never thrown", asy
     expect((await submitIndexNow(["https://www.contrax.company/bid/7"])).errors).toEqual(["offline"]);
   } finally { Object.assign(indexNowDeps, saved); }
 });
+
+// 2026-11-11 (search traffic work): after the bid, state and trade pages changed, Bing should be told.
+import { INDEXNOW_SITEMAPS, sitemapLocs } from "./indexnow";
+import { readFileSync as readFile } from "node:fs";
+
+test("a sitemap's page addresses are read out, with &amp; turned back into &", () => {
+  const xml = `<?xml version="1.0"?><urlset><url><loc>https://www.contrax.company/bid/1</loc><lastmod>2026-11-11</lastmod></url>
+    <url><loc> https://www.contrax.company/radar?trade=hvac&amp;state=GA </loc></url></urlset>`;
+  expect(sitemapLocs(xml)).toEqual(["https://www.contrax.company/bid/1", "https://www.contrax.company/radar?trade=hvac&state=GA"]);
+  expect(sitemapLocs("")).toEqual([]);
+});
+
+test("the weekly resubmission leaves the bid pages out; the manual one can include them", () => {
+  expect(INDEXNOW_SITEMAPS.pages).not.toContain("/sitemap-bids.xml");
+  expect(INDEXNOW_SITEMAPS.all).toContain("/sitemap-bids.xml");
+  const wf = readFile(".github/workflows/indexnow-resubmit.yml", "utf8");
+  expect(wf).toContain('if [[ "$SCOPE" == "all" ]]; then bun run src/jobs/indexnow-submit.ts --all; else bun run src/jobs/indexnow-submit.ts --pages; fi');
+  expect(wf).not.toContain("DATABASE_URL"); // it reads the public sitemaps only
+  const job = readFile("src/jobs/indexnow-submit.ts", "utf8");
+  expect(job).toContain('if (process.argv.includes("--all")) return resubmit("all");');
+});

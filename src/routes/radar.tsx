@@ -4020,22 +4020,25 @@ function BidsFirst({ signedIn }: { signedIn: boolean | null }) {
           {/* Owner 2026-11-11: 91 visitors saw this list in a week and 1 tapped a bid. A row was a
               white title with no sign it opened anything; now the whole row is the link, with an arrow. */}
           <p className="mt-3 text-xs text-slate-400">Tap a bid to see the job, the due date and how to bid.</p>
-          <ul className="mt-1.5 space-y-1.5">
+          {/* Owner 2026-11-11 ("I do like their layout better"): each bid is a card (agency, title,
+              place and due date, one line saying what a tap gets), two across on a wide screen. */}
+          <ul className="mt-2 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
             {list.map((b) => (
-              <li key={b.id}>
+              <li key={b.id} className="flex">
                 <a
                   href={`/bid/${b.id}`}
                   onClick={() => trackEvent("radar_bids_first_click", tab)}
-                  className="flex items-center gap-3 rounded-xl border border-slate-700 bg-slate-800/60 px-3 py-2.5 hover:border-amber-400 active:bg-slate-800"
+                  className="flex w-full flex-col rounded-2xl border border-slate-700 bg-slate-800/60 px-4 py-3.5 hover:border-amber-400 active:bg-slate-800"
                 >
-                  <span className="min-w-0 flex-1">
-                    <span className="line-clamp-2 text-sm font-semibold leading-snug text-white">{b.title}</span>
-                    <span className="mt-0.5 line-clamp-1 block text-xs text-slate-400">
-                      {[agencyDisplay(b.agency), due(b.due_date) && `due ${due(b.due_date)}`].filter(Boolean).join(" · ")}
-                    </span>
+                  {agencyDisplay(b.agency) ? (
+                    <span className="line-clamp-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">{agencyDisplay(b.agency)}</span>
+                  ) : null}
+                  <span className="mt-1 line-clamp-2 text-[15px] font-bold leading-snug text-white">{b.title}</span>
+                  <span className="mt-1.5 block text-xs text-slate-300">
+                    {[stateName, due(b.due_date) && `Due ${due(b.due_date)}`].filter(Boolean).join(" · ")}
                   </span>
-                  <span aria-hidden="true" className="shrink-0 text-sm font-bold text-amber-400">
-                    View →
+                  <span aria-hidden="true" className="mt-auto pt-2.5 text-xs font-semibold text-amber-400">
+                    See the job and how to bid →
                   </span>
                 </a>
               </li>

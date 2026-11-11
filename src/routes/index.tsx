@@ -389,12 +389,19 @@ const FOOTER_GROUPS = [
       { href: "/pathway", label: "The Contrax Pathway" },
       { href: "/gap-map", label: "Gap Map" },
       { href: "/roadmap", label: "Your Roadmap" },
-      { href: "/prime-finder", label: "Prime Finder" },
-      { href: "/sub-finder", label: "Sub Finder" },
-      { href: "/subs-wanted", label: "Subs Wanted" },
       { href: "/co-op-contracts", label: "Co-op contracts" },
       // Moved off the homepage (owner 2026-11-10 cleanup).
       { href: "/recompetes", label: "Contracts ending soon" },
+    ],
+  },
+  {
+    // Owner 2026-11-11 ("fix this too"): one column held ten links beside two of four. The
+    // prime and subcontractor tools get their own column so the four are about even.
+    title: "Primes and subs",
+    links: [
+      { href: "/prime-finder", label: "Prime Finder" },
+      { href: "/sub-finder", label: "Sub Finder" },
+      { href: "/subs-wanted", label: "Subs Wanted" },
       { href: "/megaprojects", label: "Megaprojects" },
       { href: "/tampa-contractors", label: "Tampa: work and crew housing" },
     ],
@@ -421,7 +428,7 @@ function Footer() {
   return (
     <footer className="pt-14 pb-9 text-sm text-[#56647a] dark:text-[#9fb0c8]">
       <div className="mx-auto max-w-[1120px] px-4 sm:px-6">
-        <nav aria-label="Footer" className="grid grid-cols-1 gap-8 border-t border-[#dde3ec] py-8 sm:grid-cols-3 sm:gap-10 dark:border-[#24334f]">
+        <nav aria-label="Footer" className="grid grid-cols-2 gap-x-6 gap-y-8 border-t border-[#dde3ec] py-8 lg:grid-cols-4 lg:gap-10 dark:border-[#24334f]">
           {FOOTER_GROUPS.map((group) => (
             <div key={group.title} className="min-w-0">
               <h2 className="mb-3 font-semibold text-[#0f1f38] dark:text-white">{group.title}</h2>

@@ -40,3 +40,14 @@ test("the $5 strip still says what the 6 AM email brings", () => {
 test("megaprojects stay one tap away from a thin Radar search", () => {
   expect(readFileSync("src/routes/radar.tsx", "utf8")).toContain('href="/megaprojects?source=radar_more"');
 });
+
+// Owner 2026-11-11 ("fix this too", with a screenshot of one ten-link column beside two of four).
+test("the footer is four columns of about the same length", () => {
+  const page = readFileSync("src/routes/index.tsx", "utf8");
+  const groups = page.slice(page.indexOf("const FOOTER_GROUPS = ["), page.indexOf("const FOOTER_LEGAL_LINKS"));
+  const sizes = groups.split("title: ").slice(1).map((g) => (g.match(/\{ href: /g) ?? []).length);
+  expect(sizes).toEqual([4, 5, 5, 4]);
+  expect(groups).toContain('title: "Primes and subs"');
+  expect(page).toContain("grid-cols-2 gap-x-6 gap-y-8");
+  expect(page).toContain("lg:grid-cols-4");
+});

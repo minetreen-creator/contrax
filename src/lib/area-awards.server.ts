@@ -1,7 +1,7 @@
 /**
  * Federal winning prices near a bid — database side. See ~/lib/area-awards.
- * The winners and amounts are only ever returned for a paid viewer; everyone
- * else gets the count, so the HTML and the response never carry them.
+ * The winners and each award's amount are only ever returned for a paid viewer. Everyone else
+ * gets the count and the typical size range (two rounded percentiles, no winner, no single award).
  */
 import { sql } from "~/db";
 import { ensureAwardLeadsTable } from "~/lib/award-leads.server";
@@ -12,6 +12,7 @@ import {
   AREA_AWARDS_MIN_EXACT,
   areaAwardScopes,
   medianAmount,
+  typicalRange,
   type AreaAwards,
 } from "~/lib/area-awards";
 
@@ -30,10 +31,12 @@ export async function loadAreaAwards(
     const scope = scopes[i];
     const pattern = `^(${scope.prefixes.join("|")})`;
     const [agg] = (await s`
-      SELECT COUNT(*)::int AS n, MIN(awarded_on)::text AS since
+      SELECT COUNT(*)::int AS n, MIN(awarded_on)::text AS since,
+             (percentile_cont(0.25) WITHIN GROUP (ORDER BY amount))::float AS p25,
+             (percentile_cont(0.75) WITHIN GROUP (ORDER BY amount))::float AS p75
       FROM award_leads
       WHERE pop_state = ${state} AND naics_code ~ ${pattern} AND amount > 0
-    `) as { n: number; since: string | null }[];
+    `) as { n: number; since: string | null; p25: number | null; p75: number | null }[];
     const total = Number(agg?.n ?? 0);
     const last = i === scopes.length - 1;
     if (total === 0 || (total < AREA_AWARDS_MIN_EXACT && !last)) continue;
@@ -64,7 +67,7 @@ export async function loadAreaAwards(
         })),
       };
     }
-    return { label: scope.label, state, total, since: agg?.since ?? null, detail };
+    return { label: scope.label, state, total, since: agg?.since ?? null, typical: typicalRange(total, agg?.p25, agg?.p75), detail };
   }
   return null;
 }

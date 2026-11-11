@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { HAMPTON_ROADS_MARKET, MARKETS, SAN_ANTONIO_MARKET, SAN_DIEGO_MARKET, TAMPA_MARKET, inMarket, marketBySlug, marketPitchPath } from "./markets";
+import { HAMPTON_ROADS_MARKET, MARKETS, PARTNER_MONTHLY_FEE, PARTNER_TERMS, PARTNER_TRIAL_DAYS, SAN_ANTONIO_MARKET, SAN_DIEGO_MARKET, TAMPA_MARKET, inMarket, marketBySlug, marketPitchPath } from "./markets";
 import { isTampaBay } from "./tampa";
 
 const read = (p: string) => readFileSync(new URL(p, import.meta.url), "utf8");
@@ -50,5 +50,16 @@ describe("Contractor Support Network markets", () => {
     expect(read("../routes/admin/partners.tsx")).toContain("if (!user.is_admin) throw redirect");
     const map = read("../../scripts/generate-sitemap.mjs");
     for (const p of ["/markets", "/markets/hampton-roads", "/markets/san-diego", "/markets/san-antonio"]) expect(map).toContain(`["${p}", `);
+  });
+
+  // Owner 2026-11-11: the pitch said "a trial period first, then a simple referral arrangement", with
+  // no price, so a yes brought a partner and no money. The terms are stated once and shown on the page.
+  test("the partner pitch states the trial and the monthly fee", () => {
+    expect([PARTNER_TRIAL_DAYS, PARTNER_MONTHLY_FEE]).toEqual([60, 99]);
+    expect(PARTNER_TERMS).toBe("A 60-day trial at no cost. After that it is $99 a month for each market, month to month, and only if it is working for you. No long contract.");
+    const pitch = read("../routes/markets.$slug_.partners.tsx");
+    expect(pitch).toContain("{PARTNER_TERMS}");
+    expect(pitch).toContain("How it starts and what it costs");
+    expect(pitch).not.toContain("referral arrangement");
   });
 });

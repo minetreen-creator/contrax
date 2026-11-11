@@ -207,3 +207,13 @@ export const networkName = (m: Pick<Market, "name">) => `${m.name} Contractor Su
 export const marketPitchPath = (m: Pick<Market, "slug">) => `/markets/${m.slug}/partners`;
 
 export const PARTNER_CONTACT = "contrax.companyllc@gmail.com";
+
+/**
+ * Partner terms (owner 2026-11-11: "yes do that"). A trial at no cost, then a flat monthly fee per
+ * market, month to month. Flat, not per booking: Contrax can count the clicks and calls it sends, but
+ * bookings happen between the partner and the contractor. Said the same way on the pitch page and in
+ * the owner's emails.
+ */
+export const PARTNER_TRIAL_DAYS = 60;
+export const PARTNER_MONTHLY_FEE = 99;
+export const PARTNER_TERMS = `A ${PARTNER_TRIAL_DAYS}-day trial at no cost. After that it is $${PARTNER_MONTHLY_FEE} a month for each market, month to month, and only if it is working for you. No long contract.`;

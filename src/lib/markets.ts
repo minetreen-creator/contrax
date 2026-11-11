@@ -217,3 +217,11 @@ export const PARTNER_CONTACT = "contrax.companyllc@gmail.com";
 export const PARTNER_TRIAL_DAYS = 60;
 export const PARTNER_MONTHLY_FEE = 99;
 export const PARTNER_TERMS = `A ${PARTNER_TRIAL_DAYS}-day trial at no cost. After that it is $${PARTNER_MONTHLY_FEE} a month for each market, month to month, and only if it is working for you. No long contract.`;
+
+/**
+ * The pitch page shows the Tampa result only once this many different people have reached the Tampa
+ * partner (owner 2026-11-11: "hide it", when it read "5 times (2 different people)" beside a $99 ask).
+ * It comes back on its own when the number is worth showing. PURE.
+ */
+export const PARTNER_PROOF_MIN_PEOPLE = 25;
+export const showPartnerProof = (visitors: number) => visitors >= PARTNER_PROOF_MIN_PEOPLE;

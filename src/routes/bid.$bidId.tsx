@@ -546,7 +546,7 @@ function BidDetailPage() {
                     <>
                       <span aria-hidden="true">·</span>
                       <a href="#typical-size" onClick={() => trackEvent("bid_typical_size_click")} className="underline decoration-dotted hover:text-white">
-                        Similar jobs: {typicalRangeText(areaAwards.typical)} (estimate)
+                        Similar jobs{areaAwards.typical.scope === "nation" ? " nationwide" : ""}: {typicalRangeText(areaAwards.typical)} (estimate)
                       </a>
                     </>
                   )}

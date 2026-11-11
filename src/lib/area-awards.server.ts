@@ -14,6 +14,7 @@ import {
   medianAmount,
   typicalRange,
   type AreaAwards,
+  type TypicalSize,
 } from "~/lib/area-awards";
 
 export async function loadAreaAwards(
@@ -27,17 +28,34 @@ export async function loadAreaAwards(
   if (!scopes.length) return null;
   await ensureAwardLeadsTable();
   const s = sql();
+  type Agg = { n: number; since: string | null; p25: number | null; p75: number | null };
+  const aggregate = async (pattern: string, inState: boolean): Promise<Agg> => {
+    const [row] = (inState
+      ? await s`
+          SELECT COUNT(*)::int AS n, MIN(awarded_on)::text AS since,
+                 (percentile_cont(0.25) WITHIN GROUP (ORDER BY amount))::float AS p25,
+                 (percentile_cont(0.75) WITHIN GROUP (ORDER BY amount))::float AS p75
+          FROM award_leads
+          WHERE pop_state = ${state} AND naics_code ~ ${pattern} AND amount > 0`
+      : await s`
+          SELECT COUNT(*)::int AS n, MIN(awarded_on)::text AS since,
+                 (percentile_cont(0.25) WITHIN GROUP (ORDER BY amount))::float AS p25,
+                 (percentile_cont(0.75) WITHIN GROUP (ORDER BY amount))::float AS p75
+          FROM award_leads
+          WHERE naics_code ~ ${pattern} AND amount > 0`) as Agg[];
+    return { n: Number(row?.n ?? 0), since: row?.since ?? null, p25: row?.p25 ?? null, p75: row?.p75 ?? null };
+  };
+  const sized = (a: Agg, scope: "state" | "nation"): TypicalSize | null => {
+    const r = typicalRange(a.n, a.p25, a.p75);
+    return r ? { ...r, scope, count: a.n } : null;
+  };
+
+  // The state's own contracts first: exact code, widened when the exact code has too few.
   for (let i = 0; i < scopes.length; i++) {
     const scope = scopes[i];
     const pattern = `^(${scope.prefixes.join("|")})`;
-    const [agg] = (await s`
-      SELECT COUNT(*)::int AS n, MIN(awarded_on)::text AS since,
-             (percentile_cont(0.25) WITHIN GROUP (ORDER BY amount))::float AS p25,
-             (percentile_cont(0.75) WITHIN GROUP (ORDER BY amount))::float AS p75
-      FROM award_leads
-      WHERE pop_state = ${state} AND naics_code ~ ${pattern} AND amount > 0
-    `) as { n: number; since: string | null; p25: number | null; p75: number | null }[];
-    const total = Number(agg?.n ?? 0);
+    const agg = await aggregate(pattern, true);
+    const total = agg.n;
     const last = i === scopes.length - 1;
     if (total === 0 || (total < AREA_AWARDS_MIN_EXACT && !last)) continue;
     let detail: AreaAwards["detail"] = null;
@@ -67,7 +85,14 @@ export async function loadAreaAwards(
         })),
       };
     }
-    return { label: scope.label, state, total, since: agg?.since ?? null, typical: typicalRange(total, agg?.p25, agg?.p75), detail };
+    // Too few in the state for a range → the same work nationwide, and say so.
+    const typical = sized(agg, "state") ?? sized(await aggregate(pattern, false), "nation");
+    return { label: scope.label, state, total, since: agg.since, typical, detail };
+  }
+  // No contract in the state at all: a nationwide size estimate on its own, when there is one.
+  for (const scope of scopes) {
+    const typical = sized(await aggregate(`^(${scope.prefixes.join("|")})`, false), "nation");
+    if (typical) return { label: scope.label, state, total: 0, since: null, typical, detail: null };
   }
   return null;
 }

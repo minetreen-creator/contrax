@@ -138,3 +138,12 @@ describe("loading a slice of contract history", () => {
     expect(wf).not.toContain("--end=${{"); // inputs reach the shell as env vars, never pasted into the command
   });
 });
+
+// 2026-11-11: the Sep 18-28 slice saw exactly 10,000 records and exited as if complete.
+test("a slice cut off by USAspending's 10,000-record limit is reported as incomplete", () => {
+  const server = readSrc("src/lib/award-leads.server.ts", "utf8");
+  expect(server).toContain("export const USASPENDING_MAX_RECORDS = 10_000;");
+  expect(server).toContain("truncated = seen >= USASPENDING_MAX_RECORDS;");
+  // A last page that is all small awards still counts as complete, whatever the count.
+  expect(server.indexOf("truncated = false;")).toBeLessThan(server.indexOf("truncated = seen >= USASPENDING_MAX_RECORDS;"));
+});

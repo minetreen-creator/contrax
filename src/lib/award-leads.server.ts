@@ -97,6 +97,8 @@ export async function awardLeadsSummary(): Promise<{ sample: AwardLead[]; last30
 }
 
 const API = "https://api.usaspending.gov/api/v2/search/spending_by_award/";
+/** USAspending returns at most this many records for one search. */
+export const USASPENDING_MAX_RECORDS = 10_000;
 
 /**
  * Pull contract awards with activity in the last `days` days and keep the ones
@@ -152,8 +154,15 @@ export async function syncAwardLeads(opts: { days?: number; end?: string | null;
     kept += leads.length;
     if (!opts.dryRun && leads.length) inserted += await insertAwardLeads(leads);
     // Sorted by amount: once a whole page is under the minimum, the rest is too.
-    if (!data.page_metadata?.hasNext || results.length === 0 || results.every((r) => Number(r["Award Amount"]) < 25_000)) {
+    if (results.length === 0 || results.every((r) => Number(r["Award Amount"]) < 25_000)) {
       truncated = false;
+      break;
+    }
+    if (!data.page_metadata?.hasNext) {
+      // USAspending stops a search at 10,000 records and then reports no next page. Reaching
+      // that with awards still above the minimum means the small ones were cut off (the
+      // Sep 18-28 slice, 2026-11-11: 10,000 seen and it looked complete).
+      truncated = seen >= USASPENDING_MAX_RECORDS;
       break;
     }
     await new Promise((r) => setTimeout(r, 500));

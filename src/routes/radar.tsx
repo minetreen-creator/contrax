@@ -88,7 +88,7 @@ import { HeadStartLock } from "~/components/HeadStartLock";
 import { WinnerPriceLine } from "~/components/WinnerPriceLine";
 import { headStartUntil } from "~/lib/head-start";
 import { CoopCallout } from "~/components/CoopCallout";
-import { agencyDisplay } from "~/lib/bid-job-summary";
+import { agencyCardLabel, agencyDisplay } from "~/lib/bid-job-summary";
 
 /**
  * /radar — "Contract Radar" interactive lead-generation experience.
@@ -4030,8 +4030,8 @@ function BidsFirst({ signedIn }: { signedIn: boolean | null }) {
                   onClick={() => trackEvent("radar_bids_first_click", tab)}
                   className="flex w-full flex-col rounded-2xl border border-slate-700 bg-slate-800/60 px-4 py-3.5 hover:border-amber-400 active:bg-slate-800"
                 >
-                  {agencyDisplay(b.agency) ? (
-                    <span className="line-clamp-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">{agencyDisplay(b.agency)}</span>
+                  {agencyCardLabel(b.agency) ? (
+                    <span className="line-clamp-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">{agencyCardLabel(b.agency)}</span>
                   ) : null}
                   <span className="mt-1 line-clamp-2 text-[15px] font-bold leading-snug text-white">{b.title}</span>
                   <span className="mt-1.5 block text-xs text-slate-300">

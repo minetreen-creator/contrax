@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+import { agencyCardLabel } from "./bid-job-summary";
 import { readFileSync } from "node:fs";
 
 // Owner 2026-11-11 (funnel review, 7 days): 152 visitors were counted as shown an email ask and 4 gave
@@ -30,7 +31,7 @@ test("Radar bid list: each bid is a card, the whole card is the link and says so
   expect(row).toContain("See the job and how to bid →");
   expect(radar).toContain('<ul className="mt-2 grid grid-cols-1 gap-2.5 sm:grid-cols-2">');
   expect(row).toContain("uppercase tracking-wider"); // agency sits above the title
-  expect(row.indexOf("agencyDisplay(b.agency)")).toBeLessThan(row.indexOf("{b.title}"));
+  expect(row.indexOf("agencyCardLabel(b.agency)")).toBeLessThan(row.indexOf("{b.title}"));
   expect(row).toContain("{b.title}");
   expect(row.indexOf("b.agency")).toBeLessThan(row.indexOf("</a>")); // agency and due date are inside the link
   expect(radar).toContain("Tap a bid to see the job, the due date and how to bid.");
@@ -43,4 +44,11 @@ test("bid page: the email offer comes right after the bid, before the scanner an
   expect(alert).toBeLessThan(bid.indexOf("<MaxAssistant"));
   expect(bid.match(/<BidAlertCapture/g)).toHaveLength(1);
   expect(bid).toContain('heading="Not ready to bid this one? Get the next ones by email"');
+});
+
+// Owner 2026-11-11: on a card the BidNet wording was cut off ("AN OHIO PUBLIC AGENCY (POSTE…").
+test("a bid card's agency line fits: BidNet bids say where they were posted, others name the agency", () => {
+  expect(agencyCardLabel("Ohio Purchasing Group (BidNet Direct)")).toBe("Posted on BidNet Direct");
+  expect(agencyCardLabel("City of Hampton")).toBe("City of Hampton");
+  expect(agencyCardLabel("")).toBeNull();
 });

@@ -94,6 +94,15 @@ export function agencyDisplay(agency: string | null | undefined): string | null 
 }
 
 /** The buyer inside a sentence: "…, for an Ohio public agency (posted on BidNet Direct)". PURE. */
+/**
+ * The agency line on a small bid card (owner 2026-11-11). The BidNet wording is too long for one
+ * line ("AN OHIO PUBLIC AGENCY (POSTE…") and repeats the state the card already shows. PURE.
+ */
+export function agencyCardLabel(agency: string | null | undefined): string | null {
+  const d = agencyDisplay(agency);
+  return d && / public agency \(posted on BidNet Direct\)$/.test(d) ? "Posted on BidNet Direct" : d;
+}
+
 export function agencyInSentence(agency: string | null | undefined): string | null {
   const d = agencyDisplay(agency);
   return d ? d.replace(/^(An?) (?=.+ public agency \(posted on BidNet Direct\)$)/, (_, a: string) => `${a.toLowerCase()} `) : d;

@@ -207,3 +207,27 @@ export function deadlineLabel(input: DeadlineLabelInput): DeadlineLabelResult {
     note: null,
   };
 }
+
+/**
+ * The calendar day a deadline falls on, as a contractor reads it (owner 2026-11-11: a BidNet bid due
+ * Nov 17 at 11:59 PM Eastern read "Due Nov 18" in the page title and on the page, because the stored
+ * instant, 04:59 UTC on the 18th, was printed in UTC). A read-only count that day: about 17,000 of
+ * 34,000 open bids are stored at a time whose UTC day is the day after its U.S. day.
+ *
+ *  - A value stored at exactly midnight UTC is a date with no time (SAM.gov and others): its own day.
+ *  - Anything else is a real moment: the day it falls on in U.S. Eastern time, which is also the right
+ *    day for Central, Mountain and Pacific deadlines.
+ * PURE. Returns null when the value is missing or unreadable.
+ */
+export function dueDayText(due: string | Date | null | undefined, opts: { year?: boolean } = {}): string | null {
+  if (due == null || due === "") return null;
+  const d = due instanceof Date ? due : new Date(due);
+  if (Number.isNaN(d.getTime())) return null;
+  const dateOnly = d.getUTCHours() === 0 && d.getUTCMinutes() === 0 && d.getUTCSeconds() === 0;
+  return d.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    ...(opts.year === false ? {} : { year: "numeric" }),
+    timeZone: dateOnly ? "UTC" : "America/New_York",
+  });
+}

@@ -12,6 +12,7 @@
  */
 
 import { agencyDisplay } from "~/lib/bid-job-summary";
+import { dueDayText } from "~/lib/deadline-label";
 
 export const SITE_URL = "https://www.contrax.company";
 /** Google's per-file sitemap limit is 50,000 URLs; stay well under it. */
@@ -38,10 +39,7 @@ function clip(text: string, max: number): string {
 
 /** "Oct 12, 2026" (UTC date of the stored deadline). */
 export function dueLabel(dueDate: string | null | undefined): string | null {
-  if (!dueDate) return null;
-  const d = new Date(dueDate);
-  if (Number.isNaN(d.getTime())) return null;
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
+  return dueDayText(dueDate);
 }
 
 /** A bid page is indexable while it exists and its deadline has not passed. */

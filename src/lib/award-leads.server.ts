@@ -3,7 +3,7 @@
  * The table is created lazily (additive) like the data feed's tables.
  */
 import { sql } from "~/db";
-import { AWARD_LEAD_FIELDS, toAwardLead, type AwardLead, type AwardLeadQuery } from "~/lib/award-leads";
+import { AWARD_FEED_LATE_DAYS, AWARD_LEAD_FIELDS, awardSyncWindow, toAwardLead, type AwardLead, type AwardLeadQuery } from "~/lib/award-leads";
 
 export async function ensureAwardLeadsTable(): Promise<void> {
   await sql()`CREATE TABLE IF NOT EXISTS award_leads (
@@ -70,7 +70,10 @@ export async function queryAwardLeads(q: AwardLeadQuery): Promise<{ rows: (Award
   const s = sql();
   const statePred = q.states.length ? s`AND (pop_state = ANY(${q.states}) OR recipient_state = ANY(${q.states}))` : s``;
   const naicsPred = q.naics.length ? s`AND naics_code ~ ${`^(${q.naics.join("|")})`}` : s``;
-  const sincePred = q.since ? s`AND awarded_on >= ${q.since}` : s``;
+  // With no date asked for, leave out contracts loaded as history (see AWARD_FEED_LATE_DAYS).
+  const sincePred = q.since
+    ? s`AND awarded_on >= ${q.since}`
+    : s`AND (awarded_on IS NULL OR first_seen_at::date - awarded_on <= ${AWARD_FEED_LATE_DAYS})`;
   const minPred = q.minAmount > 0 ? s`AND amount >= ${q.minAmount}` : s``;
   const rows = (await s`
     SELECT * FROM award_leads
@@ -98,26 +101,31 @@ const API = "https://api.usaspending.gov/api/v2/search/spending_by_award/";
 /**
  * Pull contract awards with activity in the last `days` days and keep the ones
  * whose base award date falls inside the window (new awards, not modifications
- * of old ones). Stops at `maxPages` × 100 rows.
+ * of old ones). Stops at `maxPages` × 100 rows. With `end`, the window is the
+ * `days` days up to that date: one slice of history (owner 2026-11-11).
+ * `truncated` is true when the page limit was reached before the small awards.
  */
-export async function syncAwardLeads(opts: { days?: number; maxPages?: number; dryRun?: boolean } = {}): Promise<{
+export async function syncAwardLeads(opts: { days?: number; end?: string | null; maxPages?: number; dryRun?: boolean } = {}): Promise<{
   pages: number;
   seen: number;
   kept: number;
   inserted: number;
+  start: string;
+  end: string;
+  truncated: boolean;
 }> {
-  const days = opts.days ?? 10;
   const maxPages = opts.maxPages ?? 60;
-  const end = new Date();
-  const start = new Date(end.getTime() - days * 86_400_000);
-  const startStr = start.toISOString().slice(0, 10);
-  const endStr = end.toISOString().slice(0, 10);
+  const w = awardSyncWindow({ days: opts.days, end: opts.end });
+  if (!w.ok) throw new Error(w.error);
+  const startStr = w.start;
+  const endStr = w.end;
   if (!opts.dryRun) await ensureAwardLeadsTable();
 
   let pages = 0;
   let seen = 0;
   let kept = 0;
   let inserted = 0;
+  let truncated = true;
   for (let page = 1; page <= maxPages; page++) {
     const res = await fetch(API, {
       method: "POST",
@@ -140,14 +148,17 @@ export async function syncAwardLeads(opts: { days?: number; maxPages?: number; d
     seen += results.length;
     const leads = results
       .map(toAwardLead)
-      .filter((l): l is AwardLead => !!l && !!l.awarded_on && l.awarded_on >= startStr);
+      .filter((l): l is AwardLead => !!l && !!l.awarded_on && l.awarded_on >= startStr && l.awarded_on <= endStr);
     kept += leads.length;
     if (!opts.dryRun && leads.length) inserted += await insertAwardLeads(leads);
     // Sorted by amount: once a whole page is under the minimum, the rest is too.
-    if (!data.page_metadata?.hasNext || results.length === 0 || results.every((r) => Number(r["Award Amount"]) < 25_000)) break;
+    if (!data.page_metadata?.hasNext || results.length === 0 || results.every((r) => Number(r["Award Amount"]) < 25_000)) {
+      truncated = false;
+      break;
+    }
     await new Promise((r) => setTimeout(r, 500));
   }
-  return { pages, seen, kept, inserted };
+  return { pages, seen, kept, inserted, start: startStr, end: endStr, truncated };
 }
 
 /**

@@ -2278,24 +2278,22 @@ function RadarLanding() {
             )}
             {isAnonymous && scan.matches.length > 0 && (
               <div className="mt-6 flex flex-col gap-5">
-                {/* Owner 2026-10-26: the unlock card sat under three full cards and
-                    most visitors left within seconds; this bar puts it in view. */}
+                {/* Owner 2026-11-11 (152 saw an email ask in a week, 4 gave one): the field itself is
+                    the first thing under the count, not a bar that scrolls to a card under three
+                    full bid cards. The full card stays at the bottom. */}
                 {locked > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      trackEvent("radar_unlock_bar_click", String(locked));
-                      const input = document.getElementById("radar-unlock-email");
-                      input?.scrollIntoView({ behavior: "smooth", block: "center" });
-                      input?.focus({ preventScroll: true });
-                    }}
-                    className="flex items-center justify-between gap-3 rounded-xl border border-amber-400/60 bg-amber-500/10 px-4 py-3 text-left text-sm font-semibold text-amber-200 hover:bg-amber-500/20"
-                  >
-                    <span>Showing {visibleCount} of {totalMatches} matching bids</span>
-                    <span className="whitespace-nowrap text-amber-300">
-                      {totalMatches > RADAR_MATCH_CAP ? `See your best ${RADAR_MATCH_CAP}` : `See all ${totalMatches}`}: just your email →
-                    </span>
-                  </button>
+                  <EmailUnlockCard
+                    compact
+                    shown={visibleCount}
+                    total={totalMatches}
+                    locked={locked}
+                    trade={trade}
+                    state={state}
+                    cert={cert ?? ""}
+                    sizePref={sizePref ?? ""}
+                    signupHref={radarSignupHref({ trade, state, cert, sizePref }, { unlock: true })}
+                    onUnlocked={() => runScan({ trade: trade.trim(), state, cert: cert!, sizePref: sizePref! }, { unlock: true })}
+                  />
                 )}
                 {scan.matches.slice(0, visibleCount).map((m, i) => (
                   <RadarCard
@@ -3567,8 +3565,16 @@ function EmailUnlockCard({
   sizePref,
   signupHref,
   onUnlocked,
+  compact = false,
+  shown = 0,
+  total = 0,
 }: {
   locked: number;
+  /** The short form at the top of the results: the count, one field, one button. */
+  compact?: boolean;
+  /** Compact only: bids on screen and matches in all. */
+  shown?: number;
+  total?: number;
   trade: string;
   state: string;
   cert: string;
@@ -3581,10 +3587,11 @@ function EmailUnlockCard({
   const [error, setError] = useState("");
   const shownRef = useRef(false);
   useEffect(() => {
-    if (shownRef.current) return;
+    // Counted once per results screen: the card at the bottom reports it, as before.
+    if (shownRef.current || compact) return;
     shownRef.current = true;
     trackEvent("radar_email_unlock_shown", String(locked));
-  }, [locked]);
+  }, [locked, compact]);
 
   const submit = async (e: { preventDefault: () => void }) => {
     e.preventDefault();
@@ -3618,7 +3625,7 @@ function EmailUnlockCard({
         setError(res.status === 429 ? "Too many tries. Please wait a few minutes." : "Something went wrong. Please try again.");
         return;
       }
-      trackEvent("radar_lead_captured", "email_unlock");
+      trackEvent("radar_lead_captured", compact ? "email_unlock_top" : "email_unlock");
       markEmailGiven();
       if (!data.unlocked) {
         // Saved for alerts, but this browser couldn't be unlocked (no visitor
@@ -3633,6 +3640,46 @@ function EmailUnlockCard({
       setError("Something went wrong. Please try again.");
     }
   };
+
+  if (compact) {
+    const seeAll = total > RADAR_MATCH_CAP ? `your best ${RADAR_MATCH_CAP}` : `all ${total}`;
+    return (
+      <section aria-label="See all your matches" className="rounded-xl border border-amber-400/60 bg-amber-500/10 px-4 py-3">
+        <p className="text-sm font-semibold text-amber-200">
+          Showing {shown} of {total} matching bids. See {seeAll} now:
+        </p>
+        <form onSubmit={submit} className="mt-2 flex gap-2">
+          <label htmlFor="radar-unlock-email-top" className="sr-only">
+            Email address
+          </label>
+          <input
+            id="radar-unlock-email-top"
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Your email"
+            className="min-w-0 flex-1 rounded-lg border border-slate-600 bg-slate-800 px-3 py-2.5 text-base text-white placeholder-slate-500 outline-none focus:border-amber-400"
+          />
+          <button
+            type="submit"
+            disabled={status === "submitting"}
+            className="shrink-0 rounded-lg bg-amber-500 px-4 py-2.5 text-sm font-bold text-slate-950 hover:bg-amber-400 active:scale-[0.98] disabled:opacity-60"
+          >
+            {status === "submitting" ? "Opening…" : `Show ${seeAll} →`}
+          </button>
+        </form>
+        {status === "error" && error ? (
+          <p className="mt-2 text-sm font-medium text-red-400" role="alert">
+            {error}
+          </p>
+        ) : null}
+        <p className="mt-2 text-xs text-slate-400">No password, no card. We also email you new matches; unsubscribe anytime.</p>
+      </section>
+    );
+  }
 
   return (
     <section aria-label="Unlock your matches" className="rounded-2xl border-2 border-amber-400/70 bg-gradient-to-b from-amber-500/15 to-slate-900 p-5 shadow-lg shadow-amber-500/10">
@@ -3972,22 +4019,32 @@ function BidsFirst({ signedIn }: { signedIn: boolean | null }) {
         ))}
       </div>
       {list.length ? (
-        <ul className="mt-2 divide-y divide-slate-800">
-          {list.map((b) => (
-            <li key={b.id} className="py-2">
-              <a
-                href={`/bid/${b.id}`}
-                onClick={() => trackEvent("radar_bids_first_click", tab)}
-                className="block text-sm font-semibold leading-snug text-white hover:text-amber-300"
-              >
-                <span className="line-clamp-2">{b.title}</span>
-              </a>
-              <p className="line-clamp-1 text-xs text-slate-400">
-                {[b.agency, due(b.due_date) && `due ${due(b.due_date)}`].filter(Boolean).join(" · ")}
-              </p>
-            </li>
-          ))}
-        </ul>
+        <>
+          {/* Owner 2026-11-11: 91 visitors saw this list in a week and 1 tapped a bid. A row was a
+              white title with no sign it opened anything; now the whole row is the link, with an arrow. */}
+          <p className="mt-3 text-xs text-slate-400">Tap a bid to see the job, the due date and how to bid.</p>
+          <ul className="mt-1.5 space-y-1.5">
+            {list.map((b) => (
+              <li key={b.id}>
+                <a
+                  href={`/bid/${b.id}`}
+                  onClick={() => trackEvent("radar_bids_first_click", tab)}
+                  className="flex items-center gap-3 rounded-xl border border-slate-700 bg-slate-800/60 px-3 py-2.5 hover:border-amber-400 active:bg-slate-800"
+                >
+                  <span className="min-w-0 flex-1">
+                    <span className="line-clamp-2 text-sm font-semibold leading-snug text-white">{b.title}</span>
+                    <span className="mt-0.5 line-clamp-1 block text-xs text-slate-400">
+                      {[b.agency, due(b.due_date) && `due ${due(b.due_date)}`].filter(Boolean).join(" · ")}
+                    </span>
+                  </span>
+                  <span aria-hidden="true" className="shrink-0 text-sm font-bold text-amber-400">
+                    View →
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </>
       ) : (
         <p className="mt-3 text-sm text-slate-400">
           No open {active.label.toLowerCase()} bids in {stateName} right now. Try another trade or state, or search below.

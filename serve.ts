@@ -144,6 +144,7 @@ async function handleCreateCheckoutSession(req: Request): Promise<Response> {
         label: `${body.planTier}:${body.interval === "year" ? "year" : "month"}`,
         ip: (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() || null,
         userAgent: req.headers.get("user-agent"),
+        cookieHeader: req.headers.get("cookie"),
       });
     }
     return new Response(JSON.stringify({ url: result.url }), {

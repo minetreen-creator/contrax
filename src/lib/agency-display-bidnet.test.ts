@@ -6,6 +6,9 @@ test("a BidNet purchasing group is not shown as the buyer (owner 2026-11-10)", (
   expect(agencyDisplay("Connecticut Purchasing Group (BidNet Direct)")).toBe("A Connecticut public agency (posted on BidNet Direct)");
   expect(agencyDisplay("Empire State Purchasing Group (BidNet Direct)")).toBe("A New York public agency (posted on BidNet Direct)");
   expect(agencyDisplay("Virginia & DC Purchasing Group (BidNet Direct)")).toBe("A Virginia or DC public agency (posted on BidNet Direct)");
+  expect(agencyDisplay("Ohio Purchasing Group (BidNet Direct)")).toBe("An Ohio public agency (posted on BidNet Direct)");
+  expect(agencyDisplay("Idaho Purchasing Group (BidNet Direct)")).toBe("An Idaho public agency (posted on BidNet Direct)");
+  expect(agencyDisplay("Utah Purchasing Group (BidNet Direct)")).toBe("A Utah public agency (posted on BidNet Direct)");
   expect(agencyDisplay("City of New London")).toBe("City of New London");
 });
 

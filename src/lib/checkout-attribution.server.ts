@@ -13,6 +13,7 @@
  * Both never throw: attribution must never fail a checkout or a payment.
  */
 import { sql } from "~/db";
+import { parseAttributionCookie } from "~/lib/attribution";
 
 /** Same name as VISITOR_COOKIE_NAME in ~/lib/visitor (pinned by the test). */
 export const VISITOR_COOKIE = "contrax_vid";
@@ -37,11 +38,17 @@ export async function recordCheckoutOpened(o: {
   label: string;
   ip?: string | null;
   userAgent?: string | null;
+  /** The request's Cookie header: where the visitor came from (contrax_attr) is stored with the event. */
+  cookieHeader?: string | null;
 }): Promise<void> {
   try {
-    await sql()`INSERT INTO funnel_events (event_name, label, path, visitor_id, user_id, ip, user_agent)
+    // Same first-touch source every page view and browser event carries (owner 2026-11-11: 8 of 12
+    // "Stripe opens" were ad-click robots, counted because this row had no source to filter on).
+    const attr = parseAttributionCookie(o.cookieHeader);
+    await sql()`INSERT INTO funnel_events (event_name, label, path, visitor_id, user_id, ip, user_agent, source, medium, campaign, click_id)
       VALUES (${CHECKOUT_OPENED_EVENT}, ${o.label}, ${"/api/stripe/create-checkout-session"}, ${o.visitorId},
-              ${o.userId == null ? null : String(o.userId)}, ${o.ip ?? null}, ${o.userAgent ?? null})`;
+              ${o.userId == null ? null : String(o.userId)}, ${o.ip ?? null}, ${o.userAgent ?? null},
+              ${attr?.source ?? null}, ${attr?.medium ?? null}, ${attr?.campaign ?? null}, ${attr?.click_id ?? null})`;
   } catch (e) {
     console.error("[checkout-attribution] record failed (non-fatal):", (e as Error).message);
   }

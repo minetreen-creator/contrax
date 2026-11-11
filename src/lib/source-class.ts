@@ -7019,3 +7019,12 @@ export const AWARD_EXCLUSION_SQL = `LOWER(COALESCE(source, '')) NOT IN (${[
 ]
   .map((s) => `'${s}'`)
   .join(", ")})`;
+
+/**
+ * Made-up records (owner 2026-11-11: "yes hide the demo records"): 13 sample bids, a seed set and a
+ * test fixture. They are not government listings, yet /bid/2417 ("GSA — Small Project Indefinite
+ * Delivery Contract", source contrax-demo) opened like a real one, and the 2026-11-05 scraper read it.
+ * A bid page for one of these answers "not found". `md_dc` is NOT here: it is a legacy label on real bids.
+ */
+export const SAMPLE_SOURCES: readonly string[] = ["contrax-demo", "seed", "fixture_test"];
+export const SAMPLE_EXCLUSION_SQL = `LOWER(COALESCE(source, '')) NOT IN (${SAMPLE_SOURCES.map((x) => `'${x}'`).join(", ")})`;

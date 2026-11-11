@@ -34,7 +34,7 @@ import { watermarkText } from "~/lib/bid-watermark";
 import { trackEvent } from "~/lib/track";
 import { redirectToCheckout } from "~/lib/checkout";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
-import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
+import { AWARD_EXCLUSION_SQL, SAMPLE_EXCLUSION_SQL } from "~/lib/source-class";
 import { SIMILAR_BIDS_LIMIT, similarNaicsPrefixes, similarRadarHref } from "~/lib/similar-bids";
 import {
   effectiveAutopsyTier,
@@ -202,7 +202,7 @@ const getPublicBid = createServerFn({ method: "GET" })
         SELECT id, title, agency, description, location, set_aside,
                due_date, estimated_value, source_url, naics_code, created_at, solicitation_number
         FROM bids
-        WHERE id = ${id}
+        WHERE id = ${id} AND ${sql().unsafe(SAMPLE_EXCLUSION_SQL)}
         LIMIT 1
       `) as any[];
       if (!rows.length) return null;
@@ -252,7 +252,7 @@ const getBid = createServerFn({ method: "GET" })
         SELECT id, title, agency, description, location, set_aside,
                due_date, estimated_value, source_url, naics_code, created_at, solicitation_number
         FROM bids
-        WHERE id = ${id}
+        WHERE id = ${id} AND ${sql().unsafe(SAMPLE_EXCLUSION_SQL)}
         LIMIT 1
       `) as any[];
       if (!rows.length) return null;

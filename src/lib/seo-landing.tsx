@@ -12,7 +12,7 @@
  * /signup?plan=professional and fires `start_trial` (same event names as the
  * verified live homepage hero). No "unlimited" claims anywhere.
  */
-import { jobSummary, valueLabel } from "~/lib/bid-job-summary";
+import { agencyCardLabel, jobSummary, valueLabel } from "~/lib/bid-job-summary";
 import { createServerFn } from "@tanstack/react-start";
 import type { ReactNode } from "react";
 import {
@@ -25,7 +25,7 @@ import { LOW_CONTENT_SQL } from "~/lib/low-content";
 // Raw close-date render gate (owner ruling 2026-10-08): a zone-unverified
 // source's stored instant is the published Eastern wall-clock read as UTC, so
 // "Closes …" must be rendered in UTC, not the reader's zone.
-import { publishedDateOnlyFor } from "~/lib/deadline-label";
+import { dueDayText, publishedDateOnlyFor } from "~/lib/deadline-label";
 // S2 NOTICE IDENTITY + D15/Q8 AWARD-EXCLUSION SWEEP (owner-approved 2026-09-23):
 // every SEO surface collapses with the canonical notice key Radar uses, and the
 // state-landing aggregate — the one surface the metrics harness measured still
@@ -247,6 +247,37 @@ export interface RegionData {
   agg: StateAggregate | null;
   totals: ContractMapTotals | null;
   generatedAt: string;
+  /**
+   * The newest open bids in the state, each a link to its bid page (owner 2026-11-11). The state
+   * page described the bids and counted them but linked to none, so a search engine had no path
+   * from it to a bid. Title, buyer and due date only; the notice link stays on the bid page.
+   */
+  recent: RegionBid[];
+}
+
+export interface RegionBid {
+  id: number;
+  title: string;
+  agency: string | null;
+  due_date: string | null;
+}
+
+/** Bids listed on a state page. */
+export const REGION_RECENT_BIDS = 25;
+
+/** Newest first, one row per title, at most REGION_RECENT_BIDS. PURE. */
+export function pickRegionBids(rows: { id: unknown; title: unknown; agency: unknown; due_date: unknown }[]): RegionBid[] {
+  const seen = new Set<string>();
+  const out: RegionBid[] = [];
+  for (const r of rows) {
+    const title = String(r.title ?? "").trim();
+    const key = title.toLowerCase();
+    if (!title || seen.has(key)) continue;
+    seen.add(key);
+    out.push({ id: Number(r.id), title, agency: r.agency ? String(r.agency) : null, due_date: r.due_date ? new Date(r.due_date as string).toISOString() : null });
+    if (out.length === REGION_RECENT_BIDS) break;
+  }
+  return out;
 }
 
 export const getRegionData = createServerFn({ method: "GET" })
@@ -256,8 +287,22 @@ export const getRegionData = createServerFn({ method: "GET" })
     const code = STATE_SLUG_TO_CODE[raw] ?? null;
     let agg: StateAggregate | null = null;
     let totals: ContractMapTotals | null = null;
+    let recent: RegionBid[] = [];
     if (code && REGION_SET.has(code)) {
       const { sql } = await import("~/db");
+      try {
+        const rows = await sql()`
+          SELECT id, title, agency, due_date FROM bids
+          WHERE normalized_state = ${code}
+            AND ${sql().unsafe(OPEN_BID_SQL)}
+            AND ${sql().unsafe(LOW_CONTENT_SQL)}
+            AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
+            AND title !~ '^[0-9]{2}--' AND length(title) >= 15
+          ORDER BY created_at DESC LIMIT 60`;
+        recent = pickRegionBids(rows as any[]);
+      } catch (e) {
+        console.error("[seo-landing] region recent bids failed (list left out):", e);
+      }
       try {
         const rows = await sql()`
           SELECT location, set_aside, estimated_value, agency, category, due_date, source
@@ -282,6 +327,7 @@ export const getRegionData = createServerFn({ method: "GET" })
       agg,
       totals,
       generatedAt: new Date().toISOString(),
+      recent,
     };
   });
 
@@ -922,6 +968,28 @@ export function RegionView({ data }: { data: RegionData }) {
       </div>
 
       {/* Funnel CTA */}
+      {data.recent.length > 0 && (
+        <section aria-label={`Newest open bids in ${name}`} className="mt-10">
+          <h2 className="text-2xl font-bold text-slate-900">Newest open bids in {name}</h2>
+          <p className="mt-1 text-sm text-slate-600">The {data.recent.length} most recently posted. Tap one to see the job, the due date and how to bid.</p>
+          <ul className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+            {data.recent.map((b) => (
+              <li key={b.id} className="flex">
+                <a
+                  href={`/bid/${b.id}`}
+                  onClick={() => trackEvent("region_recent_bid_click", data.code ?? "")}
+                  className="flex w-full flex-col rounded-xl border border-slate-200 bg-white px-4 py-3 hover:border-blue-400"
+                >
+                  {agencyCardLabel(b.agency) ? <span className="line-clamp-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">{agencyCardLabel(b.agency)}</span> : null}
+                  <span className="mt-0.5 line-clamp-2 text-sm font-bold leading-snug text-slate-900">{b.title}</span>
+                  {dueDayText(b.due_date) ? <span className="mt-1 text-xs text-slate-600">Due {dueDayText(b.due_date)}</span> : null}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(regionBreadcrumbLd(name, null)) }} />
       <div className="mt-10 rounded-2xl bg-slate-900 p-6 text-center text-white">
         <h3 className="text-lg font-bold">
           See every {name} bid and know if you qualify in seconds
@@ -939,6 +1007,21 @@ export function RegionView({ data }: { data: RegionData }) {
       </div>
     </div>
   );
+}
+
+/** BreadcrumbList for a state page, or a state-and-trade page when `trade` is given. PURE. */
+export function regionBreadcrumbLd(stateName: string, trade: { slug: string; label: string } | null): Record<string, unknown> {
+  const st = stateName.trim().toLowerCase().replace(/\s+/g, "-");
+  const items = [
+    { name: "Contrax", item: "https://www.contrax.company/" },
+    { name: `${stateName} contracts`, item: `https://www.contrax.company/contracts-in/${st}` },
+    ...(trade ? [{ name: trade.label, item: `https://www.contrax.company/contracts-in/${st}/${trade.slug}` }] : []),
+  ];
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: items.map((x, i) => ({ "@type": "ListItem", position: i + 1, name: x.name, item: x.item })),
+  };
 }
 
 /** Index (/set-aside-contracts): every cert hub with its real live count. */

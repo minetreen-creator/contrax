@@ -3,6 +3,7 @@ import { OpenToAllBids } from "~/components/OpenToAllBids";
 import {
   getRegionTradeData,
   OtherTradeLinks,
+  regionBreadcrumbLd,
   regionTradeIndexable,
   RegionTradeView,
   SeoLanding,
@@ -73,6 +74,9 @@ function ContractsInStateTrade() {
         </>
       }
     >
+      {data.name && data.trade && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(regionBreadcrumbLd(data.name, { slug: data.trade.slug, label: data.trade.label })) }} />
+      )}
       <RegionTradeView data={data} radarHref={radarHref} />
       {data.code && data.trade && (
         // Loaded after the page renders, so the page itself stays fast (owner 2026-11-09).

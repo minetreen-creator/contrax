@@ -10,7 +10,8 @@ import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
 import {
   GOVERNMENT_ONLY_EXCLUSIONS,
-  parseSourceExclusions,
+  feedExclusionsFor,
+  THIRD_PARTY_PLATFORM_EXCLUSIONS,
   refCodeForEmail,
   toFeedRow,
   type FeedQuery,
@@ -106,7 +107,7 @@ export async function feedUserFromRequest(
   | { error: string; status: number }
 > {
   if (isRapidApiRequest(request.headers, process.env.RAPIDAPI_PROXY_SECRET)) {
-    return { userId: null, allowedStates: null, tier: null, rapidApi: true, access: { keyId: null, sourceExclusions: [], dailyLimit: null, ref: null } };
+    return { userId: null, allowedStates: null, tier: null, rapidApi: true, access: { keyId: null, sourceExclusions: feedExclusionsFor(null, null, true), dailyLimit: null, ref: null } };
   }
   const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "").trim();
   if (!token) return { error: "Missing API key. Send Authorization: Bearer <key>.", status: 401 };
@@ -138,7 +139,7 @@ export async function feedUserFromRequest(
     rapidApi: false,
     access: {
       keyId: row.id,
-      sourceExclusions: parseSourceExclusions(row.source_exclusions),
+      sourceExclusions: feedExclusionsFor(row.source_exclusions, row.tier),
       dailyLimit: row.daily_request_limit == null ? null : Number(row.daily_request_limit),
       ref: row.ref_code ?? null,
     },
@@ -174,7 +175,7 @@ export async function queryFeed(
   return { rows: page, nextAfter: more && page.length ? page[page.length - 1].id : null };
 }
 
-/** Live headline numbers for the public page. */
+/** Live headline numbers for the public page: what a self-serve plan receives (no third-party platform listings). */
 export async function feedSummary(): Promise<{ open: number; states: number; sources: number }> {
   const s = sql();
   const r = (await s`
@@ -182,7 +183,8 @@ export async function feedSummary(): Promise<{ open: number; states: number; sou
            COUNT(DISTINCT normalized_state)::int AS states,
            COUNT(DISTINCT source)::int AS sources
     FROM bids
-    WHERE due_date > NOW() AND ${s.unsafe(LOW_CONTENT_SQL)} AND ${s.unsafe(AWARD_EXCLUSION_SQL)}`) as { open: number; states: number; sources: number }[];
+    WHERE due_date > NOW() AND ${s.unsafe(LOW_CONTENT_SQL)} AND ${s.unsafe(AWARD_EXCLUSION_SQL)}
+      AND NOT (source LIKE ANY(${THIRD_PARTY_PLATFORM_EXCLUSIONS}))`) as { open: number; states: number; sources: number }[];
   return r[0] ?? { open: 0, states: 0, sources: 0 };
 }
 

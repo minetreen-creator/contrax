@@ -115,6 +115,7 @@ function DataPage() {
             </dl>
           )}
           <p className="mt-4 text-xs text-slate-500">Live counts. Updated every 4 hours on weekdays and daily on weekends.</p>
+          <p className="mt-2 max-w-2xl text-xs text-slate-400">The feed carries SAM.gov and bids that agencies post on their own sites. Listings that reach Contrax through third-party bid platforms are left out.</p>
           <a href="#plans" className="mt-8 inline-block rounded-xl bg-amber-500 px-6 py-3 font-bold text-slate-950 hover:bg-amber-400">
             See plans
           </a>

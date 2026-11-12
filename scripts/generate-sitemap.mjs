@@ -77,6 +77,8 @@ const PRODUCT_PATHS = [
   ["/prime-finder", "weekly", "0.6"],
   // Find your company (owner 2026-11-12): name search for the company pages.
   ["/company", "weekly", "0.7"],
+  // Bid data API for businesses (owner 2026-11-12: sell the data to a different kind of customer).
+  ["/data", "weekly", "0.7"],
   ["/roadmap", "monthly", "0.5"],
   ["/pathway", "monthly", "0.7"],
   ["/co-op-contracts", "daily", "0.6"],

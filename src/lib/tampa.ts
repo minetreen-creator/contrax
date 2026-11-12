@@ -80,3 +80,16 @@ export const TAMPA_SUB_TRADES = ["construction", "hvac", "electrical"];
 /** Joint announcement line (owner 2026-11-10). The hotel comparison is Casa Blue Collar's own claim and is labeled that way. */
 export const TAMPA_HEADLINE = { win: "Win the Tampa job on Contrax.", house: `House the crew with ${CASA.name}`, saving: "for 3x less than hotels" } as const;
 export const CASA_PRICE_NOTE = `Figures from ${CASA.name}: eight workers in hotel rooms for a month cost about three times a furnished house.`;
+
+/**
+ * Where Casa Blue Collar is shown beyond the Tampa page (owner 2026-11-12: "promote Casa Blue Collar
+ * heavily and bring him some good business"): on a Tampa Bay bid for construction, trade or facility
+ * work, which is the job a traveling crew would be housed for. PURE.
+ */
+export function showCrewHousingOnBid(location: string | null, agency: string | null, title: string | null): boolean {
+  return isTampaBay(location, agency) && isBuildWork(String(title ?? ""));
+}
+
+/** And on the Florida pages for the trades that bring crews (construction, HVAC, electrical). PURE. */
+export const showCrewHousingOnStatePage = (stateCode: string | null | undefined, tradeSlug: string | null | undefined) =>
+  stateCode === "FL" && !!tradeSlug && TAMPA_SUB_TRADES.includes(tradeSlug);

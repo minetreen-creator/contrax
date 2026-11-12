@@ -32,6 +32,8 @@ import { applyHeadStart } from "~/lib/head-start";
 import { hasPaidBidAccess } from "~/lib/head-start.server";
 import { agencyDisplay, bidStarterHref, daysLeftLabel, jobSummary, valueLabel, agencyInSentence } from "~/lib/bid-job-summary";
 import { watermarkText } from "~/lib/bid-watermark";
+import { CrewHousingCard } from "~/components/CrewHousingCard";
+import { showCrewHousingOnBid } from "~/lib/tampa";
 import { trackEvent } from "~/lib/track";
 import { redirectToCheckout } from "~/lib/checkout";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
@@ -688,6 +690,9 @@ function BidDetailPage() {
                 similar_total: bid.similar.total,
               })}
             />
+
+            {/* Owner 2026-11-12: Casa Blue Collar on Tampa Bay build work, where a traveling crew needs housing. */}
+            {showCrewHousingOnBid(bid.location, bid.agency, bid.title) && <CrewHousingCard where="bid_page" tone="dark" />}
 
             {/* Red-flag scanner (owner 2026-11-08). */}
             <RedFlagScanner noticeText={bid.description} bidId={bid.id} />

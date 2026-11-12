@@ -380,7 +380,6 @@ const FOOTER_GROUPS = [
       { href: "/local-bids", label: "City & County Bids" },
       { href: "/pricing", label: "Pricing" },
       { href: "/blog", label: "Blog" },
-      { href: "/data", label: "Bid Data API" },
     ],
   },
   {

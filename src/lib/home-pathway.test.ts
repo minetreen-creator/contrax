@@ -46,8 +46,7 @@ test("the footer is four columns of about the same length", () => {
   const page = readFileSync("src/routes/index.tsx", "utf8");
   const groups = page.slice(page.indexOf("const FOOTER_GROUPS = ["), page.indexOf("const FOOTER_LEGAL_LINKS"));
   const sizes = groups.split("title: ").slice(1).map((g) => (g.match(/\{ href: /g) ?? []).length);
-  expect(sizes).toEqual([5, 5, 5, 4]);
-  expect(groups).toContain('{ href: "/data", label: "Bid Data API" }');
+  expect(sizes).toEqual([4, 5, 5, 4]);
   expect(groups).toContain('title: "Primes and subs"');
   expect(page).toContain("grid-cols-2 gap-x-6 gap-y-8");
   expect(page).toContain("lg:grid-cols-4");

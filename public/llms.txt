@@ -48,7 +48,7 @@ Contrax is operated by Contrax LLC (Virginia) and is available in the United Sta
 
 - [Bid data API](https://www.contrax.company/data): Open federal, state and local bids as a JSON feed for software platforms, plan rooms, bid consultants and researchers. Filters by state, NAICS, set-aside and "updated since"; keyset paging. Each row has the title, buyer, state, real due date, notice type, solicitation number and the official notice link.
 - Coverage: SAM.gov and bids that agencies post on their own sites. Listings from third-party bid platforms are not included.
-- Plans: Starter $299 a month (up to 5 states), Pro $799 a month (every state plus federal), month to month, self-serve checkout on the page.
+- Plans for businesses are monthly with self-serve checkout on that page. They are separate from the contractor offer above.
 - [OpenAPI spec](https://www.contrax.company/openapi.json).
 
 ## Good to know when citing Contrax

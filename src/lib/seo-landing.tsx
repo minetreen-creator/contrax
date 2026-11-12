@@ -12,7 +12,7 @@
  * /signup?plan=professional and fires `start_trial` (same event names as the
  * verified live homepage hero). No "unlimited" claims anywhere.
  */
-import { agencyCardLabel, jobSummary, valueLabel } from "~/lib/bid-job-summary";
+import { agencyCardLabel, jobSummary, publicJobText, valueLabel } from "~/lib/bid-job-summary";
 import { createServerFn } from "@tanstack/react-start";
 import type { ReactNode } from "react";
 import {
@@ -139,7 +139,8 @@ export function mapSeoBid(r: any): SeoBid {
     id: Number(r.id),
     title: String(r.title ?? ""),
     agency: r.agency ? String(r.agency) : null,
-    description: r.description ? String(r.description) : null,
+    // Public pages: no agency numbers, no "where the documents are" notes (src/lib/bid-job-summary.ts).
+    description: publicJobText(r.description ? String(r.description) : null, r.solicitation_number ? String(r.solicitation_number) : null),
     due_date: r.due_date ? String(r.due_date) : null,
     estimated_value: r.estimated_value ? String(r.estimated_value) : null,
     naics_code: r.naics_code ? String(r.naics_code) : null,

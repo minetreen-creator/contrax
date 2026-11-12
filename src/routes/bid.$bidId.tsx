@@ -30,7 +30,7 @@ import {
 import { getCurrentUser } from "~/lib/auth";
 import { applyHeadStart } from "~/lib/head-start";
 import { hasPaidBidAccess } from "~/lib/head-start.server";
-import { agencyDisplay, bidStarterHref, daysLeftLabel, jobSummary, valueLabel, agencyInSentence } from "~/lib/bid-job-summary";
+import { agencyDisplay, bidStarterHref, daysLeftLabel, jobSummary, publicJobText, valueLabel, agencyInSentence } from "~/lib/bid-job-summary";
 import { watermarkText } from "~/lib/bid-watermark";
 import { CrewHousingCard } from "~/components/CrewHousingCard";
 import { showCrewHousingOnBid } from "~/lib/tampa";
@@ -253,7 +253,9 @@ const getPublicBid = createServerFn({ method: "GET" })
         id: Number(r.id),
         title: String(r.title ?? ""),
         agency,
-        description: r.description ? String(r.description) : null,
+        // The free page's data is readable in the browser: the agency's numbers and the "where the
+        // documents are" notes are removed here, on the server (owner 2026-11-12).
+        description: publicJobText(r.description ? String(r.description) : null, r.solicitation_number ? String(r.solicitation_number) : null),
         location,
         set_aside: r.set_aside ? String(r.set_aside) : null,
         due_date: r.due_date ? new Date(r.due_date).toISOString() : null,
@@ -623,7 +625,7 @@ function BidDetailPage() {
                 <h2 className="text-sm font-semibold text-slate-200">What the job is</h2>
                 <p className="mt-1 text-sm leading-relaxed text-slate-300">
                   {watermarkText(
-                    jobSummary(bid.description, bid.title) ??
+                    jobSummary(bid.description, bid.title, bid.solicitation_number) ??
                       `${bid.title || "This bid"}${bid.agency ? `, for ${agencyInSentence(bid.agency)}` : ""}. The agency's official notice has the full scope of work, the documents and how to submit.`,
                     bid.wm,
                   )}

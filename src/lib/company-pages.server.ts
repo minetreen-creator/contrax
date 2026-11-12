@@ -78,6 +78,12 @@ export async function tradeStateMatches(trade: { slug: string; radarTerm: string
   if (cached[0]) {
     return { count: Number(cached[0].local_count), nationwideCount: Number(cached[0].nationwide_count), bids: Array.isArray(cached[0].bids) ? cached[0].bids : [] };
   }
+  return computeTradeStateMatches(trade, state);
+}
+
+/** Run Radar's query for a trade + state now and store the result (pages and the warm job). */
+export async function computeTradeStateMatches(trade: { slug: string; radarTerm: string }, state: string): Promise<TradeStateMatches> {
+  await ensureCompanyPageTables();
   const { stateRadarMatches } = await import("~/lib/radar-candidates");
   const { filterBidsToState, mapSeoBid } = await import("~/lib/seo-landing");
   const split = await stateRadarMatches(sql, { trade: trade.radarTerm, state });
@@ -95,6 +101,12 @@ export async function tradeStateMatches(trade: { slug: string; radarTerm: string
       bids = EXCLUDED.bids, computed_at = NOW()
   `;
   return out;
+}
+
+/** Every state + trade pair that has at least one registered business with a page. */
+export async function companyTradeStatePairs(): Promise<{ state: string; trade: string }[]> {
+  const rows = (await sql()`SELECT DISTINCT state, unnest(trades) AS trade FROM sam_registrants ORDER BY 1, 2`) as { state: string; trade: string }[];
+  return rows.filter((r) => /^[A-Z]{2}$/.test(r.state) && !!STATE_NAMES[r.state]);
 }
 
 /** Everything one company page shows. Never throws: a missing or removed business is `found: false`. */

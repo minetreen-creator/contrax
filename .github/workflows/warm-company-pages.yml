@@ -1,0 +1,32 @@
+name: Warm company pages
+# Recomputes the open-bid list for every trade + state the company pages (/company/...) use, right
+# after each bid sync, so those pages read a ready list. Read-mostly: it writes only to the
+# trade_state_bid_cache table.
+on:
+  workflow_run:
+    workflows: ["Sync Bids"]
+    types: [completed]
+  workflow_dispatch:
+concurrency:
+  group: warm-company-pages
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  warm:
+    name: Warm company pages
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Recompute the lists
+        run: bun run src/jobs/warm-company-pages.ts

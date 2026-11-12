@@ -356,6 +356,31 @@ const STATE_KEYWORD_SOURCES: SyncSource[] = US_STATES.map((code) => ({
  * label keeps its class in `src/lib/source-class.ts` (RETIRED_SOURCES) for the
  * legacy rows and for any future health surface.
  */
+/**
+ * Sources the sync does not read, because the site's robots.txt disallows it (owner standing rule:
+ * respect robots.txt). Checked as ContraxBot on 2026-11-12: every *.ionwave.net board answers
+ * "User-agent: * / Disallow: /". The readers and their classes stay in place; a board comes back by
+ * removing its name here, and only if its robots.txt changes or the owner decides otherwise.
+ *
+ * `ia_dubuque`: the City of Dubuque removed its own bid list (/bids.aspx is a 404 since 2026-11-12)
+ * and now posts on cityofdubuque.ionwave.net, which has the same rule. Bids already stored from
+ * these sources stay until they close.
+ */
+export const ROBOTS_PAUSED_SOURCES: ReadonlySet<string> = new Set([
+  "ar_ionwave_central",
+  "ar_fayetteville_ionwave",
+  "sc_columbia_ionwave",
+  "tx_plano_ionwave",
+  "tx_irving_ionwave",
+  "tx_georgetown_ionwave",
+  "ne_omaha_ionwave",
+  "fl_lee_county",
+  "ia_dubuque",
+]);
+
+/** The registry without the paused sources: what a sync actually reads. PURE. */
+export const activeSources = <T extends { name: string }>(sources: readonly T[]): T[] => sources.filter((s) => !ROBOTS_PAUSED_SOURCES.has(s.name));
+
 export const TAIL_SOURCES: SyncSource[] = [
   // Ohio Phase 3 (owner-locked order step ②, plan rev 285): the City of Dayton's
   // own CivicEngage bid board — the first non-federal OHIO-local bid source in the
@@ -1685,7 +1710,8 @@ export async function runSync(): Promise<SyncResult> {
   }
   const sql = neon(DATABASE_URL);
 
-  const allSources = [...SAM_GOV_SOURCES, ...STATE_KEYWORD_SOURCES, ...TAIL_SOURCES];
+  const allSources = activeSources([...SAM_GOV_SOURCES, ...STATE_KEYWORD_SOURCES, ...TAIL_SOURCES]);
+  console.log(`   Paused (robots.txt): ${[...ROBOTS_PAUSED_SOURCES].join(", ")}`);
   console.log("🚀 Contrax Sync Runner");
   console.log(`   Started: ${new Date().toISOString()}`);
   console.log(`   Sources: ${allSources.map((s) => s.name).join(", ")}`);
@@ -1716,7 +1742,7 @@ export async function runSync(): Promise<SyncResult> {
   // day, at most a dozen per sync; every other tail source runs every sync.
   const bidnetNames = TAIL_SOURCES.map((s) => s.name).filter(isBidnetSource);
   const bidnetThisRun = await planBidnetSources(sql, bidnetNames);
-  const tailSources = TAIL_SOURCES.filter((s) => !isBidnetSource(s.name) || bidnetThisRun.has(s.name));
+  const tailSources = activeSources(TAIL_SOURCES).filter((s) => !isBidnetSource(s.name) || bidnetThisRun.has(s.name));
   console.log(
     `   BidNet this sync: ${bidnetThisRun.size} of ${bidnetNames.length} groups${bidnetThisRun.size ? ` (${[...bidnetThisRun].join(", ")})` : ""}`,
   );

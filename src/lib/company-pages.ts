@@ -37,6 +37,16 @@ export const COMPANY_SITEMAP_PER_STATE = 1000;
 /** Other registered businesses linked from a company page (same city, shared trade). */
 export const COMPANY_NEIGHBOURS = 6;
 
+/** Businesses listed for one "find your company" search (/company). */
+export const COMPANY_SEARCH_RESULTS = 10;
+
+export interface CompanySearchHit {
+  name: string;
+  city: string | null;
+  state: string;
+  path: string;
+}
+
 const UEI_RE = /^[A-Z0-9]{12}$/;
 
 /** "Acme Paving, LLC" + "ABCD1234EFGH" → "acme-paving-llc-abcd1234efgh". PURE. */

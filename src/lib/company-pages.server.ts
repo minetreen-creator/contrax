@@ -6,6 +6,7 @@ import {
   COMPANY_CACHE_MINUTES,
   COMPANY_NEIGHBOURS,
   COMPANY_PAGE_BIDS,
+  COMPANY_SEARCH_RESULTS,
   COMPANY_SITEMAP_PER_STATE,
   companyPath,
   EMPTY_COMPANY_PAGE,
@@ -14,6 +15,7 @@ import {
   tradeSection,
   type CompanyBid,
   type CompanyPageData,
+  type CompanySearchHit,
 } from "~/lib/company-pages";
 
 let ensured: Promise<void> | null = null;
@@ -185,4 +187,26 @@ export async function companySitemapRows(state: string): Promise<{ name: string;
     ORDER BY cardinality(r.certs) DESC, (r.url IS NOT NULL) DESC, r.name ASC
     LIMIT ${COMPANY_SITEMAP_PER_STATE}
   `) as { name: string; uei: string }[];
+}
+
+/** Find company pages by business name (and state). Public registration facts only; removed businesses are left out. */
+export async function searchCompanyPages(name: string, state: string | null, limit = COMPANY_SEARCH_RESULTS): Promise<CompanySearchHit[]> {
+  const q = name.trim().replace(/[%_]/g, "").slice(0, 80);
+  if (q.length < 3) return [];
+  try {
+    await ensureCompanyPageTables();
+    const st = state && /^[A-Z]{2}$/.test(state) ? state : null;
+    const statePred = st ? sql()`AND r.state = ${st}` : sql()``;
+    const rows = (await sql()`
+      SELECT r.uei, r.name, r.city, r.state FROM sam_registrants r
+      WHERE r.name ILIKE ${`%${q}%`} ${statePred}
+        AND NOT EXISTS (SELECT 1 FROM company_page_optouts o WHERE o.uei = r.uei)
+      ORDER BY (LOWER(r.name) = LOWER(${q})) DESC, (LOWER(r.name) LIKE LOWER(${`${q}%`})) DESC, r.name ASC
+      LIMIT ${limit}
+    `) as { uei: string; name: string; city: string | null; state: string }[];
+    return rows.map((r) => ({ name: r.name, city: r.city, state: r.state, path: companyPath(r.name, r.uei) }));
+  } catch (e) {
+    console.error("[company-pages] search failed:", (e as Error).message);
+    return [];
+  }
 }

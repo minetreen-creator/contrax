@@ -181,3 +181,34 @@ describe("warming the company page lists", () => {
     expect(job).toContain("failed > pairs.length / 2 ? 1 : 0");
   });
 });
+
+describe("find your company", () => {
+  const page = readSrc("src/routes/company.index.tsx");
+  const server = readSrc("src/lib/company-pages.server.ts");
+
+  test("a plain form that searches by business name, with the state optional", () => {
+    expect(page).toContain('createFileRoute("/company/")');
+    expect(page).toContain('<form method="get" action="/company"');
+    expect(page).toContain("minLength={3}");
+    expect(page).toContain('<option value="">Any state</option>');
+  });
+
+  test("results link to company pages, leave out removed businesses, and show no website or contact", () => {
+    const fn = server.slice(server.indexOf("export async function searchCompanyPages"));
+    expect(fn).toContain("company_page_optouts");
+    expect(fn).toContain("SELECT r.uei, r.name, r.city, r.state FROM sam_registrants r");
+    expect(fn).toContain("if (q.length < 3) return [];");
+    expect(fn).toContain("path: companyPath(r.name, r.uei)");
+    expect(page).not.toMatch(/\.url\b|phone|email/i);
+  });
+
+  test("a search result page stays out of search engines; the bare page does not", () => {
+    expect(page).toContain("if (loaderData?.q)");
+    expect(page).toContain('canonical: "https://www.contrax.company/company"');
+  });
+
+  test("the footer and the not-found page link to it", () => {
+    expect(readSrc("src/lib/seo-landing.tsx")).toContain('<a href="/company" className="transition-colors hover:text-white">Find Your Company</a>');
+    expect(readSrc("src/routes/company.$slug.tsx")).toContain('<a href="/company"');
+  });
+});

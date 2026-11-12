@@ -357,26 +357,19 @@ const STATE_KEYWORD_SOURCES: SyncSource[] = US_STATES.map((code) => ({
  * legacy rows and for any future health surface.
  */
 /**
- * Sources the sync does not read, because the site's robots.txt disallows it (owner standing rule:
- * respect robots.txt). Checked as ContraxBot on 2026-11-12: every *.ionwave.net board answers
- * "User-agent: * / Disallow: /". The readers and their classes stay in place; a board comes back by
- * removing its name here, and only if its robots.txt changes or the owner decides otherwise.
+ * Sources the sync does not read.
  *
  * `ia_dubuque`: the City of Dubuque removed its own bid list (/bids.aspx is a 404 since 2026-11-12)
- * and now posts on cityofdubuque.ionwave.net, which has the same rule. Bids already stored from
- * these sources stay until they close.
+ * and now posts on cityofdubuque.ionwave.net, which the sync has no reader pointed at.
+ *
+ * IonWave boards (owner decision 2026-11-12, "keep them"): every *.ionwave.net board answers
+ * "User-agent: * / Disallow: /" in robots.txt (checked as ContraxBot that day). The eight boards
+ * already read (Arkansas central, Fayetteville, Columbia SC, Plano, Irving, Georgetown, Douglas
+ * County/Omaha, Lee County FL) were paused for that reason and restored the same day on the
+ * owner's word. They are public bid boards read a few pages at a time, one board after another
+ * (src/jobs/sources/ionwave-throttle.ts). No new IonWave board is added without the owner's word.
  */
-export const ROBOTS_PAUSED_SOURCES: ReadonlySet<string> = new Set([
-  "ar_ionwave_central",
-  "ar_fayetteville_ionwave",
-  "sc_columbia_ionwave",
-  "tx_plano_ionwave",
-  "tx_irving_ionwave",
-  "tx_georgetown_ionwave",
-  "ne_omaha_ionwave",
-  "fl_lee_county",
-  "ia_dubuque",
-]);
+export const ROBOTS_PAUSED_SOURCES: ReadonlySet<string> = new Set(["ia_dubuque"]);
 
 /** The registry without the paused sources: what a sync actually reads. PURE. */
 export const activeSources = <T extends { name: string }>(sources: readonly T[]): T[] => sources.filter((s) => !ROBOTS_PAUSED_SOURCES.has(s.name));
@@ -1711,7 +1704,7 @@ export async function runSync(): Promise<SyncResult> {
   const sql = neon(DATABASE_URL);
 
   const allSources = activeSources([...SAM_GOV_SOURCES, ...STATE_KEYWORD_SOURCES, ...TAIL_SOURCES]);
-  console.log(`   Paused (robots.txt): ${[...ROBOTS_PAUSED_SOURCES].join(", ")}`);
+  console.log(`   Paused: ${[...ROBOTS_PAUSED_SOURCES].join(", ")}`);
   console.log("🚀 Contrax Sync Runner");
   console.log(`   Started: ${new Date().toISOString()}`);
   console.log(`   Sources: ${allSources.map((s) => s.name).join(", ")}`);

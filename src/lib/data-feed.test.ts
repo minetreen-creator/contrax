@@ -92,7 +92,12 @@ describe("third-party platform listings stay out of the sold feed (owner 2026-11
     expect(server).toContain("sourceExclusions: feedExclusionsFor(row.source_exclusions, row.tier),");
     expect(server).toContain("sourceExclusions: feedExclusionsFor(null, null, true)");
     expect(server).toContain("AND NOT (source LIKE ANY(${THIRD_PARTY_PLATFORM_EXCLUSIONS}))");
-    const page = readFileSync(new URL("../routes/data/index.tsx", import.meta.url), "utf8");
-    expect(page).toContain("Listings that reach Contrax through third-party bid platforms are left out.");
+    // Owner 2026-11-12 ("delete the api pages, its telling"): no public page advertises the feed.
+    const { existsSync } = require("node:fs");
+    expect(existsSync(new URL("../routes/data/index.tsx", import.meta.url))).toBe(false);
+    expect(existsSync(new URL("../routes/openapi[.]json.ts", import.meta.url))).toBe(false);
+    const llms = readFileSync(new URL("../../public/llms.txt", import.meta.url), "utf8");
+    expect(llms).not.toContain("/data");
+    expect(llms).not.toContain("openapi");
   });
 });

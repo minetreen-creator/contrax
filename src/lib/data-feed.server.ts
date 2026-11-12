@@ -129,7 +129,7 @@ export async function feedUserFromRequest(
     daily_request_limit: number | null;
     ref_code: string | null;
   };
-  if (!row.active) return { error: "This key does not have data feed access. Request access at https://www.contrax.company/data.", status: 403 };
+  if (!row.active) return { error: "This key does not have data feed access. Write to contrax.companyllc@gmail.com.", status: 403 };
   await sql()`UPDATE api_keys SET last_used_at = NOW() WHERE id = ${row.id}`;
   const allowedStates = row.states ? row.states.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean) : null;
   return {

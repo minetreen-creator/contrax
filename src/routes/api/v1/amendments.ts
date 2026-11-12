@@ -22,7 +22,7 @@ async function handler({ request }: { request: Request }) {
       );
     }
     if (auth.tier === "leads" || auth.tier === "primes") {
-      return Response.json({ error: "Your plan doesn't include the bid feed: https://www.contrax.company/data" }, { status: 403 });
+      return Response.json({ error: "Your plan doesn't include the bid feed: contrax.companyllc@gmail.com" }, { status: 403 });
     }
     const params = new URL(request.url).searchParams;
     // Reuse the feed's validation for state / limit / after / a date.

@@ -126,13 +126,6 @@ function ConsultantsPage() {
           </a>
         </section>
 
-        <section className="mx-auto max-w-4xl px-4 pb-16">
-          <h2 className="text-xl font-bold text-slate-900">Need the bids as data instead?</h2>
-          <p className="mt-2 text-sm text-slate-700">
-            If you would rather pull bids into your own tools, the{" "}
-            <a href="/data" className="font-semibold text-blue-700 hover:underline">bid data API</a> delivers them as JSON.
-          </p>
-        </section>
       </main>
     </>
   );

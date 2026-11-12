@@ -76,7 +76,7 @@ function DataAccessPage() {
       <main className="mx-auto max-w-5xl space-y-8 px-4 py-6">
         <AdminTabs active="data-access" />
         <p className="text-sm text-slate-600">
-          Businesses request the bid data feed at <a className="font-medium text-blue-700 underline" href="/data">contrax.company/data</a>.
+          The public /data page was removed on 2026-11-12; requests now come only by email.
           To give a customer access, they need a Contrax account (any plan); grant it below and email them the key.
         </p>
         {error && <SectionError message={error} />}

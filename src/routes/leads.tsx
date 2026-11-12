@@ -211,11 +211,7 @@ function Plan({ signedIn }: { signedIn: boolean }) {
         </button>
         {error && <p className="mt-3 text-sm text-red-700">{error}</p>}
         <p className="mt-3 text-xs text-slate-500">
-          {signedIn ? "" : "You’ll need a free Contrax account so we can attach your plan. "}Also included with the{" "}
-          <a className="underline" href="/data#plans">
-            Bid Data Pro plan
-          </a>
-          .
+          {signedIn ? "" : "You’ll need a free Contrax account so we can attach your plan."}
         </p>
       </div>
     </section>

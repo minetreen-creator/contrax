@@ -86,6 +86,7 @@ function CompanyPage() {
         radarLabel="Search open government bids"
         honesty={<>{SAM_SOURCE_NOTE}</>}
       >
+        <a href="/company" className="font-semibold text-blue-700 hover:underline">Find a business by name →</a>{" "}
         <a href="/radar" className="font-semibold text-blue-700 hover:underline">Search open bids by trade and state →</a>
       </SeoLanding>
     );

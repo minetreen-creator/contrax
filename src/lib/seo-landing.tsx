@@ -700,6 +700,7 @@ export function SeoFooterLinks() {
       <a href="/local-bids" className="transition-colors hover:text-white">City and County Bids</a>
       <a href="/mega-projects" className="transition-colors hover:text-white">Mega-Projects</a>
       <a href="/radar" className="transition-colors hover:text-white">Contract Radar</a>
+      <a href="/company" className="transition-colors hover:text-white">Find Your Company</a>
       <a href="/map" className="transition-colors hover:text-white">Contract Map</a>
       <a href="/pricing" className="transition-colors hover:text-white">Pricing</a>
       <a href="/signup" className="transition-colors hover:text-white">Sign up</a>

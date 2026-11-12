@@ -18,7 +18,7 @@ import { radarHrefFor, SEO_TRADE_BY_SLUG } from "~/lib/seo-trades";
 import { certNames, stateSlugOf } from "~/lib/sub-finder";
 
 /** Bids listed per trade on a company page. */
-export const COMPANY_PAGE_BIDS = 8;
+export const COMPANY_PAGE_BIDS = 5;
 /** At most this many of a business's trades get their own section. */
 export const COMPANY_PAGE_TRADES = 3;
 /**
@@ -36,6 +36,16 @@ export const COMPANY_WARM_CONCURRENCY = 4;
 export const COMPANY_SITEMAP_PER_STATE = 1000;
 /** Other registered businesses linked from a company page (same city, shared trade). */
 export const COMPANY_NEIGHBOURS = 6;
+
+/** Businesses listed for one "find your company" search (/company). */
+export const COMPANY_SEARCH_RESULTS = 10;
+
+export interface CompanySearchHit {
+  name: string;
+  city: string | null;
+  state: string;
+  path: string;
+}
 
 const UEI_RE = /^[A-Z0-9]{12}$/;
 

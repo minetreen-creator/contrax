@@ -2,9 +2,8 @@
 // suppliers"). Reads robots.txt first and skips disallowed paths. Prints role addresses only (info@, sales@ ...);
 // a named person's address is counted, never printed. Removed after.
 const UA = "Mozilla/5.0 (compatible; ContraxBot/1.0; +https://www.contrax.company)";
-const DOMAINS = ["essexconcrete.com", "ruffin-payne.com", "branscome.com", "chaneyenterprises.com", "contractorsprecast.com",
-  "wbsprecast.com", "colonial-materials.com", "rentequip.org", "concretepandp.com", "nefco.net", "rasiewers.com", "cartermachinery.com"];
-const PATHS = ["/", "/contact", "/contact-us", "/contact/", "/contact-us/", "/about-us", "/locations"];
+const DOMAINS = ["tidewaterblock.com", "frackeltonblock.com", "valleybuildingsupply.com", "fredblock.com", "luckstone.com", "757brick.com", "pvbrick.com", "colonial-materials.com", "essexconcrete.com"];
+const PATHS = ["/", "/contact", "/contact-us", "/contact.html", "/contact-us.html", "/about", "/about-us", "/locations"];
 const ROLE = /^(info|sales|office|contact|dispatch|orders?|quotes?|estimating|hello|admin|customerservice|service|rentals?|inquiries|marketing|cs)$/i;
 const get = async (u: string) => { try { const r = await fetch(u, { headers: { "User-Agent": UA }, redirect: "follow", signal: AbortSignal.timeout(15000) }); return { status: r.status, text: r.ok ? await r.text() : "" }; } catch (e) { return { status: 0, text: "" }; } };
 function disallowed(robots: string): string[] {

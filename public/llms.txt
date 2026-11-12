@@ -48,6 +48,10 @@ Contrax is operated by Contrax LLC (Virginia) and is available in the United Sta
 
 - [Consultants](https://www.contrax.company/consultants): One login for up to 10 client workspaces, each with its own matched bids, saved bids and pipeline, and a dashboard of every client's deadlines.
 
+## For material suppliers and equipment rental
+
+- [Suppliers](https://www.contrax.company/suppliers): The public paving, concrete, site and building jobs bidding in each territory, who is buying and when bids are due, for concrete plants, supply houses and rental yards.
+
 ## Good to know when citing Contrax
 
 - A bid page is the listing, not the official notice. The buyer's own notice has the full scope, the documents and how to submit.

@@ -9,21 +9,40 @@ import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
 import { noticeKeySql } from "~/lib/notice-dedupe";
 import { bidCanonicalUrl } from "~/lib/bid-seo";
-import { INDEXNOW_SITEMAPS, sitemapLocs, submitIndexNow } from "~/lib/indexnow";
+import { INDEXNOW_SITEMAPS, isSitemapIndex, sitemapLocs, submitIndexNow } from "~/lib/indexnow";
 import { SITE_URL } from "~/lib/bid-seo";
 
 /**
- * `--pages` or `--all`: resubmit what the live sitemaps list (see INDEXNOW_SITEMAPS). Used after the
+ * `--pages`, `--all` or `--companies`: resubmit what the live sitemaps list (see INDEXNOW_SITEMAPS). Used after the
  * pages themselves change, so Bing (and ChatGPT's search, which leans on it) reads the new version
  * without waiting for its own schedule. No database is read.
  */
 async function resubmit(which: keyof typeof INDEXNOW_SITEMAPS) {
   const urls: string[] = [];
+  const read = async (url: string): Promise<string | null> => {
+    const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 (compatible; ContraxBot/1.0; +https://www.contrax.company)" }, signal: AbortSignal.timeout(60_000) });
+    return res.ok ? await res.text() : null;
+  };
   for (const path of INDEXNOW_SITEMAPS[which]) {
     try {
-      const res = await fetch(`${SITE_URL}${path}`, { headers: { "User-Agent": "Mozilla/5.0 (compatible; ContraxBot/1.0; +https://www.contrax.company)" }, signal: AbortSignal.timeout(60_000) });
-      const locs = res.ok ? sitemapLocs(await res.text()) : [];
-      console.log(`[indexnow] ${path}: ${res.status}, ${locs.length} pages`);
+      const xml = await read(`${SITE_URL}${path}`);
+      const locs = xml ? sitemapLocs(xml) : [];
+      if (xml && isSitemapIndex(xml)) {
+        // A sitemap index lists our own child sitemaps: read each one for its pages.
+        let pages = 0;
+        for (const child of locs.filter((u) => u.startsWith(`${SITE_URL}/`))) {
+          try {
+            const childLocs = sitemapLocs((await read(child)) ?? "");
+            pages += childLocs.length;
+            urls.push(...childLocs);
+          } catch (e) {
+            console.log(`[indexnow] ${child}: skipped (${(e as Error).message})`);
+          }
+        }
+        console.log(`[indexnow] ${path}: index of ${locs.length} sitemaps, ${pages} pages`);
+        continue;
+      }
+      console.log(`[indexnow] ${path}: ${xml ? 200 : "not read"}, ${locs.length} pages`);
       urls.push(...locs);
     } catch (e) {
       console.log(`[indexnow] ${path}: skipped (${(e as Error).message})`);
@@ -36,6 +55,7 @@ async function resubmit(which: keyof typeof INDEXNOW_SITEMAPS) {
 
 async function main() {
   if (process.argv.includes("--all")) return resubmit("all");
+  if (process.argv.includes("--companies")) return resubmit("companies");
   if (process.argv.includes("--pages")) return resubmit("pages");
   const since = new Date(process.env.SYNC_STARTED_AT ?? Date.now() - 6 * 3600_000);
   if (Number.isNaN(since.getTime())) { console.log("[indexnow] bad SYNC_STARTED_AT; skipped"); return; }

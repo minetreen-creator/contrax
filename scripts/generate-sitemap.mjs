@@ -79,6 +79,8 @@ const PRODUCT_PATHS = [
   ["/company", "weekly", "0.7"],
   // Bid data API for businesses (owner 2026-11-12: sell the data to a different kind of customer).
   ["/data", "weekly", "0.7"],
+  // Agency plan for bid consultants and proposal writers (owner 2026-11-12).
+  ["/consultants", "weekly", "0.7"],
   ["/roadmap", "monthly", "0.5"],
   ["/pathway", "monthly", "0.7"],
   ["/co-op-contracts", "daily", "0.6"],

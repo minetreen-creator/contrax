@@ -17,7 +17,55 @@ const ENTITIES: Record<string, string> = {
 
 /** A sentence that is a source or process note, not a description of the work. */
 const PROCESS_NOTE =
-  /\b(contrax|listed by|posted (by|on)|advertised on|source link|source page|portal|bid service|third-party|public list|prints?|printed|published|closing|opening|opened|bids? open|time zone|eastern time|central time|mountain time|pacific time|registration|register|documents?|responses?|respond|emailed|sold through|notice to contractors|q&a|login|log in|sign in|subscription|in spanish|not stated|not published|see the bid advertisement|bidnet|questcdn|demandstar|bonfire|periscope|bidsync|opengov)\b/i;
+  /\b(contrax|listed by|posted (by|on)|advertised on|source link|source page|portal|bid service|third-party|public list|prints?|printed|published|closing|opening|opened|bids? open|time zone|eastern time|central time|mountain time|pacific time|registration|register|documents?|responses?|respond|emailed|sold through|notice to contractors|q&a|login|log in|sign in|subscription|in spanish|not stated|not published|see the bid advertisement|bidnet|questcdn|demandstar|bonfire|periscope|bidsync|opengov|bulletin board|plan holders?|cabb)\b/i;
+
+/**
+ * The agency's own numbers written out in a description ("order 756", "state project PM7D-030-27F, P401",
+ * "solicitation no. 24-118"). The free page never shows the bid number (owner 2026-11-11: "dont show it"),
+ * and these let a reader look the notice up without it (2026-11-12: a visitor read a VDOT bid for five
+ * minutes; its text gave the order and project numbers and named the board holding the documents).
+ */
+const LABELLED_ID =
+  /\b(?:order|state project|federal project|project (?:no\.?|number|#)|contract (?:id|no\.?|number|#)|solicitation (?:id|no\.?|number|#)|bid (?:id|no\.?|number|#)|proposal (?:id|no\.?|number|#)|reference (?:no\.?|number|#))\s*[:#]?\s*[A-Z0-9][A-Z0-9\-_/.]*\d[A-Z0-9\-_/.]*(?:\s*,\s*[A-Z]{0,4}\d[A-Z0-9\-_/.]*)*/gi;
+
+const escapeRe = (v: string) => v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/** Remove the agency's own numbers from a description: labelled ones, and the bid's stored number(s). PURE. */
+export function stripAgencyNumbers(text: string, ids?: string | null): string {
+  let out = text.replace(LABELLED_ID, "");
+  for (const id of String(ids ?? "").split(/[\s,;]+/)) {
+    if (id.length >= 4 && /\d/.test(id)) out = out.replace(new RegExp(`(?<![A-Za-z0-9])${escapeRe(id)}(?![A-Za-z0-9])`, "gi"), "");
+  }
+  // Tidy what the removals leave behind: "(; location X; ; time)" reads "(location X; time)".
+  return out
+    .replace(/\s*;(?:\s*;)+/g, ";")
+    .replace(/\(\s*[;,]\s*/g, "(")
+    .replace(/\s*[;,]\s*\)/g, ")")
+    .replace(/\(\s*\)/g, "")
+    .replace(/\s+([.,;)])/g, "$1")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+/**
+ * A bid's description as it may leave the server for a visitor without a pass: the agency's own
+ * numbers removed, and the sentences that say where the notice and documents are dropped. The page
+ * data a browser receives is readable, so this runs on the server, not only when drawing. PURE.
+ */
+export function publicJobText(description: string | null | undefined, ids?: string | null): string | null {
+  const text = String(description ?? "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&[a-z#0-9]+;/gi, (m) => ENTITIES[m.toLowerCase()] ?? " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!text) return null;
+  const kept = stripAgencyNumbers(text, ids)
+    .split(/(?<=[.!?])\s+/)
+    .filter((sentence) => !PROCESS_NOTE.test(sentence))
+    .join(" ")
+    .trim();
+  return kept || null;
+}
 
 /** Longest summary shown on the page, in characters. */
 export const JOB_SUMMARY_MAX = 420;
@@ -26,12 +74,14 @@ export const JOB_SUMMARY_MAX = 420;
  * The bid's description as a short readable paragraph, or null when there is
  * nothing more to say than the title (empty, tiny, or the title repeated).
  */
-export function jobSummary(description: string | null | undefined, title: string | null | undefined): string | null {
+export function jobSummary(description: string | null | undefined, title: string | null | undefined, ids?: string | null): string | null {
   let text = String(description ?? "")
     .replace(/<[^>]*>/g, " ")
     .replace(/&[a-z#0-9]+;/gi, (m) => ENTITIES[m.toLowerCase()] ?? " ")
     .replace(/\s+/g, " ")
     .trim();
+  // The agency's own numbers never show on the free page (see LABELLED_ID).
+  text = stripAgencyNumbers(text, ids);
   // Many sources store our own provenance and "how to respond" notes in the
   // description ("Listed by BidNet Direct…", "Respond through the portal (see
   // source link)"). Those are not the job, and they name where the free notice

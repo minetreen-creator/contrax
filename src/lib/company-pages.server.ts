@@ -55,7 +55,8 @@ const slim = (b: { id: number; title: string; agency: string | null; description
   id: b.id,
   title: b.title,
   agency: b.agency,
-  description: b.description ? b.description.slice(0, 600) : null,
+  // Company pages show no description, so none is stored or sent.
+  description: null,
   due_date: b.due_date,
   estimated_value: b.estimated_value,
   naics_code: b.naics_code,

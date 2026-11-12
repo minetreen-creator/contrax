@@ -576,7 +576,7 @@ export const COUNTY_CIVICENGAGE_CONFIGS: readonly CivicEngageBoardConfig[] = [
   board("wi_ozaukee_county", "www.ozaukeecounty.gov", "Ozaukee County", "Ozaukee County, WI", "ozaukeecountywicivic"),
   board("wi_portage_county", "www.co.portage.wi.gov", "Portage County", "Portage County, WI", "portagecountywicivic"),
   board("wi_chippewa_county", "www.chippewacountywi.gov", "Chippewa County", "Chippewa County, WI", "chippewacountywicivic"),
-  board("ia_dubuque", "www.cityofdubuque.org", "City of Dubuque", "Dubuque, IA", "dubuqueiacivic"),
+  // ia_dubuque moved 2026-11-12: the city took down /bids.aspx and posts on IonWave (src/jobs/sources/ar-ionwave.ts).
   board("ia_johnston", "www.cityofjohnston.com", "City of Johnston", "Johnston, IA", "johnstoniacivic"),
   board("az_sahuarita", "sahuaritaaz.gov", "Town of Sahuarita", "Sahuarita, AZ", "sahuaritaazcivic"),
   board("az_cottonwood", "www.cottonwoodaz.gov", "City of Cottonwood", "Cottonwood, AZ", "cottonwoodazcivic"),

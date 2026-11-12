@@ -222,6 +222,22 @@ export const TX_IONWAVE_SOURCES: { name: string; fetchFn: () => Promise<FetchRes
   fetchFn: () => fetchIonwaveBoard(b),
 }));
 
+/**
+ * City of Dubuque, Iowa (owner 2026-11-12: "add Dubuque"). The city took down its own bid list
+ * (/bids.aspx, read by the CivicEngage reader until then) and posts on IonWave. Captured as
+ * ContraxBot on 2026-11-12: 6 bids, close times in Central time. The source keeps its name,
+ * `ia_dubuque`, so its page and history carry on. This board's robots.txt disallows crawlers like
+ * every IonWave board; the owner chose to read it (see ROBOTS_PAUSED_SOURCES in src/jobs/runner.ts).
+ */
+export const IA_IONWAVE_BOARDS: readonly IonwaveBoard[] = [
+  { source: "ia_dubuque", origin: "https://cityofdubuque.ionwave.net", agency: "City of Dubuque", location: "Dubuque, IA", fallbackLocation: "Dubuque, IA", idPrefix: "dubuqueiaionwave" },
+];
+
+export const IA_IONWAVE_SOURCES: { name: string; fetchFn: () => Promise<FetchResult> }[] = IA_IONWAVE_BOARDS.map((b) => ({
+  name: b.source,
+  fetchFn: () => fetchIonwaveBoard(b),
+}));
+
 export const AR_IONWAVE_SOURCES: { name: string; fetchFn: () => Promise<FetchResult> }[] = AR_IONWAVE_BOARDS.map((b) => ({
   name: b.source,
   fetchFn: () => fetchIonwaveBoard(b),

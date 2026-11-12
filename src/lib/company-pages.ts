@@ -132,7 +132,8 @@ export function tradeSection(
 export const naicsWithNames = (codes: string[]) =>
   [...new Set(codes)].slice(0, 8).map((code) => ({ code, name: NAICS_NAMES[code] ?? null }));
 
-export const certLabels = (certs: string[]) => certNames(certs);
+/** Certification names for display; two registry values can share one name, shown once. */
+export const certLabels = (certs: string[]) => [...new Set(certNames(certs))];
 
 /** The largest single-trade count: the honest "at least this many" figure for the headline. PURE. */
 export const topCount = (d: Pick<CompanyPageData, "trades">) => d.trades.reduce((n, t) => Math.max(n, t.count), 0);
@@ -143,11 +144,12 @@ export function companyIndexable(d: CompanyPageData | null | undefined): boolean
   return !!d?.found && (topCount(d) > 0 || nationwideTop(d) > 0);
 }
 
-const lower = (label: string) => (/^(HVAC|IT)\b/.test(label) ? label : label.charAt(0).toLowerCase() + label.slice(1));
+/** "Construction" → "construction"; HVAC and IT keep their capitals. */
+export const lowerTrade = (label: string) => (/^(HVAC|IT)\b/.test(label) ? label : label.charAt(0).toLowerCase() + label.slice(1));
 
 /** "construction and electrical" from the page's trades. PURE. */
 export function tradeList(d: Pick<CompanyPageData, "trades">): string {
-  const names = d.trades.map((t) => lower(t.label));
+  const names = d.trades.map((t) => lowerTrade(t.label));
   if (names.length <= 1) return names[0] ?? "";
   return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
 }
@@ -163,7 +165,7 @@ export function companyDescription(d: CompanyPageData): string {
   const n = topCount(d);
   const top = d.trades.find((t) => t.count === n);
   const lead = n > 0 && top
-    ? `${n.toLocaleString("en-US")} open ${lower(top.label)} bids in ${d.stateName} fit ${d.name}'s SAM.gov registration.`
+    ? `${n.toLocaleString("en-US")} open ${lowerTrade(top.label)} bids in ${d.stateName} fit ${d.name}'s SAM.gov registration.`
     : `Open government bids that fit ${d.name}'s SAM.gov registration.`;
   return `${lead} See each job, the buyer and the due date. Matched by trade and state from public registration data.`;
 }
@@ -173,7 +175,7 @@ export function companySubhead(d: CompanyPageData): string {
   const n = topCount(d);
   const top = d.trades.find((t) => t.count === n);
   if (n > 0 && top) {
-    return `${n.toLocaleString("en-US")} government ${lower(top.label)} ${n === 1 ? "bid is" : "bids are"} open in ${d.stateName} right now that ${n === 1 ? "fits" : "fit"} the trades on this business's SAM.gov registration.`;
+    return `${n.toLocaleString("en-US")} government ${lowerTrade(top.label)} ${n === 1 ? "bid is" : "bids are"} open in ${d.stateName} right now that ${n === 1 ? "fits" : "fit"} the trades on this business's SAM.gov registration.`;
   }
   const nw = nationwideTop(d);
   if (nw > 0) {

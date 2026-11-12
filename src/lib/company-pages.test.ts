@@ -148,3 +148,15 @@ describe("company page rules", () => {
     expect(schema).toContain("CREATE TABLE IF NOT EXISTS company_page_optouts");
   });
 });
+
+describe("company page labels", () => {
+  test("HVAC and IT keep their capitals, and a shared certification name shows once", async () => {
+    const { lowerTrade, certLabels } = await import("./company-pages");
+    expect(lowerTrade("IT services")).toBe("IT services");
+    expect(lowerTrade("HVAC and plumbing")).toBe("HVAC and plumbing");
+    expect(lowerTrade("Construction")).toBe("construction");
+    const labels = certLabels(["wosb", "edwosb", "wosb", "8a"]);
+    expect(new Set(labels).size).toBe(labels.length);
+    expect(readSrc("src/routes/company.$slug.tsx")).not.toContain("t.label.toLowerCase()");
+  });
+});

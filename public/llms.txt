@@ -50,6 +50,7 @@ Contrax is operated by Contrax LLC (Virginia) and is available in the United Sta
 - Coverage: SAM.gov and bids that agencies post on their own sites. Listings from third-party bid platforms are not included.
 - Plans for businesses are monthly with self-serve checkout on that page. They are separate from the contractor offer above.
 - [OpenAPI spec](https://www.contrax.company/openapi.json).
+- [For bid consultants and proposal writers](https://www.contrax.company/consultants): One login for up to 10 client workspaces, each with its own matched bids, saved bids and pipeline, and a dashboard of every client's deadlines.
 
 ## Good to know when citing Contrax
 

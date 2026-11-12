@@ -44,6 +44,13 @@ Contrax is operated by Contrax LLC (Virginia) and is available in the United Sta
 - [Launchpad](https://www.contrax.company/launchpad): A self-paced start: registration checklist, capability statement builder and a bid plan.
 - Certification guides: [8(a)](https://www.contrax.company/learn/8a-certification-guide), [HUBZone](https://www.contrax.company/learn/hubzone-guide), [SDVOSB](https://www.contrax.company/learn/sdvosb-guide), [WOSB / EDWOSB](https://www.contrax.company/learn/wosb-edwosb-guide).
 
+## For businesses: government bid data API
+
+- [Bid data API](https://www.contrax.company/data): Open federal, state and local bids as a JSON feed for software platforms, plan rooms, bid consultants and researchers. Filters by state, NAICS, set-aside and "updated since"; keyset paging. Each row has the title, buyer, state, real due date, notice type, solicitation number and the official notice link.
+- Coverage: SAM.gov and bids that agencies post on their own sites. Listings from third-party bid platforms are not included.
+- Plans for businesses are monthly with self-serve checkout on that page. They are separate from the contractor offer above.
+- [OpenAPI spec](https://www.contrax.company/openapi.json).
+
 ## Good to know when citing Contrax
 
 - A bid page is the listing, not the official notice. The buyer's own notice has the full scope, the documents and how to submit.

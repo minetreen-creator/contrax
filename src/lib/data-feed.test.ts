@@ -74,3 +74,25 @@ describe("partner licensing (owner 2026-10-22)", () => {
     expect(parseSourceExclusions(null)).toEqual([]);
   });
 });
+
+describe("third-party platform listings stay out of the sold feed (owner 2026-11-12)", () => {
+  test("self-serve plans and marketplace calls get the platform list; owner grants keep their own rule", async () => {
+    const { feedExclusionsFor, THIRD_PARTY_PLATFORM_EXCLUSIONS } = await import("./data-feed");
+    expect(feedExclusionsFor(null, "starter")).toEqual(THIRD_PARTY_PLATFORM_EXCLUSIONS);
+    expect(feedExclusionsFor(null, "pro")).toEqual(THIRD_PARTY_PLATFORM_EXCLUSIONS);
+    expect(feedExclusionsFor(null, null, true)).toEqual(THIRD_PARTY_PLATFORM_EXCLUSIONS);
+    expect(feedExclusionsFor("%_bidnet", "pro")).toEqual(["%_bidnet"]);
+    expect(feedExclusionsFor(null, null)).toEqual([]);
+    for (const p of ["%bidnet%", "%bonfire%", "%ionwave%", "%planetbids%", "%periscope%", "fl_lee_county"]) expect(THIRD_PARTY_PLATFORM_EXCLUSIONS).toContain(p);
+  });
+
+  test("the key check and the page's headline counts both apply it", () => {
+    const { readFileSync } = require("node:fs");
+    const server = readFileSync(new URL("./data-feed.server.ts", import.meta.url), "utf8");
+    expect(server).toContain("sourceExclusions: feedExclusionsFor(row.source_exclusions, row.tier),");
+    expect(server).toContain("sourceExclusions: feedExclusionsFor(null, null, true)");
+    expect(server).toContain("AND NOT (source LIKE ANY(${THIRD_PARTY_PLATFORM_EXCLUSIONS}))");
+    const page = readFileSync(new URL("../routes/data/index.tsx", import.meta.url), "utf8");
+    expect(page).toContain("Listings that reach Contrax through third-party bid platforms are left out.");
+  });
+});

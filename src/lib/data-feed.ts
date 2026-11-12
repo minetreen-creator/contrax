@@ -28,6 +28,29 @@ export type FeedCategory = (typeof FEED_CATEGORIES)[number];
  */
 export const GOVERNMENT_ONLY_EXCLUSIONS = ["%_bidnet"];
 
+/**
+ * Bids that reached Contrax through a third-party bid platform rather than the agency's own site or
+ * SAM.gov (owner 2026-11-12, selling the feed: "different kind of customer"). The platforms' own terms
+ * may not allow passing their listings on, so self-serve plans and marketplace calls leave them out;
+ * an owner-granted key keeps whatever the owner set. Patterns match `bids.source`.
+ */
+export const THIRD_PARTY_PLATFORM_EXCLUSIONS = [
+  "%bidnet%", "%bonfire%", "%ionwave%", "%planetbids%", "%periscope%", "%bidsync%",
+  "%jaggaer%", "%questcdn%", "%demandstar%", "%beacon%", "%opengov%", "fl_lee_county",
+];
+
+/**
+ * The sources a feed caller may not receive. A key with its own stored rule keeps it; a self-serve
+ * plan (starter, pro) or a marketplace call with none gets the third-party platform list; an
+ * owner-granted key with no tier and no rule gets everything, as before. PURE.
+ */
+export function feedExclusionsFor(stored: string | null | undefined, tier: string | null | undefined, marketplace = false): string[] {
+  const own = parseSourceExclusions(stored);
+  if (own.length) return own;
+  if (marketplace || tier === "starter" || tier === "pro") return [...THIRD_PARTY_PLATFORM_EXCLUSIONS];
+  return [];
+}
+
 export function parseSourceExclusions(stored: string | null | undefined): string[] {
   return (stored ?? "")
     .split(",")

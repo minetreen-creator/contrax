@@ -18,7 +18,7 @@ import { radarHrefFor, SEO_TRADE_BY_SLUG } from "~/lib/seo-trades";
 import { certNames, stateSlugOf } from "~/lib/sub-finder";
 
 /** Bids listed per trade on a company page. */
-export const COMPANY_PAGE_BIDS = 8;
+export const COMPANY_PAGE_BIDS = 5;
 /** At most this many of a business's trades get their own section. */
 export const COMPANY_PAGE_TRADES = 3;
 /**

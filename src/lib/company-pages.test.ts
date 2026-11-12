@@ -212,3 +212,12 @@ describe("find your company", () => {
     expect(readSrc("src/routes/company.$slug.tsx")).toContain('<a href="/company"');
   });
 });
+
+test("a company page lists five bids per trade (owner 2026-11-12), even from a longer stored list", async () => {
+  const { COMPANY_PAGE_BIDS, tradeSection } = await import("./company-pages");
+  expect(COMPANY_PAGE_BIDS).toBe(5);
+  const bids = Array.from({ length: 8 }, (_, i) => ({ id: i + 1, title: `Job ${i + 1}`, agency: null, description: null, due_date: null, estimated_value: null, naics_code: null, location: null, set_aside: null, source: null }));
+  const t = tradeSection({ slug: "construction", label: "Construction", radarTerm: "construction" }, "VA", "Virginia", { count: 8, nationwideCount: 0, bids });
+  expect(t.bids.length).toBe(5);
+  expect(t.count).toBe(8);
+});

@@ -21,8 +21,14 @@ import { certNames, stateSlugOf } from "~/lib/sub-finder";
 export const COMPANY_PAGE_BIDS = 8;
 /** At most this many of a business's trades get their own section. */
 export const COMPANY_PAGE_TRADES = 3;
-/** How long one trade + state match list is reused before Radar's query runs again. */
-export const COMPANY_CACHE_MINUTES = 240;
+/**
+ * How long one trade + state match list may be reused. The warm job (src/jobs/warm-company-pages.ts)
+ * recomputes every list after each bid sync, so a page normally reads a list made minutes after the
+ * bids last changed; this is the fallback age after which a page recomputes its own.
+ */
+export const COMPANY_CACHE_MINUTES = 26 * 60;
+/** Trade + state lists the warm job recomputes at once. */
+export const COMPANY_WARM_CONCURRENCY = 4;
 /**
  * Company pages listed per state in the sitemap. A first step, on purpose: search engines treat a
  * sudden flood of similar pages badly, so the list grows once these are being indexed.

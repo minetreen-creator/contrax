@@ -160,3 +160,24 @@ describe("company page labels", () => {
     expect(readSrc("src/routes/company.$slug.tsx")).not.toContain("t.label.toLowerCase()");
   });
 });
+
+describe("warming the company page lists", () => {
+  const job = readSrc("src/jobs/warm-company-pages.ts");
+  const wf = readSrc(".github/workflows/warm-company-pages.yml");
+  const server = readSrc("src/lib/company-pages.server.ts");
+
+  test("the job recomputes every trade + state pair after each bid sync", () => {
+    expect(wf).toContain('workflows: ["Sync Bids"]');
+    expect(wf).toContain("bun run src/jobs/warm-company-pages.ts");
+    expect(job).toContain("companyTradeStatePairs()");
+    expect(job).toContain("computeTradeStateMatches(");
+    expect(server).toContain("SELECT DISTINCT state, unnest(trades) AS trade FROM sam_registrants");
+  });
+
+  test("a page still recomputes a list that is missing or too old, and a few failures do not fail the job", async () => {
+    const { COMPANY_CACHE_MINUTES } = await import("./company-pages");
+    expect(COMPANY_CACHE_MINUTES).toBeGreaterThan(24 * 60);
+    expect(server).toContain("return computeTradeStateMatches(trade, state);");
+    expect(job).toContain("failed > pairs.length / 2 ? 1 : 0");
+  });
+});

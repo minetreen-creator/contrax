@@ -43,7 +43,12 @@ export function sitemapLocs(xml: string): string[] {
 export const INDEXNOW_SITEMAPS = {
   pages: ["/sitemap.xml", "/sitemap-local.xml"],
   all: ["/sitemap.xml", "/sitemap-local.xml", "/sitemap-bids.xml"],
+  // The company pages (src/lib/company-pages.ts). This one is a sitemap index: one child per state.
+  companies: ["/sitemap-companies.xml"],
 } as const;
+
+/** True for a sitemap index (its <loc> entries are other sitemaps, not pages). PURE. */
+export const isSitemapIndex = (xml: string) => /<sitemapindex[\s>]/.test(String(xml ?? ""));
 
 export const indexNowDeps = { fetch: (url: string, init: RequestInit) => fetch(url, init) };
 

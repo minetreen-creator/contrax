@@ -49,8 +49,23 @@ test("the weekly resubmission leaves the bid pages out; the manual one can inclu
   expect(INDEXNOW_SITEMAPS.pages).not.toContain("/sitemap-bids.xml");
   expect(INDEXNOW_SITEMAPS.all).toContain("/sitemap-bids.xml");
   const wf = readFile(".github/workflows/indexnow-resubmit.yml", "utf8");
-  expect(wf).toContain('if [[ "$SCOPE" == "all" ]]; then bun run src/jobs/indexnow-submit.ts --all; else bun run src/jobs/indexnow-submit.ts --pages; fi');
+  expect(wf).toContain('if [[ "$SCOPE" == "all" ]]; then bun run src/jobs/indexnow-submit.ts --all;');
+  expect(wf).toContain('else bun run src/jobs/indexnow-submit.ts --pages; fi');
   expect(wf).not.toContain("DATABASE_URL"); // it reads the public sitemaps only
   const job = readFile("src/jobs/indexnow-submit.ts", "utf8");
   expect(job).toContain('if (process.argv.includes("--all")) return resubmit("all");');
 });
+
+test("the companies scope reads the company sitemap index and each state's sitemap", async () => {
+    const { INDEXNOW_SITEMAPS, isSitemapIndex } = await import("./indexnow");
+    const { readFileSync } = await import("node:fs");
+    expect(INDEXNOW_SITEMAPS.companies).toEqual(["/sitemap-companies.xml"]);
+    expect(isSitemapIndex('<?xml version="1.0"?><sitemapindex xmlns="x"><sitemap><loc>a</loc></sitemap></sitemapindex>')).toBe(true);
+    expect(isSitemapIndex('<?xml version="1.0"?><urlset xmlns="x"><url><loc>a</loc></url></urlset>')).toBe(false);
+    const job = readFileSync(new URL("../jobs/indexnow-submit.ts", import.meta.url), "utf8");
+    expect(job).toContain('if (process.argv.includes("--companies")) return resubmit("companies");');
+    expect(job).toContain("isSitemapIndex(xml)");
+    const wf = readFileSync(new URL("../../.github/workflows/indexnow-resubmit.yml", import.meta.url), "utf8");
+    expect(wf).toContain("--companies");
+    expect(readFileSync(new URL("../../scripts/generate-sitemap.mjs", import.meta.url), "utf8")).toContain('["/company", "weekly", "0.7"]');
+  });

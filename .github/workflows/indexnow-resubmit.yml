@@ -4,17 +4,19 @@ name: Resubmit pages to IndexNow
 #
 # Weekly: the state, trade, city and guide pages, whose bid lists change daily.
 # Manual with scope "all": also every open bid page, for use after the bid page itself changes.
+# Manual with scope "companies": the company pages (/company/...), read from their sitemap index.
 on:
   schedule:
     - cron: "23 11 * * 1"
   workflow_dispatch:
     inputs:
       scope:
-        description: "pages = state, trade, city and guide pages; all = those plus every open bid page"
+        description: "pages = state, trade, city and guide pages; all = those plus every open bid page; companies = the company pages"
         type: choice
         options:
           - pages
           - all
+          - companies
         default: pages
 concurrency:
   group: indexnow-resubmit
@@ -39,4 +41,4 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Resubmit
         run: |
-          if [[ "$SCOPE" == "all" ]]; then bun run src/jobs/indexnow-submit.ts --all; else bun run src/jobs/indexnow-submit.ts --pages; fi
+          if [[ "$SCOPE" == "all" ]]; then bun run src/jobs/indexnow-submit.ts --all; elif [[ "$SCOPE" == "companies" ]]; then bun run src/jobs/indexnow-submit.ts --companies; else bun run src/jobs/indexnow-submit.ts --pages; fi

@@ -1401,3 +1401,20 @@ CREATE TABLE IF NOT EXISTS coop_solicitations (
   first_seen TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   synced_at TIMESTAMPTZ NOT NULL
 );
+
+-- Company pages (src/lib/company-pages.ts): Radar's open matches per trade + state, reused for a
+-- few hours so a crawler does not run the match query once per company page; and businesses that
+-- asked for their page to be removed. Mirror of src/lib/company-pages.server.ts.
+CREATE TABLE IF NOT EXISTS trade_state_bid_cache (
+  trade TEXT NOT NULL,
+  state TEXT NOT NULL,
+  local_count INT NOT NULL DEFAULT 0,
+  nationwide_count INT NOT NULL DEFAULT 0,
+  bids JSONB NOT NULL DEFAULT '[]'::jsonb,
+  computed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (trade, state)
+);
+CREATE TABLE IF NOT EXISTS company_page_optouts (
+  uei TEXT PRIMARY KEY,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);

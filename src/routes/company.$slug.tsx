@@ -8,6 +8,7 @@ import {
   companySubhead,
   companyTitle,
   EMPTY_COMPANY_PAGE,
+  lowerTrade,
   topCount,
   ueiFromSlug,
   type CompanyBid,
@@ -158,7 +159,7 @@ function CompanyPage() {
         <section key={t.slug} className="mt-8">
           <h2 className="text-xl font-bold text-slate-900">
             {t.count > 0
-              ? `${t.count.toLocaleString("en-US")} open ${t.label.toLowerCase()} ${t.count === 1 ? "bid" : "bids"} in ${d.stateName}`
+              ? `${t.count.toLocaleString("en-US")} open ${lowerTrade(t.label)} ${t.count === 1 ? "bid" : "bids"} in ${d.stateName}`
               : `${t.label} bids in ${d.stateName}`}
           </h2>
           {t.count > 0 ? (
@@ -182,13 +183,13 @@ function CompanyPage() {
               None open in {d.stateName} today
               {t.nationwideCount > 0 ? `, and ${t.nationwideCount.toLocaleString("en-US")} nationwide ${t.nationwideCount === 1 ? "one" : "ones"} open to a business in any state` : ""}.{" "}
               <a href={t.radarHref} onClick={() => trackEvent("company_radar_click", t.slug)} className="font-semibold text-blue-700 hover:underline">
-                Search {t.label.toLowerCase()} bids →
+                Search {lowerTrade(t.label)} bids →
               </a>
             </p>
           )}
           <p className="mt-3 text-sm">
             <a href={t.statePath} className="font-semibold text-blue-700 hover:underline">
-              All {t.label.toLowerCase()} bids in {d.stateName} →
+              All {lowerTrade(t.label)} bids in {d.stateName} →
             </a>
           </p>
         </section>

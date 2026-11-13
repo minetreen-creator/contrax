@@ -1,43 +1,12 @@
-// Read-only: QuestCDN robots, and open-posting counts for public posting groups found by web search. Removed after.
-const UA = "Mozilla/5.0 (compatible; ContraxBot/1.0; +https://www.contrax.company)";
-const H = "https://qcpi.questcdn.com";
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-const rb = await fetch(`${H}/robots.txt`, { headers: { "User-Agent": UA } });
-const rtxt = await rb.text();
-console.log("robots", rb.status, rtxt.slice(0, 800).replace(/\n/g, " | "));
-const star = rtxt.split(/\n(?=\s*user-agent:)/i).filter((g) => /user-agent:\s*\*\s*$/im.test(g));
-const dis = star.flatMap((g) => [...g.matchAll(/^\s*disallow:\s*(\S*)/gim)].map((m) => m[1])).filter(Boolean);
-if (rb.status === 200 && dis.some((d) => "/cdn/posting/".startsWith(d.replace(/\*.*$/, "")) || "/cdn/browse_posting/".startsWith(d.replace(/\*.*$/, "")))) { console.log("STOP: robots disallows", dis); process.exit(0); }
-const G: [string, string, string][] = [
-  ["all", "", ""], ["MN Admin", "6506969", "6506969"],
-  ["Farnsworth", "7453865", "7453865"], ["Apex", "1444888", "1444888"], ["MSA", "84", "73347"], ["DGR", "1009", "9342"], ["Olsson", "503874", "503874"],
-  ["McClure", "19", "1042295"], ["Town&Country", "39683", "39683"], ["Coleman MI", "6605942", "6605942"], ["Pacific Eng", "4787305", "4787305"], ["Great West", "1469503", "1469503"],
-  ["Stahly?", "8019768", "8019768"], ["CBBurke", "2894319", "2894319"], ["Houston Eng", "12", "5492"], ["Hutchison", "1054", "3852214"], ["NV SPWD", "1903611", "1903611"],
-  ["Williston", "2542134", "2542134"], ["Denver", "842700", "842700"], ["Cumberland Auth", "4150910", "4150910"], ["Janesville", "73958", "73958"],
-  ["EEI Sugar Grove", "6153585", "6153585"], ["Edina", "7223", "7223"], ["Owatonna", "7535", "7535"], ["Laramie", "859921", "859921"], ["Monroe LA", "6595685", "6595685"],
-  ["Carthage MO", "8005984", "8005984"], ["Crystal Lake", "8012882", "8012882"], ["Racine", "455428", "455428"], ["NKY Water", "5748519", "5748519"],
-  ["Chippewa Hwy", "346333", "346333"], ["Eau Claire Hwy", "6587035", "6587035"], ["Boulder County", "814582", "814582"], ["Omaha/Douglas", "2814495", "2814495"],
-  ["Engineering Assoc", "2273024", "2273024"], ["McClelland", "6279755", "6279755"], ["1053/3778128", "1053", "3778128"], ["Baxter Woodman", "332740", "332740"], ["McMahon", "73571", "73571"],
-];
-for (const [name, group, provider] of G) {
-  const page = `${H}/cdn/posting/?projType=all&provider=${provider}&group=${group}`;
-  try {
-    const p = await fetch(page, { headers: { "User-Agent": UA, Accept: "text/html" }, signal: AbortSignal.timeout(30000) });
-    const set: string[] = (p.headers as any).getSetCookie?.() ?? [];
-    const cookie = set.map((c) => c.split(";")[0]).join("; ");
-    const html = await p.text();
-    const title = html.match(/<title>([^<]*)/i)?.[1]?.trim();
-    await sleep(1500);
-    const r = await fetch(`${H}/cdn/browse_posting/?search_id=&postings_since_last_login=&draw=1&start=0&length=500`, {
-      headers: { "User-Agent": UA, Accept: "application/json", "X-Requested-With": "XMLHttpRequest", Referer: page, ...(cookie ? { Cookie: cookie } : {}) }, signal: AbortSignal.timeout(30000),
-    });
-    const j: any = await r.json().catch(() => null);
-    const data: any[] = j?.data ?? [];
-    const strip = (s: any) => String(s ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-    const keys = data[0] ? Object.keys(data[0]).join(",") : "";
-    const open = data.filter((d) => { const c = strip(d.render_bid_closing_date ?? d.bid_closing_date); const t = Date.parse(c.replace(/ (CDT|CST|EDT|EST|MDT|MST|PDT|PST)$/, "")); return Number.isFinite(t) && t > Date.now(); });
-    const states = [...new Set(data.map((d) => strip(d.render_state ?? d.state)))].slice(0, 8).join("/");
-    console.log(`${name} [${group}/${provider}] status=${p.status}/${r.status} title=${title} total=${j?.recordsTotal} rows=${data.length} open=${open.length} states=${states}${name === "all" ? " keys=" + keys : ""}`);
-  } catch (e) { console.log(`${name} ERR ${(e as Error).message}`); }
-  await sleep(2000);
-}
+// Read-only daily counts (last 24h), aggregates only, no PII printed. Removed after.
+import { neon } from "@neondatabase/serverless";
+const s = neon(process.env.DATABASE_URL!);
+const BOT = `(user_agent IS NULL OR user_agent !~* '(bot|crawl|spider|slurp|preview|headless|lighthouse|python|curl|wget|httpclient|monitor)')`;
+const q = async (label: string, sql: string) => { try { console.log(label, JSON.stringify(await s.query(sql))); } catch (e) { console.log(label, "ERR", (e as Error).message); } };
+await q("visitors_by_source", `SELECT COALESCE(NULLIF(source,''),'direct') src, COUNT(DISTINCT visitor_id)::int v FROM page_views WHERE created_at > NOW()-INTERVAL '24 hours' AND ${BOT} GROUP BY 1 ORDER BY 2 DESC LIMIT 12`);
+await q("visitors_total_24h_vs_prev", `SELECT COUNT(DISTINCT visitor_id) FILTER (WHERE created_at > NOW()-INTERVAL '24 hours')::int now, COUNT(DISTINCT visitor_id) FILTER (WHERE created_at <= NOW()-INTERVAL '24 hours')::int prev FROM page_views WHERE created_at > NOW()-INTERVAL '48 hours' AND ${BOT}`);
+await q("events", `SELECT event_name, COUNT(*)::int n, COUNT(DISTINCT visitor_id)::int v FROM funnel_events WHERE created_at > NOW()-INTERVAL '24 hours' AND ${BOT} GROUP BY 1 ORDER BY 2 DESC LIMIT 40`);
+await q("company_page_views", `SELECT COUNT(*)::int n, COUNT(DISTINCT visitor_id)::int v FROM page_views WHERE path LIKE '/company/%' AND created_at > NOW()-INTERVAL '24 hours' AND ${BOT}`);
+await q("coop_alerts", `SELECT COUNT(*)::int n FROM coop_alerts WHERE created_at > NOW()-INTERVAL '24 hours'`);
+await q("new_users_24h", `SELECT COUNT(*)::int n FROM users WHERE created_at > NOW()-INTERVAL '24 hours'`);
+await q("collector_failures_24h", `SELECT source, status, COUNT(*)::int n FROM collector_run_log WHERE started_at > NOW()-INTERVAL '24 hours' AND status NOT IN ('ok','success','ran_zero') GROUP BY 1,2 ORDER BY 3 DESC LIMIT 25`);

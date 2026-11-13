@@ -1,4 +1,4 @@
-name: Temp probe (QuestCDN posting groups, read-only)
+name: Temp probe (daily counts, read-only, no PII)
 on:
   push:
     branches: [claude/vibrant-cray-177q1d]
@@ -8,7 +8,9 @@ permissions:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2

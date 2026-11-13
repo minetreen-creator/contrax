@@ -8,7 +8,8 @@ for (const h of ["https://vendor.planetbids.com", "https://vendors.planetbids.co
   console.log("ROBOTS", h, r?.status, t.slice(0, 600).replace(/\n/g, " | "));
   const star = t.split(/\n(?=\s*user-agent:)/i).filter((g) => /user-agent:\s*\*\s*$/im.test(g));
   const dis = star.flatMap((g) => [...g.matchAll(/^\s*disallow:\s*(\S*)/gim)].map((m) => m[1])).filter(Boolean);
-  if (h.includes("vendor.") && r?.status === 200 && dis.some((d) => "/states/".startsWith(d.replace(/\*.*$/, "")))) blocked = true;
+  const rx = (d: string) => new RegExp("^" + d.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*").replace(/\\\$$/, "$"));
+  if (h.includes("vendor.") && r?.status === 200 && dis.some((d) => rx(d).test("/states/california"))) blocked = true;
 }
 if (blocked) { console.log("STOP: robots disallows /states/"); process.exit(0); }
 const states = ["california", "texas", "arizona", "nevada", "oregon", "washington", "florida", "colorado", "utah", "new-mexico", "ohio", "georgia", "north-carolina", "virginia", "illinois", "michigan", "hawaii", "idaho", "oklahoma", "louisiana"];

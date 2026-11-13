@@ -102,7 +102,8 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // + 6 more PlanetBids agencies (San Diego city/airport/port, Valley Water, SacRT, Metroparks Toledo), 2026-11-08 (1092 → 1098).
     // + 3 Texas city IonWave boards (Plano, Irving, Georgetown), 2026-11-09 (1110 → 1113).
     // + City of New Braunfels on Beacon, 2026-11-10 (1113 → 1114).
-    expect(Object.keys(SOURCE_CLASSES).length).toBe(1114);
+    // + 185 county and city CivicEngage boards from the 2026-11-13 scan and Maine VSS (1114 → 1300).
+    expect(Object.keys(SOURCE_CLASSES).length).toBe(1300);
   });
 
   test("every registry label is classified (no collector is unclassified)", () => {
@@ -198,7 +199,8 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // + 6 more PlanetBids agencies, 2026-11-08 (1008 → 1014).
     // + 3 Texas city IonWave boards (Plano, Irving, Georgetown), 2026-11-09 (1026 → 1029).
     // + City of New Braunfels on Beacon, 2026-11-10 (1029 → 1030).
-    expect(TAIL_SOURCES.length).toBe(1030);
+    // + 185 county and city CivicEngage boards from the 2026-11-13 scan and Maine VSS (1030 → 1216).
+    expect(TAIL_SOURCES.length).toBe(1216);
   });
 
   test("every city registry entry the product fetches is LOCAL with a city name", () => {

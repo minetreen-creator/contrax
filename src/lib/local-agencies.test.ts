@@ -57,8 +57,8 @@ describe("local agency registry", () => {
     const va = placesInState("VA");
     expect(va.length).toBeGreaterThan(0);
     expect(va.every((p) => p.stateCode === "VA")).toBe(true);
-    // Wyoming got its first boards 2026-11-04; Vermont still has none.
-    expect(placesInState("VT")).toEqual([]);
+    // Wyoming got its first boards 2026-11-04; Vermont got its first on 2026-11-13 (Burlington, South Burlington, Winooski).
+    expect(placesInState("VT").map((p) => p.name).sort()).toEqual(["Burlington", "South Burlington", "Winooski"]);
   });
 });
 

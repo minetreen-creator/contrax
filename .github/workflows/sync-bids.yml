@@ -29,6 +29,10 @@ on:
         description: "Skip if another sync ran in the last 3.5 hours (set by Vercel Cron)"
         type: boolean
         default: false
+      sam_open_sweep:
+        description: "Also run the daily SAM.gov open-solicitation sweep now (it normally runs in the 04:00 UTC sync)"
+        type: boolean
+        default: false
 
 concurrency:
   group: sync-bids
@@ -112,6 +116,7 @@ jobs:
           VA_VIRGINIA_BEACH_FETCH_SCRIPT: ${{ runner.temp }}/vendornet/virginia-beach-bids-fetch.mjs
           ORACLE_ABSTRACTS_FETCH_SCRIPT: ${{ runner.temp }}/vendornet/oracle-abstracts-fetch.mjs
           PLANETBIDS_FETCH_SCRIPT: ${{ runner.temp }}/vendornet/planetbids-bids-fetch.mjs
+          SAM_OPEN_SWEEP: ${{ inputs.sam_open_sweep && '1' || '' }}
         run: bun run sync-bids
 
       - name: Enforce 90-day raw-IP retention

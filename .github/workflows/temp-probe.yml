@@ -1,4 +1,4 @@
-name: Temp probe press
+name: Temp probe purchasing
 on:
   push:
     branches: [claude/vibrant-cray-177q1d]
@@ -14,7 +14,5 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.2
-      - name: Federal construction awards (USAspending)
-        run: python3 .github/probe/usa.py tri; python3 .github/probe/usa.py rva
-      - name: Newsroom contacts
+      - name: Purchasing office contacts
         run: bun .github/probe/news.ts

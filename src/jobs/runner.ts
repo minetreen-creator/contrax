@@ -373,6 +373,10 @@ export const ROBOTS_PAUSED_SOURCES: ReadonlySet<string> = new Set<string>([
   // Knox County, TN (2026-11-13): knoxcounty.org answered HTTP 403 two syncs in a row, so it is a block
   // we respect (owner rule: "403 = stop"). The reader stays; remove this line if the county allows it again.
   "tn_knox_county",
+  // Minnesota Admin's QuestCDN list (2026-11-13): qcpi.questcdn.com's robots.txt now says
+  // "User-agent: * / Disallow: /", so the daily read stops (owner rule: respect robots.txt).
+  // The reader stays; remove this line if the owner decides to keep it, as with IonWave.
+  "mn_questcdn",
 ]);
 
 /** The registry without the paused sources: what a sync actually reads. PURE. */

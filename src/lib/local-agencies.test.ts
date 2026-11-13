@@ -40,9 +40,11 @@ describe("local agency registry", () => {
     const chicago = findPlace("illinois", "chicago");
     expect(chicago?.agencies.map((a) => a.slug).sort()).toEqual([
       "chicago-public-schools",
+      "city-colleges-of-chicago-il",
       "city-of-chicago",
       "cook-county",
       "cook-county-health",
+      "metra-il",
     ]);
     expect(placeHref(chicago!)).toBe("/bids-in/illinois/chicago");
   });
@@ -116,7 +118,7 @@ describe("buyers inside a state portal", () => {
     expect(scope.pairAgencies).toContain("City of Richmond Government");
     const chicago = agencyScope(findPlace("illinois", "chicago")!.agencies);
     expect(chicago.pairSources).toEqual([]);
-    expect(chicago.sources.length).toBe(4);
+    expect(chicago.sources.length).toBe(6);
   });
 
   test("agencyForRow matches the exact buyer only", () => {

@@ -11,6 +11,7 @@ const ACRONYMS = new Set([
   "VA", "VAMC", "HVAC", "IT", "US", "USA", "DOT", "ADA", "DOD", "DHS", "GSA", "NASA", "FAA", "EPA", "USDA", "NPS", "USACE",
   "IDIQ", "BPA", "SDVOSB", "WOSB", "EDWOSB", "HUBZONE", "8A", "AE", "A/E", "ACC", "MOD", "ATC", "CCTV", "LED", "UPS", "AED",
   "MRI", "CT", "EMS", "PPE", "FY", "II", "III", "IV", "NC", "SC", "VA", "MD", "DC", "TX", "FL", "GA", "CA", "NY", "PA", "OH",
+  "VDOT", "RFP", "RFQ", "RFI", "IFB", "ITB", "SOQ", "CDBG", "SCADA", "WWTP", "WTP", "MEP", "JOC", "GIS", "TSA", "FEMA", "HUD",
 ]);
 
 export interface CleanTitle {
@@ -89,6 +90,15 @@ export function cleanBidTitle(raw: string | null | undefined): CleanTitle {
   const base = /[A-Za-z]{3,}/.test(rest) ? rest : original;
   const title = fixCase(base);
   return { title, reference: refs.length && base !== original ? refs.join(" ") : null };
+}
+
+/**
+ * Display casing for every bid list and bid page (owner 2026-11-13, "fix all four"): an all-capitals
+ * title reads in title case; any other title, and every code or reference, is shown exactly as posted.
+ * Unlike cleanBidTitle it strips nothing, so the bid page still matches the official notice. PURE.
+ */
+export function displayTitle(raw: string | null | undefined): string {
+  return fixCase(String(raw ?? "").replace(/\s+/g, " ").trim());
 }
 
 /**

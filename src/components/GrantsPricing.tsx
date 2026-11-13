@@ -1,4 +1,3 @@
-const SERIF = "[font-family:Charter,'Iowan_Old_Style',Georgia,serif]";
 
 const GRANTS_REPORT_PAYMENT_LINK = "https://buy.stripe.com/8x26oJcpV9fCcos7eEf7i0b";
 
@@ -90,7 +89,7 @@ export function GrantsPricing({
           <p className="text-sm font-semibold uppercase tracking-widest text-[#8a6a1d]">
             Contrax Grants
           </p>
-          <h2 className={`${SERIF} mt-3 text-[clamp(26px,3.4vw,34px)] leading-[1.15] font-bold text-[#0f1f38]`}>
+          <h2 className={`mt-3 text-[clamp(26px,3.4vw,34px)] leading-[1.15] font-bold text-[#0f1f38]`}>
             Find grants your organization actually qualifies for.
           </h2>
           <p className="mt-4 max-w-2xl text-lg leading-relaxed text-[#56647a]">

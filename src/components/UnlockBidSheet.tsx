@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { displayTitle } from "~/lib/bid-title";
 import { redirectToCheckout } from "~/lib/checkout";
 import { rememberCheckoutBid } from "~/lib/checkout-resume";
 import { STARTER_FIRST_MONTH_PRICE } from "~/lib/starter-offer";
@@ -63,7 +64,7 @@ export function UnlockBidSheet({ bidId, bid, onClose }: { bidId: number; bid?: U
         </div>
 
         <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
-          {bid?.title ? <p className="font-semibold leading-snug">{bid.title}</p> : null}
+          {bid?.title ? <p className="font-semibold leading-snug">{displayTitle(bid.title)}</p> : null}
           {bid?.agency ? <p className="mt-0.5 text-slate-600">{bid.agency}</p> : null}
           <p className="mt-1 text-xs text-slate-500">
             {[bid?.solicitation_number ? `Bid #${bid.solicitation_number}` : null, due].filter(Boolean).join(" · ")}

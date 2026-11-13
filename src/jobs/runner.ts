@@ -357,7 +357,7 @@ const STATE_KEYWORD_SOURCES: SyncSource[] = US_STATES.map((code) => ({
  * legacy rows and for any future health surface.
  */
 /**
- * Sources the sync does not read. Empty today; a name added here is skipped without removing its
+ * Sources the sync does not read. A name added here is skipped without removing its
  * reader, class or page.
  *
  * IonWave boards (owner decisions 2026-11-12): every *.ionwave.net board answers
@@ -368,7 +368,11 @@ const STATE_KEYWORD_SOURCES: SyncSource[] = US_STATES.map((code) => ({
  * They are public bid boards read a few pages at a time, one board after another
  * (src/jobs/sources/ionwave-throttle.ts). No new IonWave board is added without the owner's word.
  */
-export const ROBOTS_PAUSED_SOURCES: ReadonlySet<string> = new Set<string>([]);
+export const ROBOTS_PAUSED_SOURCES: ReadonlySet<string> = new Set<string>([
+  // Knox County, TN (2026-11-13): knoxcounty.org answered HTTP 403 two syncs in a row, so it is a block
+  // we respect (owner rule: "403 = stop"). The reader stays; remove this line if the county allows it again.
+  "tn_knox_county",
+]);
 
 /** The registry without the paused sources: what a sync actually reads. PURE. */
 export const activeSources = <T extends { name: string }>(sources: readonly T[]): T[] => sources.filter((s) => !ROBOTS_PAUSED_SOURCES.has(s.name));

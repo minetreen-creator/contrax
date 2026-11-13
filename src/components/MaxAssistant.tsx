@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { displayTitle } from "~/lib/bid-title";
 import { KONAMI, maxEasterEgg, maxLocale, mergeCapability, type MaxCapability, type MaxCta, type MaxEffect, type MaxLang } from "~/lib/max";
 import { LAUNCHPAD_KEY, emptyLaunchpad, parseLaunchpad } from "~/lib/launchpad";
 import { trackEvent } from "~/lib/track";
@@ -472,7 +473,7 @@ export function MaxAssistant({ bid }: { bid?: { id: number; title: string } } = 
               {bids.map((b, i) => (
                 <div key={b.id} className={`max-card flex flex-col rounded-2xl border bg-white/5 p-4 ${remindFor === b.id ? "border-amber-300" : "border-cyan-400/25 hover:border-cyan-300"}`} style={{ animationDelay: `${i * 110}ms` }}>
                   <a href={`/bid/${b.id}`} onClick={() => trackEvent("max_bid_click", String(b.id))} className="block flex-1">
-                    <p className="line-clamp-2 font-bold text-white">{b.title}</p>
+                    <p className="line-clamp-2 font-bold text-white">{displayTitle(b.title)}</p>
                     <p className="mt-1 text-xs text-slate-400">{[b.agency, b.location].filter(Boolean).join(" · ")}</p>
                     <p className="mt-2 text-xs font-semibold text-amber-300">
                       {dueLabel(b.due, lang)}

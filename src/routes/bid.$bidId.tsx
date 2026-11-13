@@ -1,3 +1,5 @@
+import { SiteHeader } from "~/components/SiteHeader";
+import { displayTitle } from "~/lib/bid-title";
 import { createFileRoute } from "@tanstack/react-router";
 import { dueDayText } from "~/lib/deadline-label";
 import { UnlockBidSheet } from "~/components/UnlockBidSheet";
@@ -524,14 +526,12 @@ function BidDetailPage() {
   const due = dueDayText(bid?.due_date);
 
   return (
+    <>
+    {/* The normal site menu (owner 2026-11-13, "fix all four"): bid pages are where most visitors land,
+        and the old small "CONTRAX" label left them no way to search, see pricing or sign in. */}
+    <SiteHeader />
     <main className="min-h-screen bg-slate-950 text-slate-100">
       <div className="mx-auto w-full max-w-2xl px-5 py-8">
-        <a
-          href="/"
-          className="self-start text-sm font-bold tracking-tight text-amber-400 hover:text-amber-300"
-        >
-          ⬢ CONTRAX
-        </a>
 
         {!bid && (
           <div className="mt-8 rounded-2xl border border-dashed border-slate-700 bg-slate-900/60 px-5 py-10 text-center text-sm text-slate-300">
@@ -560,7 +560,7 @@ function BidDetailPage() {
             <article className="mt-3 overflow-hidden rounded-2xl border border-slate-700 bg-slate-900">
               <div className="border-b border-slate-800 px-5 py-4">
                 <h1 className="text-lg font-extrabold leading-snug text-white">
-                  {bid.title || "Solicitation"}
+                  {displayTitle(bid.title) || "Solicitation"}
                 </h1>
                 {agencyDisplay(bid.agency) && (
                   <p className="mt-1 text-sm text-slate-400">{agencyDisplay(bid.agency)}</p>
@@ -760,6 +760,7 @@ function BidDetailPage() {
       {bid && <AppInstallBanner where="bid" hold={!checked || (lockShown && !offerSeen)} />}
       {bid && confirming ? <UnlockBidSheet bidId={bid.id} bid={bid} onClose={closeSheet} /> : null}
     </main>
+    </>
   );
 }
 

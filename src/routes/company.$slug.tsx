@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { displayTitle } from "~/lib/bid-title";
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { agencyCardLabel } from "~/lib/bid-job-summary";
@@ -62,7 +63,7 @@ function BidRow({ b, trade }: { b: CompanyBid; trade: string }) {
         className="flex w-full flex-col rounded-2xl border border-slate-200 bg-white px-4 py-3.5 shadow-sm hover:border-blue-400 hover:shadow-md"
       >
         {agency ? <span className="line-clamp-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">{agency}</span> : null}
-        <span className="mt-0.5 line-clamp-2 text-base font-semibold text-slate-900">{b.title || "Solicitation"}</span>
+        <span className="mt-0.5 line-clamp-2 text-base font-semibold text-slate-900">{displayTitle(b.title) || "Solicitation"}</span>
         <span className="mt-1 text-sm text-slate-600">{[b.location, due && `Due ${due}`].filter(Boolean).join(" · ")}</span>
         <span className="mt-2 text-sm font-semibold text-blue-700">See the job and how to bid →</span>
       </a>

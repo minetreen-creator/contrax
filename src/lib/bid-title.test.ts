@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { cleanBidTitle, fixTitleTypos, isCodeHeavyTitle } from "./bid-title";
+import { cleanBidTitle, displayTitle, fixTitleTypos, isCodeHeavyTitle } from "./bid-title";
 
 describe("cleanBidTitle (owner 2026-10-04)", () => {
   test("strips PSC prefixes and leading reference numbers", () => {
@@ -72,4 +72,18 @@ describe("fixTitleTypos", () => {
     expect(fixTitleTypos("hvac maintanence")).toBe("hvac maintenance");
     expect(fixTitleTypos("Court Reporting Service")).toBe("Court Reporting Service");
   });
+});
+
+// Owner 2026-11-13 ("fix all four"): bid lists and bid pages show all-capitals titles in title case.
+test("displayTitle: all-capitals titles read in title case, codes and acronyms stay", () => {
+  expect(displayTitle("GOLF COURSE RENOVATIONS ALGONKIAN REGIONAL PARK")).toBe("Golf Course Renovations Algonkian Regional Park");
+  expect(displayTitle("ROOF REPLACEMENT AT GUNSTON ELEMENTARY SCHOOL")).toBe("Roof Replacement at Gunston Elementary School");
+  expect(displayTitle("HVAC REPLACEMENT PHASE II")).toBe("HVAC Replacement Phase II");
+  expect(displayTitle("RFP 26-031 VDOT ROUTE 1 PAVING")).toBe("RFP 26-031 VDOT Route 1 Paving");
+});
+
+test("displayTitle: normal titles are shown exactly as posted", () => {
+  expect(displayTitle("Demolition of Athletic Field Lighting Systems")).toBe("Demolition of Athletic Field Lighting Systems");
+  expect(displayTitle("Z2DA--Project: 459-27-004 ACC MOD 2 Renovation")).toBe("Z2DA--Project: 459-27-004 ACC MOD 2 Renovation");
+  expect(displayTitle(null)).toBe("");
 });

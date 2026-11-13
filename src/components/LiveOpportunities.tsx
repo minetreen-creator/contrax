@@ -22,6 +22,7 @@
  * the amber button matches the radar "Get the AI Executive Brief" treatment.
  */
 import { trackEvent } from "~/lib/track";
+import { displayTitle } from "~/lib/bid-title";
 import { agencyDisplay } from "~/lib/bid-job-summary";
 import type { LiveOpportunity } from "~/lib/live-opportunities";
 
@@ -126,7 +127,7 @@ export function LiveOpportunities({ bids }: { bids: LiveOpportunity[] | null | u
                     )}
                   </div>
                   <h3 className="mt-3 line-clamp-2 text-sm font-bold leading-snug text-slate-900">
-                    {bid.title}
+                    {displayTitle(bid.title)}
                   </h3>
                   <p className="mt-1 text-xs font-medium text-gray-500">
                     {agencyDisplay(bid.agency) ?? bid.agency}

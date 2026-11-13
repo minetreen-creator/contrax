@@ -496,7 +496,7 @@ function BidDetailPage() {
     };
   }, [bidId]);
   const stateHref = stateLandingPath(bid?.state_name);
-  const crumbs = bid ? bidBreadcrumbs({ title: bid.title, state_name: bid.state_name, naics_code: bid.naics_code, category: bid.category }) : [];
+  const crumbs = bid ? bidBreadcrumbs({ title: displayTitle(bid.title), state_name: bid.state_name, naics_code: bid.naics_code, category: bid.category }) : [];
   const sourceUrl = bid?.source_url ?? unlockedUrl;
   const locked = !!bid?.head_start_until && !sourceUrl;
   const membersOnly = !!bid?.has_link && !locked && !sourceUrl && checked;
@@ -626,7 +626,7 @@ function BidDetailPage() {
                 <p className="mt-1 text-sm leading-relaxed text-slate-300">
                   {watermarkText(
                     jobSummary(bid.description, bid.title, bid.solicitation_number) ??
-                      `${bid.title || "This bid"}${bid.agency ? `, for ${agencyInSentence(bid.agency)}` : ""}. The agency's official notice has the full scope of work, the documents and how to submit.`,
+                      `${displayTitle(bid.title) || "This bid"}${bid.agency ? `, for ${agencyInSentence(bid.agency)}` : ""}. The agency's official notice has the full scope of work, the documents and how to submit.`,
                     bid.wm,
                   )}
                 </p>

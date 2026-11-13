@@ -1,27 +1,21 @@
-// Read-only: robots.txt and one public page per candidate source. Removed after.
+// Read-only: text of candidate co-op solicitation pages. Removed after.
 const UA = "ContraxBot/1.0 (+https://www.contrax.company)";
-const SITES: [string, string[]][] = [
-  ["https://www.tips-usa.com", ["/", "/vendors/", "/solicitations/"]],
-  ["https://www.omniapartners.com", ["/", "/suppliers/", "/solicitations"]],
-  ["https://www.1gpa.org", ["/", "/solicitations", "/bids"]],
-  ["https://www.choicepartners.org", ["/", "/vendors", "/solicitations"]],
-  ["https://www.dibbs.bsm.dla.mil", ["/", "/Downloads/"]],
-  ["https://www.dla.mil", ["/"]],
+const PAGES = [
+  "https://www.tips-usa.com/contracts", "https://www.tips-usa.com/vendors/become",
+  "https://www.omniapartners.com/for-suppliers/solicitations",
+  "https://1gpa.org/solicitations/",
+  "https://www.choicepartners.org/current-rfps", "https://www.choicepartners.org/upcoming-contracts",
 ];
-for (const [base, paths] of SITES) {
+const text = (h: string) => h.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/&nbsp;|&#160;/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ");
+for (const u of PAGES) {
   try {
-    const r = await fetch(base + "/robots.txt", { headers: { "User-Agent": UA }, signal: AbortSignal.timeout(15000) });
-    const t = await r.text();
-    console.log(`\n=== ${base}/robots.txt ${r.status}\n${t.slice(0, 1200)}`);
-  } catch (e) { console.log(`\n=== ${base}/robots.txt ERR ${(e as Error).message}`); }
-  for (const p of paths) {
-    try {
-      const r = await fetch(base + p, { headers: { "User-Agent": UA }, redirect: "follow", signal: AbortSignal.timeout(15000) });
-      const t = await r.text();
-      const links = [...t.matchAll(/href="([^"]+)"/g)].map((m) => m[1]).filter((h) => /solicit|bid|rfp|vendor|supplier|download|opportunit|contract/i.test(h));
-      const title = t.match(/<title[^>]*>([^<]*)/i)?.[1]?.trim();
-      console.log(`--- ${p} -> ${r.status} ${r.url} len=${t.length} title=${title}\n  ${[...new Set(links)].slice(0, 25).join("\n  ")}`);
-      if (/captcha|cf-chl|access denied|consent/i.test(t)) console.log("  [page mentions captcha/consent/access denied]");
-    } catch (e) { console.log(`--- ${p} ERR ${(e as Error).message}`); }
-  }
+    const r = await fetch(u, { headers: { "User-Agent": UA }, signal: AbortSignal.timeout(20000) });
+    const h = await r.text();
+    const links = [...h.matchAll(/href="([^"]+)"[^>]*>([^<]{0,90})/g)].filter((m) => /solicit|rfp|rfq|bid|proposal|ifb|\.pdf|bonfire|ionwave|bidnet|jaggaer|event/i.test(m[1] + m[2])).map((m) => `${m[2].trim()} -> ${m[1]}`);
+    const t = text(h);
+    const i = Math.max(0, t.search(/solicitation|RFP|proposal/i) - 200);
+    console.log(`\n===== ${u} ${r.status} len=${h.length}\nTEXT: ${t.slice(i, i + 3000)}\nLINKS:\n  ${[...new Set(links)].slice(0, 40).join("\n  ")}`);
+    const next = h.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]{0,1500})/);
+    if (next) console.log("NEXT_DATA: " + next[1]);
+  } catch (e) { console.log(`\n===== ${u} ERR ${(e as Error).message}`); }
 }

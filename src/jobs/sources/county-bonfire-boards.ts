@@ -227,6 +227,22 @@ const BOARDS: Board[] = [
   { tenant: "stlucieschools", source: "fl_st_lucie_schools_bonfire", stateName: "Florida", place: "St. Lucie Public Schools", buyer: "St. Lucie School District", idPrefix: "stlucieschoolsbonfire", location: "St. Lucie County, FL" },
   { tenant: "fultonschools", source: "ga_fulton_schools_bonfire", stateName: "Georgia", place: "Fulton County Schools", buyer: "Fulton County Schools", idPrefix: "fultonschoolsbonfire", location: "Fulton County, GA" },
   { tenant: "wicomicoschools", source: "md_wicomico_schools_bonfire", stateName: "Maryland", place: "Wicomico County Public Schools", buyer: "Wicomico County Public Schools", idPrefix: "wicomicoschoolsbonfire", location: "Wicomico County, MD" },
+  // Big buyers (owner 2026-11-13, "we need a lot more bid sources"): found by a read-only scan of
+  // 3,131 candidate tenants for the largest cities, counties, districts, transit and colleges; each
+  // confirmed by its portal page title.
+  { tenant: "wichita", source: "ks_wichita_bonfire", stateName: "Kansas", place: "Wichita", buyer: "City of Wichita, Kansas", idPrefix: "wichitabonfire", location: "Wichita, KS" },
+  { tenant: "metra", source: "il_metra_bonfire", stateName: "Illinois", place: "Metra", buyer: "Metra (Northeast Illinois Commuter Railroad)", idPrefix: "metrabonfire", location: "Chicago, IL" },
+  { tenant: "psta", source: "fl_psta_bonfire", stateName: "Florida", place: "PSTA", buyer: "Pinellas Suncoast Transit Authority", idPrefix: "pstabonfire", location: "Pinellas County, FL" },
+  { tenant: "sandysprings", source: "ga_sandy_springs_bonfire", stateName: "Georgia", place: "Sandy Springs", buyer: "City of Sandy Springs, Georgia", idPrefix: "sandyspringsbonfire", location: "Sandy Springs, GA" },
+  { tenant: "ccc", source: "il_city_colleges_bonfire", stateName: "Illinois", place: "City Colleges of Chicago", buyer: "City Colleges of Chicago", idPrefix: "cccbonfire", location: "Chicago, IL" },
+  { tenant: "siouxfalls", source: "sd_sioux_falls_bonfire", stateName: "South Dakota", place: "Sioux Falls", buyer: "City of Sioux Falls, South Dakota", idPrefix: "siouxfallsbonfire", location: "Sioux Falls, SD" },
+  { tenant: "waukeshacounty", source: "wi_waukesha_county_bonfire", stateName: "Wisconsin", place: "Waukesha County", buyer: "Waukesha County, Wisconsin", idPrefix: "waukeshacountybonfire", location: "Waukesha County, WI" },
+  { tenant: "comalisd", source: "tx_comal_isd_bonfire", stateName: "Texas", place: "Comal ISD", buyer: "Comal Independent School District", idPrefix: "comalisdbonfire", location: "Comal County, TX" },
+  { tenant: "cityofnampa", source: "id_nampa_bonfire", stateName: "Idaho", place: "Nampa", buyer: "City of Nampa, Idaho", idPrefix: "nampabonfire", location: "Nampa, ID" },
+  { tenant: "graniteschools", source: "ut_granite_schools_bonfire", stateName: "Utah", place: "Granite School District", buyer: "Granite School District", idPrefix: "graniteschoolsbonfire", location: "Salt Lake County, UT" },
+  { tenant: "mesquiteisd", source: "tx_mesquite_isd_bonfire", stateName: "Texas", place: "Mesquite ISD", buyer: "Mesquite Independent School District", idPrefix: "mesquiteisdbonfire", location: "Mesquite, TX" },
+  { tenant: "pcc", source: "or_portland_cc_bonfire", stateName: "Oregon", place: "Portland Community College", buyer: "Portland Community College", idPrefix: "pccbonfire", location: "Portland, OR" },
+  { tenant: "umass", source: "ma_umass_bonfire", stateName: "Massachusetts", place: "University of Massachusetts", buyer: "University of Massachusetts", idPrefix: "umassbonfire", location: "Massachusetts" },
 ];
 
 export const COUNTY_BONFIRE_CONFIGS: readonly BonfireConfig[] = BOARDS.map(boardConfig);

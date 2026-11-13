@@ -6,11 +6,12 @@ import { activeSources, ROBOTS_PAUSED_SOURCES, TAIL_SOURCES } from "./runner";
 // on the owner's word ("keep them"); Dubuque's IonWave board was added on the owner's word.
 const IONWAVE = ["ar_ionwave_central", "ar_fayetteville_ionwave", "sc_columbia_ionwave", "tx_plano_ionwave", "tx_irving_ionwave", "tx_georgetown_ionwave", "ne_omaha_ionwave", "fl_lee_county", "ia_dubuque"];
 
-test("nothing is paused, and a sync reads all nine IonWave boards", () => {
-  expect([...ROBOTS_PAUSED_SOURCES]).toEqual([]);
+test("only Knox County is paused (403 = stop, 2026-11-13), and a sync reads all nine IonWave boards", () => {
+  expect([...ROBOTS_PAUSED_SOURCES]).toEqual(["tn_knox_county"]);
   const active = activeSources(TAIL_SOURCES).map((s) => s.name);
   for (const name of IONWAVE) expect(active).toContain(name);
-  expect(active.length).toBe(TAIL_SOURCES.length);
+  expect(active).not.toContain("tn_knox_county");
+  expect(active.length).toBe(TAIL_SOURCES.filter((s) => s.name !== "tn_knox_county").length);
 });
 
 test("the pause still works when a name is added", () => {

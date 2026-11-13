@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { displayTitle } from "~/lib/bid-title";
 import { agencyDisplay } from "~/lib/bid-job-summary";
 import { STATE_NAMES } from "~/lib/contract-map";
 import { getOpenToAllBids, OPEN_TO_ALL_FIRST, type OpenToAllData } from "~/lib/open-to-all";
@@ -92,7 +93,7 @@ export function OpenToAllBids({
                   : "block rounded-xl border border-slate-200 bg-white px-4 py-3 hover:border-sky-400"
               }
             >
-              <p className={`text-sm font-semibold ${dark ? "text-white" : "text-slate-900"}`}>{b.title}</p>
+              <p className={`text-sm font-semibold ${dark ? "text-white" : "text-slate-900"}`}>{displayTitle(b.title)}</p>
               <p className={`mt-1 text-xs ${dark ? "text-slate-400" : "text-slate-500"}`}>
                 {[agencyDisplay(b.agency), b.local && stateName ? stateName : b.place ?? "Nationwide", due(b.due_date) ? `Due ${due(b.due_date)}` : null]
                   .filter(Boolean)

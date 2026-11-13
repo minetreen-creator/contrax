@@ -172,7 +172,6 @@ export const Route = createFileRoute("/")({
 // ── Page Component ────────────────────────────────────────────────────────────
 
 // Shared page tokens (2026 redesign). Light values first, dark via `dark:`.
-const SERIF = "[font-family:Charter,'Iowan_Old_Style',Georgia,serif]";
 
 function Home() {
 
@@ -224,7 +223,7 @@ function HomeExecutionLine() {
   return (
     <section aria-labelledby="home-execution-title" className="mx-auto max-w-[1120px] px-4 pt-12 sm:px-6">
       <p className="text-center text-xs font-bold uppercase tracking-wider text-blue-700 dark:text-blue-300">From opportunity to execution</p>
-      <h2 id="home-execution-title" className={`${SERIF} mt-1 text-center text-[clamp(26px,3.4vw,38px)] leading-[1.15] font-bold`}>{BRAND_MESSAGE}</h2>
+      <h2 id="home-execution-title" className={`mt-1 text-center text-[clamp(26px,3.4vw,38px)] leading-[1.15] font-bold`}>{BRAND_MESSAGE}</h2>
       <ol className="mt-6 grid gap-3 sm:grid-cols-3">
         {BRAND_STEPS.map((st, i) => (
           <li key={st.title}>
@@ -264,7 +263,7 @@ function HomeTampaPartner() {
       <div className="grid gap-5 rounded-3xl border border-slate-200 bg-gradient-to-br from-sky-50 to-white p-6 sm:p-8 lg:grid-cols-[1.4fr_1fr] dark:border-slate-700 dark:from-slate-900 dark:to-slate-950">
         <div>
           <p className="text-xs font-bold uppercase tracking-wider text-sky-700 dark:text-sky-300">🌴 New in Tampa · Partnership</p>
-          <h2 id="home-tampa-title" className={`${SERIF} mt-1 text-[clamp(24px,3vw,30px)] leading-[1.15] font-bold`}>
+          <h2 id="home-tampa-title" className={`mt-1 text-[clamp(24px,3vw,30px)] leading-[1.15] font-bold`}>
             {TAMPA_HEADLINE.win} {TAMPA_HEADLINE.house}, <span className="text-sky-700 dark:text-sky-300">{TAMPA_HEADLINE.saving}*</span>.
           </h2>
           <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">

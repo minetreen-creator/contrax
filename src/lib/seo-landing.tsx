@@ -13,6 +13,7 @@
  * verified live homepage hero). No "unlimited" claims anywhere.
  */
 import { agencyCardLabel, jobSummary, publicJobText, valueLabel } from "~/lib/bid-job-summary";
+import { displayTitle } from "~/lib/bid-title";
 import { createServerFn } from "@tanstack/react-start";
 import type { ReactNode } from "react";
 import {
@@ -743,7 +744,7 @@ export function BidCard({ b }: { b: SeoBid }) {
   const value = valueLabel(b.estimated_value);
   const title = (
     <span className="line-clamp-2 text-base font-semibold text-slate-900">
-      {b.title || "Solicitation"}
+      {displayTitle(b.title) || "Solicitation"}
     </span>
   );
   return (
@@ -983,7 +984,7 @@ export function RegionView({ data }: { data: RegionData }) {
                   className="flex w-full flex-col rounded-xl border border-slate-200 bg-white px-4 py-3 hover:border-blue-400"
                 >
                   {agencyCardLabel(b.agency) ? <span className="line-clamp-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">{agencyCardLabel(b.agency)}</span> : null}
-                  <span className="mt-0.5 line-clamp-2 text-sm font-bold leading-snug text-slate-900">{b.title}</span>
+                  <span className="mt-0.5 line-clamp-2 text-sm font-bold leading-snug text-slate-900">{displayTitle(b.title)}</span>
                   {dueDayText(b.due_date) ? <span className="mt-1 text-xs text-slate-600">Due {dueDayText(b.due_date)}</span> : null}
                 </a>
               </li>

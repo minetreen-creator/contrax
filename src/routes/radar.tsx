@@ -81,7 +81,7 @@ import { radarShareUrl } from "~/lib/radar-share";
 import { closingSoonLast, roomToBidFirst } from "~/lib/radar-closing-soon";
 import { ADDRESS_TIP, isKnownTrade, looksLikeAddress, notATradeLine } from "~/lib/trade-input";
 import { redirectToCheckout } from "~/lib/checkout";
-import { cleanBidTitle } from "~/lib/bid-title";
+import { cleanBidTitle, displayTitle } from "~/lib/bid-title";
 import { stateFromGeoHeaders, withTimeout } from "~/lib/radar-geo";
 import { SiteHeader } from "~/components/SiteHeader";
 import { HeadStartLock } from "~/components/HeadStartLock";
@@ -4044,7 +4044,7 @@ function BidsFirst({ signedIn }: { signedIn: boolean | null }) {
                   {agencyCardLabel(b.agency) ? (
                     <span className="line-clamp-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">{agencyCardLabel(b.agency)}</span>
                   ) : null}
-                  <span className="mt-1 line-clamp-2 text-[15px] font-bold leading-snug text-white">{b.title}</span>
+                  <span className="mt-1 line-clamp-2 text-[15px] font-bold leading-snug text-white">{displayTitle(b.title)}</span>
                   <span className="mt-1.5 block text-xs text-slate-300">
                     {[stateName, due(b.due_date) && `Due ${due(b.due_date)}`].filter(Boolean).join(" · ")}
                   </span>

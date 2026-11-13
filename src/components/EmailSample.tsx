@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { displayTitle } from "~/lib/bid-title";
 import { agencyDisplay } from "~/lib/bid-job-summary";
 import { STATE_NAMES } from "~/lib/contract-map";
 import { getEmailSample, type EmailSampleBid } from "~/lib/near-you";
@@ -45,7 +46,7 @@ export function EmailSample() {
         <ul className="divide-y divide-slate-100">
           {data.bids.map((b) => (
             <li key={b.id} className="px-5 py-4">
-              <p className="text-sm font-bold leading-snug text-slate-900">{b.title}</p>
+              <p className="text-sm font-bold leading-snug text-slate-900">{displayTitle(b.title)}</p>
               <p className="mt-1 text-xs text-slate-500">
                 {[agencyDisplay(b.agency), b.location].filter(Boolean).join(" · ")}
               </p>

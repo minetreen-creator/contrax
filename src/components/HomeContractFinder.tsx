@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { displayTitle } from "~/lib/bid-title";
 import { agencyDisplay } from "~/lib/bid-job-summary";
 import { ArrowRight, CheckCircle2, LoaderCircle } from "lucide-react";
 import type { EverydaySampleBid } from "~/lib/sample-bids";
@@ -307,7 +308,7 @@ export function HomeContractFinder({ sample, openTotal = 0 }: { sample: Everyday
                   aria-pressed={trade === t}
                   onClick={() => { setTrade(t); setError(""); }}
                   className={`min-h-11 rounded-xl border px-3 py-2 text-sm font-semibold transition sm:rounded-full ${
-                    trade === t ? "border-blue-600 bg-blue-600 text-white" : "border-slate-300 bg-white text-slate-700 hover:border-blue-400"
+                    trade === t ? "border-amber-500 bg-amber-500 text-slate-950" : "border-slate-300 bg-white text-slate-700 hover:border-amber-400"
                   }`}
                 >
                   {c.trades[t] ?? t}
@@ -352,7 +353,7 @@ export function HomeContractFinder({ sample, openTotal = 0 }: { sample: Everyday
             </div>
             <button
               disabled={busy}
-              className="flex min-h-14 w-full items-center justify-center gap-3 rounded-xl bg-blue-600 px-5 py-4 text-base font-bold text-white transition hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600 disabled:cursor-wait disabled:opacity-70"
+              className="flex min-h-14 w-full items-center justify-center gap-3 rounded-xl bg-amber-500 px-5 py-4 text-base font-bold text-slate-950 transition hover:bg-amber-400 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber-500 disabled:cursor-wait disabled:opacity-70"
             >
               {busy ? (
                 <>
@@ -422,7 +423,7 @@ export function HomeContractFinder({ sample, openTotal = 0 }: { sample: Everyday
                 </p>
                 <a
                   href={result.signedIn ? result.radarHref : result.signupHref}
-                  className="mt-4 inline-block rounded-xl bg-blue-600 px-5 py-3 font-bold"
+                  className="mt-4 inline-block rounded-xl bg-amber-500 px-5 py-3 font-bold text-slate-950 hover:bg-amber-400"
                 >
                   {result.signedIn
                     ? "Continue in Radar"
@@ -564,7 +565,7 @@ export function HomeContractFinder({ sample, openTotal = 0 }: { sample: Everyday
                         "homepage_shortlist",
                       )
                     }
-                    className="rounded-xl bg-blue-600 px-5 py-4 text-center font-bold text-white hover:bg-blue-700"
+                    className="rounded-xl bg-amber-500 px-5 py-4 text-center font-bold text-slate-950 hover:bg-amber-400"
                   >
                     {result.signedIn
                       ? "Continue to my matches"
@@ -610,7 +611,7 @@ export function HomeContractFinder({ sample, openTotal = 0 }: { sample: Everyday
                     <span className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-blue-300">{bid.trade}</span>
                   ) : null}
                   <span className="line-clamp-2 text-sm font-semibold">
-                    {bid.title}
+                    {displayTitle(bid.title)}
                   </span>
                   <span className="mt-2 block text-xs text-slate-400">
                     {[agencyDisplay(bid.agency), bid.location, dueLabel(bid.due_date)].filter(Boolean).join(" · ")}

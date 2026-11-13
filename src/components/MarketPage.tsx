@@ -1,4 +1,5 @@
 import { SiteHeader } from "~/components/SiteHeader";
+import { displayTitle } from "~/lib/bid-title";
 import { agencyDisplay } from "~/lib/bid-job-summary";
 import { BRAND_MESSAGE } from "~/lib/brand-message";
 import { marketPitchPath, networkName, type Market } from "~/lib/markets";
@@ -70,7 +71,7 @@ export function MarketPage({ market: m, data: d }: { market: Market; data: Marke
             <ul className="mt-3 divide-y divide-slate-100 rounded-2xl border border-slate-200 bg-white">
               {d.bids.map((b) => (
                 <li key={b.id} className="p-3">
-                  <a href={`/bid/${b.id}`} className="font-semibold text-blue-700 hover:underline">{b.title}</a>
+                  <a href={`/bid/${b.id}`} className="font-semibold text-blue-700 hover:underline">{displayTitle(b.title)}</a>
                   <p className="text-xs text-slate-600">{[agencyDisplay(b.agency), fmtDue(b.due) ? `Due ${fmtDue(b.due)}` : null].filter(Boolean).join(" · ")}</p>
                 </li>
               ))}

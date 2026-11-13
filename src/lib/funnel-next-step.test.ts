@@ -31,8 +31,8 @@ test("Radar bid list: each bid is a card, the whole card is the link and says so
   expect(row).toContain("See the job and how to bid →");
   expect(radar).toContain('<ul className="mt-2 grid grid-cols-1 gap-2.5 sm:grid-cols-2">');
   expect(row).toContain("uppercase tracking-wider"); // agency sits above the title
-  expect(row.indexOf("agencyCardLabel(b.agency)")).toBeLessThan(row.indexOf("{b.title}"));
-  expect(row).toContain("{b.title}");
+  expect(row.indexOf("agencyCardLabel(b.agency)")).toBeLessThan(row.indexOf("{displayTitle(b.title)}"));
+  expect(row).toContain("{displayTitle(b.title)}"); // all-capitals titles read in title case (owner 2026-11-13)
   expect(row.indexOf("b.agency")).toBeLessThan(row.indexOf("</a>")); // agency and due date are inside the link
   expect(radar).toContain("Tap a bid to see the job, the due date and how to bid.");
 });

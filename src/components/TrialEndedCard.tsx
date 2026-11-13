@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { displayTitle } from "~/lib/bid-title";
 import { recapLines, type TrialRecap } from "~/lib/trial-emails";
 import { trackEvent } from "~/lib/track";
 
@@ -42,7 +43,7 @@ export function TrialEndedCard() {
             <ul className="mt-2 divide-y divide-slate-100 text-sm">
               {next.map((b) => (
                 <li key={b.id} className="flex items-center justify-between gap-3 py-2">
-                  <span className="min-w-0 truncate">{b.title}</span>
+                  <span className="min-w-0 truncate">{displayTitle(b.title)}</span>
                   <span className="shrink-0 text-xs font-semibold text-red-700">Closes {due(b.dueAt)}</span>
                 </li>
               ))}

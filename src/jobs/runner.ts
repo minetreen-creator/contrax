@@ -45,6 +45,7 @@ import {
   type StoredBidFields,
 } from "../lib/bid-amendments";
 import { fetchBids as fetchSamGov } from "./sources/sam-gov";
+import { fetchOpenSamSolicitations, samOpenSweepDue } from "./sources/sam-gov-open";
 import {
   createSamTradeSource,
   SAM_TRADE_FILTERS,
@@ -319,7 +320,18 @@ const SAM_GOV_SOURCES: SyncSource[] = [
       const national = await fetchSamGov();
       const regional = await fetchSamGov({ states: [...US_STATES] });
       const seen = new Set(national.map((bid) => bid.external_id));
-      return national.concat(regional.filter((bid) => !seen.has(bid.external_id)));
+      const merged = national.concat(regional.filter((bid) => !seen.has(bid.external_id)));
+      // Once a day (owner 2026-11-13, "we need thousands"): every open solicitation, which the two
+      // passes above miss about 1,900 of. A refused or failed sweep never costs the passes above.
+      if (!samOpenSweepDue(Date.now())) return merged;
+      try {
+        for (const bid of merged) seen.add(bid.external_id);
+        const open = await fetchOpenSamSolicitations();
+        return merged.concat(open.filter((bid) => !seen.has(bid.external_id)));
+      } catch (e) {
+        console.error(`  SAM.gov open sweep skipped: ${(e as Error).message}`);
+        return merged;
+      }
     },
   },
   { name: "cities", fetchFn: fetchCities },

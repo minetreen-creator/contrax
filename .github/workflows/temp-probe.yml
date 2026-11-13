@@ -18,6 +18,7 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bun .github/probe/f.ts
   cities:
+    if: false # already running in the previous run
     runs-on: ubuntu-latest
     timeout-minutes: 150
     steps:
@@ -28,3 +29,13 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: curl -sSL -A "ContraxBot/1.0 (+https://www.contrax.company)" -o /tmp/sub-est.csv https://www2.census.gov/programs-surveys/popest/datasets/2020-2024/cities/totals/sub-est2024.csv || curl -sSL -o /tmp/sub-est.csv https://www2.census.gov/programs-surveys/popest/datasets/2020-2023/cities/totals/sub-est2023.csv; head -c 300 /tmp/sub-est.csv
       - run: bun .github/probe/city.ts
+  schools:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - run: curl -sSL -A "ContraxBot/1.0 (+https://www.contrax.company)" -o /tmp/sub-est.csv https://www2.census.gov/programs-surveys/popest/datasets/2020-2024/cities/totals/sub-est2024.csv
+      - run: bun .github/probe/sd.ts

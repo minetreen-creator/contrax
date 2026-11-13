@@ -1,0 +1,31 @@
+name: Sync Bids re-run
+# Owner 2026-11-13 ("github is unreliable" / "add the re-run"): when a bid sync
+# dies from a GitHub problem (runner lost, checkout or install failure, network
+# drop), re-run its failed job once instead of waiting up to 4 hours for the
+# next scheduled sync.
+# - Only a FAILED first attempt is re-run, so a sync is never retried twice.
+# - A CANCELLED run is not re-run: that is a manual cancel or the 90-minute
+#   time limit, and a second slow run would only time out again.
+# - Only the failed job is re-run (the "skip if a sync just ran" gate is kept
+#   from the first attempt), and the Sync Bids concurrency group still stops
+#   two syncs from overlapping.
+on:
+  workflow_run:
+    workflows: ["Sync Bids"]
+    types: [completed]
+permissions:
+  actions: write
+jobs:
+  rerun:
+    name: Re-run a failed sync once
+    if: github.event.workflow_run.conclusion == 'failure' && github.event.workflow_run.run_attempt == 1
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Re-run the failed job
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          echo "Sync Bids run $RUN_ID failed on its first attempt; re-running its failed job once."
+          gh run rerun "$RUN_ID" --failed --repo "$GITHUB_REPOSITORY"

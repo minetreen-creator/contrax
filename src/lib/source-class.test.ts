@@ -103,8 +103,8 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // + 3 Texas city IonWave boards (Plano, Irving, Georgetown), 2026-11-09 (1110 → 1113).
     // + City of New Braunfels on Beacon, 2026-11-10 (1113 → 1114).
     // + 185 county and city CivicEngage boards from the 2026-11-13 scan and Maine VSS (1114 → 1300).
-    // + five school-district Bonfire portals, 2026-11-13 (1300 → 1318).
-    expect(Object.keys(SOURCE_CLASSES).length).toBe(1318);
+    // + five school-district Bonfire portals, 2026-11-13 (1300 → 1357).
+    expect(Object.keys(SOURCE_CLASSES).length).toBe(1357);
   });
 
   test("every registry label is classified (no collector is unclassified)", () => {
@@ -201,8 +201,8 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // + 3 Texas city IonWave boards (Plano, Irving, Georgetown), 2026-11-09 (1026 → 1029).
     // + City of New Braunfels on Beacon, 2026-11-10 (1029 → 1030).
     // + 185 county and city CivicEngage boards from the 2026-11-13 scan and Maine VSS (1030 → 1216).
-    // + five school-district Bonfire portals, 2026-11-13 (1216 → 1234).
-    expect(TAIL_SOURCES.length).toBe(1234);
+    // + five school-district Bonfire portals, 2026-11-13 (1216 → 1273).
+    expect(TAIL_SOURCES.length).toBe(1273);
   });
 
   test("every city registry entry the product fetches is LOCAL with a city name", () => {

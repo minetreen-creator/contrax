@@ -28,4 +28,5 @@ jobs:
       - name: Read the co-ops and store their open solicitations
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
         run: bun src/jobs/coop-sync.ts

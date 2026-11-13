@@ -221,6 +221,12 @@ const BOARDS: Board[] = [
   { tenant: "owensboro", source: "ky_owensboro_bonfire", stateName: "Kentucky", place: "Owensboro", buyer: "City of Owensboro, Kentucky", idPrefix: "owensborobonfire", location: "Owensboro, KY" },
   { tenant: "lexingtonky", source: "ky_lexington_bonfire", stateName: "Kentucky", place: "Lexington", buyer: "Lexington-Fayette Urban County Government", idPrefix: "lexingtonkybonfire", location: "Lexington, KY" },
   { tenant: "covingtonky", source: "ky_covington_bonfire", stateName: "Kentucky", place: "Covington", buyer: "City of Covington, Kentucky", idPrefix: "covingtonkybonfire", location: "Covington, KY" },
+  // School districts (owner 2026-11-13, "add ... school district boards"): Bonfire portals confirmed by page title.
+  { tenant: "laredoisd", source: "tx_laredo_isd_bonfire", stateName: "Texas", place: "Laredo ISD", buyer: "Laredo Independent School District", idPrefix: "laredoisdbonfire", location: "Laredo, TX" },
+  { tenant: "rochesterschools", source: "mn_rochester_schools_bonfire", stateName: "Minnesota", place: "Rochester Public Schools", buyer: "Rochester Public Schools", idPrefix: "rochesterschoolsbonfire", location: "Rochester, MN" },
+  { tenant: "stlucieschools", source: "fl_st_lucie_schools_bonfire", stateName: "Florida", place: "St. Lucie Public Schools", buyer: "St. Lucie School District", idPrefix: "stlucieschoolsbonfire", location: "St. Lucie County, FL" },
+  { tenant: "fultonschools", source: "ga_fulton_schools_bonfire", stateName: "Georgia", place: "Fulton County Schools", buyer: "Fulton County Schools", idPrefix: "fultonschoolsbonfire", location: "Fulton County, GA" },
+  { tenant: "wicomicoschools", source: "md_wicomico_schools_bonfire", stateName: "Maryland", place: "Wicomico County Public Schools", buyer: "Wicomico County Public Schools", idPrefix: "wicomicoschoolsbonfire", location: "Wicomico County, MD" },
 ];
 
 export const COUNTY_BONFIRE_CONFIGS: readonly BonfireConfig[] = BOARDS.map(boardConfig);

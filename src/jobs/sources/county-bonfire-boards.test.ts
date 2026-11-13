@@ -133,15 +133,17 @@ const NO_CAPTURE = new Set([
   "nj_mcua_bonfire", "nj_raritan_valley_cc_bonfire", "nj_rcbc_bonfire",
   "fl_famu_bonfire", "ny_stony_brook_bonfire", "oh_toledo_schools_bonfire", "oh_dayton_schools_bonfire", "mi_grand_rapids_schools_bonfire", "or_southern_oregon_university_bonfire",
   "ky_lexington_bonfire", "ky_covington_bonfire",
+  // 2026-11-13 school districts (no fixtures captured).
+  "tx_laredo_isd_bonfire", "mn_rochester_schools_bonfire", "fl_st_lucie_schools_bonfire", "ga_fulton_schools_bonfire", "md_wicomico_schools_bonfire",
   "nm_mckinley_county_bonfire",
   "wa_clark_county_bonfire", "wa_renton_bonfire", "wa_port_of_everett_bonfire", "wa_tacoma_schools_bonfire", "wa_lake_washington_schools_bonfire", "wa_northshore_schools_bonfire", "id_west_ada_schools_bonfire",
 ]);
 
 describe("county Bonfire boards", () => {
   test("142 boards, unique sources and id prefixes", () => {
-    expect(COUNTY_BONFIRE_CONFIGS).toHaveLength(169);
-    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.source)).size).toBe(169);
-    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.idPrefix)).size).toBe(169);
+    expect(COUNTY_BONFIRE_CONFIGS).toHaveLength(174);
+    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.source)).size).toBe(174);
+    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.idPrefix)).size).toBe(174);
   });
 
   for (const cfg of COUNTY_BONFIRE_CONFIGS.filter((c) => !NO_CAPTURE.has(c.source))) {

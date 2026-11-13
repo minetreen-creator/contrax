@@ -1,4 +1,4 @@
-name: Temp probe (PlanetBids agency lists, read-only)
+name: Temp probe (PlanetBids counts + state gap map, read-only)
 on:
   push:
     branches: [claude/vibrant-cray-177q1d]
@@ -8,10 +8,18 @@ permissions:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 60
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.2
-      - run: bun .github/probe/f.ts
+      - run: bun install --frozen-lockfile
+      - run: bun .github/probe/gap.ts
+      - name: Browser driver (ephemeral)
+        run: |
+          D="$RUNNER_TEMP/pb"; mkdir -p "$D"; cp .github/scripts/planetbids-bids-fetch.mjs "$D/"
+          cd "$D" && npm init -y >/dev/null && npm install --no-audit --no-fund --no-save --no-package-lock puppeteer-core@24
+      - run: bash .github/probe/pb.sh

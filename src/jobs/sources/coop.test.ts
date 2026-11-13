@@ -87,13 +87,15 @@ test("Choice Partners: upcoming categories are announced with their expected mon
   expect(titles).not.toContain("Waterproofing/Masonry (expected to open Jan 2026)");
   expect(titles).not.toContain("M&O Parts and Equipment (expected to open Jul 2026)");
   expect(titles).toContain("Custodial Supplies and Services (expected to open Nov 2026)");
+  // More than 12 months out is left off (the list runs years ahead).
+  expect(readChoiceUpcoming(fixture13("choice-upcoming"), new Date("2026-09-01T12:00:00Z")).some((r) => r.title.startsWith("Roofing"))).toBe(false);
   expect(titles).toContain("Roofing (JOC-IDIQ) (expected to open Nov 2027)");
+  expect(titles).toContain("Construction-JOC (JOC-IDIQ) (expected to open Mar 2027)");
   expect(rows.every((r) => r.dueAt === null && r.coop === "choice")).toBe(true);
-  const roofing = rows.find((r) => r.title.startsWith("Roofing"))!;
-  expect(roofing.construction).toBe(true);
-  expect(roofing.trades).toContain("construction");
+  const joc = rows.find((r) => r.title.startsWith("Construction-JOC"))!;
+  expect(joc.construction).toBe(true);
+  expect(joc.trades).toContain("construction");
   expect(rows.find((r) => r.title.startsWith("Custodial"))!.trades).toEqual(coopTrades("Custodial Supplies and Services"));
-  // The two Construction-JOC rounds are separate entries.
   expect(new Set(rows.map((r) => r.key)).size).toBe(rows.length);
 });
 

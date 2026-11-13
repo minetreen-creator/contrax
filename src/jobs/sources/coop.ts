@@ -167,8 +167,8 @@ export function readChoiceCurrent(html: string): CoopSolicitation[] {
 }
 
 /**
- * Choice Partners' upcoming categories whose estimated advertise date is no more than 45 days past (older
- * estimates are stale). Stored as announced, with no due date. PURE.
+ * Choice Partners' upcoming categories expected within the next 12 months, counting estimates up to 45 days
+ * past (older ones are stale; its list runs years ahead). Stored as announced, with no due date. PURE.
  */
 export function readChoiceUpcoming(html: string, now: Date): CoopSolicitation[] {
   if (!/Est\. Advertise Date/.test(html)) throw new Error("Choice Partners: upcoming table missing (page changed)");
@@ -177,7 +177,7 @@ export function readChoiceUpcoming(html: string, now: Date): CoopSolicitation[] 
     const title = text(m[1]);
     const date = text(m[2]);
     const est = coopDue(date, null, "CT");
-    if (!title || !est || Date.parse(est) < now.getTime() - 45 * 86400000) continue;
+    if (!title || !est || Date.parse(est) < now.getTime() - 45 * 86400000 || Date.parse(est) > now.getTime() + 365 * 86400000) continue;
     const month = new Date(est).toLocaleString("en-US", { month: "short", year: "numeric", timeZone: "America/Chicago" });
     out.push({
       key: `choice:upcoming:${slug(title)}:${est.slice(0, 7)}`,

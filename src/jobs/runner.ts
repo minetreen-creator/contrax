@@ -94,6 +94,7 @@ import { fetchFlMfmpBids } from "./sources/fl-mfmp";
 import { fetchCaEprocureBids } from "./sources/ca-eprocure";
 import { fetchPaEmarketplaceBids } from "./sources/pa-emarketplace";
 import { fetchCoVssBids } from "./sources/co-vss";
+import { fetchMeVssBids } from "./sources/me-vss";
 import { fetchOhOdotBids } from "./sources/oh-odot";
 import { fetchVaVdotCabbBids } from "./sources/va-vdot-cabb";
 import { fetchLaDotdLettingBids } from "./sources/la-dotd-lettings";
@@ -400,6 +401,8 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "pa_dgs_emarketplace", fetchFn: () => fetchPaEmarketplaceBids() },
   // Colorado Vendor Self Service: open state-agency solicitations.
   { name: "co_vss", fetchFn: () => fetchCoVssBids() },
+  // Maine Vendor Self Service (owner 2026-11-13, "add Maine"): open state-agency RFPs/RFQs, read as ContraxBot.
+  { name: "me_vss", fetchFn: () => fetchMeVssBids() },
   // Ohio DOT construction lettings (planholders summary; OhioBuys is CAPTCHA-gated).
   { name: "oh_odot", fetchFn: () => fetchOhOdotBids() },
   // VDOT highway construction advertisements (CABB), owner 2026-11-04.

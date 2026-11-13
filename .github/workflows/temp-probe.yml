@@ -1,4 +1,4 @@
-name: Temp probe county boards
+name: Temp probe county and city boards
 on:
   push:
     branches: [claude/vibrant-cray-177q1d]
@@ -7,6 +7,7 @@ permissions:
   contents: read
 jobs:
   probe:
+    if: false # the county scan is already running in the previous run
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
@@ -16,3 +17,14 @@ jobs:
           bun-version: 1.4.2
       - run: bun install --frozen-lockfile
       - run: bun .github/probe/f.ts
+  cities:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - run: bun install --frozen-lockfile
+      - run: curl -sSL -A "ContraxBot/1.0 (+https://www.contrax.company)" -o /tmp/sub-est.csv https://www2.census.gov/programs-surveys/popest/datasets/2020-2024/cities/totals/sub-est2024.csv || curl -sSL -o /tmp/sub-est.csv https://www2.census.gov/programs-surveys/popest/datasets/2020-2023/cities/totals/sub-est2023.csv; head -c 300 /tmp/sub-est.csv
+      - run: bun .github/probe/city.ts

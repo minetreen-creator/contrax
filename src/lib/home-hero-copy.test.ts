@@ -11,7 +11,7 @@ describe("homepage hero copy", () => {
     for (const t of QUICK_TRADES) expect(HERO_COPY.es.trades[t]).toBeTruthy();
   });
   test("the headline counts read naturally in both languages", () => {
-    expect(HERO_COPY.en.titleCount("30,412")).toBe("30,412 government bids open right now.");
-    expect(HERO_COPY.es.titleCount("30,412")).toBe("30,412 licitaciones del gobierno abiertas ahora.");
+    expect(HERO_COPY.en.titleCount("30,412")).toBe("30,412 Government Contracts.");
+    expect(HERO_COPY.es.titleCount("30,412")).toBe("30,412 contratos del gobierno.");
   });
 });

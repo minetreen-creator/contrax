@@ -63,8 +63,8 @@ export type HeroLang = "en" | "es";
 export const HERO_LANG_KEY = "contrax_lang";
 export const HERO_COPY = {
   en: {
-    titleCount: (n: string) => `${n} government bids open right now.`,
-    titleCountTail: "See the ones for your business.",
+    titleCount: (n: string) => `${n} Government Contracts.`,
+    titleCountTail: "Find Your Next Opportunity.",
     titleFallback: "Your next government customer",
     titleFallbackTail: "starts here.",
     sub: "Federal, state, city, county and school bids in all 50 states, matched to your trade.",
@@ -81,8 +81,8 @@ export const HERO_COPY = {
     trades: {} as Record<string, string>,
   },
   es: {
-    titleCount: (n: string) => `${n} licitaciones del gobierno abiertas ahora.`,
-    titleCountTail: "Vea las que son para su negocio.",
+    titleCount: (n: string) => `${n} contratos del gobierno.`,
+    titleCountTail: "Encuentre su próxima oportunidad.",
     titleFallback: "Su próximo cliente del gobierno",
     titleFallbackTail: "empieza aquí.",
     sub: "Licitaciones federales, estatales, municipales, de condados y escuelas en los 50 estados y Puerto Rico, según su oficio.",

@@ -62,6 +62,8 @@ export interface VssConfig {
   portalName: string;
   /** Document type codes a business can respond to (upper case). */
   biddableTypes: ReadonlySet<string>;
+  /** Request User-Agent; defaults to VSS_USER_AGENT. Maine is read as ContraxBot (owner rule, 2026-11-13). */
+  userAgent?: string;
 }
 
 export const VSS_ROWS = 500;
@@ -265,7 +267,7 @@ export async function fetchVssBids(config: VssConfig, now: number = Date.now()):
     }
   };
   const headers = (json: boolean): Record<string, string> => ({
-    "User-Agent": VSS_USER_AGENT,
+    "User-Agent": config.userAgent ?? VSS_USER_AGENT,
     Accept: json ? "application/json, text/plain, */*" : "text/html,application/xhtml+xml,*/*;q=0.8",
     ...(json ? { "Content-Type": "application/json", Origin: config.origin, Referer: url } : {}),
     ...(jar.size ? { Cookie: [...jar].map(([k, v]) => `${k}=${v}`).join("; ") } : {}),

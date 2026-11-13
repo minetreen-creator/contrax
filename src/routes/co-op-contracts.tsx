@@ -9,7 +9,7 @@ import { trackEvent } from "~/lib/track";
 /**
  * /co-op-contracts — Pathway step 5 (owner 2026-11-10: "How does this work" → "yes build it"). How
  * purchasing co-ops work, the co-ops and where each posts its calls for vendors, and the open Sourcewell
- * and BuyBoard solicitations (src/jobs/coop-sync.ts), filterable by trade.
+ * and BuyBoard, Choice Partners and OMNIA solicitations (src/jobs/coop-sync.ts), filterable by trade.
  */
 const PROD_URL = "https://www.contrax.company";
 const TITLE = "Co-op Contracts: Sell to Agencies Without a Bid | Contrax";
@@ -91,7 +91,7 @@ function CoopPage() {
           <h2 id="open-title" className="text-lg font-bold">
             Open for vendors now{tradeLabel ? ` · ${tradeLabel}` : ""}
           </h2>
-          <p className="mt-1 text-sm text-slate-600">From Sourcewell's and BuyBoard's own pages, checked every day. Answer before the due time on the co-op's site.</p>
+          <p className="mt-1 text-sm text-slate-600">From the co-ops' own pages (Sourcewell, BuyBoard, Choice Partners and OMNIA), checked every day. Answer before the due time on the co-op's site.</p>
           <div className="mt-3 flex flex-wrap gap-2 text-xs">
             <a href="/co-op-contracts" className={`rounded-full border px-3 py-1 font-semibold ${!trade ? "border-slate-900 bg-slate-900 text-white" : "border-slate-300 text-slate-700"}`}>
               All ({all.length})
@@ -114,7 +114,7 @@ function CoopPage() {
             </ul>
           ) : (
             <p className="mt-4 text-sm text-slate-600">
-              {trade ? `No co-op category for ${tradeLabel.toLowerCase()} is open at Sourcewell or BuyBoard right now. ` : "No open co-op solicitations are stored yet. "}
+              {trade ? `No co-op category for ${tradeLabel.toLowerCase()} is open at the co-ops we read right now. ` : "No open co-op solicitations are stored yet. "}
               Categories open on a cycle; check back, or watch the co-ops below.
             </p>
           )}
@@ -122,11 +122,11 @@ function CoopPage() {
           <CoopAlertForm trade={trade} emphasis={Boolean(trade) && open.length === 0} />
           {soon.length ? (
             <div className="mt-4 rounded-xl bg-slate-50 p-3 text-sm">
-              <p className="font-semibold">Announced, dates not posted yet</p>
+              <p className="font-semibold">Announced or open, no due date listed here (check the co-op's page)</p>
               <ul className="mt-1 list-disc pl-5 text-slate-700">
                 {soon.map((s) => (
                   <li key={s.key}>
-                    {s.title} <span className="text-slate-500">({COOP_BY_KEY[s.coop]?.name})</span>
+                    <a href={s.url} target="_blank" rel="noopener noreferrer" className="hover:underline">{s.title}</a> <span className="text-slate-500">({COOP_BY_KEY[s.coop]?.name})</span>
                   </li>
                 ))}
               </ul>

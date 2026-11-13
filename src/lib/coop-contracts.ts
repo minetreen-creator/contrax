@@ -6,7 +6,7 @@
  */
 
 export interface Coop {
-  key: "sourcewell" | "buyboard" | "tips" | "hgacbuy" | "omnia" | "naspo";
+  key: "sourcewell" | "buyboard" | "choice" | "tips" | "hgacbuy" | "omnia" | "onegpa" | "naspo";
   name: string;
   /** Who runs it, in the co-op's own terms. */
   runBy: string;
@@ -45,8 +45,17 @@ export const COOPS: readonly Coop[] = [
     runBy: "Region 8 Education Service Center in Pittsburg, Texas, as lead agency.",
     members: "Public agencies that join TIPS, in Texas and other states.",
     howToGetOn: "Answer the TIPS RFP for your category. Several vendors are often awarded in a category.",
-    postsAt: { label: "tips-usa.com", url: "https://www.tips-usa.com/" },
+    postsAt: { label: "tips.ionwave.net (TIPS eBid System)", url: "https://tips.ionwave.net" },
     inContrax: false,
+  },
+  {
+    key: "choice",
+    name: "Choice Partners",
+    runBy: "The Harris County Department of Education in Texas.",
+    members: "Agencies that join the Choice Partners cooperative, in Texas and other states.",
+    howToGetOn: "Answer its current RFP before the due date; downloading an RFP needs a Choice Partners vendor login. Many of its categories are job-order (JOC-IDIQ) contracts.",
+    postsAt: { label: "choicepartners.org/current-rfps", url: "https://www.choicepartners.org/current-rfps" },
+    inContrax: true,
   },
   {
     key: "hgacbuy",
@@ -64,6 +73,15 @@ export const COOPS: readonly Coop[] = [
     members: "Public agencies across the country.",
     howToGetOn: "There is no sign-up: answer the lead agency's RFP. Suppliers pay a small percentage of purchases made on their contract.",
     postsAt: { label: "omniapartners.com solicitations", url: "https://www.omniapartners.com/for-suppliers/solicitations" },
+    inContrax: true,
+  },
+  {
+    key: "onegpa",
+    name: "1GPA",
+    runBy: "A nonprofit national governmental purchasing cooperative based in Phoenix, Arizona.",
+    members: "Government agencies that join 1GPA.",
+    howToGetOn: "Register as a vendor and answer the solicitation for your category, listed on its solicitations page.",
+    postsAt: { label: "1gpa.org/solicitations", url: "https://1gpa.org/solicitations/" },
     inContrax: false,
   },
   {

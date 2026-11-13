@@ -40,7 +40,7 @@ export function CoopAlertForm({ trade, emphasis = false }: { trade: string; emph
   return (
     <form onSubmit={submit} className={`mt-4 rounded-xl border p-4 text-sm ${emphasis ? "border-amber-400 bg-amber-50" : "border-slate-200 bg-slate-50"}`}>
       <p className="font-bold text-slate-900">🔔 Tell me when my trade opens</p>
-      <p className="mt-1 text-slate-700">Co-op categories open every few years. Leave your email and we'll send one email when yours opens at Sourcewell or BuyBoard. Nothing else.</p>
+      <p className="mt-1 text-slate-700">Co-op categories open every few years. Leave your email and we'll send one email when yours opens at Sourcewell, BuyBoard or Choice Partners. Nothing else.</p>
       <div className="mt-3 flex flex-col gap-2 sm:flex-row">
         <select value={pick} onChange={(e) => setPick(e.target.value)} className="rounded-lg border border-slate-300 bg-white px-3 py-2" aria-label="Your trade">
           <option value="">Your trade</option>

@@ -1,5 +1,5 @@
 /**
- * Daily: read Sourcewell's and BuyBoard's open vendor solicitations (src/jobs/sources/coop.ts) into
+ * Daily: read the co-ops' open vendor solicitations (Sourcewell, BuyBoard, Choice Partners, OMNIA) (src/jobs/sources/coop.ts) into
  * coop_solicitations for /co-op-contracts and Radar. A co-op that cannot be read keeps yesterday's rows.
  *   bun src/jobs/coop-sync.ts
  */
@@ -12,8 +12,8 @@ import { sendBasicEmail } from "~/lib/email";
 async function main() {
   await ensureCoopTable();
   const syncedAt = new Date().toISOString();
-  const { sourcewell, buyboard, errors } = await fetchCoopSolicitations();
-  for (const [coop, rows] of [["sourcewell", sourcewell], ["buyboard", buyboard]] as const) {
+  const { errors, ...reads } = await fetchCoopSolicitations();
+  for (const [coop, rows] of Object.entries(reads)) {
     if (!rows) {
       console.warn(`${coop}: not read this run; keeping the stored rows`);
       continue;
@@ -43,7 +43,7 @@ async function main() {
   } catch (e) {
     console.warn(`  ! co-op trade alerts: ${(e as Error).message}`);
   }
-  if (!sourcewell && !buyboard) process.exitCode = 1;
+  if (Object.values(reads).every((r) => !r)) process.exitCode = 1;
 }
 
 main().catch((e) => {

@@ -8,7 +8,14 @@
  *   BuyBoard: buyboard.com/vendor/proposal-invitations lists current invitations with a due date and
  *     time (Austin, so Central) and links each one's proposal PDF; "Upcoming" names come without dates.
  *
- * TIPS (robots.txt disallows everything) and HGACBuy (bot check) are not read. PURE parsers plus one
+ *   Choice Partners (owner 2026-11-13): choicepartners.org/current-rfps is a table of title, RFP number and
+ *     due date and time (Houston, so Central); /upcoming-contracts lists categories with an estimated
+ *     advertise date. Many are job-order (JOC-IDIQ) contracts.
+ *   OMNIA Partners (owner 2026-11-13): omniapartners.com/for-suppliers/solicitations names its current
+ *     lead-agency solicitations, without dates.
+ *
+ * TIPS posts on tips.ionwave.net, whose robots.txt disallows everything (checked 2026-11-13), and HGACBuy
+ * (bot check) are not read. 1GPA's list is an embedded OpenGov portal, not read yet. PURE parsers plus one
  * fetcher that sends a handful of requests a day, two seconds apart, as ContraxBot.
  */
 import { coopTrades, type CoopSolicitation } from "~/lib/coop-contracts";
@@ -27,7 +34,8 @@ const text = (s: string) => decode(s.replace(/<br\s*\/?>/gi, " ").replace(/<[^>]
 export function coopDue(date: string, time: string | null, zone: keyof typeof ZONES = "CT"): string | null {
   const d = /^([A-Za-z]+)\s+(\d{1,2}),\s*(\d{4})$/.exec(date.trim());
   if (!d) return null;
-  const mo = MONTHS.indexOf(d[1].toLowerCase()) + 1;
+  const name = d[1].toLowerCase();
+  const mo = name.length >= 3 ? MONTHS.findIndex((m) => m === name || (name.length === 3 && m.startsWith(name))) + 1 : 0;
   if (!mo) return null;
   let h = 23, mi = 59;
   if (time) {
@@ -128,6 +136,77 @@ export function readBuyBoard(html: string): CoopSolicitation[] {
   return out;
 }
 
+export const CHOICE_CURRENT_URL = "https://www.choicepartners.org/current-rfps";
+export const CHOICE_UPCOMING_URL = "https://www.choicepartners.org/upcoming-contracts";
+export const OMNIA_URL = "https://www.omniapartners.com/for-suppliers/solicitations";
+const slug = (t: string) => t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80);
+const isJoc = (t: string) => /\bJOC\b|IDIQ|job order/i.test(t);
+const withJoc = (t: string) => (isJoc(t) ? [...new Set(["construction", ...coopTrades(t)])] : coopTrades(t));
+
+/** Choice Partners' Current RFPs table. Throws when the page changed. PURE. */
+export function readChoiceCurrent(html: string): CoopSolicitation[] {
+  if (!/<h1>\s*Current RFPs\s*<\/h1>/i.test(html) || !/<b>RFP#<\/b>/.test(html) || !/<b>Due Date<\/b>/.test(html)) throw new Error("Choice Partners: RFP table missing (page changed)");
+  const out: CoopSolicitation[] = [];
+  for (const m of html.matchAll(/<tr[^>]*>\s*<th scope="row">([\s\S]*?)<\/th>([\s\S]*?)<\/tr>/g)) {
+    const title = text(m[1]);
+    const number = text(/data-title="RFP #">([\s\S]*?)<\/td>/.exec(m[2])?.[1] ?? "");
+    const due = /^([A-Za-z]{3,9} \d{1,2}, \d{4})\s+(\d{1,2}:\d{2}\s*[ap]m)$/i.exec(text((/data-title="Due Date">([\s\S]*?)<\/td>/.exec(m[2])?.[1] ?? "").replace(/<!--[\s\S]*?-->/g, "")));
+    if (!title || !number) throw new Error("Choice Partners: RFP row shape changed");
+    out.push({
+      key: `choice:${number}`,
+      coop: "choice",
+      number,
+      title,
+      dueAt: due ? coopDue(due[1], due[2], "CT") : null,
+      url: CHOICE_CURRENT_URL,
+      trades: withJoc(title),
+      construction: isJoc(title),
+    });
+  }
+  return out;
+}
+
+/**
+ * Choice Partners' upcoming categories whose estimated advertise date is no more than 45 days past (older
+ * estimates are stale). Stored as announced, with no due date. PURE.
+ */
+export function readChoiceUpcoming(html: string, now: Date): CoopSolicitation[] {
+  if (!/Est\. Advertise Date/.test(html)) throw new Error("Choice Partners: upcoming table missing (page changed)");
+  const out: CoopSolicitation[] = [];
+  for (const m of html.matchAll(/<td\s+scope="row">([\s\S]*?)<\/td>[\s\S]*?data-title="Est\. Advertise Date">([\s\S]*?)<\/td>/g)) {
+    const title = text(m[1]);
+    const date = text(m[2]);
+    const est = coopDue(date, null, "CT");
+    if (!title || !est || Date.parse(est) < now.getTime() - 45 * 86400000) continue;
+    const month = new Date(est).toLocaleString("en-US", { month: "short", year: "numeric", timeZone: "America/Chicago" });
+    out.push({
+      key: `choice:upcoming:${slug(title)}:${est.slice(0, 7)}`,
+      coop: "choice",
+      number: null,
+      title: `${title} (expected to open ${month})`,
+      dueAt: null,
+      url: CHOICE_UPCOMING_URL,
+      trades: withJoc(title),
+      construction: isJoc(title),
+    });
+  }
+  return out;
+}
+
+/** OMNIA Partners' "Current Solicitations" (number and name; the page gives no dates). PURE. */
+export function readOmnia(html: string): CoopSolicitation[] {
+  const a = html.indexOf("Current Solicitations");
+  const b = html.indexOf("Solicitations in Evaluation", a);
+  if (a < 0 || b < 0) throw new Error("OMNIA: solicitations sections missing (page changed)");
+  const out: CoopSolicitation[] = [];
+  for (const m of html.slice(a, b).matchAll(/<span>([^<]{3,300})<\/span>/g)) {
+    const t = /^([^:]{2,40}):\s*(.+)$/.exec(text(m[1]));
+    if (!t) continue;
+    out.push({ key: `omnia:${slug(t[1])}`, coop: "omnia", number: t[1].trim(), title: t[2].trim(), dueAt: null, url: OMNIA_URL, trades: withJoc(t[2]), construction: isJoc(t[2]) });
+  }
+  return out;
+}
+
 export const coopDeps = {
   fetch: (url: string, init: RequestInit) => fetch(url, init),
   sleep: (ms: number) => new Promise<void>((r) => setTimeout(r, ms)),
@@ -141,11 +220,15 @@ async function page(url: string): Promise<string> {
   return html;
 }
 
-/** Read both co-ops. Each result is null when that co-op could not be read (the other still counts). */
-export async function fetchCoopSolicitations(): Promise<{ sourcewell: CoopSolicitation[] | null; buyboard: CoopSolicitation[] | null; errors: string[] }> {
+export type CoopReads = { sourcewell: CoopSolicitation[] | null; buyboard: CoopSolicitation[] | null; choice: CoopSolicitation[] | null; omnia: CoopSolicitation[] | null; errors: string[] };
+
+/** Read each co-op. Each result is null when that co-op could not be read (the others still count). */
+export async function fetchCoopSolicitations(now = new Date()): Promise<CoopReads> {
   const errors: string[] = [];
   let sourcewell: CoopSolicitation[] | null = null;
   let buyboard: CoopSolicitation[] | null = null;
+  let choice: CoopSolicitation[] | null = null;
+  let omnia: CoopSolicitation[] | null = null;
   try {
     const rows = readSourcewellList(await page(SOURCEWELL_LIST_URL));
     const times: Record<string, { time: string; zone: keyof typeof ZONES } | null> = {};
@@ -168,5 +251,20 @@ export async function fetchCoopSolicitations(): Promise<{ sourcewell: CoopSolici
   } catch (e) {
     errors.push((e as Error).message);
   }
-  return { sourcewell, buyboard, errors };
+  await coopDeps.sleep(2000);
+  try {
+    const current = readChoiceCurrent(await page(CHOICE_CURRENT_URL));
+    await coopDeps.sleep(2000);
+    const open = new Set(current.map((c) => slug(c.title)));
+    choice = [...current, ...readChoiceUpcoming(await page(CHOICE_UPCOMING_URL), now).filter((u) => !open.has(slug(u.title.replace(/ \(expected to open [^)]*\)$/, ""))))];
+  } catch (e) {
+    errors.push((e as Error).message);
+  }
+  await coopDeps.sleep(2000);
+  try {
+    omnia = readOmnia(await page(OMNIA_URL));
+  } catch (e) {
+    errors.push((e as Error).message);
+  }
+  return { sourcewell, buyboard, choice, omnia, errors };
 }

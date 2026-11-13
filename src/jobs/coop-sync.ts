@@ -4,7 +4,10 @@
  *   bun src/jobs/coop-sync.ts
  */
 import { fetchCoopSolicitations } from "./sources/coop";
-import { ensureCoopTable, replaceCoopSolicitations } from "~/lib/coop-contracts.server";
+import { ensureCoopTable, openCoopSolicitations, replaceCoopSolicitations } from "~/lib/coop-contracts.server";
+import { activeCoopAlerts, markCoopAlertNotified } from "~/lib/coop-alerts.server";
+import { coopAlertEmail, newForAlert } from "~/lib/coop-alerts";
+import { sendBasicEmail } from "~/lib/email";
 
 async function main() {
   await ensureCoopTable();
@@ -21,6 +24,25 @@ async function main() {
     for (const x of rows) console.log(`   ${x.number ?? ""} ${x.title} | due ${x.dueAt ?? "not yet"} | trades ${x.trades.join(",") || "-"}`);
   }
   for (const e of errors) console.warn(`  ! ${e}`);
+
+  // "Tell me when my trade opens" (owner 2026-11-13): one email only when a new category for the
+  // subscriber's trade opens, never a daily email. A failed send is retried on the next run.
+  try {
+    const open = await openCoopSolicitations(null);
+    let sent = 0;
+    for (const a of await activeCoopAlerts()) {
+      const fresh = newForAlert(a.trade, open, a.notified_keys);
+      if (!fresh.length) continue;
+      const m = coopAlertEmail(a.trade, fresh, a.token);
+      if (await sendBasicEmail({ to: a.email, ...m })) {
+        await markCoopAlertNotified(a.id, fresh.map((f) => f.key));
+        sent++;
+      }
+    }
+    console.log(`co-op trade alerts: ${sent} sent`);
+  } catch (e) {
+    console.warn(`  ! co-op trade alerts: ${(e as Error).message}`);
+  }
   if (!sourcewell && !buyboard) process.exitCode = 1;
 }
 

@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { SiteHeader } from "~/components/SiteHeader";
+import { CoopAlertForm } from "~/components/CoopAlertForm";
 import { COOPS, COOP_BY_KEY, type CoopSolicitation } from "~/lib/coop-contracts";
 import { SEO_TRADES, SEO_TRADE_BY_SLUG } from "~/lib/seo-trades";
 import { trackEvent } from "~/lib/track";
@@ -117,6 +118,8 @@ function CoopPage() {
               Categories open on a cycle; check back, or watch the co-ops below.
             </p>
           )}
+          {/* Owner 2026-11-13: a visitor whose trade has nothing open can ask to be told when it opens. */}
+          <CoopAlertForm trade={trade} emphasis={Boolean(trade) && open.length === 0} />
           {soon.length ? (
             <div className="mt-4 rounded-xl bg-slate-50 p-3 text-sm">
               <p className="font-semibold">Announced, dates not posted yet</p>
@@ -153,7 +156,16 @@ function CoopPage() {
           </div>
         </section>
 
-        <section className="mt-8 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm">
+        <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 text-sm">
+          <h2 className="text-lg font-bold">Equipment categories: a way in for local installers</h2>
+          <p className="mt-1 text-slate-800">
+            Some open categories, such as scoreboards, playgrounds or recycling equipment, are written for manufacturers. Many manufacturers on co-op contracts sell
+            and install through authorized dealers and local installers, so a service business can often get the work by becoming one. Ask the manufacturer whether
+            it adds dealers or installers to its co-op contract, and check that co-op's contract page for its dealer list.
+          </p>
+        </section>
+
+        <section className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm">
           <h2 className="text-lg font-bold">For construction</h2>
           <p className="mt-1 text-slate-800">
             Many states require agencies to bid building projects themselves, with bonds and sometimes prevailing wages, so co-ops matter most for repeat repair, renovation

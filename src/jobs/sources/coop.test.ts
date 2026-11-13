@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { coopDue, mapSourcewell, readBuyBoard, readSourcewellDueTime, readSourcewellList } from "./coop";
+import { coopDue, mapSourcewell, readBuyBoard, readChoiceCurrent, readChoiceUpcoming, readOmnia, readSourcewellDueTime, readSourcewellList } from "./coop";
 import { COOPS, coopTrades } from "~/lib/coop-contracts";
 
 // Owner 2026-11-10: "yes build it". Pages captured as ContraxBot on 2026-11-10 (robots.txt allows both).
@@ -67,5 +67,42 @@ test("due dates: month names, a.m./p.m., and bad input", () => {
 });
 
 test("the co-ops Contrax reads are the ones whose pages allow it", () => {
-  expect(COOPS.filter((c) => c.inContrax).map((c) => c.key)).toEqual(["sourcewell", "buyboard"]);
+  expect(COOPS.filter((c) => c.inContrax).map((c) => c.key)).toEqual(["sourcewell", "buyboard", "choice", "omnia"]);
+});
+
+// Owner 2026-11-13: "pull open vendor solicitations from TIPS, OMNIA, 1GPA, and Choice Partners". TIPS's
+// bid site (tips.ionwave.net) disallows all robots, so it is not read; 1GPA's list is an OpenGov embed.
+const fixture13 = (f: string) => readFileSync(new URL(`./fixtures/coop/${f}-2026-11-13.html`, import.meta.url), "utf8");
+
+test("Choice Partners: the current RFP with its Central due time (2:00 PM CT on Dec 2 = 20:00 UTC)", () => {
+  expect(readChoiceCurrent(fixture13("choice-current"))).toEqual([
+    { key: "choice:27/005LT", coop: "choice", number: "27/005LT", title: "Waste Disposal and Recycling Services", dueAt: "2026-12-02T20:00:00.000Z", url: "https://www.choicepartners.org/current-rfps", trades: coopTrades("Waste Disposal and Recycling Services"), construction: false },
+  ]);
+  expect(() => readChoiceCurrent("<html>changed</html>")).toThrow();
+});
+
+test("Choice Partners: upcoming categories are announced with their expected month; stale estimates are dropped; JOC counts as construction", () => {
+  const rows = readChoiceUpcoming(fixture13("choice-upcoming"), new Date("2026-11-13T12:00:00Z"));
+  const titles = rows.map((r) => r.title);
+  expect(titles).not.toContain("Waterproofing/Masonry (expected to open Jan 2026)");
+  expect(titles).not.toContain("M&O Parts and Equipment (expected to open Jul 2026)");
+  expect(titles).toContain("Custodial Supplies and Services (expected to open Nov 2026)");
+  expect(titles).toContain("Roofing (JOC-IDIQ) (expected to open Nov 2027)");
+  expect(rows.every((r) => r.dueAt === null && r.coop === "choice")).toBe(true);
+  const roofing = rows.find((r) => r.title.startsWith("Roofing"))!;
+  expect(roofing.construction).toBe(true);
+  expect(roofing.trades).toContain("construction");
+  expect(rows.find((r) => r.title.startsWith("Custodial"))!.trades).toEqual(coopTrades("Custodial Supplies and Services"));
+  // The two Construction-JOC rounds are separate entries.
+  expect(new Set(rows.map((r) => r.key)).size).toBe(rows.length);
+});
+
+test("OMNIA: only the current solicitations, not the ones in evaluation", () => {
+  expect(readOmnia(fixture13("omnia")).map((r) => [r.number, r.title, r.dueAt])).toEqual([["269-2027-042", "Equipment Rentals, Related Products and Services", null]]);
+  expect(() => readOmnia("<html></html>")).toThrow();
+});
+
+test("abbreviated month names read the same as full ones", () => {
+  expect(coopDue("Dec 02, 2026", "02:00 pm")).toBe(coopDue("December 2, 2026", "2:00 PM"));
+  expect(coopDue("Decem 2, 2026", null)).toBeNull();
 });

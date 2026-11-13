@@ -1,27 +1,15 @@
-// Read-only: robots.txt of PlanetBids hosts, and agency lists (name + portal id) from PlanetBids' public state pages. Removed after.
-const UA = "Mozilla/5.0 (compatible; ContraxBot/1.0; +https://www.contrax.company)";
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-let blocked = false;
-for (const h of ["https://vendor.planetbids.com", "https://vendors.planetbids.com"]) {
-  const r = await fetch(`${h}/robots.txt`, { headers: { "User-Agent": UA } }).catch(() => null);
-  const t = (await r?.text().catch(() => "")) ?? "";
-  console.log("ROBOTS", h, r?.status, t.slice(0, 600).replace(/\n/g, " | "));
-  const star = t.split(/\n(?=\s*user-agent:)/i).filter((g) => /user-agent:\s*\*\s*$/im.test(g));
-  const dis = star.flatMap((g) => [...g.matchAll(/^\s*disallow:\s*(\S*)/gim)].map((m) => m[1])).filter(Boolean);
-  const rx = (d: string) => new RegExp("^" + d.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*").replace(/\\\$$/, "$"));
-  if (h.includes("vendor.") && r?.status === 200 && dis.some((d) => rx(d).test("/states/california"))) blocked = true;
+// Read-only aggregates: open bids and last run per source for weak states (FL, MI, NC, NJ, AZ). Removed after.
+import { neon } from "@neondatabase/serverless";
+const s = neon(process.env.DATABASE_URL!);
+for (const st of ["fl", "mi", "nc", "nj", "az"]) {
+  const rows = await s.query(`
+    WITH o AS (SELECT source, COUNT(*) FILTER (WHERE due_date > NOW())::int open, COUNT(*)::int total, MAX(created_at) newest FROM bids WHERE source LIKE $1 GROUP BY 1),
+    r AS (SELECT DISTINCT ON (source) source, ran_at, fetched_count, accepted_count, errors, ran_zero, quality_gate FROM collector_run_log WHERE source LIKE $1 ORDER BY source, ran_at DESC)
+    SELECT COALESCE(o.source, r.source) src, o.open, o.total, to_char(o.newest,'MM-DD') newest, to_char(r.ran_at,'MM-DD HH24') ran, r.fetched_count f, r.accepted_count a, r.errors e, r.quality_gate g
+    FROM o FULL JOIN r ON o.source = r.source ORDER BY o.open DESC NULLS LAST`, [st + "\\_%"]);
+  console.log(`=== ${st.toUpperCase()} (${rows.length} sources)`);
+  for (const x of rows as any[]) console.log(`  ${x.src} open=${x.open ?? 0} total=${x.total ?? 0} newest=${x.newest ?? "-"} ran=${x.ran ?? "-"} fetched=${x.f ?? "-"} accepted=${x.a ?? "-"} err=${x.e ?? "-"} gate=${x.g ?? "-"}`);
 }
-if (blocked) { console.log("STOP: robots disallows /states/"); process.exit(0); }
-const states = ["california", "texas", "arizona", "nevada", "oregon", "washington", "florida", "colorado", "utah", "new-mexico", "ohio", "georgia", "north-carolina", "virginia", "illinois", "michigan", "hawaii", "idaho", "oklahoma", "louisiana"];
-for (const st of states) {
-  await sleep(2500);
-  try {
-    const r = await fetch(`https://vendor.planetbids.com/states/${st}`, { headers: { "User-Agent": UA }, signal: AbortSignal.timeout(30000) });
-    const h = await r.text();
-    const ids = [...h.matchAll(/portal\/(\d{4,6})\b[^"]*"[^>]*>([^<]{2,120})</g)].map((m) => `${m[1]}=${m[2].trim()}`);
-    const ids2 = [...new Set([...h.matchAll(/portal\/(\d{4,6})/g)].map((m) => m[1]))];
-    console.log(`STATE ${st} ${r.status} len=${h.length} linked=${ids2.length}`);
-    console.log("  " + [...new Set(ids)].join(" ; ").slice(0, 8000));
-    if (!ids.length) console.log("  text: " + h.replace(/<script[\s\S]*?<\/script>/g, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 600));
-  } catch (e) { console.log(`STATE ${st} ERR ${(e as Error).message}`); }
-}
+// Bids located in the state but stored under national/other sources (location text ends with ", FL" etc.).
+const loc = await s.query(`SELECT substring(location from ',\\s*([A-Z]{2})\\s*$') st, COUNT(*)::int n FROM bids WHERE due_date > NOW() AND substring(location from ',\\s*([A-Z]{2})\\s*$') IN ('FL','MI','NC','NJ','AZ','MA','VA') GROUP BY 1 ORDER BY 2 DESC`);
+console.log("OPEN_BY_LOCATION_STATE", JSON.stringify(loc));

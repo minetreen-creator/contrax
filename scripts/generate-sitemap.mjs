@@ -81,6 +81,7 @@ const PRODUCT_PATHS = [
   ["/consultants", "weekly", "0.7"],
   // Professional plan for companies with a government sales or proposal person (owner 2026-11-14).
   ["/teams", "weekly", "0.7"],
+  ["/sample-report", "weekly", "0.7"],
   // Agency plan for material suppliers and equipment rental (owner 2026-11-12).
   ["/suppliers", "weekly", "0.7"],
   ["/roadmap", "monthly", "0.5"],

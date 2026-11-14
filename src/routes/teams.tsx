@@ -101,6 +101,7 @@ const MANAGED_INCLUDES = [
   "The states you work in, instead of one",
   "A brief on each new solicitation that fits you, with a pursue or pass recommendation",
   "Professional for your team, so anyone can open the full list behind the report",
+  "On request, one public-records request a month for the winning proposal on a contract you are chasing. We file it; the agency decides what it releases, and that can take months",
   "Prepared by Contrax and sent by email, so your team reads one document",
 ];
 
@@ -111,6 +112,7 @@ const SNAPSHOT_VS_MANAGED: [string, string, string][] = [
   ["States", "One", "The states you work in"],
   ["New bids", "Up to 5 open on the day", "A brief on each new fit, pursue or pass"],
   ["Login for your team", "Not included", "Professional included"],
+  ["Winning proposals", "Not included", "One records request a month, filed for you"],
 ];
 
 const WHO: [string, string][] = [

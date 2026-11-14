@@ -393,6 +393,16 @@ export const ROBOTS_PAUSED_SOURCES: ReadonlySet<string> = new Set<string>([
   // "User-agent: * / Disallow: /", so the daily read stops (owner rule: respect robots.txt).
   // The reader stays; remove this line if the owner decides to keep it, as with IonWave.
   "mn_questcdn",
+  // Jaggaer / bids.sciquest.com (2026-11-14): every board on the platform answered HTTP 403 two syncs in a
+  // row (Virginia Tech too, which read fine at 01:38 UTC), so the platform blocks our reader (owner rule:
+  // "403 = stop"). The readers stay; remove these lines if Jaggaer allows us again.
+  "mt_emacs",
+  "nm_epronm",
+  "tx_tamu_jaggaer",
+  "tx_texastech_jaggaer",
+  "tx_uh_jaggaer",
+  "tx_utsa_jaggaer",
+  "va_vt_jaggaer",
 ]);
 
 /** The registry without the paused sources: what a sync actually reads. PURE. */

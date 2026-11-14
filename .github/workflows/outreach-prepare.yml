@@ -83,6 +83,6 @@ jobs:
         run: bun run leads-outreach-prepare
 
       # Owner 2026-11-02: "always keep outreach to less than 100 due to resend
-      # daily limits". Cuts the waiting drafts to DAILY_OUTREACH_CAP (90).
+      # daily limits". Cuts the waiting drafts to DAILY_OUTREACH_CAP (80).
       - name: Keep drafts under the daily cap
         run: bun run outreach-trim

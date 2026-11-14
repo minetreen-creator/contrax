@@ -213,11 +213,13 @@ export const MAX_SEND_PER_BATCH = 50;
 /**
  * Owner 2026-11-02: "always keep outreach to less than 100 due to resend daily
  * limits". Resend sends 100 emails a day for the whole account, so outreach
- * stops at 90 and leaves 10 for signup, password and receipt emails. Each
+ * stops at 80 and leaves 20 for everything else. It was 90 until 2026-11-14,
+ * when the owner hit the limit on the day paid-order notices, buyer
+ * confirmations and Mission Control's order emails began to share it. Each
  * morning the waiting drafts are trimmed to this, and sending stops here for
  * the (UTC) day.
  */
-export const DAILY_OUTREACH_CAP = 90;
+export const DAILY_OUTREACH_CAP = 80;
 /** How many outreach emails may still go out today, given how many already did. PURE. */
 export function outreachRoomToday(sentToday: number, cap: number = DAILY_OUTREACH_CAP): number {
   return Math.max(0, cap - Math.max(0, Math.floor(sentToday || 0)));

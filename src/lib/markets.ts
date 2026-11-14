@@ -2,10 +2,10 @@
  * Contractor Support Network markets (owner 2026-11-10: "replicate this model in other major
  * construction markets"). One template: open local bids (live), registered subs (live, SAM.gov), the
  * market's federal construction numbers (USAspending.gov, read 2026-11-10), and a partner slot that
- * stays empty until a real partner signs. Tampa is the first market, with Casa Blue Collar.
+ * stays empty until a real partner signs. Tampa is the first market.
  * Contrax contacts no one from these pages. PURE.
  */
-import { CASA, CASA_PRICE_NOTE, TAMPA_BAY_CITIES, TAMPA_FACTS, TAMPA_HEADLINE, TAMPA_PATH, TAMPA_PLACES, TAMPA_SUB_TRADES } from "~/lib/tampa";
+import { TAMPA_BAY_CITIES, TAMPA_FACTS, TAMPA_PATH, TAMPA_PLACES, TAMPA_SUB_TRADES } from "~/lib/tampa";
 
 export interface MarketFacts {
   /** What the federal numbers cover ("City of Tampa", "San Diego County"). */
@@ -92,24 +92,8 @@ export const TAMPA_MARKET: Market = {
     registeredContractors: TAMPA_FACTS.registeredContractors,
     source: TAMPA_FACTS.source,
   },
-  partner: {
-    kind: "housing",
-    name: CASA.name,
-    url: CASA.url,
-    tagline: CASA.tagline,
-    pitch: CASA.pitch,
-    phone: CASA.phone,
-    tel: CASA.tel,
-    spanish: CASA.spanish,
-    amenities: CASA.amenities,
-    stats: CASA.stats,
-    proof: CASA.proof,
-    ask: CASA.ask,
-    saving: TAMPA_HEADLINE.saving,
-    priceNote: CASA_PRICE_NOTE,
-    clickEvent: "tampa_housing_referral_click",
-    since: "2026-11-09",
-  },
+  // Owner 2026-11-14: the Tampa housing partnership ended; no partner is shown.
+  partner: null,
 };
 
 export const HAMPTON_ROADS_MARKET: Market = {

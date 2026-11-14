@@ -80,3 +80,18 @@ describe("teams outreach schedule", () => {
     expect(new Set(pairs.map((p) => p.join(":"))).size).toBe(10);
   });
 });
+
+// Owner 2026-11-14: "cut small contractors to 0 a day since they never answer or buy".
+import { DAILY_CONTRACTOR_FIRST_EMAILS, DAILY_FIRST_EMAILS } from "./outreach";
+
+describe("daily contractor outreach is off", () => {
+  test("the scheduled run queues no contractor first emails; a hand-run focus batch keeps its ceiling", () => {
+    expect(DAILY_CONTRACTOR_FIRST_EMAILS).toBe(0);
+    expect(DAILY_FIRST_EMAILS).toBe(30);
+    const prepare = readFileSync("src/jobs/outreach-prepare.ts", "utf8");
+    expect(prepare).toContain("if (DAILY_CONTRACTOR_FIRST_EMAILS <= 0) {");
+    // The focus branch returns before the daily loop, so it is untouched.
+    expect(prepare.indexOf("if (FOCUS_STATE && FOCUS_TRADE) {")).toBeLessThan(prepare.indexOf("if (DAILY_CONTRACTOR_FIRST_EMAILS <= 0) {"));
+    expect(prepare).toContain("queueForBid(key, b, constructionOutreachTrade(b.title), seenHosts, DAILY_FIRST_EMAILS - queued)");
+  });
+});

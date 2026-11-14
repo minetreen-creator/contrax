@@ -6,6 +6,8 @@ import { DAILY_OUTREACH_CAP, MAX_SEND_PER_BATCH, outreachRoomToday } from "./out
 describe("daily outreach cap", () => {
   test("stays under Resend's 100 a day with room for account emails", () => {
     expect(DAILY_OUTREACH_CAP).toBeLessThan(100);
+    // Owner 2026-11-14: 20 kept back for order notices, buyer confirmations, sign-ups and resets.
+    expect(DAILY_OUTREACH_CAP).toBe(80);
     expect(MAX_SEND_PER_BATCH).toBeLessThanOrEqual(DAILY_OUTREACH_CAP);
   });
 

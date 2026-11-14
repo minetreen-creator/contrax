@@ -3,7 +3,8 @@ name: Daily Emails
 # BACKUP trigger (owner 2026-11-09: "github isn't reliable" / "move the email to vercel").
 # The morning emails are sent from Vercel: Vercel Cron calls /api/cron/daily-emails every 10
 # minutes from 10:00 to 15:50 UTC. This workflow calls the SAME runner
-# (src/lib/daily-emails.server.ts) hourly from 10:07 to 23:07 UTC, in case Vercel misses a
+# (src/lib/daily-emails.server.ts) every 3 hours from 10:07 to 22:07 UTC (owner 2026-11-14,
+# database cost: was hourly), in case Vercel misses a
 # morning. Before each job runs it claims that job for today's New York date in the
 # daily_email_runs table, so whichever trigger comes first sends and the other skips: nobody gets
 # two emails. Nothing sends before 6 AM New York time.
@@ -19,7 +20,7 @@ name: Daily Emails
 
 on:
   schedule:
-    - cron: "7 10-23 * * *"
+    - cron: "7 10-22/3 * * *"
   workflow_dispatch:
 
 concurrency:

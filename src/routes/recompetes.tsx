@@ -200,6 +200,14 @@ function RecompetesPage() {
                   {d.signedIn ? "Upgrade to see the full list" : "Create an account to see the full list"}
                 </a>
                 {d.signedIn && <p className="mt-2 text-xs text-slate-500">{RADAR_PRO_PRICE_NOTE}</p>}
+                {/* Owner 2026-11-14: a visitor who will not make an account can still have the list prepared. */}
+                <p className="mt-3 text-sm text-slate-700">
+                  Rather have it prepared for you?{" "}
+                  <a href="/sample-report?source=recompetes" onClick={() => trackEvent("recompetes_report_click", d.trade)} className="font-semibold text-blue-700 underline hover:text-blue-600">
+                    Read a real report
+                  </a>
+                  .
+                </p>
               </div>
             )}
             {/* Owner 2026-10-19: a lighter ask than an account for visitors who

@@ -7,7 +7,7 @@ const STATES = Object.entries(STATE_NAMES).sort((a, b) => a[1].localeCompare(b[1
 const field = "mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900";
 
 /** The $149 one-time pipeline report: four fields, then Stripe Checkout (src/lib/pipeline-report.ts). */
-export function PipelineReportOrder() {
+export function PipelineReportOrder({ from = "teams" }: { from?: "teams" | "sample" }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [outcome, setOutcome] = useState<"" | "paid" | "cancelled">("");
@@ -21,12 +21,12 @@ export function PipelineReportOrder() {
     if (busy) return;
     setBusy(true);
     setError("");
-    trackEvent("teams_cta_click", "report_checkout");
+    trackEvent("teams_cta_click", `report_checkout_${from}`);
     try {
       const res = await fetch("/api/pipeline-report/checkout", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(Object.fromEntries(new FormData(e.currentTarget))),
+        body: JSON.stringify({ ...Object.fromEntries(new FormData(e.currentTarget)), from }),
       });
       const data = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
       if (res.ok && data.url) { window.location.href = data.url; return; }
@@ -46,11 +46,17 @@ export function PipelineReportOrder() {
         It shows where you stand on the day it is made and does not update; Contrax Managed below is the version that keeps going.
       </p>
       <p className="mt-3 text-sm font-semibold text-slate-900">
-        Exactly what is in it (
-        <a href="/sample-report" onClick={() => trackEvent("teams_cta_click", "sample_report")} className="text-blue-700 underline hover:text-blue-600">
-          read a real sample
-        </a>
-        ):
+        Exactly what is in it
+        {from === "teams" && (
+          <>
+            {" "}(
+            <a href="/sample-report" onClick={() => trackEvent("teams_cta_click", "sample_report")} className="text-blue-700 underline hover:text-blue-600">
+              read a real sample
+            </a>
+            )
+          </>
+        )}
+        :
       </p>
       <ul className="mt-2 space-y-1.5 text-sm text-slate-700">
         {REPORT_INCLUDES.map((f) => (

@@ -21,7 +21,8 @@ async function handler({ request }: { request: Request }) {
   const email = await checkEmailLimit(order.email, "pipeline_report_checkout_email", 5, 3600);
   if (!email.allowed) return rateLimitedResponse(email);
   try {
-    const { url, sessionId } = await createReportCheckout(order);
+    const from = raw && typeof raw === "object" && (raw as { from?: unknown }).from === "sample" ? "sample" : "teams";
+    const { url, sessionId } = await createReportCheckout(order, undefined, from);
     // Mission Control hears about a started order too: an unpaid one is a lead with a name and an email.
     const { alertReportOrder } = await import("~/lib/live-push.server");
     await alertReportOrder(orderAlert(order, sessionId, false));

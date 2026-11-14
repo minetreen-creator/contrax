@@ -6,14 +6,15 @@
  * website for the email addresses it publishes. Prints the list and writes
  * prospects.csv. Read-only on the database; sends nothing.
  *
- * Without GOOGLE_PLACES_API_KEY it prints a note and exits 0. Checking the
+ * Without a working GOOGLE_PLACES_API_KEY it uses the contractor registry
+ * (sam_registrants) for the businesses, at no cost (owner 2026-11-14). Checking the
  * list against Sent mail and "Do not contact" happens when the emails are
  * written, not here.
  */
 import { writeFileSync } from "node:fs";
 import { sql } from "~/db";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
-import { bidPlace, contactLinks, csvCell, extractEmails, placesQuery, siteHost } from "~/lib/prospect-finder";
+import { bidPlace, contactLinks, csvCell, extractEmails, placesQuery, registryTrade, siteHost } from "~/lib/prospect-finder";
 import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
 
 const PLACES_URL = "https://places.googleapis.com/v1/places:searchText";
@@ -46,6 +47,63 @@ export async function searchPlaces(key: string, query: string): Promise<Place[]>
   return (data.places ?? [])
     .filter((p) => !p.businessStatus || p.businessStatus === "OPERATIONAL")
     .map((p) => ({ name: p.displayName?.text ?? "", website: p.websiteUri ?? null, address: p.formattedAddress ?? null }));
+}
+
+/**
+ * The free source (owner 2026-11-14): small businesses in the contractor
+ * registry (sam_registrants) in the job's state and trade that list a website.
+ * Firms in the job's own town come first; the rest are ordered by a hash of the
+ * business and the bid, so each bid reaches different firms. Never throws.
+ */
+export async function searchRegistrants(opts: { state: string; label: string; place: string; bidId: number }): Promise<Place[]> {
+  const t = registryTrade(opts.label);
+  if (!t || !/^[A-Z]{2}$/.test(opts.state)) return [];
+  try {
+    const s = sql();
+    const naics = t.naics.length ? t.naics : null;
+    const rows = (await s`
+      SELECT name, city, state, zip, url FROM sam_registrants
+      WHERE state = ${opts.state}
+        AND url IS NOT NULL AND url <> ''
+        AND ${t.trade} = ANY(trades)
+        AND (expires IS NULL OR expires >= CURRENT_DATE)
+        AND (${naics}::text[] IS NULL OR naics && ${naics}::text[])
+      ORDER BY (city <> '' AND POSITION(LOWER(city) IN LOWER(${opts.place})) > 0) DESC,
+               md5(uei || ${String(opts.bidId)})
+      LIMIT ${PLACES_PER_BID}
+    `) as { name: string; city: string | null; state: string; zip: string | null; url: string }[];
+    return rows.map((r) => ({
+      name: r.name,
+      website: r.url,
+      address: `${r.city ?? ""}, ${r.state} ${(r.zip ?? "").slice(0, 5)}`.trim(),
+    }));
+  } catch (e) {
+    console.log(`   ⚠️ Registry lookup failed: ${e instanceof Error ? e.message : String(e)}`);
+    return [];
+  }
+}
+
+let placesDown = false;
+
+/**
+ * Businesses for one bid: Google Places when a key is set and working, else the
+ * contractor registry. After the first Places failure the rest of the run goes
+ * straight to the registry, so a dead key costs one error line, not one per bid.
+ */
+export async function findBusinesses(
+  key: string,
+  query: string,
+  reg: { state: string; label: string; place: string; bidId: number },
+): Promise<{ places: Place[]; source: "places" | "registry" }> {
+  if (key && !placesDown) {
+    try {
+      return { places: await searchPlaces(key, query), source: "places" };
+    } catch (e) {
+      placesDown = true;
+      console.log(`   ⚠️ Google Places unavailable (${(e instanceof Error ? e.message : String(e)).replace(/\s+/g, " ").slice(0, 90)}). Using the contractor registry for this run.`);
+    }
+  }
+  return { places: await searchRegistrants(reg), source: "registry" };
 }
 
 async function fetchPage(url: string): Promise<string> {
@@ -89,16 +147,12 @@ export async function findProspects(opts: { key: string; state: string; trade: s
   const seenSites = new Set<string>();
   for (const b of bids) {
     const due = new Date(b.due_date).toISOString().slice(0, 10);
-    const query = placesQuery(opts.trade, bidPlace(b.location, b.agency, opts.state));
+    const place = bidPlace(b.location, b.agency, opts.state);
+    const query = placesQuery(opts.trade, place);
     console.log(`📄 #${b.id} ${b.title} — ${b.agency ?? "-"}, due ${due}`);
     console.log(`   🔎 ${query}`);
-    let places: Place[];
-    try {
-      places = await searchPlaces(opts.key, query);
-    } catch (e) {
-      console.log(`   ⚠️ ${e instanceof Error ? e.message : String(e)}`);
-      continue;
-    }
+    const { places, source } = await findBusinesses(opts.key, query, { state: opts.state, label: opts.trade, place, bidId: b.id });
+    if (source === "registry") console.log(`   📇 ${places.length} from the contractor registry`);
     for (const p of places) {
       const host = p.website ? siteHost(p.website) : null;
       if (!p.website || !host || seenSites.has(host)) continue;
@@ -116,10 +170,7 @@ export async function findProspects(opts: { key: string; state: string; trade: s
 if (import.meta.main) {
   try {
     const key = process.env.GOOGLE_PLACES_API_KEY ?? "";
-    if (!key) {
-      console.log("GOOGLE_PLACES_API_KEY is not set yet — nothing to do.");
-      process.exit(0);
-    }
+    if (!key) console.log("GOOGLE_PLACES_API_KEY is not set — using the contractor registry.");
     const state = (process.env.STATE ?? "").trim().toUpperCase();
     const trade = (process.env.TRADE ?? "").trim();
     const bids = Math.min(Math.max(Number(process.env.BIDS) || 8, 1), 25);

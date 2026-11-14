@@ -90,3 +90,34 @@ export function csvCell(v: string | number | null | undefined): string {
   const s = v == null ? "" : String(v);
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
+
+/**
+ * Contractor registry in place of Google Places (owner 2026-11-14: the Places
+ * billing account was closed and every search returned 403; "can't we find
+ * another way"). Maps the word an outreach email uses for the trade to the
+ * registry's trade and, for building trades, the NAICS codes that narrow it, so
+ * a roofing bid goes to roofers and not to every construction firm. Null when
+ * the registry has no such trade (pest control, moving). PURE.
+ */
+export function registryTrade(label: string): { trade: string; naics: string[] } | null {
+  const l = label.trim().toLowerCase();
+  const table: [RegExp, string, string[]][] = [
+    [/janitor|custodial|cleaning/, "janitorial", []],
+    [/landscap|grounds|mowing|lawn|tree|snow/, "landscaping", []],
+    [/hvac|heating|mechanical/, "hvac", []],
+    [/electric/, "electrical", []],
+    [/security|guard/, "security-guard", []],
+    [/truck|haul/, "trucking", []],
+    [/roof/, "construction", ["238160"]],
+    [/plumb/, "construction", ["238220"]],
+    [/paint/, "construction", ["238320"]],
+    [/concrete/, "construction", ["238110"]],
+    [/fenc/, "construction", ["238990"]],
+    [/paving/, "construction", ["237310", "238990"]],
+    [/water and sewer|utility/, "construction", ["237110"]],
+    [/site work|excavat/, "construction", ["238910"]],
+    [/construction|general contractor/, "construction", ["236220", "236210"]],
+  ];
+  const hit = table.find(([re]) => re.test(l));
+  return hit ? { trade: hit[1], naics: hit[2] } : null;
+}

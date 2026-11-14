@@ -10,7 +10,8 @@
  *     local businesses in that trade and each one's website gives the email
  *     it publishes. Up to 2 new businesses per bid, 30 drafts a day in all.
  *
- * Without GOOGLE_PLACES_API_KEY only step 1 runs.
+ * Without a working GOOGLE_PLACES_API_KEY the businesses come from the
+ * contractor registry (sam_registrants) instead, at no cost (owner 2026-11-14).
  */
 import { sql } from "~/db";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
@@ -35,7 +36,7 @@ import { resolveSourceClass } from "~/lib/source-class";
 import { ensureOutreach, isNewAddress, queueFirst, queueFollowups, recheckWaitingDrafts, skipAllDrafts } from "~/lib/outreach.server";
 import { bidPlace, placesQuery, siteHost } from "~/lib/prospect-finder";
 import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
-import { searchPlaces, siteEmails } from "./prospect-finder";
+import { findBusinesses, siteEmails } from "./prospect-finder";
 
 /** Bids looked at per trade per day; spreads the 30 drafts across trades. A
  *  "more" run (owner 2026-10-30: "do 25 more") looks at twice as many. */
@@ -116,15 +117,12 @@ async function freshConstructionBids(state: string, limit: number): Promise<BidR
 /** Find up to BUSINESSES_PER_BID local businesses for one bid and queue a draft to each. */
 async function queueForBid(key: string, b: BidRow, trade: OutreachTrade, seenHosts: Set<string>, room: number): Promise<number> {
   const due = new Date(b.due_date).toISOString().slice(0, 10);
-  const query = placesQuery(trade.places, outreachPlace(b)!);
+  const place = outreachPlace(b)!;
+  const query = placesQuery(trade.places, place);
   console.log(`  #${b.id} ${b.title} (${b.agency ?? "-"}, due ${due}) → ${query}`);
-  let places;
-  try {
-    places = await searchPlaces(key, query);
-  } catch (e) {
-    console.log(`    Places error: ${e instanceof Error ? e.message : String(e)}`);
-    return 0;
-  }
+  // Google Places when its key works, else the contractor registry (owner 2026-11-14).
+  const { places, source } = await findBusinesses(key, query, { state: b.normalized_state, label: trade.label, place, bidId: b.id });
+  if (source === "registry") console.log(`    ${places.length} from the contractor registry`);
   let forBid = 0;
   for (const p of places) {
     if (forBid >= BUSINESSES_PER_BID || forBid >= room) break;
@@ -193,10 +191,7 @@ async function main() {
   console.log(`Follow-ups queued: ${followups}`);
 
   const key = process.env.GOOGLE_PLACES_API_KEY ?? "";
-  if (!key) {
-    console.log("GOOGLE_PLACES_API_KEY is not set — no new first emails today.");
-    return;
-  }
+  if (!key) console.log("GOOGLE_PLACES_API_KEY is not set — finding businesses in the contractor registry.");
 
   if (FOCUS_STATE && FOCUS_TRADE) {
     if (FOCUS_TRADE !== "construction" || !/^[A-Z]{2}$/.test(FOCUS_STATE)) {

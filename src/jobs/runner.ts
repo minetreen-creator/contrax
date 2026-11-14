@@ -70,7 +70,7 @@ import { PAVA_BEACON_SOURCES } from "./sources/pava-beacon";
 import { TX_BEACON_SOURCES } from "./sources/tx-beacon";
 import { REVIZE_SOURCES } from "./sources/revize-bids";
 import { FL_DIRECT_SOURCES } from "./sources/fl-direct";
-import { AR_IONWAVE_SOURCES, IA_IONWAVE_SOURCES, SC_IONWAVE_SOURCES, TX_IONWAVE_SOURCES } from "./sources/ar-ionwave";
+import { AR_IONWAVE_SOURCES, FL_IONWAVE_SOURCES, IA_IONWAVE_SOURCES, SC_IONWAVE_SOURCES, TX_IONWAVE_SOURCES } from "./sources/ar-ionwave";
 import { PLANETBIDS_SOURCES } from "./sources/planetbids";
 import { fetchOhFranklinCountyBids } from "./sources/oh-franklin-county";
 import { fetchNjHarrisonBids } from "./sources/nj-harrison";
@@ -378,7 +378,8 @@ const STATE_KEYWORD_SOURCES: SyncSource[] = US_STATES.map((code) => ({
  * "User-agent: * / Disallow: /" in robots.txt (checked as ContraxBot that day). The eight boards
  * already read (Arkansas central, Fayetteville, Columbia SC, Plano, Irving, Georgetown, Douglas
  * County/Omaha, Lee County FL) were paused for that reason and restored the same day on the
- * owner's word ("keep them"); Dubuque's board was then added on the owner's word ("add Dubuque").
+ * owner's word ("keep them"); Dubuque's board was then added on the owner's word ("add Dubuque"); the Florida city boards (Cape Coral, Lauderhill, Coconut Creek) on
+ * the owner's word ("go and add ionwave for Florida", 2026-11-14).
  * They are public bid boards read a few pages at a time, one board after another
  * (src/jobs/sources/ionwave-throttle.ts). No new IonWave board is added without the owner's word.
  */
@@ -624,6 +625,8 @@ export const TAIL_SOURCES: SyncSource[] = [
   ...TX_IONWAVE_SOURCES,
   // Owner 2026-11-12 ("add Dubuque"): the City of Dubuque now posts on IonWave.
   ...IA_IONWAVE_SOURCES,
+  // Owner 2026-11-14 ("go and add ionwave for Florida"): Cape Coral, Lauderhill, Coconut Creek.
+  ...FL_IONWAVE_SOURCES,
   ...PLANETBIDS_SOURCES,
   { name: "oh_franklin_county", fetchFn: () => fetchOhFranklinCountyBids() },
   { name: "nj_harrison", fetchFn: () => fetchNjHarrisonBids() },

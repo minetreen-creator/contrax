@@ -4,7 +4,7 @@ import { activeSources, ROBOTS_PAUSED_SOURCES, TAIL_SOURCES } from "./runner";
 
 // 2026-11-12: the eight IonWave boards were paused over their robots.txt and restored the same day
 // on the owner's word ("keep them"); Dubuque's IonWave board was added on the owner's word.
-const IONWAVE = ["ar_ionwave_central", "ar_fayetteville_ionwave", "sc_columbia_ionwave", "tx_plano_ionwave", "tx_irving_ionwave", "tx_georgetown_ionwave", "ne_omaha_ionwave", "fl_lee_county", "ia_dubuque", "fl_cape_coral_ionwave", "fl_lauderhill_ionwave", "fl_coconut_creek_ionwave", "fl_pasco_schools_ionwave"];
+const IONWAVE = ["ar_ionwave_central", "ar_fayetteville_ionwave", "sc_columbia_ionwave", "tx_plano_ionwave", "tx_irving_ionwave", "tx_georgetown_ionwave", "ne_omaha_ionwave", "fl_lee_county", "ia_dubuque", "fl_cape_coral_ionwave", "fl_lauderhill_ionwave", "fl_coconut_creek_ionwave", "fl_pasco_schools_ionwave", "fl_pompano_beach_ionwave"];
 
 test("Knox County (403 = stop) and Minnesota QuestCDN (robots.txt disallows all) are paused, and a sync reads all thirteen IonWave boards", () => {
   expect([...ROBOTS_PAUSED_SOURCES]).toEqual(["tn_knox_county", "mn_questcdn"]);

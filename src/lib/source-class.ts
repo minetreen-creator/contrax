@@ -4471,6 +4471,13 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
     searchScope: "city-open-data",
     recordType: "opportunity",
   },
+  fl_pompano_beach_ionwave: {
+    class: "local",
+    city: "Pompano Beach",
+    scopeState: "FL",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
   ia_dubuque: {
     class: "local",
     city: "Dubuque",
@@ -5448,6 +5455,20 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
   fl_florida_poly_bonfire: {
     class: "local",
     city: "Lakeland",
+    scopeState: "FL",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
+  fl_palm_bay_bonfire: {
+    class: "local",
+    city: "Palm Bay",
+    scopeState: "FL",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
+  fl_sebastian_bonfire: {
+    class: "local",
+    city: "Sebastian",
     scopeState: "FL",
     searchScope: "city-open-data",
     recordType: "opportunity",

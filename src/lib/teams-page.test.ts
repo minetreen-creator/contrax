@@ -36,7 +36,8 @@ test("it is canonical, indexable and in the sitemap, and the contractor pages do
   // Owner 2026-11-14: the homepage routes each visitor to a lane, so it links here from the lanes and the footer.
   const home = readFileSync("src/routes/index.tsx", "utf8");
   // The done-for-you lane now shows the sample first; the footer still links here (owner 2026-11-14).
-  expect(home.match(/\/teams/g)?.length).toBe(1);
+  expect(home.match(/\/teams/g)?.length).toBe(2);
+  expect(home).toContain('{ href: "/teams", label: "For sales teams" }');
   expect(home).toContain('{ href: "/teams#done-for-you", label: "Done-for-you reports" }');
   expect(home).toContain('href: "/sample-report?source=home_lane"');
   expect(home).toContain('href: "/pricing?source=home_lane"');

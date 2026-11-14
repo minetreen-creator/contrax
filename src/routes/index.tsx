@@ -345,6 +345,8 @@ const FOOTER_GROUPS = [
       // Moved off the homepage (owner 2026-11-10 cleanup).
       { href: "/recompetes", label: "Contracts ending soon" },
       // Owner 2026-11-14: a second path to the done-for-you reports.
+      // Owner 2026-11-14 ("teams arent on the footer"): the page by its own name, beside the reports link.
+      { href: "/teams", label: "For sales teams" },
       { href: "/teams#done-for-you", label: "Done-for-you reports" },
     ],
   },

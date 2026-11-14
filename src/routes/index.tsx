@@ -200,6 +200,7 @@ function Home() {
           proof → the $5 pass → the state map. The the
           Pathway, app, megaprojects and the extra tool links moved to their own pages and the footer. */}
       <HomeContractFinder sample={sample} openTotal={contractMap?.totals?.totalOpen ?? 0} />
+      <HomeLanes />
       <HomeExecutionLine />
       {/* Before/after proof (owner 2026-11-08): a real bid's notice next to Max's real answer. */}
       {maxProofCurrent !== false ? <HomeMaxProof /> : null}
@@ -209,6 +210,50 @@ function Home() {
       <HomeStateMap contractMap={contractMap} />
       <Footer />
     </div>
+  );
+}
+
+// Two lanes (owner 2026-11-14): the site teaches a contractor to win the work themselves, while the
+// managed report is done for a company. Each visitor picks a lane before the page says anything else.
+const HOME_LANES = [
+  {
+    key: "diy",
+    tag: "Do it yourself",
+    title: "I want to find and win the work myself",
+    detail: "Search open bids in your trade and state, get the new ones by email each morning, and let Contrax show you how to bid.",
+    cta: "Start for $5",
+    href: "/pricing?source=home_lane",
+  },
+  {
+    key: "dfy",
+    tag: "Done for you",
+    title: "I want it prepared for my team",
+    detail: "We send a report of the contracts ending in your line of work, who holds them and what they are worth. One report or every month.",
+    cta: "See the reports",
+    href: "/teams?source=home_lane#done-for-you",
+  },
+];
+
+function HomeLanes() {
+  return (
+    <section aria-label="Choose how you want to work" className="mx-auto max-w-[1120px] px-4 pt-8 sm:px-6">
+      <ul className="grid gap-3 sm:grid-cols-2">
+        {HOME_LANES.map((lane) => (
+          <li key={lane.key}>
+            <a
+              href={lane.href}
+              onClick={() => trackEvent("home_lane_click", lane.key)}
+              className="group flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-5 transition hover:-translate-y-0.5 hover:border-blue-400 hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
+            >
+              <span className="text-xs font-bold uppercase tracking-wider text-blue-700 dark:text-blue-300">{lane.tag}</span>
+              <span className="mt-1 text-lg font-bold">{lane.title}</span>
+              <span className="mt-1 text-sm text-slate-600 dark:text-slate-300">{lane.detail}</span>
+              <span className="mt-auto pt-3 text-sm font-semibold text-blue-700 group-hover:text-blue-600 dark:text-blue-300">{lane.cta} →</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

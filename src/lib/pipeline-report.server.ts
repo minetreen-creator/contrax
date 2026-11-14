@@ -21,7 +21,7 @@ export async function createReportCheckout(order: ReportOrder, stripe: Stripe = 
         unit_amount: REPORT_PRICE_CENTS,
         product_data: {
           name: "Contrax Pipeline Report",
-          description: `${order.trade} in ${STATE_NAMES[order.state]}. One report, sent by email within ${REPORT_DELIVERY}.`,
+          description: `${order.trade} in ${STATE_NAMES[order.state]}. One report, delivered by email within ${REPORT_DELIVERY}.`,
         },
       },
     }],

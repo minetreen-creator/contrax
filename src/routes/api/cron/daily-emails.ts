@@ -2,8 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { isAuthorizedCron } from "~/lib/cron-dispatch";
 
 /**
- * GET /api/cron/daily-emails — Vercel Cron (build-vercel.sh `crons`), every 10 minutes from
- * 10:00 to 15:50 UTC. Sends the morning emails here on Vercel (owner 2026-11-09: "move the email
+ * GET /api/cron/daily-emails — Vercel Cron (build-vercel.sh `crons`), every 30 minutes from
+ * 10:00 to 15:30 UTC (owner 2026-11-14, database cost: was every 10). Sends the morning emails here on Vercel (owner 2026-11-09: "move the email
  * to vercel"); the first call at or after 6 AM New York time sends, later calls find each job
  * already claimed and skip (src/lib/daily-emails.server.ts). The GitHub workflow is a backup that
  * uses the same claims. Auth: `Authorization: Bearer $CRON_SECRET` only (fail-closed).

@@ -1,6 +1,6 @@
 /**
  * Runs the morning emails (owner 2026-11-09: "github isn't reliable" / "move the email to
- * vercel"). Vercel Cron calls /api/cron/daily-emails every 10 minutes from 10:00 to 15:50 UTC;
+ * vercel"). Vercel Cron calls /api/cron/daily-emails every 30 minutes from 10:00 to 15:30 UTC;
  * the GitHub workflow stays as a backup and calls the same runner (src/jobs/daily-emails.ts).
  *
  * Once a day, never twice: before a job runs it claims its row in daily_email_runs for today's

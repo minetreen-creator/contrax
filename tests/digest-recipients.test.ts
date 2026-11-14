@@ -112,7 +112,7 @@ describe("emails go out once a day, in the morning", () => {
   });
 
   test("the morning runner sends the digest and the Radar alerts each morning, once", () => {
-    // Owner 2026-11-09: sent from Vercel (every 10 minutes from 10:00 UTC); GitHub runs the
+    // Owner 2026-11-09: sent from Vercel (every 30 minutes from 10:00 UTC); GitHub runs the
     // same runner every 3 hours as a backup (owner 2026-11-14: was hourly). Each job is claimed per New York date, so it runs once,
     // and nothing sends before 6 AM New York time.
     const daily = read(".github/workflows/daily-emails.yml");

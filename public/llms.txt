@@ -47,6 +47,7 @@ Contrax is operated by Contrax LLC (Virginia) and is available in the United Sta
 ## For bid consultants and proposal writers
 
 - [Consultants](https://www.contrax.company/consultants): One login for up to 10 client workspaces, each with its own matched bids, saved bids and pipeline, and a dashboard of every client's deadlines.
+- [Contrax for sales teams](https://www.contrax.company/teams): The Professional plan ($79 a month) for companies with a government sales or proposal person: contracts ending soon with the current holder and value, executive briefs, incumbent pricing, match scoring and proposal drafts.
 
 ## For material suppliers and equipment rental
 

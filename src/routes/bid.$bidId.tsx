@@ -10,6 +10,7 @@ import { IntelTeaserCard } from "~/components/IntelTeaserCard";
 import { RedFlagScanner } from "~/components/RedFlagScanner";
 import { intelTeaser, recompeteLine, type IntelTeaser } from "~/lib/intel-teaser";
 import { AreaAwardsBox } from "~/components/AreaAwardsBox";
+import { addLookupSession, cleanLookupSessions, lookupSessionId, PRICE_LOOKUP_STORAGE_KEY } from "~/lib/price-lookup";
 import { AppInstallBanner } from "~/components/AppInstallBanner";
 import type { AreaAwards } from "~/lib/area-awards";
 import { typicalRangeText } from "~/lib/area-awards";
@@ -402,6 +403,24 @@ const getBidPriceIntel = createServerFn({ method: "GET" })
   });
 
 /**
+ * The $9 lookups this browser has bought (owner 2026-11-14). A purchase just made arrives as
+ * ?lookup=<checkout session id> and is remembered first. Storage can be blocked: then only the
+ * signed-in email carries the purchase.
+ */
+function storedPriceLookups(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const fresh = lookupSessionId(new URLSearchParams(window.location.search).get("lookup"));
+    if (fresh) window.localStorage.setItem(PRICE_LOOKUP_STORAGE_KEY, addLookupSession(window.localStorage.getItem(PRICE_LOOKUP_STORAGE_KEY), fresh));
+    const raw = window.localStorage.getItem(PRICE_LOOKUP_STORAGE_KEY);
+    return cleanLookupSessions(raw ? JSON.parse(raw) : []);
+  } catch {
+    const fresh = lookupSessionId(new URLSearchParams(window.location.search).get("lookup"));
+    return fresh ? [fresh] : [];
+  }
+}
+
+/**
  * Federal winning prices near this bid (owner 2026-11-07): recent federal
  * contracts for the same kind of work in the same state, from award_leads.
  * Winners and amounts only for paid plans; everyone else gets the count.
@@ -409,9 +428,9 @@ const getBidPriceIntel = createServerFn({ method: "GET" })
 const getBidAreaAwards = createServerFn({ method: "GET" })
   .validator((d: unknown) => {
     const id = Number((d as any)?.id);
-    return Number.isInteger(id) && id > 0 ? id : -1;
+    return { id: Number.isInteger(id) && id > 0 ? id : -1, lookups: cleanLookupSessions((d as any)?.lookups) };
   })
-  .handler(async ({ data: id }): Promise<AreaAwards | null> => {
+  .handler(async ({ data: { id, lookups } }): Promise<AreaAwards | null> => {
     if (id <= 0) return null;
     try {
       const { getRequest } = await import("@tanstack/react-start/server");
@@ -425,7 +444,13 @@ const getBidAreaAwards = createServerFn({ method: "GET" })
       if (!r) return null;
       const state = resolveBidState(r.location, r.agency) ?? null;
       const { loadAreaAwards } = await import("~/lib/area-awards.server");
-      const paid = await hasPaidBidAccess(await getCurrentUser());
+      const user = await getCurrentUser();
+      let paid = await hasPaidBidAccess(user);
+      // A $9 lookup bought for this bid shows the same winners and amounts (owner 2026-11-14).
+      if (!paid && (lookups.length || user)) {
+        const { hasPriceLookup } = await import("~/lib/price-lookup.server");
+        paid = await hasPriceLookup(id, lookups, user?.email ?? null);
+      }
       return await loadAreaAwards(state, r.naics_code, r.category, paid);
     } catch (e) {
       console.error("[bid/$id] area awards failed (nothing shown):", e);
@@ -468,7 +493,7 @@ function BidDetailPage() {
     setPrice(null);
     setAreaAwards(null);
     if (bidId > 0) {
-      getBidAreaAwards({ data: { id: bidId } })
+      getBidAreaAwards({ data: { id: bidId, lookups: storedPriceLookups() } })
         .then((a) => {
           if (!active || !a) return;
           setAreaAwards(a);
@@ -699,7 +724,7 @@ function BidDetailPage() {
             {/* Red-flag scanner (owner 2026-11-08). */}
             <RedFlagScanner noticeText={bid.description} bidId={bid.id} />
 
-            {areaAwards && <AreaAwardsBox data={areaAwards} stateName={bid.state_name} />}
+            {areaAwards && <AreaAwardsBox data={areaAwards} stateName={bid.state_name} bidId={bidId} />}
 
             <SimilarBidsBox
               similar={bid.similar}

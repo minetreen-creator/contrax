@@ -91,9 +91,15 @@ async function tellBuyer(order: ReportOrder, sessionId: string): Promise<void> {
     const slug = tradeForText(order.trade);
     if (slug) {
       try {
-        const { reportData } = await import("./pipeline-report-data.server");
-        const c = (await reportData(order.state, slug, 12)).largest[0];
-        if (c) top = { holder: c.recipient_name, agency: c.sub_agency ?? c.agency, endDate: c.end_date };
+        // One small query, not the report function: this file is also bundled straight from src by
+        // vercel-entry.ts (the Stripe webhook), where importing the report module added 170 KB.
+        const { sql } = await import("~/db");
+        const rows = (await sql()`
+          SELECT recipient_name, COALESCE(sub_agency, agency) AS agency, to_char(end_date, 'YYYY-MM-DD') AS end_date
+          FROM recompete_contracts
+          WHERE trade_slug = ${slug} AND pop_state = ${order.state} AND end_date >= CURRENT_DATE AND end_date <= CURRENT_DATE + 180
+          ORDER BY amount DESC LIMIT 1`) as { recipient_name: string; agency: string | null; end_date: string }[];
+        if (rows[0]) top = { holder: rows[0].recipient_name, agency: rows[0].agency, endDate: rows[0].end_date };
       } catch (e) {
         console.error("[pipeline-report] follow-up contract lookup failed (sending without it):", (e as Error).message);
       }

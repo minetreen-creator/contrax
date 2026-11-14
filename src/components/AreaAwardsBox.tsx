@@ -1,6 +1,9 @@
 import type { AreaAwards } from "~/lib/area-awards";
 import { shortDollars, typicalRangeText } from "~/lib/area-awards";
 import { STARTER_FIRST_MONTH_PRICE } from "~/lib/starter-offer";
+import { PRICE_LOOKUP_PRICE_LABEL } from "~/lib/price-lookup";
+import { trackEvent } from "~/lib/track";
+import { useState } from "react";
 
 const day = (d: string | null) =>
   d ? new Date(`${d.slice(0, 10)}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" }) : null;
@@ -10,7 +13,28 @@ const day = (d: string | null) =>
  * contracts for the same kind of work in the same state, from USAspending.
  * Paid plans see the winners and amounts; everyone else sees the count.
  */
-export function AreaAwardsBox({ data, stateName }: { data: AreaAwards; stateName: string | null }) {
+export function AreaAwardsBox({ data, stateName, bidId }: { data: AreaAwards; stateName: string | null; bidId?: number }) {
+  const [buying, setBuying] = useState(false);
+  const [buyError, setBuyError] = useState<string | null>(null);
+  // $9 for this one bid (owner 2026-11-14: "What did this sell for?"). Offered only when there are awards to show.
+  const buyLookup = async () => {
+    if (!bidId || buying) return;
+    setBuying(true);
+    setBuyError(null);
+    trackEvent("price_lookup_click", String(bidId));
+    try {
+      const res = await fetch("/api/price-lookup/checkout", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ bidId }) });
+      const j = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
+      if (j.url) {
+        window.location.href = j.url;
+        return;
+      }
+      setBuyError(j.error ?? "Checkout is unavailable right now.");
+    } catch {
+      setBuyError("Checkout is unavailable right now.");
+    }
+    setBuying(false);
+  };
   const where = stateName ?? data.state;
   const since = day(data.since);
   const count = `${data.total} federal contract${data.total === 1 ? "" : "s"}`;
@@ -71,9 +95,27 @@ export function AreaAwardsBox({ data, stateName }: { data: AreaAwards; stateName
       ) : (
         <>
           <p className="mt-2 text-sm text-slate-300">See who won each one and what each was paid.</p>
-          <a href="/upgrade?plan=starter" className="mt-2 inline-block text-sm font-semibold text-emerald-300 hover:text-emerald-200">
-            Unlock with Starter, ${STARTER_FIRST_MONTH_PRICE} for 30 days →
-          </a>
+          {bidId ? (
+            <>
+              <button
+                type="button"
+                onClick={buyLookup}
+                disabled={buying}
+                className="mt-3 rounded-lg bg-emerald-400 px-4 py-2 text-sm font-bold text-slate-950 hover:bg-emerald-300 disabled:opacity-60"
+              >
+                {buying ? "Opening checkout…" : `See what they sold for · ${PRICE_LOOKUP_PRICE_LABEL}`}
+              </button>
+              <p className="mt-1 text-xs text-slate-400">One-time, for this bid. No account or subscription needed.</p>
+              {buyError && <p className="mt-1 text-xs text-rose-300">{buyError}</p>}
+              <a href="/upgrade?plan=starter" className="mt-2 block text-xs font-semibold text-emerald-300 hover:text-emerald-200">
+                Or see it on every bid with Starter, ${STARTER_FIRST_MONTH_PRICE} for 30 days →
+              </a>
+            </>
+          ) : (
+            <a href="/upgrade?plan=starter" className="mt-2 inline-block text-sm font-semibold text-emerald-300 hover:text-emerald-200">
+              Unlock with Starter, ${STARTER_FIRST_MONTH_PRICE} for 30 days →
+            </a>
+          )}
         </>
       )}
     </section>

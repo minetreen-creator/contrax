@@ -216,7 +216,13 @@ export function outreachRoomToday(sentToday: number, cap: number = DAILY_OUTREAC
 }
 
 /** "pack" (owner 2026-11-14): a construction first email that offers a free Bid Pack, not the $5 pass. */
-export type OutreachKind = "first" | "followup" | "prime" | "leads" | "pack" | "buyer";
+export type OutreachKind = "first" | "followup" | "prime" | "leads" | "pack" | "buyer" | "teams";
+
+/** The Contracts Ending Soon view a teams email points at, from the "trade=…&state=…" kept on the row. PURE. */
+export function teamsRecompetesPath(query: string | null | undefined): string {
+  const m = /^trade=([a-z-]{2,30})&state=([A-Z]{2})$/.exec((query ?? "").trim());
+  return m ? `/recompetes?trade=${m[1]}&state=${m[2]}` : "/recompetes";
+}
 
 /**
  * The buyer's own address among the emails found in a bid's text or on its
@@ -356,6 +362,26 @@ export function outreachEmail(i: OutreachEmailInput): { subject: string; text: s
       "I'm Nathaniel, and I run Contrax, a small company that tracks government contracts and the local contractors who do the work.",
       "",
       "Good luck with the contract.",
+    ];
+  } else if (i.kind === "teams") {
+    // Owner 2026-11-14 ("so we can sell to the big buyers not small businesses"):
+    // companies registered for federal work in a trade get the count of
+    // contracts ending in their state, and the Professional plan page.
+    // bidTitle = the headline with the real count; buyer = the recompetes query; place = the state's name.
+    const place = (i.place ?? "").trim() || "your state";
+    subject = i.bidTitle.slice(0, 140);
+    body = [
+      "Hi,",
+      "",
+      `${i.business} is registered for federal ${i.tradeLabel} work, so this may be useful to whoever handles your government sales.`,
+      "",
+      `${i.bidTitle}. Each one is on record with the company that holds it now, the agency paying, the value and the end date. That is usually months before a new solicitation is posted.`,
+      "",
+      `The first few for ${place} are free to look at: ${link(teamsRecompetesPath(i.buyer), i.kind, i.contactId)}`,
+      "",
+      `I'm Nathaniel, and I run Contrax. For teams that pursue government contracts, it shows the full list, what each contract was awarded for, and a brief on every new solicitation that says whether it fits: ${link("/teams", i.kind, i.contactId)}`,
+      "",
+      "If you would like a walkthrough, reply and I'll set one up.",
     ];
   } else if (i.kind === "buyer") {
     // Owner 2026-11-14 ("thinking outside the box" → idea 2): once a bid has

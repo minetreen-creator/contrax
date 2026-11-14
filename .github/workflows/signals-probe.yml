@@ -1,0 +1,41 @@
+name: Signals Probe
+
+# Owner 2026-11-14: reads city and county meeting agendas from Legistar's public
+# Web API and prints the items that look like buying signals (renewals, awards,
+# planned solicitations, budget items). READ-ONLY: no database, sends nothing
+# (src/jobs/signals-probe.ts). Run by hand from the Actions tab.
+
+on:
+  workflow_dispatch:
+    inputs:
+      clients:
+        description: "Legistar client names, comma-separated (blank = the Virginia list)"
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: Read meeting agendas
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Signals probe
+        env:
+          CLIENTS: ${{ inputs.clients }}
+        run: |
+          if [ -z "$CLIENTS" ]; then unset CLIENTS; fi
+          bun run signals-probe

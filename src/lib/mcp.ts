@@ -24,7 +24,7 @@ export interface McpMarket {
   priceRange: { low: number; median: number; high: number } | null;
   byAgency: { agency: string; n: number; total: number }[];
   largest: { award_key: string; recipient_name: string; amount: number; end_date: string; agency: string | null; sub_agency: string | null }[];
-  holders: { recipient_name: string; n: number; total: number }[];
+  holders: { recipient_name: string; n: number; total: number; hasPlan?: boolean }[];
   openBids: { id: number; title: string; agency: string | null; due: string }[];
 }
 
@@ -83,7 +83,7 @@ export function marketResult(m: McpMarket): Json {
       record: `https://www.usaspending.gov/award/${encodeURIComponent(c.award_key)}`,
     })),
     agencies_with_most_ending: m.byAgency.slice(0, MCP_ROWS).map((a) => ({ agency: a.agency, contracts: a.n, award_value_usd: Math.round(a.total) })),
-    companies_holding_most: m.holders.slice(0, MCP_ROWS).map((h) => ({ company: h.recipient_name, contracts: h.n, award_value_usd: Math.round(h.total) })),
+    companies_holding_most: m.holders.slice(0, MCP_ROWS).map((h) => ({ company: h.recipient_name, contracts: h.n, award_value_usd: Math.round(h.total), has_small_business_subcontracting_plan: Boolean(h.hasPlan) })),
     open_bids_that_fit: m.openBids.slice(0, MCP_ROWS).map((b) => ({ title: b.title, agency: b.agency, due: b.due, link: `${site}/bid/${b.id}` })),
     caution: "Award values are as USAspending.gov reports them, not yearly spending. End dates can move. An ending contract is not a promise that the work will be rebid.",
     full_list: `${site}/recompetes?trade=${m.trade}&state=${m.state}`,

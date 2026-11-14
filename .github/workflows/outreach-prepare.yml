@@ -25,7 +25,11 @@ on:
         type: string
         default: ""
       trade:
-        description: "Focus trade (only: construction)"
+        description: "Focus trade: construction, or an outreach trade such as janitorial"
+        type: string
+        default: ""
+      offer:
+        description: "Offer for a construction focus run: leave blank for the usual email, or 'pack' for the free Bid Pack"
         type: string
         default: ""
 
@@ -49,6 +53,7 @@ jobs:
       # Owner 2026-11-04 ("concentrate on VA construction"): a focus run.
       FOCUS_STATE: ${{ inputs.state }}
       FOCUS_TRADE: ${{ inputs.trade }}
+      FOCUS_OFFER: ${{ inputs.offer }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

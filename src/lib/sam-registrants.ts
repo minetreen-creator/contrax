@@ -8,8 +8,11 @@
  *  - Dun & Bradstreet data has limits, so records whose source is D&B, or whose name/address are
  *    flagged D&B Open Data, are left out entirely;
  *  - a business that chose "no public display" (NPDY) is left out.
- * Contrax never contacts these businesses (owner rule: no cold outreach). Primes see them on Sub
- * Finder and reach out themselves; counts appear on the search pages. PURE.
+ * Primes see them on Sub Finder and reach out themselves; counts appear on the search pages.
+ * The 2026-11-09 rule that Contrax never contacts these businesses was lifted by the owner on
+ * 2026-11-14: daily bid outreach may use a registrant's name and website to find the email the
+ * business publishes on its own site (src/jobs/prospect-finder.ts). Nothing else from SAM is
+ * used, and the outreach unsubscribe and suppression rules apply as for any other business. PURE.
  */
 import { FEDERAL_TRADE_NAICS } from "~/lib/federal-trade-data";
 

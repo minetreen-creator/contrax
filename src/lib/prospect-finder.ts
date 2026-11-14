@@ -90,3 +90,39 @@ export function csvCell(v: string | number | null | undefined): string {
   const s = v == null ? "" : String(v);
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
+
+/**
+ * Contractor registry in place of Google Places (owner 2026-11-14: the Places
+ * billing account was closed and every search returned 403; "can't we find
+ * another way"). Maps the word an outreach email uses for the trade to the
+ * registry's trade and, for building trades, the NAICS codes that narrow it, so
+ * a roofing bid goes to roofers and not to every construction firm. `name` is
+ * a pattern of words such a business has in its name: many registrants list
+ * dozens of codes they never work in (the first run sent a cleaning bid to
+ * recruiters and software firms), so a business must either be named for the
+ * trade or list only a few codes. Null when the registry has no such trade
+ * (pest control, moving). PURE.
+ */
+export function registryTrade(label: string): { trade: string; naics: string[]; name: string } | null {
+  const l = label.trim().toLowerCase();
+  // [word in the label, registry trade, NAICS that narrow it, words a business in that trade has in its name]
+  const table: [RegExp, string, string[], string][] = [
+    [/janitor|custodial|cleaning/, "janitorial", [], "clean|janitor|custodi|maid|facilit|building (service|maint)"],
+    [/landscap|grounds|mowing|lawn|tree|snow/, "landscaping", [], "lawn|landscap|tree|grounds|turf|mow|yard|outdoor|garden"],
+    [/hvac|heating|mechanical/, "hvac", [], "hvac|heat|air|mechanical|cool|refriger|climate"],
+    [/electric/, "electrical", [], "electric"],
+    [/security|guard/, "security-guard", [], "security|protect|guard|patrol"],
+    [/truck|haul/, "trucking", [], "truck|haul|transport|freight|logistic"],
+    [/roof/, "construction", ["238160"], "roof"],
+    [/plumb/, "construction", ["238220"], "plumb|mechanical"],
+    [/paint/, "construction", ["238320"], "paint|coating"],
+    [/concrete/, "construction", ["238110"], "concrete|mason|flatwork"],
+    [/fenc/, "construction", ["238990"], "fenc"],
+    [/paving/, "construction", ["237310", "238990"], "pav|asphalt|seal"],
+    [/water and sewer|utility/, "construction", ["237110"], "utilit|excavat|sewer|pipe|underground"],
+    [/site work|excavat/, "construction", ["238910"], "excavat|grading|demol|site|earth"],
+    [/construction|general contractor/, "construction", ["236220", "236210"], "construct|contract|build|renovat|remodel"],
+  ];
+  const hit = table.find(([re]) => re.test(l));
+  return hit ? { trade: hit[1], naics: hit[2], name: hit[3] } : null;
+}

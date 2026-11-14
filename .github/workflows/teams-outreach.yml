@@ -1,0 +1,54 @@
+name: Teams Outreach
+
+# Owner 2026-11-14: emails for companies registered for federal work in one
+# trade and state, pointing at Contracts Ending Soon and /teams
+# (src/jobs/teams-outreach.ts). SENDS NOTHING: it queues drafts the owner
+# approves on /admin/outreach. Run by hand; a dry run only prints.
+
+on:
+  workflow_dispatch:
+    inputs:
+      state:
+        description: "State, two letters"
+        type: string
+        default: "VA"
+      trade:
+        description: "Trade slug (it-services, construction, janitorial, security-guard, ...)"
+        type: string
+        default: "it-services"
+      apply:
+        description: "Queue the drafts (leave off for a dry run)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: outreach-prepare
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  teams:
+    name: Queue teams emails
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      STATE: ${{ inputs.state }}
+      TRADE: ${{ inputs.trade }}
+      APPLY: ${{ inputs.apply && 'true' || 'false' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Teams outreach
+        run: bun run teams-outreach

@@ -226,6 +226,21 @@ export async function queueBuyerNote(p: { email: string; bid: BuyerNoteBid }): P
   return rows.length > 0;
 }
 
+/**
+ * Queue a teams draft (owner 2026-11-14): no bid, so bid_id is 0 like an award
+ * leads row and due_date is the day the draft goes stale. `headline` carries
+ * the real count; `query` is the Contracts Ending Soon view ("trade=…&state=…").
+ */
+export async function queueTeams(p: { email: string; business: string; website: string | null; headline: string; query: string; tradeLabel: string; place: string }): Promise<boolean> {
+  if (!(await isNewAddress(p.email))) return false;
+  const rows = (await sql()`
+    INSERT INTO outreach_contacts (email, kind, business, website, bid_id, bid_title, buyer, due_date, trade_label, place)
+    VALUES (${p.email.trim().toLowerCase()}, 'teams', ${p.business}, ${p.website}, 0, ${p.headline}, ${p.query},
+            CURRENT_DATE + 30, ${p.tradeLabel}, ${p.place})
+    ON CONFLICT DO NOTHING RETURNING id`) as unknown[];
+  return rows.length > 0;
+}
+
 export interface QueuedPrime {
   email: string;
   business: string;
@@ -428,7 +443,7 @@ export async function trimDraftsToCap(cap: number = DAILY_OUTREACH_CAP): Promise
     WITH ranked AS (
       SELECT id, ROW_NUMBER() OVER (ORDER BY
         (due_date < CURRENT_DATE + 2) ASC,
-        CASE kind WHEN 'first' THEN 0 WHEN 'pack' THEN 0 WHEN 'buyer' THEN 1 WHEN 'leads' THEN 1 WHEN 'prime' THEN 2 ELSE 3 END,
+        CASE kind WHEN 'first' THEN 0 WHEN 'pack' THEN 0 WHEN 'buyer' THEN 1 WHEN 'teams' THEN 1 WHEN 'leads' THEN 1 WHEN 'prime' THEN 2 ELSE 3 END,
         due_date ASC, id ASC) AS rn
       FROM outreach_contacts WHERE status = 'draft'
     )
@@ -501,7 +516,7 @@ export async function sendDrafts(ids: number[]): Promise<{ sent: number; failed:
     }
     const row = normalize(claimed[0]!);
     // Prime and Award Leads rows have no bid behind bid_id: no posting lookup.
-    const posting = row.kind === "prime" || row.kind === "leads" ? null : (await postingUrls([row.bid_id])).get(row.bid_id) ?? null;
+    const posting = row.kind === "prime" || row.kind === "leads" || row.kind === "teams" ? null : (await postingUrls([row.bid_id])).get(row.bid_id) ?? null;
     const mail = renderContact(row, postal!, posting);
     const unsub = unsubscribeUrl(row.email);
     try {

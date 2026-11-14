@@ -23,8 +23,8 @@ async function get({ request }: { request: Request }) {
     const o = await outreachOverview();
     const address = o.postalAddress ?? "[mailing address not set]";
     // Prime and Award Leads rows have no bid behind bid_id: no posting lookup.
-    const postings = await postingUrls(o.drafts.filter((d) => d.kind !== "prime" && d.kind !== "leads").map((d) => d.bid_id));
-    const drafts = o.drafts.map((d) => ({ ...d, preview: renderContact(d, address, d.kind === "prime" || d.kind === "leads" ? null : postings.get(d.bid_id) ?? null) }));
+    const postings = await postingUrls(o.drafts.filter((d) => d.kind !== "prime" && d.kind !== "leads" && d.kind !== "teams").map((d) => d.bid_id));
+    const drafts = o.drafts.map((d) => ({ ...d, preview: renderContact(d, address, d.kind === "prime" || d.kind === "leads" || d.kind === "teams" ? null : postings.get(d.bid_id) ?? null) }));
     return Response.json({ ...o, drafts });
   } catch (err) {
     console.error("[api/admin/outreach] load error:", err);

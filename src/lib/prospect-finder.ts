@@ -113,6 +113,8 @@ export function registryTrade(label: string): { trade: string; naics: string[]; 
     [/electric/, "electrical", [], "electric"],
     [/security|guard/, "security-guard", [], "security|protect|guard|patrol"],
     [/truck|haul/, "trucking", [], "truck|haul|transport|freight|logistic"],
+    // Teams outreach (owner 2026-11-14): companies registered for federal IT work.
+    [/^it services$|software|information technology/, "it-services", [], "tech|software|systems|solutions|data|cyber|digital|comput|network|cloud"],
     [/roof/, "construction", ["238160"], "roof"],
     [/plumb/, "construction", ["238220"], "plumb|mechanical"],
     [/paint/, "construction", ["238320"], "paint|coating"],

@@ -100,7 +100,7 @@ const WHO: [string, string][] = [
 function TeamsPage() {
   const counts = Route.useLoaderData();
   const plan = PLAN_COPY.professional;
-  const features = plan.features.filter((f) => !/^Or \$/.test(f) && f !== "Cancel anytime");
+  const features = plan.features.filter((f) => !/^Or \$/.test(f));
   return (
     <>
       <SiteHeader />

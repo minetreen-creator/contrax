@@ -97,6 +97,27 @@ async function freshBids(match: string, limit: number): Promise<BidRow[]> {
   `) as BidRow[];
 }
 
+/**
+ * One state's open bids for one outreach trade (owner 2026-11-14: "matched-bid
+ * emails to 30 Virginia janitorial firms"). A state has few such bids at a time
+ * (Virginia had three), so a focus run takes every open one, whenever it was
+ * saved and whether or not it was used before; known addresses are still skipped.
+ */
+async function stateTradeBids(match: string, state: string, limit: number): Promise<BidRow[]> {
+  const s = sql();
+  const like = `%${match.toLowerCase()}%`;
+  return (await s`
+    SELECT id, title, agency, location, normalized_state, due_date FROM bids
+    WHERE normalized_state = ${state}
+      AND due_date >= NOW() + ${`${MIN_DAYS_TO_DUE} days`}::interval
+      AND due_date <= NOW() + ${`${MAX_DAYS_TO_DUE} days`}::interval
+      AND LOWER(title) LIKE ${like}
+      AND ${s.unsafe(LOW_CONTENT_SQL)} AND ${s.unsafe(AWARD_EXCLUSION_SQL)}
+    ORDER BY due_date ASC
+    LIMIT ${limit}
+  `) as BidRow[];
+}
+
 /** One state's fresh open construction bids, newest first. */
 async function freshConstructionBids(state: string, limit: number): Promise<BidRow[]> {
   const s = sql();
@@ -115,7 +136,7 @@ async function freshConstructionBids(state: string, limit: number): Promise<BidR
 }
 
 /** Find up to BUSINESSES_PER_BID local businesses for one bid and queue a draft to each. */
-async function queueForBid(key: string, b: BidRow, trade: OutreachTrade, seenHosts: Set<string>, room: number): Promise<number> {
+async function queueForBid(key: string, b: BidRow, trade: OutreachTrade, seenHosts: Set<string>, room: number, perBid = BUSINESSES_PER_BID): Promise<number> {
   const due = new Date(b.due_date).toISOString().slice(0, 10);
   const place = outreachPlace(b)!;
   const query = placesQuery(trade.places, place);
@@ -125,7 +146,7 @@ async function queueForBid(key: string, b: BidRow, trade: OutreachTrade, seenHos
   if (source === "registry") console.log(`    ${places.length} from the contractor registry`);
   let forBid = 0;
   for (const p of places) {
-    if (forBid >= BUSINESSES_PER_BID || forBid >= room) break;
+    if (forBid >= perBid || forBid >= room) break;
     const host = p.website ? siteHost(p.website) : null;
     if (!p.website || !host || seenHosts.has(host)) continue;
     // A business in another state is not "near" the job (owner 2026-10-30:
@@ -177,6 +198,24 @@ async function queueConstructionFocus(key: string, state: string): Promise<numbe
   return queued;
 }
 
+/** Businesses per bid on a one-trade focus run: a state's few bids have to carry the whole batch. */
+const FOCUS_BUSINESSES_PER_BID = 10;
+
+/** The focus run for a service trade: one state's open bids in that trade, up to ten businesses each. */
+async function queueTradeFocus(key: string, state: string, trade: OutreachTrade): Promise<number> {
+  const bids = (await stateTradeBids(trade.match, state, CANDIDATES_PER_TRADE)).filter(
+    (b) => bidIsServiceJob(b.title) && bidFitsTrade(trade.label, b.title) && outreachPlace(b) !== null,
+  );
+  console.log(`\n${state} ${trade.label}: ${bids.length} open local bid(s)`);
+  let queued = 0;
+  const seenHosts = new Set<string>();
+  for (const b of bids) {
+    if (queued >= DAILY_FIRST_EMAILS) break;
+    queued += await queueForBid(key, b, trade, seenHosts, DAILY_FIRST_EMAILS - queued, FOCUS_BUSINESSES_PER_BID);
+  }
+  return queued;
+}
+
 async function main() {
   await ensureOutreach();
   if (process.env.RESET_DRAFTS === "true") {
@@ -194,11 +233,13 @@ async function main() {
   if (!key) console.log("GOOGLE_PLACES_API_KEY is not set — finding businesses in the contractor registry.");
 
   if (FOCUS_STATE && FOCUS_TRADE) {
-    if (FOCUS_TRADE !== "construction" || !/^[A-Z]{2}$/.test(FOCUS_STATE)) {
-      throw new Error(`Unknown focus ${FOCUS_STATE} ${FOCUS_TRADE}: use a two-letter state and "construction"`);
+    const serviceTrade = OUTREACH_TRADES.find((t) => t.match === FOCUS_TRADE || t.label.toLowerCase() === FOCUS_TRADE);
+    if (!/^[A-Z]{2}$/.test(FOCUS_STATE) || (FOCUS_TRADE !== "construction" && !serviceTrade)) {
+      throw new Error(`Unknown focus ${FOCUS_STATE} ${FOCUS_TRADE}: use a two-letter state and "construction" or an outreach trade such as "janitorial"`);
     }
-    const queued = await queueConstructionFocus(key, FOCUS_STATE);
-    console.log(`\nFirst emails queued (${FOCUS_STATE} construction): ${queued}. Approve them at https://www.contrax.company/admin/outreach`);
+    const queued =
+      FOCUS_TRADE === "construction" ? await queueConstructionFocus(key, FOCUS_STATE) : await queueTradeFocus(key, FOCUS_STATE, serviceTrade!);
+    console.log(`\nFirst emails queued (${FOCUS_STATE} ${FOCUS_TRADE}): ${queued}. Approve them at https://www.contrax.company/admin/outreach`);
     return;
   }
 

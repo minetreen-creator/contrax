@@ -84,4 +84,12 @@ describe("contractor registry in place of Google Places", () => {
     expect(prepare).toContain("emails.find((e) => emailFitsSite(e, host, p.name))");
     expect(prepare).toContain("await isNewAddress(email)");
   });
+  test("a focus run takes any outreach trade in one state, with more businesses per bid", () => {
+    const prepare = readSource("src/jobs/outreach-prepare.ts", "utf8");
+    expect(prepare).toContain("OUTREACH_TRADES.find((t) => t.match === FOCUS_TRADE || t.label.toLowerCase() === FOCUS_TRADE)");
+    expect(prepare).toContain("const FOCUS_BUSINESSES_PER_BID = 10;");
+    expect(prepare).toContain("WHERE normalized_state = ${state}");
+    // The daily run keeps its two businesses per bid.
+    expect(prepare).toContain("perBid = BUSINESSES_PER_BID");
+  });
 });

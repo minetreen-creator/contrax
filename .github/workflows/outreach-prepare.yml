@@ -25,7 +25,7 @@ on:
         type: string
         default: ""
       trade:
-        description: "Focus trade (only: construction)"
+        description: "Focus trade: construction, or an outreach trade such as janitorial"
         type: string
         default: ""
 

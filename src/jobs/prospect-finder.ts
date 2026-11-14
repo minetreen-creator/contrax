@@ -64,6 +64,8 @@ export async function searchRegistrants(opts: { state: string; label: string; pl
   try {
     const s = sql();
     const naics = t.naics.length ? t.naics : null;
+    // "near Christiansburg, VA 24073": the same three-digit ZIP area comes right after the same town.
+    const zip3 = /\b(\d{3})\d{2}\b/.exec(opts.place)?.[1] ?? "";
     const rows = (await s`
       SELECT name, city, state, zip, url FROM sam_registrants
       WHERE state = ${opts.state}
@@ -74,6 +76,7 @@ export async function searchRegistrants(opts: { state: string; label: string; pl
         AND (name ~* ${t.name} OR cardinality(naics) <= ${FOCUSED_NAICS})
       ORDER BY (name ~* ${t.name}) DESC,
                (city <> '' AND POSITION(LOWER(city) IN LOWER(${opts.place})) > 0) DESC,
+               (${zip3} <> '' AND LEFT(COALESCE(zip, ''), 3) = ${zip3}) DESC,
                md5(uei || ${String(opts.bidId)})
       LIMIT ${PLACES_PER_BID}
     `) as { name: string; city: string | null; state: string; zip: string | null; url: string }[];

@@ -243,6 +243,16 @@ const BOARDS: Board[] = [
   { tenant: "mesquiteisd", source: "tx_mesquite_isd_bonfire", stateName: "Texas", place: "Mesquite ISD", buyer: "Mesquite Independent School District", idPrefix: "mesquiteisdbonfire", location: "Mesquite, TX" },
   { tenant: "pcc", source: "or_portland_cc_bonfire", stateName: "Oregon", place: "Portland Community College", buyer: "Portland Community College", idPrefix: "pccbonfire", location: "Portland, OR" },
   { tenant: "umass", source: "ma_umass_bonfire", stateName: "Massachusetts", place: "University of Massachusetts", buyer: "University of Massachusetts", idPrefix: "umassbonfire", location: "Massachusetts" },
+  // 2026-11-14 Florida scan (owner: "Florida coverage is very thin"): 1,163 Bonfire names checked, these are new.
+  { tenant: "tampabaywater", source: "fl_tampa_bay_water_bonfire", stateName: "Florida", place: "Tampa Bay Water", buyer: "Tampa Bay Water", idPrefix: "tampabaywaterbonfire", location: "Clearwater, FL" },
+  { tenant: "marionfl", source: "fl_marion_county_bonfire", stateName: "Florida", place: "Marion County", buyer: "Marion County, Florida", idPrefix: "marionflbonfire", location: "Marion County, FL" },
+  { tenant: "panamacity", source: "fl_panama_city_bonfire", stateName: "Florida", place: "Panama City", buyer: "City of Panama City, Florida", idPrefix: "panamacitybonfire", location: "Panama City, FL" },
+  { tenant: "palmcoastgov", source: "fl_palm_coast_bonfire", stateName: "Florida", place: "Palm Coast", buyer: "City of Palm Coast, Florida", idPrefix: "palmcoastgovbonfire", location: "Palm Coast, FL" },
+  { tenant: "gohart", source: "fl_hart_bonfire", stateName: "Florida", place: "HART", buyer: "Hillsborough Area Regional Transit (HART)", idPrefix: "gohartbonfire", location: "Tampa, FL" },
+  { tenant: "suwanneecountyfl", source: "fl_suwannee_county_bonfire", stateName: "Florida", place: "Suwannee County", buyer: "Suwannee County, Florida", idPrefix: "suwanneecountyflbonfire", location: "Suwannee County, FL" },
+  { tenant: "tavaresfl", source: "fl_tavares_bonfire", stateName: "Florida", place: "Tavares", buyer: "City of Tavares, Florida", idPrefix: "tavaresflbonfire", location: "Tavares, FL" },
+  { tenant: "daviefl", source: "fl_davie_bonfire", stateName: "Florida", place: "Davie", buyer: "Town of Davie, Florida", idPrefix: "davieflbonfire", location: "Davie, FL" },
+  { tenant: "floridapoly", source: "fl_florida_poly_bonfire", stateName: "Florida", place: "Florida Polytechnic University", buyer: "Florida Polytechnic University", idPrefix: "floridapolybonfire", location: "Lakeland, FL" },
 ];
 
 export const COUNTY_BONFIRE_CONFIGS: readonly BonfireConfig[] = BOARDS.map(boardConfig);

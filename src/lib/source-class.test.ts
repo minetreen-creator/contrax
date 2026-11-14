@@ -104,7 +104,8 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // + City of New Braunfels on Beacon, 2026-11-10 (1113 → 1114).
     // + 185 county and city CivicEngage boards from the 2026-11-13 scan and Maine VSS (1114 → 1300).
     // + five school-district Bonfire portals, 2026-11-13 (1300 → 1358).
-    expect(Object.keys(SOURCE_CLASSES).length).toBe(1358);
+    // + nine Florida Bonfire portals, 2026-11-14 (1358 → 1367).
+    expect(Object.keys(SOURCE_CLASSES).length).toBe(1367);
   });
 
   test("every registry label is classified (no collector is unclassified)", () => {
@@ -202,7 +203,8 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // + City of New Braunfels on Beacon, 2026-11-10 (1029 → 1030).
     // + 185 county and city CivicEngage boards from the 2026-11-13 scan and Maine VSS (1030 → 1216).
     // + five school-district Bonfire portals, 2026-11-13 (1216 → 1274).
-    expect(TAIL_SOURCES.length).toBe(1274);
+    // + nine Florida Bonfire portals, 2026-11-14 (1274 → 1283).
+    expect(TAIL_SOURCES.length).toBe(1283);
   });
 
   test("every city registry entry the product fetches is LOCAL with a city name", () => {

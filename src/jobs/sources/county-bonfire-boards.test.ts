@@ -139,14 +139,15 @@ const NO_CAPTURE = new Set([
   // 2026-11-13 big-buyer scan (no fixtures captured).
   "ks_wichita_bonfire", "il_metra_bonfire", "fl_psta_bonfire", "ga_sandy_springs_bonfire", "il_city_colleges_bonfire", "sd_sioux_falls_bonfire", "wi_waukesha_county_bonfire",
   "tx_comal_isd_bonfire", "id_nampa_bonfire", "ut_granite_schools_bonfire", "tx_mesquite_isd_bonfire", "or_portland_cc_bonfire", "ma_umass_bonfire",
+  "fl_tampa_bay_water_bonfire", "fl_marion_county_bonfire", "fl_panama_city_bonfire", "fl_palm_coast_bonfire", "fl_hart_bonfire", "fl_suwannee_county_bonfire", "fl_tavares_bonfire", "fl_davie_bonfire", "fl_florida_poly_bonfire",
   "wa_clark_county_bonfire", "wa_renton_bonfire", "wa_port_of_everett_bonfire", "wa_tacoma_schools_bonfire", "wa_lake_washington_schools_bonfire", "wa_northshore_schools_bonfire", "id_west_ada_schools_bonfire",
 ]);
 
 describe("county Bonfire boards", () => {
   test("142 boards, unique sources and id prefixes", () => {
-    expect(COUNTY_BONFIRE_CONFIGS).toHaveLength(187);
-    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.source)).size).toBe(187);
-    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.idPrefix)).size).toBe(187);
+    expect(COUNTY_BONFIRE_CONFIGS).toHaveLength(196);
+    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.source)).size).toBe(196);
+    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.idPrefix)).size).toBe(196);
   });
 
   for (const cfg of COUNTY_BONFIRE_CONFIGS.filter((c) => !NO_CAPTURE.has(c.source))) {

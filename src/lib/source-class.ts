@@ -4447,6 +4447,27 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
     searchScope: "city-open-data",
     recordType: "opportunity",
   },
+  fl_cape_coral_ionwave: {
+    class: "local",
+    city: "Cape Coral",
+    scopeState: "FL",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
+  fl_lauderhill_ionwave: {
+    class: "local",
+    city: "Lauderhill",
+    scopeState: "FL",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
+  fl_coconut_creek_ionwave: {
+    class: "local",
+    city: "Coconut Creek",
+    scopeState: "FL",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
   ia_dubuque: {
     class: "local",
     city: "Dubuque",

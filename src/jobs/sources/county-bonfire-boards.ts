@@ -253,6 +253,10 @@ const BOARDS: Board[] = [
   { tenant: "tavaresfl", source: "fl_tavares_bonfire", stateName: "Florida", place: "Tavares", buyer: "City of Tavares, Florida", idPrefix: "tavaresflbonfire", location: "Tavares, FL" },
   { tenant: "daviefl", source: "fl_davie_bonfire", stateName: "Florida", place: "Davie", buyer: "Town of Davie, Florida", idPrefix: "davieflbonfire", location: "Davie, FL" },
   { tenant: "floridapoly", source: "fl_florida_poly_bonfire", stateName: "Florida", place: "Florida Polytechnic University", buyer: "Florida Polytechnic University", idPrefix: "floridapolybonfire", location: "Lakeland, FL" },
+  // Owner 2026-11-14 ("1" / "add whatever you find"): Florida board scan; portal titles confirmed
+  // ("City of Palm Bay Florida", "City of Sebastian, FL"), 3 and 2 open at scan.
+  { tenant: "palmbayflorida", source: "fl_palm_bay_bonfire", stateName: "Florida", place: "Palm Bay", buyer: "City of Palm Bay, Florida", idPrefix: "palmbayflbonfire", location: "Palm Bay, FL" },
+  { tenant: "cityofsebastian", source: "fl_sebastian_bonfire", stateName: "Florida", place: "Sebastian", buyer: "City of Sebastian, Florida", idPrefix: "sebastianflbonfire", location: "Sebastian, FL" },
 ];
 
 export const COUNTY_BONFIRE_CONFIGS: readonly BonfireConfig[] = BOARDS.map(boardConfig);

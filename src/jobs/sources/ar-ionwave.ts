@@ -256,6 +256,8 @@ export const FL_IONWAVE_BOARDS: readonly IonwaveBoard[] = [
   { source: "fl_lauderhill_ionwave", origin: "https://lauderhill.ionwave.net", agency: "City of Lauderhill", location: "Lauderhill, FL", fallbackLocation: "Lauderhill, FL", idPrefix: "lauderhillflionwave" },
   { source: "fl_pasco_schools_ionwave", origin: "https://pascok12.ionwave.net", agency: "Pasco County Schools", location: "Pasco County, FL", fallbackLocation: "Pasco County, FL", idPrefix: "pascok12flionwave" },
   { source: "fl_coconut_creek_ionwave", origin: "https://coconutcreek.ionwave.net", agency: "City of Coconut Creek", location: "Coconut Creek, FL", fallbackLocation: "Coconut Creek, FL", idPrefix: "coconutcreekflionwave" },
+  // Owner 2026-11-14 ("add whatever you find"): "Pompano Beach eBid System", 2 open at scan.
+  { source: "fl_pompano_beach_ionwave", origin: "https://pompanobeachfl.ionwave.net", agency: "City of Pompano Beach", location: "Pompano Beach, FL", fallbackLocation: "Pompano Beach, FL", idPrefix: "pompanobeachflionwave" },
 ];
 
 export const FL_IONWAVE_SOURCES: { name: string; fetchFn: () => Promise<FetchResult> }[] = FL_IONWAVE_BOARDS.map((b) => ({

@@ -50,6 +50,8 @@ import {
 import { getGoogleAuthUrl } from "~/lib/google-oauth";
 import { getLinkedInAuthUrl } from "~/lib/linkedin-oauth";
 import { safeNext } from "~/lib/saved-matches";
+import { US_PLACES } from "~/lib/states";
+import { STATE_NAMES } from "~/lib/contract-map";
 import {
   mergeRadarCriteria,
   resolvePostSignupDestination,
@@ -135,6 +137,9 @@ type Plan = (typeof validPlans)[number];
 // Radar cert ids — mirrors RADAR_CERTS in src/routes/radar.tsx. Used to gate
 // the onboarding prefill on a known cert value (fail-open otherwise).
 const RADAR_CERTS = ["sdvosb", "8a", "wosb", "hubzone", "sb"] as const;
+
+/** Suggestions under the signup trade box; any trade can be typed. */
+const SIGNUP_TRADE_SUGGESTIONS = ["Construction", "Janitorial", "Landscaping", "HVAC", "Plumbing", "Roofing", "Electrical", "Trucking", "Security guards", "Welding", "IT services"];
 
 /**
  * The criteria the post-signup Radar landing carries (owner rework 2026-09-26,
@@ -546,6 +551,21 @@ function SignupPage() {
   } | null>(null);
   const unlockViewedRef = useRef(false);
   const unlockCompletedRef = useRef(false);
+  // Trade and state on the form (owner 2026-11-14): half of new accounts had
+  // no trade, so the 6 AM email could not match them. Both are asked here and
+  // arrive filled in when the visitor already searched (URL > handoff > saved
+  // radar session, the same order the Radar landing uses). Typing wins: once
+  // the visitor edits a field, the prefill never overwrites it.
+  const [tradeAnswer, setTradeAnswer] = useState("");
+  const [stateAnswer, setStateAnswer] = useState("");
+  const tradeTouchedRef = useRef(false);
+  const stateTouchedRef = useRef(false);
+  useEffect(() => {
+    const known = resolveSignupRadarCriteria({ trade, state, cert, size, handoff: unlockHandoff });
+    if (!tradeTouchedRef.current && known.trade) setTradeAnswer(known.trade.slice(0, 120));
+    const st = (known.state || "").toUpperCase();
+    if (!stateTouchedRef.current && (US_PLACES as readonly string[]).includes(st)) setStateAnswer(st);
+  }, [trade, state, cert, size, unlockHandoff]);
   // PR2 unlock handoff (owner 2026-09-07): when the visitor arrives from the
   // anonymous locked-results card (source=radar_results_unlock), verify the
   // signed first-party handoff cookie server-side and restore the EXACT scan:
@@ -1078,8 +1098,20 @@ function SignupPage() {
     const clientErrors: string[] = [];
     const invalidEmail = !email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     const invalidPassword = !password || password.length < 8;
+    // Trade and state are required on this form (owner 2026-11-14). The server
+    // keeps them optional, so Google sign-up and older clients still work.
+    const signupTrade = tradeAnswer.replace(/\s+/g, " ").trim().slice(0, 120);
+    const signupState = stateAnswer.trim().toUpperCase();
+    const invalidTrade = signupTrade.length < 2 || signupTrade.includes("@");
+    const invalidState = !(US_PLACES as readonly string[]).includes(signupState);
     if (invalidEmail) {
       clientErrors.push("Please enter a valid email address.");
+    }
+    if (invalidTrade) {
+      clientErrors.push("Tell us what kind of work you do.");
+    }
+    if (invalidState) {
+      clientErrors.push("Choose your state.");
     }
     if (invalidPassword) {
       clientErrors.push("Password must be at least 8 characters.");
@@ -1088,14 +1120,19 @@ function SignupPage() {
       setError(clientErrors.join(" "));
       // Track the validation failure so failed submissions are visible in the
       // funnel. Structured payload { field, error, from } (owner spec): `field`
-      // is email | password | multiple; `error` is the short human message;
+      // is email | password | trade | state | multiple; `error` is the short human message;
       // `from` is the acquisition-path bucket (owner 09-12). NEVER logs the
       // entered email/password/company values — field NAME and reason only.
       // The field also rides as a plain label for easy filtering; the full
       // {field,error,from} object is serialized via the same path "extra
       // payload" channel trackEvent already uses.
-      const fieldErr =
-        invalidEmail && invalidPassword ? "multiple" : invalidEmail ? "email" : "password";
+      const invalidFields = [
+        invalidEmail && "email",
+        invalidTrade && "trade",
+        invalidState && "state",
+        invalidPassword && "password",
+      ].filter(Boolean) as string[];
+      const fieldErr = invalidFields.length === 1 ? invalidFields[0] : "multiple";
       // Pure payload builder — strict allowlist (email|password|multiple) and
       // short reason only, NEVER the entered email/password/company values.
       const fieldErrorPayload = buildFieldErrorPayload(fieldErr, clientErrors.join(" "));
@@ -1125,6 +1162,10 @@ function SignupPage() {
           confirmPassword: password,
           plan: selectedPlan,
           company: company || undefined,
+          // Becomes the account's business profile (trade + state), so the
+          // morning email matches from day one.
+          trade: signupTrade,
+          state: signupState,
           // Signup-source marker (owner 09-28): the allowlisted ?source= value
           // this signup arrived through, so the ACCOUNT itself records which
           // door created it (users.signup_source) — the family's new
@@ -1218,7 +1259,7 @@ function SignupPage() {
       // previous destinations — see resolvePostSignupDestination.
       const destination = resolvePostSignupDestination(
         { saveBid: save_bid, next, source },
-        resolveSignupRadarCriteria({ trade, state, cert, size, handoff: unlockHandoff }),
+        resolveSignupRadarCriteria({ trade: trade || signupTrade, state: state || signupState, cert, size, handoff: unlockHandoff }),
         safeNext,
       );
       if (destination.kind === "purchase") {
@@ -1443,6 +1484,64 @@ function SignupPage() {
                 No spam. Instant access to live federal solicitations.
               </p>
             </div>
+
+            {/* Trade and state (owner 2026-11-14) — required, and already filled
+              in for anyone who searched first. Saved as the account's profile. */}
+            <div className="grid gap-5 sm:grid-cols-[1fr_11rem]">
+              <div>
+                <label htmlFor="trade" className="block text-sm font-medium text-gray-700">
+                  What kind of work do you do?
+                </label>
+                <input
+                  id="trade"
+                  name="trade"
+                  type="text"
+                  required
+                  list="signup-trades"
+                  maxLength={120}
+                  autoComplete="off"
+                  value={tradeAnswer}
+                  onChange={(e) => {
+                    tradeTouchedRef.current = true;
+                    setTradeAnswer(e.target.value);
+                  }}
+                  className="mt-2 block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  placeholder="e.g. Janitorial, Roofing, HVAC"
+                />
+                <datalist id="signup-trades">
+                  {SIGNUP_TRADE_SUGGESTIONS.map((t) => (
+                    <option key={t} value={t} />
+                  ))}
+                </datalist>
+              </div>
+              <div>
+                <label htmlFor="state" className="block text-sm font-medium text-gray-700">
+                  State
+                </label>
+                <select
+                  id="state"
+                  name="state"
+                  required
+                  value={stateAnswer}
+                  onChange={(e) => {
+                    stateTouchedRef.current = true;
+                    setStateAnswer(e.target.value);
+                  }}
+                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                >
+                  <option value="">Choose</option>
+                  {[...US_PLACES]
+                    .map((code) => ({ code, name: STATE_NAMES[code] ?? code }))
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                    .map((p) => (
+                      <option key={p.code} value={p.code}>{p.name}</option>
+                    ))}
+                </select>
+              </div>
+            </div>
+            <p className="-mt-3 text-xs text-gray-500">
+              So your bid emails only bring work you can do, where you do it. You can change both later.
+            </p>
 
             {/* Company name (optional) — no friction: never required, never blocks
               signup when empty. Stored on the account (users.company_name). */}

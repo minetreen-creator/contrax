@@ -138,10 +138,10 @@ export function buildExitPayload(input: {
 }
 
 // ── signup_field_error payload builder (owner 09-12) ──
-// `field` is a STRICT allowlist: email | password | multiple. Anything outside
+// `field` is a STRICT allowlist: email | password | trade | state | multiple. Anything outside
 // is coerced to "multiple" so a field NAME (never the entered value) is all
 // that can ever appear. `message` is the short human text, truncated.
-export const FIELD_ERROR_FIELDS = ["email", "password", "multiple"] as const;
+export const FIELD_ERROR_FIELDS = ["email", "password", "trade", "state", "multiple"] as const;
 export type FieldErrorField = (typeof FIELD_ERROR_FIELDS)[number];
 export interface FieldErrorPayload {
   field: FieldErrorField;

@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { sql } from "~/db";
+import { signupLinkForLead } from "~/lib/radar-lead-signup-link";
 
 /**
  * GET /api/radar/lead-confirm?token=… — the ONE confirmation link sent by the
@@ -12,7 +13,9 @@ import { sql } from "~/db";
  * confirmation page itself never breaks on a funnel write failure.
  */
 
-const PAGE = (title: string, body: string) =>
+const esc = (v: string) => v.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+const PAGE = (title: string, body: string, signupHref?: string) =>
   `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -25,8 +28,12 @@ const PAGE = (title: string, body: string) =>
     <p style="margin:0 0 8px;font-size:13px;font-weight:700;letter-spacing:0.12em;color:#fbbf24;text-transform:uppercase;">Contrax</p>
     <h1 style="margin:0 0 12px;font-size:24px;font-weight:800;color:#ffffff;">${title}</h1>
     <p style="margin:0;font-size:15px;line-height:1.6;color:#cbd5e1;">${body}</p>
-    <a href="https://www.contrax.company/radar" style="display:inline-block;margin-top:28px;background:#fbbf24;color:#020617;text-decoration:none;padding:12px 28px;border-radius:10px;font-size:15px;font-weight:700;">Back to Contract Radar</a>
-    <p style="margin-top:24px;font-size:12px;color:#64748b;">No account required · unsubscribe anytime with one click</p>
+    ${signupHref
+      ? `<p style="margin:20px 0 0;font-size:15px;line-height:1.6;color:#cbd5e1;">Want to save the bids you plan to go after? A free account does that, with no credit card.</p>
+    <a href="${esc(signupHref)}" style="display:inline-block;margin-top:16px;background:#fbbf24;color:#020617;text-decoration:none;padding:12px 28px;border-radius:10px;font-size:15px;font-weight:700;">Create my free account</a>
+    <p style="margin:16px 0 0;font-size:14px;"><a href="https://www.contrax.company/radar" style="color:#cbd5e1;">Back to Contract Radar</a></p>`
+      : `<a href="https://www.contrax.company/radar" style="display:inline-block;margin-top:28px;background:#fbbf24;color:#020617;text-decoration:none;padding:12px 28px;border-radius:10px;font-size:15px;font-weight:700;">Back to Contract Radar</a>`}
+    <p style="margin-top:24px;font-size:12px;color:#64748b;">Your alerts need no account · unsubscribe anytime with one click</p>
   </div>
 </body>
 </html>`;
@@ -41,8 +48,8 @@ async function handler({ request }: { request: Request }) {
       });
     }
     const rows = (await sql()`
-      SELECT email, confirmed_at, unsubscribed_at, visitor_id FROM radar_leads WHERE unsubscribe_token = ${token}
-    `) as Array<{ email: string; confirmed_at: string | null; unsubscribed_at: string | null; visitor_id: string | null }>;
+      SELECT email, confirmed_at, unsubscribed_at, visitor_id, radar_profile FROM radar_leads WHERE unsubscribe_token = ${token}
+    `) as Array<{ email: string; confirmed_at: string | null; unsubscribed_at: string | null; visitor_id: string | null; radar_profile: unknown }>;
     const lead = rows[0];
     if (!lead) {
       return new Response(
@@ -58,7 +65,7 @@ async function handler({ request }: { request: Request }) {
     }
     if (lead.confirmed_at) {
       return new Response(
-        PAGE("You're already confirmed ✓", "Your Contrax match alerts are active. We'll email you when we find new matching opportunities."),
+        PAGE("You're already confirmed ✓", "Your Contrax match alerts are active. We'll email you when we find new matching opportunities.", signupLinkForLead(lead.radar_profile)),
         { headers: { "content-type": "text/html; charset=utf-8" } },
       );
     }
@@ -79,7 +86,7 @@ async function handler({ request }: { request: Request }) {
       console.error("[api/radar/lead-confirm] email_confirmed event failed (page still confirms):", (e as Error).message);
     }
     return new Response(
-      PAGE("You're confirmed ✓", "You're on the list. We'll email you when new government contract matches for your business open up."),
+      PAGE("You're confirmed ✓", "You're on the list. We'll email you when new government contract matches for your business open up.", signupLinkForLead(lead.radar_profile)),
       { headers: { "content-type": "text/html; charset=utf-8" } },
     );
   } catch (err) {

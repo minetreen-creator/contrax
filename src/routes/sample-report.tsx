@@ -138,7 +138,8 @@ function SampleReport() {
               <h2 className="text-xl font-bold text-slate-900">What contracts like these were awarded for</h2>
               <p className="mt-2 text-sm text-slate-700">
                 Half of these contracts were awarded for between {formatDollars(r.priceRange.low)} and {formatDollars(r.priceRange.high)}. The midpoint
-                is {formatDollars(r.priceRange.median)}. Use it to judge which ones are your size, not as a price to bid.
+                is {formatDollars(r.priceRange.median)}. Use it to judge which ones are your size, not as a price to bid. A few very large umbrella
+                contracts can make the combined total look bigger than the work one firm could win, so the midpoint is the better guide.
               </p>
             </div>
           </section>

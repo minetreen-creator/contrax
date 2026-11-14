@@ -101,7 +101,7 @@ const MANAGED_INCLUDES = [
   "The states you work in, instead of one",
   "A brief on each new solicitation that fits you, with a pursue or pass recommendation",
   "Professional for your team, so anyone can open the full list behind the report",
-  "On request, one public-records request a month for the winning proposal on a contract you are chasing. We file it; the agency decides what it releases, and that can take months",
+  "On request, one public-records request a month for the winning proposal on a contract you are chasing. We file it and tell you the day it goes in. Federal agencies often take 20 to 60 business days or more to answer, state and local offices often 5 to 15, and the agency decides what it releases",
   "Prepared by Contrax and sent by email, so your team reads one document",
 ];
 
@@ -268,6 +268,11 @@ function TeamsPage() {
               <li key={f}>✓ {f}</li>
             ))}
           </ul>
+          {/* Owner 2026-11-14 (competitor review): an AI-assistant connection, as the self-serve tools offer. */}
+          <p className="mt-4 text-sm text-slate-700">
+            <strong>Use an AI assistant?</strong> Add <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">https://www.contrax.company/api/mcp</code> as
+            a custom connector in Claude or another assistant that supports MCP, then ask it which contracts are ending in your state and trade.
+          </p>
           <p className="mt-4 text-sm text-slate-600">
             Contract data comes from public records: USAspending.gov for federal awards, and each agency's own posting for bids.
             An ending contract is a sign to prepare, not a promise that the work will be rebid.

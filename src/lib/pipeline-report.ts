@@ -103,6 +103,51 @@ export function orderAlert(o: ReportOrder, sessionId: string, paid: boolean): { 
     : { title: "🧾 Report checkout started", body: `${what} (${o.email}). Not paid yet.`.slice(0, 220), tag: `report-start-${sessionId}`.slice(0, 64), url: "/admin/live" };
 }
 
+const longDay = (d: Date) => d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "America/New_York" });
+
+/** What the buyer hears the moment they pay: what is coming, when, and that a person is behind it. */
+export function buyerConfirmation(o: ReportOrder): { subject: string; text: string } {
+  return {
+    subject: `Your Pipeline Snapshot is being prepared: ${o.trade} in ${STATE_NAMES[o.state]}`,
+    text: [
+      `Thank you. We have your order for a Pipeline Snapshot covering ${o.trade} in ${STATE_NAMES[o.state]}.`,
+      `It will reach this address within ${REPORT_DELIVERY}. Orders placed on a weekend arrive Monday.`,
+      "What will be in it:",
+      REPORT_INCLUDES.map((l) => `- ${l}`).join("\n"),
+      "If we need to pin down your line of work, we will reply to this email first.",
+      "Nathaniel Minetree\nContrax",
+    ].join("\n\n"),
+  };
+}
+
+/** Days after payment that the one follow-up goes out, while the report is fresh and the credit is live. */
+export const REPORT_FOLLOW_UP_DAYS = 4;
+
+/**
+ * The hand-off from one report to a subscription (owner 2026-11-14: "use the expiring contracts
+ * uncovered in their report as the exact trigger"). `top` is the largest contract in their market
+ * ending within six months, when one could be read; the email works without it.
+ */
+export function buyerFollowUp(o: ReportOrder, paidAt: Date, top?: { holder: string; agency: string | null; endDate: string } | null): { subject: string; text: string } {
+  const deadline = new Date(paidAt.getTime() + REPORT_CREDIT_DAYS * 86_400_000);
+  const state = STATE_NAMES[o.state];
+  const lead = top
+    ? `The largest contract in your report, held by ${top.holder}${top.agency ? ` for ${top.agency}` : ""}, ends on ${longDay(new Date(`${top.endDate}T12:00:00Z`))}. The list behind it changes every month: contracts get extended, new ones come inside the window, and new bids are posted.`
+    : `The list in your report changes every month: contracts get extended, new ones come inside the window, and new bids are posted.`;
+  return {
+    subject: `Your ${state} report: keeping it current`,
+    text: [
+      lead,
+      "There are two ways to keep up with it.",
+      `1. We do it for you. Contrax Managed rebuilds your report every month, covers the states you work in and briefs you on each new bid that fits. It is $499 a month, month to month. Because you bought a Snapshot, ${REPORT_PRICE} comes off your first month if you start by ${longDay(deadline)}. Use this same email address at checkout and the credit applies itself: https://www.contrax.company/teams?utm_source=email&utm_campaign=snapshot_followup#done-for-you`,
+      "2. You do it yourself. Contrax Professional gives your team the full, live list for $79 a month: https://www.contrax.company/upgrade?plan=professional&source=snapshot_followup",
+      "If you have already moved up, thank you, and ignore this note. If the report missed something, reply and tell us; we will fix it.",
+      "This is the only follow-up we send about your report.",
+      "Nathaniel Minetree\nContrax",
+    ].join("\n\n"),
+  };
+}
+
 /** The email the owner gets when a report is paid for. */
 export function ownerNotice(o: ReportOrder, sessionId: string): { subject: string; text: string } {
   return {

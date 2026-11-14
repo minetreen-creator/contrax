@@ -92,7 +92,7 @@ const STAGES: { step: string; title: string; body: string; points: string[]; hre
 ];
 
 /** The done-for-you option. The price is stated once here so the page and its test agree. */
-export const MANAGED_PRICE = "$500";
+export const MANAGED_PRICE = "$499";
 const MANAGED_INCLUDES = [
   "A monthly report of the government contracts ending in your line of work: who holds each one, the agency, the value and the end date",
   "The agencies buying the most of what you sell, ranked",

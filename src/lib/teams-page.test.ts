@@ -37,7 +37,7 @@ test("it is canonical, indexable and in the sitemap, and the contractor pages do
 
 // Owner 2026-11-14: a done-for-you option beside the self-serve plan.
 test("the managed option names one price, is sold by email, and the data job behind its report only reads", () => {
-  expect(page).toContain('export const MANAGED_PRICE = "$500";');
+  expect(page).toContain('export const MANAGED_PRICE = "$499";');
   expect(page).toContain("Contrax Managed: {MANAGED_PRICE} a month");
   expect(page).toContain("mailto:contrax.companyllc@gmail.com?subject=Contrax%20Managed");
   expect(page).toContain("billed by invoice");

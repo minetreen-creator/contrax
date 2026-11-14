@@ -1720,6 +1720,8 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   wi_portage_county: "WI",
   wi_chippewa_county: "WI",
   ia_dubuque: "IA",
+  fl_palm_beach_schools_bidnet: "FL",
+  fl_pasco_schools_ionwave: "FL",
   fl_cape_coral_ionwave: "FL",
   fl_lauderhill_ionwave: "FL",
   fl_coconut_creek_ionwave: "FL",

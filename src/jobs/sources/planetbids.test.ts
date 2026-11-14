@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { mapPlanetbids, planetbidsDue, PLANETBIDS_BOARDS, PLANETBIDS_SOURCES, type PlanetbidsPayload } from "./planetbids";
 import { SOURCE_CLASSES } from "~/lib/source-class";
@@ -63,4 +63,23 @@ test("trauma / biohazard cleaning now counts as janitorial work", () => {
   const exp = expandTrade("janitorial");
   expect(isStrongTradeMatch("Trauma Cleaning IDIQ", null, null, null, exp)).toBe(true);
   expect(isStrongTradeMatch("Biohazard Cleaning Services", null, null, null, exp)).toBe(true);
+});
+
+// Owner 2026-11-14 ("fix it now"): PlanetBids drops a request now and then (Rialto, Corona, RCTC
+// failed whole syncs but loaded fine minutes later), so the reader retries before giving up.
+describe("PlanetBids reader retries a dropped load", () => {
+  const script = readFileSync(new URL("../../../.github/scripts/planetbids-bids-fetch.mjs", import.meta.url), "utf8");
+  test("up to 3 fresh page loads, a pause apart, inside the overall time limit", () => {
+    expect(script).toContain("const MAX_ATTEMPTS = 3;");
+    expect(script).toContain("const RETRY_PAUSE_MS = [0, 8_000, 20_000];");
+    expect(script).toMatch(/for \(let attempt = 1; attempt <= MAX_ATTEMPTS; attempt\+\+\)/);
+    expect(script).toContain("Date.now() - started + pause > 95_000");
+  });
+  test("a truncated list is never retried or saved", () => {
+    expect(script).toContain("refusing a truncated list`), { final: true })");
+    expect(script).toContain("if (error.final) break;");
+  });
+  test("still our own name, never a pretend browser", () => {
+    expect(script).toContain("ContraxBot/1.0");
+  });
 });

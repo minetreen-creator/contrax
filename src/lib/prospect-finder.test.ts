@@ -56,13 +56,17 @@ import { registryTrade } from "./prospect-finder";
 
 describe("contractor registry in place of Google Places", () => {
   test("an outreach trade maps to the registry's trade, narrowed by NAICS for building trades", () => {
-    expect(registryTrade("janitorial")).toEqual({ trade: "janitorial", naics: [] });
-    expect(registryTrade("cleaning")).toEqual({ trade: "janitorial", naics: [] });
+    expect(registryTrade("janitorial")).toMatchObject({ trade: "janitorial", naics: [] });
+    expect(registryTrade("cleaning")).toMatchObject({ trade: "janitorial", naics: [] });
     expect(registryTrade("grounds maintenance")?.trade).toBe("landscaping");
     expect(registryTrade("HVAC")?.trade).toBe("hvac");
     expect(registryTrade("security guard")?.trade).toBe("security-guard");
-    expect(registryTrade("roofing")).toEqual({ trade: "construction", naics: ["238160"] });
-    expect(registryTrade("construction")).toEqual({ trade: "construction", naics: ["236220", "236210"] });
+    expect(registryTrade("roofing")).toMatchObject({ trade: "construction", naics: ["238160"] });
+    expect(registryTrade("construction")).toMatchObject({ trade: "construction", naics: ["236220", "236210"] });
+    // A business must be named for the trade or list only a few codes.
+    expect(new RegExp(registryTrade("janitorial")!.name, "i").test("Veterans Cleaning Group, LLC")).toBe(true);
+    expect(new RegExp(registryTrade("janitorial")!.name, "i").test("Cardinal Recruiting LLC")).toBe(false);
+    expect(new RegExp(registryTrade("construction")!.name, "i").test("Pinnacle Software Consulting, Inc.")).toBe(false);
     expect(registryTrade("pest control")).toBeNull();
     expect(registryTrade("moving")).toBeNull();
   });
@@ -70,6 +74,7 @@ describe("contractor registry in place of Google Places", () => {
     const finder = readSource("src/jobs/prospect-finder.ts", "utf8");
     expect(finder).toContain("export async function searchRegistrants(");
     expect(finder).toContain("AND url IS NOT NULL AND url <> ''");
+    expect(finder).toContain("AND (name ~* ${t.name} OR cardinality(naics) <= ${FOCUSED_NAICS})");
     expect(finder).toContain('return { places: await searchRegistrants(reg), source: "registry" };');
     expect(finder).not.toContain("nothing to do.");
     const prepare = readSource("src/jobs/outreach-prepare.ts", "utf8");

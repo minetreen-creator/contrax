@@ -16,12 +16,15 @@ import { sql } from "~/db";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { bidPlace, contactLinks, csvCell, extractEmails, placesQuery, registryTrade, siteHost } from "~/lib/prospect-finder";
 import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
+import { emailFitsSite } from "~/lib/outreach";
 
 const PLACES_URL = "https://places.googleapis.com/v1/places:searchText";
 const PLACES_PER_BID = 10;
 const MIN_DAYS_OUT = 10;
 const FETCH_TIMEOUT_MS = 12_000;
 const UA = "Mozilla/5.0 (compatible; ContraxProspectFinder/1.0; +https://www.contrax.company)";
+/** A registrant listing this many NAICS codes or fewer counts as working in each of them. */
+const FOCUSED_NAICS = 5;
 
 interface Place {
   name: string;
@@ -68,7 +71,9 @@ export async function searchRegistrants(opts: { state: string; label: string; pl
         AND ${t.trade} = ANY(trades)
         AND (expires IS NULL OR expires >= CURRENT_DATE)
         AND (${naics}::text[] IS NULL OR naics && ${naics}::text[])
-      ORDER BY (city <> '' AND POSITION(LOWER(city) IN LOWER(${opts.place})) > 0) DESC,
+        AND (name ~* ${t.name} OR cardinality(naics) <= ${FOCUSED_NAICS})
+      ORDER BY (name ~* ${t.name}) DESC,
+               (city <> '' AND POSITION(LOWER(city) IN LOWER(${opts.place})) > 0) DESC,
                md5(uei || ${String(opts.bidId)})
       LIMIT ${PLACES_PER_BID}
     `) as { name: string; city: string | null; state: string; zip: string | null; url: string }[];
@@ -158,9 +163,11 @@ export async function findProspects(opts: { key: string; state: string; trade: s
       if (!p.website || !host || seenSites.has(host)) continue;
       seenSites.add(host);
       const { emails, page } = await siteEmails(p.website);
-      if (!emails.length) continue;
-      console.log(`   ✉️ ${p.name} — ${emails[0]} (${page})`);
-      rows.push([String(b.id), b.title, b.agency ?? "", due, p.name, p.address ?? "", p.website, emails[0], page]);
+      // Same rule as the daily outreach: not a site builder's or a placeholder address.
+      const email = emails.find((e) => emailFitsSite(e, host, p.name));
+      if (!email) continue;
+      console.log(`   ✉️ ${p.name} — ${email} (${page})`);
+      rows.push([String(b.id), b.title, b.agency ?? "", due, p.name, p.address ?? "", p.website, email, page]);
     }
     console.log("");
   }

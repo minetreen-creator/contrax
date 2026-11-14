@@ -3,6 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { SiteHeader } from "~/components/SiteHeader";
 import { PLAN_COPY } from "~/lib/plan-features";
 import { trackEvent } from "~/lib/track";
+import { PipelineReportOrder } from "~/components/PipelineReportOrder";
 
 /**
  * /teams — the Professional plan for companies with someone responsible for government sales
@@ -182,7 +183,9 @@ function TeamsPage() {
           </div>
         </section>
 
-        <section className="mx-auto max-w-4xl px-4 pt-12">
+        <section id="done-for-you" className="mx-auto max-w-4xl space-y-6 px-4 pt-12">
+          {/* Owner 2026-11-14: a single paid report is the first step toward the monthly one. */}
+          <PipelineReportOrder />
           {/* Owner 2026-11-14 ("I want to make thousands of dollars" → "sure"): a done-for-you option
               beside the self-serve plan. Sold by email with the founder; no checkout yet. */}
           <div className="rounded-2xl border-2 border-amber-400 bg-amber-50 p-6">

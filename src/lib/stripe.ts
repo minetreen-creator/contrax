@@ -745,6 +745,10 @@ export async function handleStripeWebhook(
   const { handleReviewPaymentEvent } = await import("~/lib/bid-fit-review-flow.server");
   if (await handleReviewPaymentEvent(event)) return { success: true };
 
+  // One-time pipeline report (owner 2026-11-14): product "pipeline_report"; a paid one emails the owner.
+  const { handleReportEvent } = await import("~/lib/pipeline-report.server");
+  if (await handleReportEvent(event)) return { success: true };
+
   // Paid local-subcontractor list (owner 2026-10-30): product "sub_list".
   const { handleSubListEvent } = await import("~/lib/sub-list.server");
   if (await handleSubListEvent(event)) return { success: true };

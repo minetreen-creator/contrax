@@ -10,13 +10,7 @@ import { trackEvent } from "~/lib/track";
 import { BRAND_MESSAGE, BRAND_STEPS } from "~/lib/brand-message";
 import { STARTER_PASS_NOTE } from "~/lib/starter-pass";
 import { SiteHeader } from "~/components/SiteHeader";
-import { LOW_CONTENT_SQL } from "~/lib/low-content";
-import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
-import {
-  OPEN_BID_SQL,
-  AWARD_NOTICE_EXCLUSION_SQL,
-  CLOSED_EXCLUSION_SQL,
-} from "~/lib/open-bids";
+import { PUBLIC_OPEN_BIDS_WHERE } from "~/lib/open-count";
 import {
   buildContractMap,
   type ContractMapAggregate,
@@ -49,11 +43,7 @@ const getContractMapAggregate = createServerFn({ method: "GET" }).handler(
       const rows = await sql()`
         SELECT location, set_aside, estimated_value, agency, category, due_date, source
         FROM bids
-        WHERE ${sql().unsafe(OPEN_BID_SQL)}
-          AND ${sql().unsafe(LOW_CONTENT_SQL)}
-          AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
-          AND ${sql().unsafe(AWARD_NOTICE_EXCLUSION_SQL)}
-          AND ${sql().unsafe(CLOSED_EXCLUSION_SQL)}
+        WHERE ${sql().unsafe(PUBLIC_OPEN_BIDS_WHERE)}
       `;
       return buildContractMap(rows as any);
     } catch {

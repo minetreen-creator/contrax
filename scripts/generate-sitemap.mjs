@@ -82,6 +82,9 @@ const PRODUCT_PATHS = [
   // Professional plan for companies with a government sales or proposal person (owner 2026-11-14).
   ["/teams", "weekly", "0.7"],
   ["/sample-report", "weekly", "0.7"],
+  ["/compare/highergov", "monthly", "0.6"],
+  ["/compare/govtribe", "monthly", "0.6"],
+  ["/compare/cleatus", "monthly", "0.6"],
   // Agency plan for material suppliers and equipment rental (owner 2026-11-12).
   ["/suppliers", "weekly", "0.7"],
   ["/roadmap", "monthly", "0.5"],

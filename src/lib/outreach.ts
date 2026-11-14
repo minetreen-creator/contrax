@@ -231,7 +231,10 @@ export function buyerEmail(candidates: readonly string[]): string | null {
     const e = raw.trim().toLowerCase();
     const [local = "", domain = ""] = e.split("@");
     if (!local || !domain || portal.test(domain)) continue;
-    if (/^(no-?reply|do-?not-?reply|support|help(desk)?|webmaster|info-?tech|abuse|postmaster)$/.test(local)) continue;
+    if (/^(no-?reply|do-?not-?reply|webmaster|info-?tech|abuse|postmaster)$/.test(local)) continue;
+    // A state purchasing portal's help box is not the town or agency that is buying
+    // (first dry run: vendor@nc.gov for a Morrisville bid, procurementhelp@doas.ga.gov for a City of Commerce bid).
+    if (/help|support|^vendors?$|^e?procurement-?(desk|team)$/.test(local)) continue;
     if (publicBody.test(domain.replace(/[-_.]/g, (c) => (c === "." ? "." : " ")))) return e;
   }
   return null;

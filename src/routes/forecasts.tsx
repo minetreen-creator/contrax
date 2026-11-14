@@ -10,7 +10,18 @@ type Forecast = {
 };
 type Payload = { forecasts: Forecast[]; total: number; snapshotDate: string };
 export const Route = createFileRoute("/forecasts")({
-  head: () => ({ meta: [{ title: "Upcoming Procurement Forecasts | Contrax" }] }),
+  head: () => ({
+    meta: [
+      { title: "Upcoming Procurement Forecasts | Contrax" },
+      {
+        name: "description",
+        content:
+          "Government purchases planned but not yet out for bid. Search procurement forecasts by keyword, state and fiscal year, and get ready before the solicitation opens.",
+      },
+      { property: "og:url", content: "https://www.contrax.company/forecasts" },
+    ],
+    links: [{ rel: "canonical", href: "https://www.contrax.company/forecasts" }],
+  }),
   component: Forecasts,
 });
 function Forecasts() {

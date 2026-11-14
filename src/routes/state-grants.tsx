@@ -66,12 +66,14 @@ export const Route = createFileRoute("/state-grants")({
   head: () => ({
     meta: [
       { title: "State Grant Coverage — Contrax Grants" },
+      { property: "og:url", content: "https://www.contrax.company/state-grants" },
       {
         name: "description",
         content:
           "See exactly which states Contrax reads real grant opportunities from — state by state, with the coverage tier each state has earned and each agency's official source — and search the stored state grants honestly labelled, straight from the agency that published them.",
       },
     ],
+    links: [{ rel: "canonical", href: "https://www.contrax.company/state-grants" }],
   }),
   component: StateGrantsPage,
 });

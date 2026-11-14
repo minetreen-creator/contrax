@@ -24,9 +24,11 @@ import appCss from "~/styles/app.css?url";
 import adminCss from "~/styles/admin.css?url";
 
 const PROD_URL = "https://www.contrax.company";
-const SITE_TITLE = "Contrax — Government RFPs Matched to Your Set-Aside Certifications";
+// Fallbacks for pages without their own tags; kept inside what search results show
+// (title under 60 characters, description under 160).
+const SITE_TITLE = "Contrax | Government Bids Matched to Your Trade and State";
 const SITE_DESCRIPTION =
-  "Find and win government contracts reserved for businesses like yours. Contrax matches your 8(a), SDVOSB, WOSB, or HUBZone certification to live SAM.gov and city procurement opportunities — with 5-year incumbent pricing data so you know what to bid before you write a word.";
+  "Find open government bids for your trade and state: federal, state, county, city and school district. Search free, with no account needed.";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -44,18 +46,18 @@ export const Route = createRootRoute({
       { property: "og:title", content: SITE_TITLE },
       { property: "og:description", content: SITE_DESCRIPTION },
       { property: "og:site_name", content: "Contrax" },
-      { property: "og:image", content: `${PROD_URL}/logo-square.png` },
+      { property: "og:image", content: `${PROD_URL}/og/general.png` },
       { property: "og:image:type", content: "image/png" },
-      { property: "og:image:alt", content: "Contrax — Radar Finds Government Opportunities That Match Your Business" },
-      { property: "og:image:width", content: "1254" },
-      { property: "og:image:height", content: "1254" },
+      { property: "og:image:alt", content: "Contrax: federal, state and local bids for small businesses" },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
 
       // Twitter Card
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: SITE_TITLE },
       { name: "twitter:description", content: SITE_DESCRIPTION },
-      { name: "twitter:image", content: `${PROD_URL}/logo-square.png` },
-      { name: "twitter:image:alt", content: "Contrax — Radar Finds Government Opportunities That Match Your Business" },
+      { name: "twitter:image", content: `${PROD_URL}/og/general.png` },
+      { name: "twitter:image:alt", content: "Contrax: federal, state and local bids for small businesses" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },

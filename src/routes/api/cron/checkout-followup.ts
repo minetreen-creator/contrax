@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { isAuthorizedCron } from "~/lib/cron-dispatch";
 
 /**
- * GET /api/cron/checkout-followup — hourly from Vercel Cron (build-vercel.sh
+ * GET /api/cron/checkout-followup — every 3 hours from Vercel Cron (owner 2026-11-14, was hourly) (build-vercel.sh
  * `crons`). Emails people who left a plan checkout unpaid an hour or more ago
  * (src/lib/checkout-followup.server.ts). Auth: `Authorization: Bearer
  * $CRON_SECRET` only (fail-closed).

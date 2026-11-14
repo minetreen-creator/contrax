@@ -1,7 +1,8 @@
 name: Sync local federal award figures
 on:
   schedule:
-    - cron: "15 * * * *"
+    # Every 3 hours (owner 2026-11-14, database cost: was hourly).
+    - cron: "15 */3 * * *"
   workflow_dispatch:
   push:
     branches: [main]

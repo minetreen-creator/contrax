@@ -1,5 +1,5 @@
 /**
- * Sends the checkout follow-up (rules in checkout-followup.ts). Run hourly by
+ * Sends the checkout follow-up (rules in checkout-followup.ts). Run every 3 hours by
  * Vercel Cron via /api/cron/checkout-followup, because only Vercel holds the
  * Stripe key and the secret that signs unsubscribe links.
  *
@@ -104,7 +104,7 @@ export async function runCheckoutFollowups(nowMs: number = Date.now()): Promise<
       await sql()`UPDATE checkout_followups SET resend_id = ${data?.id ?? null} WHERE email = ${email}`;
       sent++;
     } catch (e) {
-      // Release the claim so the next hourly run retries.
+      // Release the claim so the next run retries.
       await sql()`DELETE FROM checkout_followups WHERE email = ${email}`;
       console.error("[checkout-followup] send failed:", e instanceof Error ? e.message : e);
       failed++;

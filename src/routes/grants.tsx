@@ -67,13 +67,15 @@ const LABEL_CLASS = "mb-1.5 block text-sm font-semibold text-slate-800";
 export const Route = createFileRoute("/grants")({
   head: () => ({
     meta: [
-      { title: "Grants: Find Federal Grants Your Business Qualifies For" },
+      { title: "Federal Grants Your Business Qualifies For | Contrax" },
+      { property: "og:url", content: "https://www.contrax.company/grants" },
       {
         name: "description",
         content:
           "Search live federal grant opportunities from Grants.gov by keyword, applicant type, funding category, and agency. Real funding amounts, real deadlines, real eligibility — straight from the source.",
       },
     ],
+    links: [{ rel: "canonical", href: "https://www.contrax.company/grants" }],
   }),
   component: GrantsPage,
 });

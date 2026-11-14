@@ -1193,11 +1193,13 @@ export const Route = createFileRoute("/subcontracts")({
   head: () => ({
     meta: [
       { title: "Subcontracting opportunities | Contrax" },
+      { property: "og:url", content: "https://www.contrax.company/subcontracts" },
       {
         name: "description",
         content:
           "Prime contractor subcontracting notices Contrax last checked from SBA SUBNet, with the source's own closing dates, listed scopes and certs solicited — plus the annual SBA FY24 prime directory to approach. Verify requirements at the original notice.",
       },
     ],
+    links: [{ rel: "canonical", href: "https://www.contrax.company/subcontracts" }],
   }),
 });

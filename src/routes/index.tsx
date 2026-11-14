@@ -131,7 +131,7 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
 
 const PAGE_TITLE = "Contrax | Your next government customer starts here";
 const PAGE_DESCRIPTION =
-  "Open government bids for your trade in your state: cities, counties, school districts, state and federal. See your best match before you sign up. Starter is $5 for 30 days, no automatic renewal.";
+  "Open government bids for your trade and state, from cities, counties, schools, state and federal buyers. See your best match free. Starter is $5 for 30 days.";
 
 export const Route = createFileRoute("/")({
   loader: async () => {

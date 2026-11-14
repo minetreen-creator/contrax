@@ -8,7 +8,8 @@ export const Route = createFileRoute("/bid-fit-review")({
     { title: "Bid Fit Review: Is This Bid a Good Fit? | Contrax" },
     { name: "description", content: "A $49 one-time, source-cited review of one government solicitation for your business." },
     { name: "robots", content: "index, follow" },
-  ] }),
+    { property: "og:url", content: "https://www.contrax.company/bid-fit-review" },
+  ], links: [{ rel: "canonical", href: "https://www.contrax.company/bid-fit-review" }] }),
   // Optional pre-fill from a bid's "Get a $49 Bid Fit Review" link.
   validateSearch: (search: Record<string, unknown>): { url?: string; deadline?: string; payment?: string } => ({
     payment: search.payment === "submitted" ? "submitted" : undefined,

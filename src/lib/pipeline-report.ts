@@ -11,13 +11,23 @@ export const REPORT_PRICE = "$149";
 export const REPORT_PRICE_CENTS = 14900;
 export const REPORT_PRODUCT = "pipeline_report";
 /** Promised on the page and the confirmation; the owner prepares each report by hand. */
-export const REPORT_DELIVERY = "two business days";
+export const REPORT_DELIVERY = "1 business day";
+/**
+ * Exactly what the buyer gets (owner 2026-11-14: "buyers need to know what they are getting").
+ * Each line is something the report data job (src/jobs/managed-report-data.ts) already returns,
+ * so nothing here is promised that cannot be produced. Bids are "up to" because a state and
+ * line of work can have fewer than five open.
+ */
 export const REPORT_INCLUDES = [
-  "Every federal contract in your line of work ending in your state in the next 12 months: the holder, the agency, the value and the end date",
-  "The agencies buying the most of what you sell, ranked",
-  "The companies holding the most of that work today",
-  "The open bids that fit you right now",
+  "The 25 largest federal contracts in your line of work ending in your state in the next 6 months: the holder, the agency, the value and the end date",
+  "The 10 agencies with the most of that work ending in the next 12 months",
+  "The 10 companies holding the most of it: who you would compete against or team with",
+  "Up to 5 open bids that fit you right now",
+  "The 12-month total: how many contracts end, what they are worth, and which months are busiest",
 ];
+/** The upgrade hook (owner 2026-11-14): the report's price comes off the first managed month. */
+export const REPORT_CREDIT_DAYS = 14;
+export const REPORT_CREDIT_NOTE = `Move to Contrax Managed within ${REPORT_CREDIT_DAYS} days and the ${REPORT_PRICE} comes off your first month.`;
 
 export interface ReportOrder {
   email: string;
@@ -62,6 +72,7 @@ export function ownerNotice(o: ReportOrder, sessionId: string): { subject: strin
       `State: ${STATE_NAMES[o.state]} (${o.state})`,
       `Line of work: ${o.trade}`,
       `Promised within ${REPORT_DELIVERY}.`,
+      `Offer in the report: ${REPORT_CREDIT_NOTE}`,
       `Stripe session: ${sessionId}`,
     ].join("\n\n"),
   };

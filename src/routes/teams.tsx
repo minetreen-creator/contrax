@@ -4,6 +4,7 @@ import { SiteHeader } from "~/components/SiteHeader";
 import { PLAN_COPY } from "~/lib/plan-features";
 import { trackEvent } from "~/lib/track";
 import { PipelineReportOrder } from "~/components/PipelineReportOrder";
+import { REPORT_CREDIT_NOTE } from "~/lib/pipeline-report";
 
 /**
  * /teams — the Professional plan for companies with someone responsible for government sales
@@ -95,9 +96,10 @@ const STAGES: { step: string; title: string; body: string; points: string[]; hre
 /** The done-for-you option. The price is stated once here so the page and its test agree. */
 export const MANAGED_PRICE = "$499";
 const MANAGED_INCLUDES = [
-  "A monthly report of the government contracts ending in your line of work: who holds each one, the agency, the value and the end date",
-  "The agencies buying the most of what you sell, ranked",
+  "Everything in the one-time report, rebuilt every month with what changed since the last one",
+  "The states you work in, instead of one",
   "A brief on each new solicitation that fits you, with a pursue or pass recommendation",
+  "Professional for your team, so anyone can open the full list behind the report",
   "Prepared by Contrax and sent by email, so your team reads one document",
 ];
 
@@ -207,7 +209,7 @@ function TeamsPage() {
             >
               Ask for a sample report →
             </a>
-            <p className="mt-2 text-xs text-slate-600">Month to month, billed by invoice. Professional is included for your team.</p>
+            <p className="mt-2 text-xs text-slate-600">Month to month, billed by invoice. Bought the one-time report first? {REPORT_CREDIT_NOTE}</p>
           </div>
         </section>
 

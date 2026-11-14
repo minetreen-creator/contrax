@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { REPORT_PRICE, REPORT_PRICE_CENTS, cleanOrder, orderFromMetadata, orderMetadata, ownerNotice } from "./pipeline-report";
+import { REPORT_CREDIT_NOTE, REPORT_DELIVERY, REPORT_INCLUDES, REPORT_PRICE, REPORT_PRICE_CENTS, cleanOrder, orderFromMetadata, orderMetadata, ownerNotice } from "./pipeline-report";
 
 // Owner 2026-11-14: a one-time report for $149 before asking for $499 a month.
 const good = { email: " Buyer@Example.com ", company: "Acme  Federal", state: "va", trade: "IT services" };
@@ -52,4 +52,22 @@ test("the teams page offers the single report above the monthly one", () => {
   const form = readFileSync("src/components/PipelineReportOrder.tsx", "utf8");
   expect(form).toContain("One payment, no subscription.");
   expect(form).toContain("not a promise of a rebid");
+});
+
+// Owner 2026-11-14: say exactly what is in it, when it arrives, and how it counts toward Managed.
+test("the report states its contents in numbers, a delivery window and the credit toward Managed", () => {
+  expect(REPORT_DELIVERY).toBe("1 business day");
+  expect(REPORT_INCLUDES.join(" ")).toMatch(/25 largest.*10 agencies.*10 companies.*Up to 5 open bids/);
+  expect(REPORT_CREDIT_NOTE).toBe("Move to Contrax Managed within 14 days and the $149 comes off your first month.");
+  const form = readFileSync("src/components/PipelineReportOrder.tsx", "utf8");
+  expect(form).toContain("Delivered to your inbox within {REPORT_DELIVERY} of payment.");
+  expect(form).toContain("{REPORT_CREDIT_NOTE}");
+  const page = readFileSync("src/routes/teams.tsx", "utf8");
+  expect(page).toContain("Everything in the one-time report, rebuilt every month");
+  expect(page).toContain("Bought the one-time report first? {REPORT_CREDIT_NOTE}");
+  // The report promises only what the data job returns.
+  const job = readFileSync("src/jobs/managed-report-data.ts", "utf8");
+  expect(job).toContain("LIMIT 25");
+  expect(job).toContain("LIMIT 12");
+  expect(job).toContain("LIMIT 10");
 });

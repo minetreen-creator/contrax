@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { STATE_NAMES } from "~/lib/contract-map";
-import { REPORT_DELIVERY, REPORT_INCLUDES, REPORT_PRICE } from "~/lib/pipeline-report";
+import { REPORT_CREDIT_NOTE, REPORT_DELIVERY, REPORT_INCLUDES, REPORT_PRICE } from "~/lib/pipeline-report";
 import { trackEvent } from "~/lib/track";
 
 const STATES = Object.entries(STATE_NAMES).sort((a, b) => a[1].localeCompare(b[1]));
@@ -42,16 +42,18 @@ export function PipelineReportOrder() {
       <p className="text-xs font-bold uppercase tracking-wide text-amber-700">Try one first</p>
       <h2 className="mt-1 text-xl font-bold text-slate-900">One pipeline report: {REPORT_PRICE}</h2>
       <p className="mt-2 text-sm text-slate-700">
-        One state, one line of work, paid once. We prepare it and email it to you within {REPORT_DELIVERY}.
+        One state, one line of work, paid once. Delivered to your inbox within {REPORT_DELIVERY} of payment.
       </p>
-      <ul className="mt-3 space-y-1.5 text-sm text-slate-700">
+      <p className="mt-3 text-sm font-semibold text-slate-900">Exactly what is in it:</p>
+      <ul className="mt-2 space-y-1.5 text-sm text-slate-700">
         {REPORT_INCLUDES.map((f) => (
           <li key={f}>✓ {f}</li>
         ))}
       </ul>
+      <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">{REPORT_CREDIT_NOTE}</p>
       {outcome === "paid" ? (
         <p role="status" className="mt-5 rounded-lg bg-emerald-50 p-4 text-sm font-semibold text-emerald-900">
-          Payment received. Your report will arrive by email within {REPORT_DELIVERY}.
+          Payment received. Your report will arrive by email within {REPORT_DELIVERY}. Orders placed on a weekend arrive Monday.
         </p>
       ) : (
         <form onSubmit={submit} className="mt-5 grid gap-3 sm:grid-cols-2">

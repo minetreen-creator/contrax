@@ -219,8 +219,9 @@ const HOME_LANES = [
     tag: "Done for you",
     title: "I want it prepared for my team",
     detail: "We send a report of the contracts ending in your line of work, who holds them and what they are worth. One report or every month.",
-    cta: "See the reports",
-    href: "/teams?source=home_lane#done-for-you",
+    cta: "Read a real report",
+    // Owner 2026-11-14 ("changing the pages a visitor moves through"): show the report before the price.
+    href: "/sample-report?source=home_lane",
   },
 ];
 

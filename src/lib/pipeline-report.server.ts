@@ -7,7 +7,7 @@ import { STATE_NAMES } from "./contract-map";
 const SITE = "https://www.contrax.company";
 
 /** A Stripe Checkout page for one report. The price is inline, so nothing is set up in Stripe. */
-export async function createReportCheckout(order: ReportOrder, stripe: Stripe = getStripe()): Promise<{ url: string; sessionId: string }> {
+export async function createReportCheckout(order: ReportOrder, stripe: Stripe = getStripe(), from: "teams" | "sample" = "teams"): Promise<{ url: string; sessionId: string }> {
   const metadata = orderMetadata(order);
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
@@ -25,8 +25,8 @@ export async function createReportCheckout(order: ReportOrder, stripe: Stripe = 
         },
       },
     }],
-    success_url: `${SITE}/teams?report=paid`,
-    cancel_url: `${SITE}/teams?report=cancelled`,
+    success_url: `${SITE}/order-received?kind=report`,
+    cancel_url: from === "sample" ? `${SITE}/sample-report?report=cancelled#order` : `${SITE}/teams?report=cancelled#done-for-you`,
   });
   if (!session.url) throw new Error("Checkout unavailable");
   return { url: session.url, sessionId: session.id };

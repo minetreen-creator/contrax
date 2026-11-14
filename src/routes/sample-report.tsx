@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { SiteHeader } from "~/components/SiteHeader";
 import { awardUrl, formatDollars } from "~/lib/federal-trade-data";
-import { REPORT_CREDIT_NOTE, REPORT_DELIVERY, REPORT_PRICE } from "~/lib/pipeline-report";
+import { PipelineReportOrder } from "~/components/PipelineReportOrder";
+import { REPORT_DELIVERY, REPORT_PRICE } from "~/lib/pipeline-report";
 import { trackEvent } from "~/lib/track";
 
 /**
@@ -55,7 +56,7 @@ const td = "px-3 py-2 align-top";
 function Order({ where }: { where: string }) {
   return (
     <a
-      href="/teams#done-for-you"
+      href="#order"
       onClick={() => trackEvent("sample_report_click", where)}
       className="inline-block rounded-xl bg-amber-500 px-6 py-3 text-sm font-bold text-slate-950 hover:bg-amber-400"
     >
@@ -204,10 +205,15 @@ function SampleReport() {
             Award values are the amounts USAspending.gov reports, not yearly spending. An end date can move if an agency extends the contract,
             and an ending contract is a sign to prepare, not a promise that the work will be rebid.
           </p>
-          <div className="mt-6 rounded-2xl border-2 border-slate-900 p-6">
-            <h2 className="text-xl font-bold text-slate-900">Want this for your state and your trade?</h2>
-            <p className="mt-2 text-sm text-slate-700">One report, {REPORT_PRICE}, paid once and delivered within {REPORT_DELIVERY}. {REPORT_CREDIT_NOTE}</p>
-            <div className="mt-4"><Order where="closing" /></div>
+          {/* Owner 2026-11-14: the order form sits under the proof, so nobody has to go find it. */}
+          <div id="order" className="mt-8 scroll-mt-6">
+            <PipelineReportOrder from="sample" />
+            <p className="mt-3 text-sm text-slate-600">
+              Want it every month instead?{" "}
+              <a href="/teams#done-for-you" onClick={() => trackEvent("sample_report_click", "managed")} className="font-semibold text-blue-700 hover:text-blue-600">
+                See Contrax Managed →
+              </a>
+            </p>
           </div>
         </section>
       </main>

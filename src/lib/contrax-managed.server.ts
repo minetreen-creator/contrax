@@ -46,7 +46,7 @@ export async function createManagedCheckout(order: ManagedOrder, stripe: Stripe 
         },
       },
     }],
-    success_url: `${SITE}/teams?managed=started`,
+    success_url: `${SITE}/order-received?kind=managed`,
     cancel_url: `${SITE}/teams?managed=cancelled#done-for-you`,
   });
   if (!session.url) throw new Error("Checkout unavailable");

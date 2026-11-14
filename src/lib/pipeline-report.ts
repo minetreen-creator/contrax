@@ -22,7 +22,7 @@ export const REPORT_DELIVERY = "1 business day";
 export const REPORT_INCLUDES = [
   "The 25 largest federal contracts in your line of work ending in your state in the next 6 months: the holder, the agency, the value and the end date",
   "The 10 agencies with the most of that work ending in the next 12 months",
-  "The 10 companies holding the most of it: who you would compete against or team with",
+  "The 10 companies holding the most of it, marked when they have a small-business subcontracting plan: who you would compete against or team with",
   "What contracts like these were awarded for: the middle half of award values and the midpoint",
   "Up to 5 open bids that fit you right now",
   "The 12-month total: how many contracts end, what they are worth, and which months are busiest",

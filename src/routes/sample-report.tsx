@@ -13,24 +13,42 @@ import { trackEvent } from "~/lib/track";
  * (src/lib/pipeline-report-data.server.ts), so it never shows something a buyer would not get.
  */
 const PROD_URL = "https://www.contrax.company";
-export const SAMPLE_STATE = "VA";
-export const SAMPLE_TRADE = "it-services";
-const TITLE = "Sample Pipeline Snapshot: Federal IT Services in Virginia | Contrax";
-const DESC =
-  "A real Contrax Pipeline Snapshot: the federal IT services contracts ending in Virginia, who holds them, which agencies they are with, what they were awarded for and the open bids that fit.";
+/**
+ * The sample markets (owner 2026-11-14): one white-collar and two trades, so a janitorial or HVAC
+ * contractor sees numbers their own size. All three are federal contracts; the first is the default.
+ */
+export const SAMPLE_MARKETS = [
+  { key: "va-it", state: "VA", trade: "it-services", label: "IT services (VA)" },
+  { key: "va-janitorial", state: "VA", trade: "janitorial", label: "Janitorial (VA)" },
+  { key: "tx-hvac", state: "TX", trade: "hvac", label: "HVAC and plumbing (TX)" },
+] as const;
+type MarketKey = (typeof SAMPLE_MARKETS)[number]["key"];
+const marketFor = (m: unknown) => SAMPLE_MARKETS.find((x) => x.key === m) ?? SAMPLE_MARKETS[0];
 
-const getSample = createServerFn({ method: "GET" }).handler(async () => {
-  try {
-    const { reportData } = await import("~/lib/pipeline-report-data.server");
-    return await reportData(SAMPLE_STATE, SAMPLE_TRADE, 12);
-  } catch (e) {
-    console.error("[sample-report] failed", e);
-    return null;
-  }
-});
+const TITLE = "Sample Pipeline Snapshot: Federal Contracts Ending Soon | Contrax";
+const DESC =
+  "A real Contrax Pipeline Snapshot for IT services, janitorial or HVAC: the federal contracts ending in the state, who holds them, which agencies they are with, what they were awarded for and the open bids that fit.";
+
+const getSample = createServerFn({ method: "GET" })
+  .validator((d: unknown) => marketFor((d as { m?: unknown } | null)?.m).key)
+  .handler(async ({ data }) => {
+    const market = marketFor(data);
+    try {
+      const { reportData } = await import("~/lib/pipeline-report-data.server");
+      return { market: market.key as MarketKey, report: await reportData(market.state, market.trade, 12) };
+    } catch (e) {
+      console.error("[sample-report] failed", e);
+      return { market: market.key as MarketKey, report: null };
+    }
+  });
 
 export const Route = createFileRoute("/sample-report")({
-  loader: () => getSample(),
+  validateSearch: (s: Record<string, unknown>): { m?: MarketKey } => {
+    const k = marketFor(s.m).key;
+    return k === SAMPLE_MARKETS[0].key ? {} : { m: k };
+  },
+  loaderDeps: ({ search }) => ({ m: search.m }),
+  loader: ({ deps }) => getSample({ data: { m: deps.m } }),
   head: () => ({
     meta: [
       { title: TITLE },
@@ -65,8 +83,30 @@ function Order({ where }: { where: string }) {
   );
 }
 
+/** Pick which sample to read. Plain links, so it works without script and each sample has its own address. */
+function MarketSwitch({ current }: { current: MarketKey }) {
+  return (
+    <nav aria-label="Choose a sample" className="flex flex-wrap items-center gap-2 text-sm">
+      <span className="text-slate-400">View sample:</span>
+      {SAMPLE_MARKETS.map((m, i) => (
+        <a
+          key={m.key}
+          href={i === 0 ? "/sample-report" : `/sample-report?m=${m.key}`}
+          aria-current={m.key === current ? "page" : undefined}
+          onClick={() => trackEvent("sample_report_click", `market_${m.key}`)}
+          className={m.key === current
+            ? "rounded-full bg-amber-500 px-3 py-1 font-bold text-slate-950"
+            : "rounded-full border border-white/20 px-3 py-1 font-semibold text-slate-200 hover:border-amber-400 hover:text-white"}
+        >
+          {m.label}
+        </a>
+      ))}
+    </nav>
+  );
+}
+
 function SampleReport() {
-  const r = Route.useLoaderData();
+  const { market, report: r } = Route.useLoaderData();
   if (!r || !r.totals?.n) {
     return (
       <>
@@ -83,10 +123,11 @@ function SampleReport() {
   return (
     <>
       <SiteHeader />
-      <main className="bg-white">
+      <main className="bg-white pb-20 md:pb-0">
         <section className="bg-slate-950 px-4 py-12 text-white">
           <div className="mx-auto max-w-4xl">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-400">Sample Pipeline Snapshot · free to read</p>
+            <MarketSwitch current={market} />
+            <p className="mt-6 text-xs font-bold uppercase tracking-[0.18em] text-amber-400">Sample Pipeline Snapshot · free to read</p>
             <h1 className="mt-3 text-3xl font-extrabold leading-tight sm:text-4xl">Federal {r.tradeLabel} in {r.stateName}</h1>
             <p className="mt-3 max-w-2xl text-slate-300">
               This is a real report, built today from public records. A paid Snapshot is the same report for your state and your line of work,
@@ -160,11 +201,17 @@ function SampleReport() {
           </div>
           <div>
             <h2 className="text-xl font-bold text-slate-900">Companies holding the most of it</h2>
-            <p className="mt-1 text-xs text-slate-600">Who you would compete against, or team with.</p>
+            <p className="mt-1 text-xs text-slate-600">
+              Who you would compete against, or team with. <span className="rounded bg-emerald-100 px-1.5 py-0.5 font-bold text-emerald-800">Sub plan</span> marks
+              a company on the SBA or GSA directory of primes with a small-business subcontracting plan: they are required to give part of their work to small businesses.
+            </p>
             <ol className="mt-3 space-y-2 text-sm text-slate-700">
               {r.holders.map((h, i) => (
                 <li key={h.recipient_name} className="flex justify-between gap-3 border-b border-slate-100 pb-2">
-                  <span>{i + 1}. {h.recipient_name}</span>
+                  <span>
+                    {i + 1}. {h.recipient_name}
+                    {h.hasPlan && <span className="ml-2 whitespace-nowrap rounded bg-emerald-100 px-1.5 py-0.5 text-xs font-bold text-emerald-800">Sub plan</span>}
+                  </span>
                   <span className="whitespace-nowrap font-semibold text-slate-900">{formatDollars(h.total)} · {h.n.toLocaleString("en-US")}</span>
                 </li>
               ))}
@@ -216,6 +263,16 @@ function SampleReport() {
             </p>
           </div>
         </section>
+        {/* Owner 2026-11-14: on a phone the report is long; the offer stays within reach. */}
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-800 bg-slate-950/95 px-4 py-3 md:hidden">
+          <a
+            href="#order"
+            onClick={() => trackEvent("sample_report_click", "sticky")}
+            className="block rounded-xl bg-amber-500 px-4 py-3 text-center text-sm font-bold text-slate-950"
+          >
+            Get this report for your state and trade · {REPORT_PRICE} →
+          </a>
+        </div>
       </main>
     </>
   );

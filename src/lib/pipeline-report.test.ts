@@ -115,7 +115,7 @@ test("the snapshot reads as a first look, not a cheaper Managed", () => {
 // Owner 2026-11-14 (competitor review): a real sample anyone can read, built by the paid report's own function.
 test("the sample report is public, live, and the same function a paid report uses", () => {
   const page = readFileSync("src/routes/sample-report.tsx", "utf8");
-  expect(page).toContain('await reportData(SAMPLE_STATE, SAMPLE_TRADE, 12)');
+  expect(page).toContain('await reportData(market.state, market.trade, 12)');
   expect(page).toContain('{ name: "robots", content: "index, follow" }');
   expect(page).toContain("not a promise that the work will be rebid");
   expect(page).toContain("not as a price to bid");
@@ -144,4 +144,21 @@ test("the buyer hears at once what is coming, and once more four days later with
   expect(server).toContain("idempotencyKey: `report-followup-${sessionId}`");
   expect(server).toContain("scheduledAt:");
   expect(server).toContain("if (!send) await tellBuyer(order, session.id);");
+});
+
+// Owner 2026-11-14: three sample markets, subcontracting-plan badges, and a sticky offer on phones.
+test("the sample has three markets, marks primes with subcontracting plans, and keeps the offer in reach on a phone", () => {
+  const page = readFileSync("src/routes/sample-report.tsx", "utf8");
+  for (const k of ['key: "va-it"', 'key: "va-janitorial"', 'key: "tx-hvac"']) expect(page).toContain(k);
+  expect(page).toContain("<MarketSwitch current={market} />");
+  // An unknown market falls back to the first; the canonical address stays one page.
+  expect(page).toContain("SAMPLE_MARKETS.find((x) => x.key === m) ?? SAMPLE_MARKETS[0]");
+  expect(page).toContain("links: [{ rel: \"canonical\", href: `${PROD_URL}/sample-report` }]");
+  expect(page).toContain("{h.hasPlan && <span");
+  expect(page).toContain("SBA or GSA directory of primes with a small-business subcontracting plan");
+  expect(page).toContain("fixed inset-x-0 bottom-0 z-40");
+  expect(page).toContain("md:hidden");
+  const data = readFileSync("src/lib/pipeline-report-data.server.ts", "utf8");
+  expect(data).toContain("SELECT DISTINCT uei FROM subcontract_primes WHERE uei = ANY(${ueis})");
+  expect(data).toContain("subcontracting-plan lookup failed (no badges)");
 });

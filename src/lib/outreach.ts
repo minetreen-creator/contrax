@@ -222,17 +222,25 @@ export type OutreachKind = "first" | "followup" | "prime" | "leads" | "pack" | "
  * The buyer's own address among the emails found in a bid's text or on its
  * posting (owner 2026-11-14, buyer notes). Only a government, school or
  * public-body address counts: a bidding portal's support box or a vendor's
- * address is never the buyer. Null when none is found. PURE.
+ * address is never the buyer. `fitsAgency` lets the caller also accept a
+ * domain that carries the agency's own name. Null when none is found. PURE.
  */
-export function buyerEmail(candidates: readonly string[]): string | null {
+export function buyerEmail(candidates: readonly string[], fitsAgency: (domain: string) => boolean = () => false): string | null {
   const portal = /bidnet|periscope|bonfire|euna|ionwave|opengov|jaggaer|planetbids|publicpurchase|demandstar|govspend|bidexpress|quest ?cdn|proc(ure)?ware|vendorregistry|negometrix|fsd\.gov|sam\.gov/;
   const publicBody = /\.(gov|mil|edu)$|\.us$|k12|\b(county|city|town|village|schools?|authority|district|university|college)\b/;
   for (const raw of candidates) {
     const e = raw.trim().toLowerCase();
     const [local = "", domain = ""] = e.split("@");
     if (!local || !domain || portal.test(domain)) continue;
-    if (/^(no-?reply|do-?not-?reply|support|help(desk)?|webmaster|info-?tech|abuse|postmaster)$/.test(local)) continue;
+    if (/^(no-?reply|do-?not-?reply|webmaster|info-?tech|abuse|postmaster)$/.test(local)) continue;
+    // A state purchasing portal's help box is not the town or agency that is buying
+    // (first dry run: vendor@nc.gov for a Morrisville bid, procurementhelp@doas.ga.gov for a City of Commerce bid).
+    if (/help|support|^vendors?$|^e?procurement-?(desk|team)$/.test(local)) continue;
     if (publicBody.test(domain.replace(/[-_.]/g, (c) => (c === "." ? "." : " ")))) return e;
+    // A town on its own .org or .com (owner 2026-11-14): the caller says whether the domain carries the agency's name.
+    // There the mailbox must also be purchasing or a general office: the second dry run picked
+    // gis@ and sickleave@ addresses off city pages.
+    if (fitsAgency(domain) && /purchas|procure|^bids?$|buyer|contracts?|^(finance|info|clerk|admin|administration|office|manager|cityhall|townhall)$/.test(local)) return e;
   }
   return null;
 }

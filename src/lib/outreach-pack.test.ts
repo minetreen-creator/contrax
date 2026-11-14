@@ -64,6 +64,11 @@ describe("buyer note", () => {
     expect(buyerEmail(["bids@townofpulaski.org"])).toBeNull();
     expect(buyerEmail(["noreply@fairfaxcounty.gov", "sales@acme-roofing.com"])).toBeNull();
     expect(buyerEmail(["help@sam.gov", "fsd@fsd.gov"])).toBeNull();
+    // A state portal's help box is not the buyer (first dry run, 2026-11-14).
+    expect(buyerEmail(["vendor@nc.gov"])).toBeNull();
+    expect(buyerEmail(["procurementhelp@doas.ga.gov"])).toBeNull();
+    expect(buyerEmail(["procurement@accomack.gov"])).toBe("procurement@accomack.gov");
+    expect(buyerEmail(["priscilla.courtney@doc.mo.gov"])).toBe("priscilla.courtney@doc.mo.gov");
     expect(buyerEmail([])).toBeNull();
   });
   test("the note counts sent emails only, goes once per buyer, and waits for approval", () => {

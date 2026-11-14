@@ -139,6 +139,7 @@ import { fetchMnConnexBids } from "./sources/mn-connex";
 import { fetchMnQuestcdnBids } from "./sources/mn-questcdn";
 import { fetchMiBidnetBids } from "./sources/mi-bidnet";
 import { fetchFlPbSchoolsBidnetBids } from "./sources/fl-palm-beach-schools-bidnet";
+import { fetchWestPalmBeachBids } from "./sources/fl-west-palm-beach";
 import { fetchOkOmesBids } from "./sources/ok-omes";
 import { fetchKsSokBids } from "./sources/ks-sok";
 import { fetchNmEpronmBids } from "./sources/nm-epronm";
@@ -740,6 +741,8 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "mi_bidnet", fetchFn: () => fetchMiBidnetBids() },
   // Owner 2026-11-14: the School District of Palm Beach County's own BidNet group.
   { name: "fl_palm_beach_schools_bidnet", fetchFn: () => fetchFlPbSchoolsBidnetBids() },
+  // Owner 2026-11-14: the City of West Palm Beach's own solicitation list.
+  { name: "fl_west_palm_beach", fetchFn: () => fetchWestPalmBeachBids() },
   // NORTH CAROLINA (owner-directed 2026-10-22): BidNet Direct's *North Carolina
   // Purchasing Group*, next to (never instead of) eVP (`nc_evp`) and the NC
   // locality boards. Same treatment as `ny_bidnet` (14 open on one page on

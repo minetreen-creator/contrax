@@ -54,3 +54,17 @@ test("the managed option names one price, is a Stripe subscription, and the data
   expect(job).not.toMatch(/\b(INSERT|UPDATE|DELETE)\b/);
   expect(readFileSync(".github/workflows/managed-report-data.yml", "utf8")).toContain("READ-ONLY");
 });
+
+// Owner 2026-11-14: page polish after the reports went on sale.
+test("the hero points report buyers at the snapshot, and the bottom ties Professional back to Managed", () => {
+  expect(page).toContain('<a href="#done-for-you"');
+  expect(page).toContain("Start with a {REPORT_PRICE} Pipeline Snapshot ↓");
+  expect(page).toContain("The software behind the reports");
+  expect(page).toContain("Professional is included with Contrax Managed, or yours on its own for $79 a month");
+});
+
+test("the homepage and /teams count open bids with the same filter", () => {
+  const home = readFileSync("src/routes/index.tsx", "utf8");
+  expect(home).toContain("WHERE ${sql().unsafe(PUBLIC_OPEN_BIDS_WHERE)}");
+  expect(page).toContain("FROM bids WHERE ${s.unsafe(PUBLIC_OPEN_BIDS_WHERE)}");
+});

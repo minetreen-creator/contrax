@@ -24,12 +24,12 @@ const DESC =
 const getCounts = createServerFn({ method: "GET" }).handler(async () => {
   try {
     const { sql } = await import("~/db");
-    const { LOW_CONTENT_SQL } = await import("~/lib/low-content");
-    const { AWARD_EXCLUSION_SQL } = await import("~/lib/source-class");
+    const { PUBLIC_OPEN_BIDS_WHERE } = await import("~/lib/open-count");
     const s = sql();
+    // Same filter as the homepage's count (src/lib/open-count.ts), so the two pages agree.
     const r = (await s`
       SELECT COUNT(*)::int AS open, COUNT(DISTINCT normalized_state)::int AS states
-      FROM bids WHERE due_date > NOW() AND ${s.unsafe(LOW_CONTENT_SQL)} AND ${s.unsafe(AWARD_EXCLUSION_SQL)}`) as { open: number; states: number }[];
+      FROM bids WHERE ${s.unsafe(PUBLIC_OPEN_BIDS_WHERE)}`) as { open: number; states: number }[];
     return r[0] ?? null;
   } catch {
     return null;
@@ -156,6 +156,13 @@ function TeamsPage() {
               Start Professional: $79 a month →
             </a>
             <p className="mt-2 text-xs text-slate-400">Month to month. Cancel anytime. Or $790 a year.</p>
+            {/* Owner 2026-11-14: visitors sent here for the reports should not have to hunt past the $79 button. */}
+            <p className="mt-5 text-sm text-slate-300">
+              Want it prepared for you?{" "}
+              <a href="#done-for-you" onClick={() => trackEvent("teams_cta_click", "hero_snapshot")} className="font-semibold text-amber-400 underline underline-offset-4 hover:text-amber-300">
+                Start with a {REPORT_PRICE} Pipeline Snapshot ↓
+              </a>
+            </p>
           </div>
         </section>
 
@@ -250,7 +257,10 @@ function TeamsPage() {
         </section>
 
         <section className="mx-auto max-w-4xl px-4 py-12">
-          <h2 className="text-xl font-bold text-slate-900">What Professional includes</h2>
+          <h2 className="text-xl font-bold text-slate-900">The software behind the reports</h2>
+          <p className="mt-2 text-sm text-slate-700">
+            Professional is included with Contrax Managed, or yours on its own for $79 a month if your team would rather do the digging.
+          </p>
           <ul className="mt-4 space-y-2 text-sm text-slate-700">
             {features.map((f) => (
               <li key={f}>✓ {f}</li>

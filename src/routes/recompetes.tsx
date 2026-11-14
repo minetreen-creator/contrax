@@ -208,7 +208,7 @@ function RecompetesPage() {
               alertProfile={tradeAlertProfile(trade, d.state ?? null)}
               source="recompetes"
               heading="Not ready for an account? Get new bids by email"
-              note="When one of these contracts is rebid, the new solicitation is the kind of bid we'll send."
+              note="When one of these contracts is rebid, the new solicitation is the kind of bid we'll send. Once a week we also tell you which contracts here have come inside six months of ending."
               tone="light"
             />
           </>

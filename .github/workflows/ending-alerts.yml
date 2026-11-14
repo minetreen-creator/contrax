@@ -1,0 +1,49 @@
+name: Ending Contract Alerts
+
+# Owner 2026-11-14: once a week, email each confirmed alert subscriber the
+# largest federal contracts in their trade and state that have just come inside
+# six months of ending (src/jobs/ending-alerts.ts). Each contract goes to a
+# subscriber once. Runs on Sunday, when no outreach is sent, because every email
+# the site sends shares one 100-a-day account; a run sends at most 60.
+# A hand run without apply only prints what it would send.
+
+on:
+  schedule:
+    - cron: "17 14 * * 0"
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: "Send the emails (leave off for a dry run)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: ending-alerts
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  alerts:
+    name: Send ending-contract alerts
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      APPLY: ${{ (github.event_name == 'schedule' || inputs.apply) && 'true' || 'false' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Ending contract alerts
+        run: bun run ending-alerts

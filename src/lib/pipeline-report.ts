@@ -114,7 +114,7 @@ export function ownerNotice(o: ReportOrder, sessionId: string): { subject: strin
       `Line of work: ${o.trade}`,
       `Promised within ${REPORT_DELIVERY}.`,
       runLine(o),
-      `Offer in the report: ${REPORT_CREDIT_NOTE}`,
+      `Offer to put in the report: ${REPORT_CREDIT_NOTE} Link: https://www.contrax.company/teams#done-for-you (the credit applies itself at checkout when they use ${o.email}).`,
       `Stripe session: ${sessionId}`,
     ].join("\n\n"),
   };

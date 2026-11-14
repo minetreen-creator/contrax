@@ -13,7 +13,7 @@ export const BRAND_STEPS: readonly { title: string; detail: string; href: string
   },
   {
     title: "Build the team.",
-    detail: "Find certified local subs and collect their quotes, plus crew housing where we have a partner.",
+    detail: "Find certified local subs for the parts of the job you do not do yourself, and collect their quotes in one place.",
     href: "/sub-finder",
     cta: "Open Sub Finder",
   },

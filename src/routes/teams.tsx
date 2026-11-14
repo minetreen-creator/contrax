@@ -4,6 +4,7 @@ import { SiteHeader } from "~/components/SiteHeader";
 import { PLAN_COPY } from "~/lib/plan-features";
 import { trackEvent } from "~/lib/track";
 import { PipelineReportOrder } from "~/components/PipelineReportOrder";
+import { ManagedOrder } from "~/components/ManagedOrder";
 import { REPORT_CREDIT_NOTE, REPORT_PRICE } from "~/lib/pipeline-report";
 
 /**
@@ -220,7 +221,7 @@ function TeamsPage() {
             </table>
           </div>
           {/* Owner 2026-11-14 ("I want to make thousands of dollars" → "sure"): a done-for-you option
-              beside the self-serve plan. Sold by email with the founder; no checkout yet. */}
+              beside the self-serve plan. A Stripe subscription since 2026-11-14 (owner: make it a stripe payment). */}
           <div className="rounded-2xl border-2 border-amber-400 bg-amber-50 p-6">
             <p className="text-xs font-bold uppercase tracking-wide text-amber-700">Ongoing · done for you every month</p>
             <h2 className="mt-1 text-xl font-bold text-slate-900">Contrax Managed: {MANAGED_PRICE} a month</h2>
@@ -233,14 +234,18 @@ function TeamsPage() {
                 <li key={f}>✓ {f}</li>
               ))}
             </ul>
+            <ManagedOrder price={MANAGED_PRICE} />
+            <p className="mt-2 text-xs text-slate-600">
+              Month to month, paid by card through Stripe. Cancel anytime by email. Bought the one-time report first? {REPORT_CREDIT_NOTE} The
+              credit is applied at checkout when you use the same email.
+            </p>
             <a
               href="mailto:contrax.companyllc@gmail.com?subject=Contrax%20Managed%20for%20our%20team"
               onClick={() => trackEvent("teams_cta_click", "managed")}
-              className="mt-5 inline-block rounded-xl bg-slate-900 px-6 py-3 text-sm font-bold text-white hover:bg-slate-800"
+              className="mt-3 inline-block text-sm font-semibold text-blue-700 hover:text-blue-600"
             >
-              Ask for a sample report →
+              Or ask for a sample report first →
             </a>
-            <p className="mt-2 text-xs text-slate-600">Month to month, billed by invoice. Bought the one-time report first? {REPORT_CREDIT_NOTE}</p>
           </div>
         </section>
 

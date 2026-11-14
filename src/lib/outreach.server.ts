@@ -180,6 +180,7 @@ export interface BuyerNoteBid {
   sent: number;
   description: string | null;
   source_url: string | null;
+  state: string | null;
 }
 
 /** Days a sent outreach email counts toward a buyer note. */
@@ -192,17 +193,17 @@ export const BUYER_NOTE_MIN_SENT = 2;
  * (never drafts) in the window, and no buyer note yet. The count is what the
  * note states, so it is counted here from sent rows only.
  */
-export async function bidsOwedBuyerNote(limit = 40): Promise<BuyerNoteBid[]> {
+export async function bidsOwedBuyerNote(limit = 120): Promise<BuyerNoteBid[]> {
   await ensureOutreach();
   return (await sql()`
     SELECT c.bid_id, MIN(c.bid_title) AS bid_title, MIN(c.buyer) AS buyer, to_char(MIN(c.due_date), 'YYYY-MM-DD') AS due,
-           MIN(c.trade_label) AS trade_label, COUNT(*)::int AS sent, b.description, b.source_url
+           MIN(c.trade_label) AS trade_label, COUNT(*)::int AS sent, b.description, b.source_url, b.normalized_state AS state
     FROM outreach_contacts c JOIN bids b ON b.id = c.bid_id
     WHERE c.kind IN ('first', 'pack') AND c.status = 'sent'
       AND c.sent_at >= NOW() - ${`${BUYER_NOTE_WINDOW_DAYS} days`}::interval
       AND c.due_date >= CURRENT_DATE + 3
       AND NOT EXISTS (SELECT 1 FROM outreach_contacts x WHERE x.kind = 'buyer' AND x.bid_id = c.bid_id)
-    GROUP BY c.bid_id, b.description, b.source_url
+    GROUP BY c.bid_id, b.description, b.source_url, b.normalized_state
     HAVING COUNT(*) >= ${BUYER_NOTE_MIN_SENT}
     ORDER BY MIN(c.due_date) ASC
     LIMIT ${limit}

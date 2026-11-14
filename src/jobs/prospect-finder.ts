@@ -114,7 +114,7 @@ export async function findBusinesses(
   return { places: await searchRegistrants(reg), source: "registry" };
 }
 
-async function fetchPage(url: string): Promise<string> {
+export async function fetchPage(url: string): Promise<string> {
   try {
     const res = await fetch(url, { headers: { "user-agent": UA }, redirect: "follow", signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
     if (!res.ok || !(res.headers.get("content-type") ?? "").includes("html")) return "";

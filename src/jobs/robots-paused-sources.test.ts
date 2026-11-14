@@ -6,8 +6,8 @@ import { activeSources, ROBOTS_PAUSED_SOURCES, TAIL_SOURCES } from "./runner";
 // on the owner's word ("keep them"); Dubuque's IonWave board was added on the owner's word.
 const IONWAVE = ["ar_ionwave_central", "ar_fayetteville_ionwave", "sc_columbia_ionwave", "tx_plano_ionwave", "tx_irving_ionwave", "tx_georgetown_ionwave", "ne_omaha_ionwave", "fl_lee_county", "ia_dubuque", "fl_cape_coral_ionwave", "fl_lauderhill_ionwave", "fl_coconut_creek_ionwave", "fl_pasco_schools_ionwave", "fl_pompano_beach_ionwave"];
 
-test("Knox County (403 = stop) and Minnesota QuestCDN (robots.txt disallows all) are paused, and a sync reads all thirteen IonWave boards", () => {
-  expect([...ROBOTS_PAUSED_SOURCES]).toEqual(["tn_knox_county", "mn_questcdn"]);
+test("Knox County and the Jaggaer boards (403 = stop) and Minnesota QuestCDN (robots.txt disallows all) are paused, and a sync reads every IonWave board", () => {
+  expect([...ROBOTS_PAUSED_SOURCES]).toEqual(["tn_knox_county", "mn_questcdn", "mt_emacs", "nm_epronm", "tx_tamu_jaggaer", "tx_texastech_jaggaer", "tx_uh_jaggaer", "tx_utsa_jaggaer", "va_vt_jaggaer"]);
   const active = activeSources(TAIL_SOURCES).map((s) => s.name);
   for (const name of IONWAVE) expect(active).toContain(name);
   expect(active).not.toContain("tn_knox_county");

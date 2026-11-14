@@ -319,7 +319,7 @@ const FOOTER_GROUPS = [
       { href: "/sub-finder", label: "Sub Finder" },
       { href: "/subs-wanted", label: "Subs Wanted" },
       { href: "/megaprojects", label: "Megaprojects" },
-      { href: "/tampa-contractors", label: "Tampa: work and crew housing" },
+      { href: "/tampa-contractors", label: "Tampa: bids and subs" },
     ],
   },
   {

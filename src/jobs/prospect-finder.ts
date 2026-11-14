@@ -58,7 +58,7 @@ export async function searchPlaces(key: string, query: string): Promise<Place[]>
  * Firms in the job's own town come first; the rest are ordered by a hash of the
  * business and the bid, so each bid reaches different firms. Never throws.
  */
-export async function searchRegistrants(opts: { state: string; label: string; place: string; bidId: number }): Promise<Place[]> {
+export async function searchRegistrants(opts: { state: string; label: string; place: string; bidId: number; limit?: number }): Promise<Place[]> {
   const t = registryTrade(opts.label);
   if (!t || !/^[A-Z]{2}$/.test(opts.state)) return [];
   try {
@@ -78,7 +78,7 @@ export async function searchRegistrants(opts: { state: string; label: string; pl
                (city <> '' AND POSITION(LOWER(city) IN LOWER(${opts.place})) > 0) DESC,
                (${zip3} <> '' AND LEFT(COALESCE(zip, ''), 3) = ${zip3}) DESC,
                md5(uei || ${String(opts.bidId)})
-      LIMIT ${PLACES_PER_BID}
+      LIMIT ${Math.min(Math.max(opts.limit ?? PLACES_PER_BID, 1), 40)}
     `) as { name: string; city: string | null; state: string; zip: string | null; url: string }[];
     return rows.map((r) => ({
       name: r.name,
@@ -101,7 +101,7 @@ let placesDown = false;
 export async function findBusinesses(
   key: string,
   query: string,
-  reg: { state: string; label: string; place: string; bidId: number },
+  reg: { state: string; label: string; place: string; bidId: number; limit?: number },
 ): Promise<{ places: Place[]; source: "places" | "registry" }> {
   if (key && !placesDown) {
     try {

@@ -142,7 +142,8 @@ async function queueForBid(key: string, b: BidRow, trade: OutreachTrade, seenHos
   const query = placesQuery(trade.places, place);
   console.log(`  #${b.id} ${b.title} (${b.agency ?? "-"}, due ${due}) → ${query}`);
   // Google Places when its key works, else the contractor registry (owner 2026-11-14).
-  const { places, source } = await findBusinesses(key, query, { state: b.normalized_state, label: trade.label, place, bidId: b.id });
+  // Fewer than half of registry firms publish a usable email, so read three candidates per wanted draft.
+  const { places, source } = await findBusinesses(key, query, { state: b.normalized_state, label: trade.label, place, bidId: b.id, limit: Math.max(10, perBid * 3) });
   if (source === "registry") console.log(`    ${places.length} from the contractor registry`);
   let forBid = 0;
   for (const p of places) {

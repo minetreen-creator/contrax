@@ -33,7 +33,7 @@ import {
 } from "~/lib/outreach";
 import { isConstructionNonWork, isConstructionTitle } from "~/lib/trade-classification";
 import { resolveSourceClass } from "~/lib/source-class";
-import { ensureOutreach, isNewAddress, queueFirst, queueFollowups, recheckWaitingDrafts, skipAllDrafts } from "~/lib/outreach.server";
+import { ensureOutreach, isNewAddress, queueFirst, queueFollowups, queuePack, recheckWaitingDrafts, skipAllDrafts } from "~/lib/outreach.server";
 import { bidPlace, placesQuery, siteHost } from "~/lib/prospect-finder";
 import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
 import { findBusinesses, siteEmails } from "./prospect-finder";
@@ -53,6 +53,11 @@ const CANDIDATES_PER_TRADE = 25;
  */
 const FOCUS_STATE = (process.env.FOCUS_STATE ?? "").trim().toUpperCase();
 const FOCUS_TRADE = (process.env.FOCUS_TRADE ?? "").trim().toLowerCase();
+/**
+ * FOCUS_OFFER=pack (owner 2026-11-14): a construction focus run queues the free
+ * Bid Pack offer in place of the usual first email.
+ */
+const FOCUS_OFFER = (process.env.FOCUS_OFFER ?? "").trim().toLowerCase();
 /** A focus run reaches back further: one state's fresh construction bids are fewer. */
 const FOCUS_FRESH_DAYS = 10;
 
@@ -161,7 +166,7 @@ async function queueForBid(key: string, b: BidRow, trade: OutreachTrade, seenHos
     const { emails } = await siteEmails(p.website);
     const email = emails.find((e) => emailFitsSite(e, host, p.name));
     if (!email || !(await isNewAddress(email))) continue;
-    const ok = await queueFirst({
+    const ok = await (FOCUS_OFFER === "pack" && FOCUS_STATE ? queuePack : queueFirst)({
       email,
       business: p.name,
       website: p.website,
@@ -235,6 +240,9 @@ async function main() {
 
   if (FOCUS_STATE && FOCUS_TRADE) {
     const serviceTrade = OUTREACH_TRADES.find((t) => t.match === FOCUS_TRADE || t.label.toLowerCase() === FOCUS_TRADE);
+    if (FOCUS_OFFER && (FOCUS_OFFER !== "pack" || FOCUS_TRADE !== "construction")) {
+      throw new Error(`Unknown offer "${FOCUS_OFFER}": the only offer is "pack", with trade "construction"`);
+    }
     if (!/^[A-Z]{2}$/.test(FOCUS_STATE) || (FOCUS_TRADE !== "construction" && !serviceTrade)) {
       throw new Error(`Unknown focus ${FOCUS_STATE} ${FOCUS_TRADE}: use a two-letter state and "construction" or an outreach trade such as "janitorial"`);
     }

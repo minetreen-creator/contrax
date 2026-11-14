@@ -156,6 +156,20 @@ export async function queueFirst(p: QueuedProspect): Promise<boolean> {
   return rows.length > 0;
 }
 
+/**
+ * Queue a Bid Pack offer draft (owner 2026-11-14): the same bid and business
+ * details as a first email, sent as kind 'pack'. False when the address is
+ * already known.
+ */
+export async function queuePack(p: QueuedProspect): Promise<boolean> {
+  if (!(await isNewAddress(p.email))) return false;
+  const rows = (await sql()`
+    INSERT INTO outreach_contacts (email, kind, business, website, bid_id, bid_title, buyer, due_date, trade_label)
+    VALUES (${p.email.trim().toLowerCase()}, 'pack', ${p.business}, ${p.website}, ${p.bidId}, ${p.bidTitle}, ${p.buyer}, ${p.due}, ${p.tradeLabel})
+    ON CONFLICT DO NOTHING RETURNING id`) as unknown[];
+  return rows.length > 0;
+}
+
 export interface QueuedPrime {
   email: string;
   business: string;
@@ -358,7 +372,7 @@ export async function trimDraftsToCap(cap: number = DAILY_OUTREACH_CAP): Promise
     WITH ranked AS (
       SELECT id, ROW_NUMBER() OVER (ORDER BY
         (due_date < CURRENT_DATE + 2) ASC,
-        CASE kind WHEN 'first' THEN 0 WHEN 'leads' THEN 1 WHEN 'prime' THEN 2 ELSE 3 END,
+        CASE kind WHEN 'first' THEN 0 WHEN 'pack' THEN 0 WHEN 'leads' THEN 1 WHEN 'prime' THEN 2 ELSE 3 END,
         due_date ASC, id ASC) AS rn
       FROM outreach_contacts WHERE status = 'draft'
     )

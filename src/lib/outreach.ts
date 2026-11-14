@@ -215,7 +215,8 @@ export function outreachRoomToday(sentToday: number, cap: number = DAILY_OUTREAC
   return Math.max(0, cap - Math.max(0, Math.floor(sentToday || 0)));
 }
 
-export type OutreachKind = "first" | "followup" | "prime" | "leads";
+/** "pack" (owner 2026-11-14): a construction first email that offers a free Bid Pack, not the $5 pass. */
+export type OutreachKind = "first" | "followup" | "prime" | "leads" | "pack";
 
 export interface OutreachEmailInput {
   kind: OutreachKind;
@@ -326,6 +327,28 @@ export function outreachEmail(i: OutreachEmailInput): { subject: string; text: s
       "I'm Nathaniel, and I run Contrax, a small company that tracks government contracts and the local contractors who do the work.",
       "",
       "Good luck with the contract.",
+    ];
+  } else if (i.kind === "pack") {
+    // Owner 2026-11-14 ("Send the Bid Pack offer to 30 construction firms, each
+    // with one real open bid"): the first pack is free, to learn who wants one
+    // and what it is worth. One ask (reply "yes"), no price.
+    const buyer = (i.buyer ?? "").trim();
+    const from = buyer && buyer.length <= 45 ? ` from ${buyer}` : "";
+    subject = `Want this ${i.tradeLabel} bid${from} broken down for you?`.slice(0, 140);
+    body = [
+      "Hi,",
+      "",
+      `${buyer ? buyer : "A local government buyer"} has an open bid that looks like a fit for ${i.business}:`,
+      "",
+      i.bidTitle,
+      `Due: ${due}`,
+      ...postingLines,
+      "",
+      "I'm Nathaniel, and I run Contrax, a small company that finds government bids for local contractors. I'm testing a new service and would like to do one for you at no charge. I read every page of the bid documents and send back a short pack: the scope, the bond, insurance and license requirements, the site visit and question deadlines, the trades you would need, the payment terms, and anything in the documents that conflicts or is missing. Every item comes with the page it came from.",
+      "",
+      'If you would like one for this bid, or for another bid you are chasing, reply "yes" and I\'ll get started.',
+      "",
+      "Good luck if you go for it.",
     ];
   } else if (i.kind === "first") {
     // Owner 2026-10-25 review: one ask (reply "yes"), no prices in a cold

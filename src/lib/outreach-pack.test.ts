@@ -41,3 +41,37 @@ describe("Bid Pack offer email", () => {
     expect(readFileSync(".github/workflows/outreach-prepare.yml", "utf8")).toContain("FOCUS_OFFER: ${{ inputs.offer }}");
   });
 });
+
+// Owner 2026-11-14 (idea 2): after a bid has gone out to contractors, tell its buyer.
+import { buyerEmail } from "./outreach";
+
+describe("buyer note", () => {
+  const m = outreachEmail({ ...base, kind: "buyer", business: "Rockbridge County Public Schools", place: "12" });
+  test("reports what was sent, with the real count, and asks for nothing", () => {
+    expect(m.subject).toBe("We sent your construction bid to 12 local contractors");
+    expect(m.text).toContain("We recently emailed your open solicitation to 12 local contractors:");
+    expect(m.text).toContain("Construction of Recreation Center");
+    expect(m.text).toContain("There is nothing you need to do.");
+    expect(m.text).not.toContain("$");
+    expect(m.text).toContain("this address is listed with the solicitation above");
+    expect(m.text).toContain(base.unsubscribeUrl);
+    expect(outreachEmail({ ...base, kind: "buyer", place: "1" }).subject).toBe("We sent your construction bid to 1 local contractor");
+  });
+  test("only a public body's own address is a buyer; portals, vendors and no-reply boxes are not", () => {
+    expect(buyerEmail(["support@bidnetdirect.com", "jsmith@rockbridgecountyva.gov"])).toBe("jsmith@rockbridgecountyva.gov");
+    expect(buyerEmail(["purchasing@harrisonburg.k12.va.us"])).toBe("purchasing@harrisonburg.k12.va.us");
+    expect(buyerEmail(["procurement@odu.edu"])).toBe("procurement@odu.edu");
+    expect(buyerEmail(["bids@townofpulaski.org"])).toBeNull();
+    expect(buyerEmail(["noreply@fairfaxcounty.gov", "sales@acme-roofing.com"])).toBeNull();
+    expect(buyerEmail(["help@sam.gov", "fsd@fsd.gov"])).toBeNull();
+    expect(buyerEmail([])).toBeNull();
+  });
+  test("the note counts sent emails only, goes once per buyer, and waits for approval", () => {
+    const srv = readFileSync("src/lib/outreach.server.ts", "utf8");
+    expect(srv).toContain("WHERE c.kind IN ('first', 'pack') AND c.status = 'sent'");
+    expect(srv).toContain("NOT EXISTS (SELECT 1 FROM outreach_contacts x WHERE x.kind = 'buyer' AND x.bid_id = c.bid_id)");
+    const job = readFileSync("src/jobs/buyer-notes.ts", "utf8");
+    expect(job).toContain('const apply = process.env.APPLY === "true";');
+    expect(readFileSync(".github/workflows/buyer-notes.yml", "utf8")).toContain("SENDS NOTHING");
+  });
+});

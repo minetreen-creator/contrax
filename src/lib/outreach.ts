@@ -216,7 +216,26 @@ export function outreachRoomToday(sentToday: number, cap: number = DAILY_OUTREAC
 }
 
 /** "pack" (owner 2026-11-14): a construction first email that offers a free Bid Pack, not the $5 pass. */
-export type OutreachKind = "first" | "followup" | "prime" | "leads" | "pack";
+export type OutreachKind = "first" | "followup" | "prime" | "leads" | "pack" | "buyer";
+
+/**
+ * The buyer's own address among the emails found in a bid's text or on its
+ * posting (owner 2026-11-14, buyer notes). Only a government, school or
+ * public-body address counts: a bidding portal's support box or a vendor's
+ * address is never the buyer. Null when none is found. PURE.
+ */
+export function buyerEmail(candidates: readonly string[]): string | null {
+  const portal = /bidnet|periscope|bonfire|euna|ionwave|opengov|jaggaer|planetbids|publicpurchase|demandstar|govspend|bidexpress|quest ?cdn|proc(ure)?ware|vendorregistry|negometrix|fsd\.gov|sam\.gov/;
+  const publicBody = /\.(gov|mil|edu)$|\.us$|k12|\b(county|city|town|village|schools?|authority|district|university|college)\b/;
+  for (const raw of candidates) {
+    const e = raw.trim().toLowerCase();
+    const [local = "", domain = ""] = e.split("@");
+    if (!local || !domain || portal.test(domain)) continue;
+    if (/^(no-?reply|do-?not-?reply|support|help(desk)?|webmaster|info-?tech|abuse|postmaster)$/.test(local)) continue;
+    if (publicBody.test(domain.replace(/[-_.]/g, (c) => (c === "." ? "." : " ")))) return e;
+  }
+  return null;
+}
 
 export interface OutreachEmailInput {
   kind: OutreachKind;
@@ -283,7 +302,9 @@ export function outreachEmail(i: OutreachEmailInput): { subject: string; text: s
     "contrax.company",
     "",
     `Contrax LLC, ${i.postalAddress} · ${TRADEMARK_LINE}`,
-    `You're receiving this because ${i.business} lists this address on its website. Unsubscribe: ${i.unsubscribeUrl}`,
+    i.kind === "buyer"
+      ? `You're receiving this because this address is listed with the solicitation above. Unsubscribe: ${i.unsubscribeUrl}`
+      : `You're receiving this because ${i.business} lists this address on its website. Unsubscribe: ${i.unsubscribeUrl}`,
   ];
 
   // Owner 2026-11-04: the official posting is the product; the email links only the Contrax page.
@@ -327,6 +348,31 @@ export function outreachEmail(i: OutreachEmailInput): { subject: string; text: s
       "I'm Nathaniel, and I run Contrax, a small company that tracks government contracts and the local contractors who do the work.",
       "",
       "Good luck with the contract.",
+    ];
+  } else if (i.kind === "buyer") {
+    // Owner 2026-11-14 ("thinking outside the box" → idea 2): once a bid has
+    // gone out to local contractors, tell its buyer. It reports something
+    // already done and asks for nothing but, if they wish, where they post bids.
+    // `place` carries how many contractors were emailed (counted from sent rows).
+    const n = Math.max(0, Math.floor(Number(i.place) || 0));
+    const firms = n === 1 ? "1 local contractor" : `${n} local contractors`;
+    subject = `We sent your ${i.tradeLabel} bid to ${firms}`.slice(0, 140);
+    body = [
+      "Hello,",
+      "",
+      "I'm Nathaniel Minetree, and I run Contrax, a small Virginia company that helps local contractors find government bids.",
+      "",
+      `We recently emailed your open solicitation to ${firms}:`,
+      "",
+      i.bidTitle,
+      `Due: ${due}`,
+      `How we list it: ${bidUrl}`,
+      "",
+      "There is nothing you need to do. I wanted you to know where new inquiries may be coming from.",
+      "",
+      "If you would like your future solicitations sent to local contractors the same way, reply with the page where you post them and I'll make sure we pick them up.",
+      "",
+      "Thank you for the work you do.",
     ];
   } else if (i.kind === "pack") {
     // Owner 2026-11-14 ("Send the Bid Pack offer to 30 construction firms, each

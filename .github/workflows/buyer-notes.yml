@@ -1,0 +1,44 @@
+name: Buyer Notes
+
+# Owner 2026-11-14: once a bid's contractor emails have been sent, tell the
+# buyer how many local contractors it went to (src/jobs/buyer-notes.ts).
+# SENDS NOTHING: it queues drafts the owner approves on /admin/outreach.
+# Run by hand from the Actions tab. A dry run only prints what it would queue.
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: "Queue the drafts (leave off for a dry run)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: outreach-prepare
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  notes:
+    name: Queue buyer notes
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      APPLY: ${{ inputs.apply && 'true' || 'false' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Buyer notes
+        run: bun run buyer-notes

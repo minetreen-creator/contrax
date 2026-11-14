@@ -30,7 +30,9 @@ test("the page shows the source and check date, says when the other tool wins, a
   const page = readFileSync("src/routes/compare/$tool.tsx", "utf8");
   expect(page).toContain("checked {CHECKED}");
   expect(page).toContain("<strong>Choose {t.name}</strong> if {t.betterWhen}");
-  expect(page).toContain("not affiliated with or endorsed by");
+  // The notice is in the hero, above the first button.
+  expect(page.indexOf("not affiliated with or endorsed by")).toBeGreaterThan(0);
+  expect(page.indexOf("not affiliated with or endorsed by")).toBeLessThan(page.indexOf("Read a real sample report"));
   expect(page).toContain("throw notFound()");
   const map = readFileSync("scripts/generate-sitemap.mjs", "utf8");
   for (const t of COMPARE_TOOLS) expect(map).toContain(`["/compare/${t.slug}", "monthly", "0.6"]`);

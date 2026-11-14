@@ -48,6 +48,10 @@ function CompareToolPage() {
               {t.what} You run it. Contrax can do the same digging for you and send one document: the government contracts ending in your
               trade and state, who holds them, and the open bids that fit.
             </p>
+            {/* Owner 2026-11-14: the not-affiliated line sits under the headline, not only at the foot of the page. */}
+            <p className="mt-3 text-xs text-slate-400">
+              {t.name} is a trademark of its owner. Contrax is not affiliated with or endorsed by {t.name}.
+            </p>
             <a
               href="/sample-report"
               onClick={() => trackEvent("compare_tool_click", `${t.slug}_sample`)}
@@ -111,7 +115,7 @@ function CompareToolPage() {
               <a href="/compare" className="text-sm font-semibold text-blue-700 hover:text-blue-600">Compare more options</a>
             </div>
             <p className="mt-8 text-xs text-slate-600">
-              {t.name} is a trademark of its owner. Contrax is not affiliated with or endorsed by {t.name}. Other comparisons:{" "}
+              Other comparisons:{" "}
               {COMPARE_TOOLS.filter((o) => o.slug !== t.slug).map((o, i) => (
                 <span key={o.slug}>{i > 0 ? ", " : ""}<a href={`/compare/${o.slug}`} className="text-blue-700 underline hover:text-blue-600">{o.name}</a></span>
               ))}

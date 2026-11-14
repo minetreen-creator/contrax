@@ -44,3 +44,13 @@ export function profileFromSearches(searches: readonly SearchRow[]): SeededProfi
   const industry = trade.charAt(0).toUpperCase() + trade.slice(1);
   return { industry, naicsCodes: [], locations };
 }
+
+/**
+ * Trade and state typed on the signup form (owner 2026-11-14: half of new
+ * accounts still had no trade, because they never searched before signing up).
+ * Same rules as a search: an address or email is never a trade, and a state
+ * must be a two-letter code. Null when the trade is not usable.
+ */
+export function profileFromAnswer(trade: string | null | undefined, state: string | null | undefined): SeededProfile | null {
+  return profileFromSearches([{ trade: trade ?? null, state: state ?? null, matched: null }]);
+}

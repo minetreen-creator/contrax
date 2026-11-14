@@ -138,6 +138,8 @@ async function handler({ request }: { request: Request }) {
       visitor_id?: string;
       visit_id?: string;
       company?: string;
+      trade?: unknown;
+      state?: unknown;
       attempt_token?: unknown;
       signup_source?: unknown;
     };
@@ -264,6 +266,21 @@ async function handler({ request }: { request: Request }) {
       }
     } catch (claimErr) {
       console.error("[api/signup] pass claim failed (non-fatal):", claimErr);
+    }
+
+    // Owner 2026-11-14: the signup form asks for trade and state. Save them as
+    // the account's profile BEFORE the backfill below, so what the person typed
+    // wins over a trade guessed from an earlier search. Optional here (Google
+    // sign-up and older clients send neither); fail-open, never affects signup.
+    try {
+      const signupTrade = typeof body.trade === "string" ? body.trade.slice(0, 120) : "";
+      const signupState = typeof body.state === "string" ? body.state.slice(0, 2) : "";
+      if (signupTrade.trim()) {
+        const { seedProfileFromAnswer } = await import("~/lib/profile-seed.server");
+        await seedProfileFromAnswer(sql, user.id, signupTrade, signupState);
+      }
+    } catch (seedErr) {
+      console.error("[api/signup] trade from signup form failed (non-fatal):", seedErr);
     }
 
     // ── Identity backfill (fail-open, MUST NOT affect the response) ─────────

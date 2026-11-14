@@ -59,3 +59,24 @@ describe("teams outreach email", () => {
     expect(teamsRecompetesPath(null)).toBe("/recompetes");
   });
 });
+
+// Owner 2026-11-14 ("do that"): a weekday batch to companies with a government sales team.
+import { readFileSync } from "node:fs";
+
+describe("teams outreach schedule", () => {
+  const job = readFileSync("src/jobs/teams-outreach.ts", "utf8");
+  const wf = readFileSync(".github/workflows/teams-outreach.yml", "utf8");
+  test("a scheduled run takes the day's market and queues drafts; a hand run still needs apply", () => {
+    expect(wf).toContain('- cron: "47 10 * * 1-5"');
+    expect(wf).toContain("(github.event_name == 'schedule' || inputs.apply) && 'true' || 'false'");
+    expect(wf).toContain("SENDS NOTHING");
+    expect(job).toContain("teamsMarketFor(Date.now() / 86_400_000)");
+  });
+  test("the rotation covers ten markets and every one is a real state and trade", () => {
+    const list = job.slice(job.indexOf("TEAMS_ROTATION"), job.indexOf("];", job.indexOf("TEAMS_ROTATION")));
+    const pairs = [...list.matchAll(/\["([A-Z]{2})", "([a-z-]+)"\]/g)].map((m) => [m[1], m[2]]);
+    expect(pairs.length).toBe(10);
+    for (const [, trade] of pairs) expect(["it-services", "construction"]).toContain(trade);
+    expect(new Set(pairs.map((p) => p.join(":"))).size).toBe(10);
+  });
+});

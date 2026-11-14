@@ -3,19 +3,25 @@ name: Teams Outreach
 # Owner 2026-11-14: emails for companies registered for federal work in one
 # trade and state, pointing at Contracts Ending Soon and /teams
 # (src/jobs/teams-outreach.ts). SENDS NOTHING: it queues drafts the owner
-# approves on /admin/outreach. Run by hand; a dry run only prints.
+# approves on /admin/outreach. Runs each weekday morning and by hand; a hand
+# run without apply only prints.
 
 on:
+  schedule:
+    # 10:47 UTC weekdays, half an hour after Outreach Prepare, so both sets of
+    # drafts are waiting when the owner opens /admin/outreach. The scheduled run
+    # takes the day's market from the rotation in src/jobs/teams-outreach.ts.
+    - cron: "47 10 * * 1-5"
   workflow_dispatch:
     inputs:
       state:
-        description: "State, two letters"
+        description: "State, two letters (blank with trade blank = today's market in the rotation)"
         type: string
-        default: "VA"
+        default: ""
       trade:
         description: "Trade slug (it-services, construction, janitorial, security-guard, ...)"
         type: string
-        default: "it-services"
+        default: ""
       apply:
         description: "Queue the drafts (leave off for a dry run)"
         type: boolean
@@ -37,7 +43,7 @@ jobs:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       STATE: ${{ inputs.state }}
       TRADE: ${{ inputs.trade }}
-      APPLY: ${{ inputs.apply && 'true' || 'false' }}
+      APPLY: ${{ (github.event_name == 'schedule' || inputs.apply) && 'true' || 'false' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

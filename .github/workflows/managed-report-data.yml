@@ -1,0 +1,49 @@
+name: Managed Report Data
+
+# Owner 2026-11-14: prints the numbers behind a Contrax Managed pipeline report
+# for one trade and state (src/jobs/managed-report-data.ts). READ-ONLY: it
+# writes nothing and sends nothing. Run by hand; the numbers are in the log.
+
+on:
+  workflow_dispatch:
+    inputs:
+      state:
+        description: "State, two letters"
+        type: string
+        default: "VA"
+      trade:
+        description: "Trade slug (it-services, construction, ...)"
+        type: string
+        default: "it-services"
+      months:
+        description: "Window in months (1-18)"
+        type: string
+        default: "12"
+
+permissions:
+  contents: read
+
+jobs:
+  data:
+    name: Report data
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      STATE: ${{ inputs.state }}
+      TRADE: ${{ inputs.trade }}
+      MONTHS: ${{ inputs.months }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Report data
+        run: bun run managed-report-data

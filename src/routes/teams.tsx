@@ -91,6 +91,15 @@ const STAGES: { step: string; title: string; body: string; points: string[]; hre
   },
 ];
 
+/** The done-for-you option. The price is stated once here so the page and its test agree. */
+export const MANAGED_PRICE = "$500";
+const MANAGED_INCLUDES = [
+  "A monthly report of the government contracts ending in your line of work: who holds each one, the agency, the value and the end date",
+  "The agencies buying the most of what you sell, ranked",
+  "A brief on each new solicitation that fits you, with a pursue or pass recommendation",
+  "Prepared by Contrax and sent by email, so your team reads one document",
+];
+
 const WHO: [string, string][] = [
   ["Software and IT services", "Firms selling to federal, state and local buyers who need to know which contracts come up for renewal."],
   ["Professional services", "Consulting, staffing, marketing and engineering firms with a person or small team writing proposals."],
@@ -170,6 +179,32 @@ function TeamsPage() {
                 </li>
               ))}
             </ul>
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-4xl px-4 pt-12">
+          {/* Owner 2026-11-14 ("I want to make thousands of dollars" → "sure"): a done-for-you option
+              beside the self-serve plan. Sold by email with the founder; no checkout yet. */}
+          <div className="rounded-2xl border-2 border-amber-400 bg-amber-50 p-6">
+            <p className="text-xs font-bold uppercase tracking-wide text-amber-700">Or have it done for you</p>
+            <h2 className="mt-1 text-xl font-bold text-slate-900">Contrax Managed: {MANAGED_PRICE} a month</h2>
+            <p className="mt-2 text-sm text-slate-700">
+              No one on your team has to log in. Each month we prepare a pipeline report for your line of work and your states
+              and send it to whoever handles your government sales.
+            </p>
+            <ul className="mt-3 space-y-1.5 text-sm text-slate-700">
+              {MANAGED_INCLUDES.map((f) => (
+                <li key={f}>✓ {f}</li>
+              ))}
+            </ul>
+            <a
+              href="mailto:contrax.companyllc@gmail.com?subject=Contrax%20Managed%20for%20our%20team"
+              onClick={() => trackEvent("teams_cta_click", "managed")}
+              className="mt-5 inline-block rounded-xl bg-slate-900 px-6 py-3 text-sm font-bold text-white hover:bg-slate-800"
+            >
+              Ask for a sample report →
+            </a>
+            <p className="mt-2 text-xs text-slate-600">Month to month, billed by invoice. Professional is included for your team.</p>
           </div>
         </section>
 

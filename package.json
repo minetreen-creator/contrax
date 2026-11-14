@@ -31,6 +31,7 @@
     "outreach-trim": "bun run src/jobs/outreach-trim.ts",
     "buyer-notes": "bun run src/jobs/buyer-notes.ts",
     "teams-outreach": "bun run src/jobs/teams-outreach.ts",
+    "managed-report-data": "bun run src/jobs/managed-report-data.ts",
     "signals-probe": "bun run src/jobs/signals-probe.ts",
     "account-set-trade": "bun run src/jobs/account-set-trade.ts",
     "award-check": "bun run src/jobs/check-awards.ts",

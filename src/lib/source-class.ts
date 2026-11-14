@@ -317,6 +317,7 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
   mi_bidnet: { class: "state", scopeState: "MI", searchScope: "state-portal", recordType: "opportunity" },
   fl_palm_beach_schools_bidnet: { class: "local", city: "Palm Beach County", scopeState: "FL", searchScope: "city-open-data", recordType: "opportunity" },
   fl_pasco_schools_ionwave: { class: "local", city: "Pasco County", scopeState: "FL", searchScope: "city-open-data", recordType: "opportunity" },
+  fl_west_palm_beach: { class: "local", city: "West Palm Beach", scopeState: "FL", searchScope: "city-open-data", recordType: "opportunity" },
   // BidNet Direct's North Carolina Purchasing Group (src/jobs/sources/nc-bidnet.ts)
   // — the SEVENTH config, 2026-10-22; same treatment as `ny_bidnet`. It is NOT
   // North Carolina's own board `nc_evp`.

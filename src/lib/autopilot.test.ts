@@ -139,7 +139,7 @@ test("the OPEN_AI_KEY secret name is accepted", async () => {
 describe("Auto-Pilot runs on Vercel before 6 AM (GitHub isn't reliable)", () => {
   test("a Vercel cron scores and saves; the email reads saved answers", () => {
     const build = readFileSync(new URL("../../build-vercel.sh", import.meta.url), "utf8");
-    expect(build).toContain('{ "path": "/api/cron/autopilot", "schedule": "*/10 8-10 * * *" }');
+    expect(build).toContain('{ "path": "/api/cron/autopilot", "schedule": "*/30 8-10 * * *" }');
     const route = readFileSync(new URL("../routes/api/cron/autopilot.ts", import.meta.url), "utf8");
     expect(route).toContain("isAuthorizedCron(request, process.env.CRON_SECRET)");
     const job = readFileSync(new URL("../jobs/send-bid-digest.ts", import.meta.url), "utf8");

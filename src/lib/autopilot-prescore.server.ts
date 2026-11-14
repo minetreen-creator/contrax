@@ -1,6 +1,6 @@
 /**
  * Auto-Pilot's early-morning scoring on Vercel (owner 2026-11-09: "github isn't reliable").
- * Vercel Cron calls /api/cron/autopilot every 10 minutes from 08:00 to 10:50 UTC (3 to 6 AM
+ * Vercel Cron calls /api/cron/autopilot every 30 minutes from 08:00 to 10:30 UTC (3 to 6 AM
  * Eastern in winter). Each call scores members' new matching bids for up to ~40 seconds and saves
  * the answers; the 6 AM email (GitHub) then only reads them. Same bids and members as the email
  * (src/lib/digest-inputs.server.ts). At most AUTOPILOT_RUN_CAP AI calls a day.

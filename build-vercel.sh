@@ -102,13 +102,13 @@ cat > .vercel/output/config.json <<'JSON'
   { "src": "^/149e9513-01fa-4fb0-aad4-566afd725d1b/2d206a39-8ed7-437e-a3be-862e0f06eea3/(.*)$", "dest": "https://api.vercel.com/bot-protection/v1/proxy/$1", "headers": { "X-Frame-Options": "SAMEORIGIN", "Content-Security-Policy": "frame-ancestors 'self'" } },
   { "handle": "filesystem" }, { "src": "/(.*)", "dest": "/render" }
 ], "crons": [
-  { "path": "/api/cron/daily-emails", "schedule": "*/10 10-15 * * *" },
+  { "path": "/api/cron/daily-emails", "schedule": "*/30 10-15 * * *" },
   { "path": "/api/cron/sync-bids?slot=weekday", "schedule": "0 */4 * * 1-5" },
   { "path": "/api/cron/sync-bids?slot=weekend", "schedule": "0 15 * * 0,6" },
   { "path": "/api/cron/sam-csv", "schedule": "17 5 * * *" },
   { "path": "/api/cron/checkout-followup", "schedule": "23 */3 * * *" },
   { "path": "/api/cron/starter-pass", "schedule": "41 14 * * *" },
-  { "path": "/api/cron/autopilot", "schedule": "*/10 8-10 * * *" }
+  { "path": "/api/cron/autopilot", "schedule": "*/30 8-10 * * *" }
 ] }
 JSON
 

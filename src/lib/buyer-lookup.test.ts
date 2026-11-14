@@ -45,6 +45,10 @@ describe("buyer lookup", () => {
     expect(domainFitsAgency("bidnetdirect.com", "City of Bid")).toBe(false);
     expect(buyerEmail(["bids@townofpulaski.org"], (d) => domainFitsAgency(d, "Town of Pulaski"))).toBe("bids@townofpulaski.org");
     expect(buyerEmail(["bids@townofpulaski.org"])).toBeNull();
+    // On such a domain only a purchasing or general office mailbox (second dry run, 2026-11-14).
+    expect(buyerEmail(["sickleave@trentonnj.org"], (d) => domainFitsAgency(d, "City of Trenton"))).toBeNull();
+    expect(buyerEmail(["gis@kalispell.com"], (d) => domainFitsAgency(d, "City of Kalispell"))).toBeNull();
+    expect(buyerEmail(["purchasing@trentonnj.org"], (d) => domainFitsAgency(d, "City of Trenton"))).toBe("purchasing@trentonnj.org");
   });
   test("on the agency's site the purchasing mailbox wins, then a general office one, never another department or a help box", () => {
     expect(pickAgencyAddress(["police@frontroyalva.gov", "info@frontroyalva.gov", "purchasing@frontroyalva.gov"], "frontroyalva.gov")).toBe("purchasing@frontroyalva.gov");

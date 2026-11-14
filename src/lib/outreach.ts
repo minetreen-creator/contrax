@@ -238,7 +238,9 @@ export function buyerEmail(candidates: readonly string[], fitsAgency: (domain: s
     if (/help|support|^vendors?$|^e?procurement-?(desk|team)$/.test(local)) continue;
     if (publicBody.test(domain.replace(/[-_.]/g, (c) => (c === "." ? "." : " ")))) return e;
     // A town on its own .org or .com (owner 2026-11-14): the caller says whether the domain carries the agency's name.
-    if (fitsAgency(domain)) return e;
+    // There the mailbox must also be purchasing or a general office: the second dry run picked
+    // gis@ and sickleave@ addresses off city pages.
+    if (fitsAgency(domain) && /purchas|procure|^bids?$|buyer|contracts?|^(finance|info|clerk|admin|administration|office|manager|cityhall|townhall)$/.test(local)) return e;
   }
   return null;
 }

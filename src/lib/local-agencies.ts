@@ -602,6 +602,8 @@ export const LOCAL_AGENCIES: LocalAgency[] = [
   { source: "fl_cape_coral_ionwave", slug: "city-of-cape-coral-fl", name: "City of Cape Coral, Florida" },
   { source: "fl_lauderhill_ionwave", slug: "city-of-lauderhill-fl", name: "City of Lauderhill, Florida" },
   { source: "fl_coconut_creek_ionwave", slug: "city-of-coconut-creek-fl", name: "City of Coconut Creek, Florida" },
+  { source: "fl_palm_beach_schools_bidnet", slug: "school-district-of-palm-beach-county-fl", name: "School District of Palm Beach County, Florida" },
+  { source: "fl_pasco_schools_ionwave", slug: "pasco-county-schools-fl", name: "Pasco County Schools, Florida" },
   { source: "ia_dubuque", slug: "city-of-dubuque-ia", name: "City of Dubuque, Iowa" },
   { source: "ia_johnston", slug: "city-of-johnston-ia", name: "City of Johnston, Iowa" },
   { source: "az_sahuarita", slug: "town-of-sahuarita-az", name: "Town of Sahuarita, Arizona" },

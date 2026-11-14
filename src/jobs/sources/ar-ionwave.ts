@@ -247,12 +247,14 @@ export const AR_IONWAVE_SOURCES: { name: string; fetchFn: () => Promise<FetchRes
  * Florida city IonWave boards (owner 2026-11-14: "go and add ionwave for Florida"). A read-only scan of
  * 1,220 Florida names found 6 boards; these 3 are Florida buyers with open bids, captured as ContraxBot
  * that day (Cape Coral 3, Lauderhill 4, Coconut Creek 1). Pompano Beach's board says it moved to
- * OpenGov; "desoto" and "columbia" could not be confirmed as Florida buyers. Like every IonWave board,
+ * OpenGov; "desoto" and "columbia" could not be confirmed as Florida buyers. Pasco County Schools
+ * (pascok12, 1 bid) was added the same day from the survey of Florida's biggest buyers. Like every IonWave board,
  * these answer "Disallow: /" in robots.txt; they are read on the owner's word.
  */
 export const FL_IONWAVE_BOARDS: readonly IonwaveBoard[] = [
   { source: "fl_cape_coral_ionwave", origin: "https://capecoral.ionwave.net", agency: "City of Cape Coral", location: "Cape Coral, FL", fallbackLocation: "Cape Coral, FL", idPrefix: "capecoralflionwave" },
   { source: "fl_lauderhill_ionwave", origin: "https://lauderhill.ionwave.net", agency: "City of Lauderhill", location: "Lauderhill, FL", fallbackLocation: "Lauderhill, FL", idPrefix: "lauderhillflionwave" },
+  { source: "fl_pasco_schools_ionwave", origin: "https://pascok12.ionwave.net", agency: "Pasco County Schools", location: "Pasco County, FL", fallbackLocation: "Pasco County, FL", idPrefix: "pascok12flionwave" },
   { source: "fl_coconut_creek_ionwave", origin: "https://coconutcreek.ionwave.net", agency: "City of Coconut Creek", location: "Coconut Creek, FL", fallbackLocation: "Coconut Creek, FL", idPrefix: "coconutcreekflionwave" },
 ];
 

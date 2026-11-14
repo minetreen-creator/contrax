@@ -1,13 +1,13 @@
 import type Stripe from "stripe";
 import { Resend } from "resend";
 import { getStripe } from "./stripe";
-import { REPORT_DELIVERY, REPORT_PRICE_CENTS, REPORT_PRODUCT, orderFromMetadata, orderMetadata, ownerNotice, type ReportOrder } from "./pipeline-report";
+import { REPORT_DELIVERY, REPORT_PRICE_CENTS, REPORT_PRODUCT, orderAlert, orderFromMetadata, orderMetadata, ownerNotice, type ReportOrder } from "./pipeline-report";
 import { STATE_NAMES } from "./contract-map";
 
 const SITE = "https://www.contrax.company";
 
 /** A Stripe Checkout page for one report. The price is inline, so nothing is set up in Stripe. */
-export async function createReportCheckout(order: ReportOrder, stripe: Stripe = getStripe()): Promise<string> {
+export async function createReportCheckout(order: ReportOrder, stripe: Stripe = getStripe()): Promise<{ url: string; sessionId: string }> {
   const metadata = orderMetadata(order);
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
@@ -29,7 +29,7 @@ export async function createReportCheckout(order: ReportOrder, stripe: Stripe = 
     cancel_url: `${SITE}/teams?report=cancelled`,
   });
   if (!session.url) throw new Error("Checkout unavailable");
-  return session.url;
+  return { url: session.url, sessionId: session.id };
 }
 
 export function isPaidReportSession(session: Stripe.Checkout.Session): boolean {
@@ -52,6 +52,10 @@ export async function handleReportEvent(
   if (!isPaidReportSession(session)) return true;
   const order = orderFromMetadata(session.metadata);
   if (!order) throw new Error("Invalid pipeline report metadata");
+  if (!send) {
+    const { alertReportOrder } = await import("./live-push.server");
+    await alertReportOrder(orderAlert(order, session.id, true));
+  }
   const notice = ownerNotice(order, session.id);
   const deliver = send ?? (async (m) => {
     if (!process.env.RESEND_API_KEY) throw new Error("Email service unavailable");

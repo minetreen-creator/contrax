@@ -4,7 +4,7 @@ import { SiteHeader } from "~/components/SiteHeader";
 import { PLAN_COPY } from "~/lib/plan-features";
 import { trackEvent } from "~/lib/track";
 import { PipelineReportOrder } from "~/components/PipelineReportOrder";
-import { REPORT_CREDIT_NOTE } from "~/lib/pipeline-report";
+import { REPORT_CREDIT_NOTE, REPORT_PRICE } from "~/lib/pipeline-report";
 
 /**
  * /teams — the Professional plan for companies with someone responsible for government sales
@@ -103,6 +103,15 @@ const MANAGED_INCLUDES = [
   "Prepared by Contrax and sent by email, so your team reads one document",
 ];
 
+/** Snapshot beside Managed, row by row. The prices come from their own constants. */
+const SNAPSHOT_VS_MANAGED: [string, string, string][] = [
+  ["Price", `${REPORT_PRICE}, paid once`, `${MANAGED_PRICE} a month`],
+  ["Updates", "None. One day's picture", "Rebuilt every month with what changed"],
+  ["States", "One", "The states you work in"],
+  ["New bids", "Up to 5 open on the day", "A brief on each new fit, pursue or pass"],
+  ["Login for your team", "Not included", "Professional included"],
+];
+
 const WHO: [string, string][] = [
   ["Software and IT services", "Firms selling to federal, state and local buyers who need to know which contracts come up for renewal."],
   ["Professional services", "Consulting, staffing, marketing and engineering firms with a person or small team writing proposals."],
@@ -188,10 +197,32 @@ function TeamsPage() {
         <section id="done-for-you" className="mx-auto max-w-4xl space-y-6 px-4 pt-12">
           {/* Owner 2026-11-14: a single paid report is the first step toward the monthly one. */}
           <PipelineReportOrder />
+          {/* Owner 2026-11-14: the snapshot is a first look, not a cheaper Managed. Say the difference plainly. */}
+          <div className="overflow-x-auto rounded-2xl border border-slate-200">
+            <table className="w-full min-w-[520px] text-left text-sm text-slate-700">
+              <caption className="sr-only">The one-time snapshot compared with Contrax Managed</caption>
+              <thead className="bg-slate-50 text-xs font-bold uppercase tracking-wide text-slate-600">
+                <tr>
+                  <th scope="col" className="px-4 py-3"></th>
+                  <th scope="col" className="px-4 py-3">Pipeline Snapshot</th>
+                  <th scope="col" className="px-4 py-3">Contrax Managed</th>
+                </tr>
+              </thead>
+              <tbody>
+                {SNAPSHOT_VS_MANAGED.map(([row, snap, managed]) => (
+                  <tr key={row} className="border-t border-slate-200">
+                    <th scope="row" className="px-4 py-3 font-semibold text-slate-900">{row}</th>
+                    <td className="px-4 py-3">{snap}</td>
+                    <td className="px-4 py-3">{managed}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           {/* Owner 2026-11-14 ("I want to make thousands of dollars" → "sure"): a done-for-you option
               beside the self-serve plan. Sold by email with the founder; no checkout yet. */}
           <div className="rounded-2xl border-2 border-amber-400 bg-amber-50 p-6">
-            <p className="text-xs font-bold uppercase tracking-wide text-amber-700">Or have it done for you</p>
+            <p className="text-xs font-bold uppercase tracking-wide text-amber-700">Ongoing · done for you every month</p>
             <h2 className="mt-1 text-xl font-bold text-slate-900">Contrax Managed: {MANAGED_PRICE} a month</h2>
             <p className="mt-2 text-sm text-slate-700">
               No one on your team has to log in. Each month we prepare a pipeline report for your line of work and your states

@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { REPORT_CREDIT_NOTE, REPORT_DELIVERY, REPORT_INCLUDES, REPORT_PRICE, REPORT_PRICE_CENTS, cleanOrder, orderFromMetadata, orderMetadata, ownerNotice } from "./pipeline-report";
+import { REPORT_CREDIT_NOTE, REPORT_DELIVERY, REPORT_INCLUDES, REPORT_PRICE, REPORT_PRICE_CENTS, cleanOrder, orderAlert, orderFromMetadata, orderMetadata, ownerNotice, runLine, tradeForText } from "./pipeline-report";
 
 // Owner 2026-11-14: a one-time report for $149 before asking for $499 a month.
 const good = { email: " Buyer@Example.com ", company: "Acme  Federal", state: "va", trade: "IT services" };
@@ -70,4 +70,41 @@ test("the report states its contents in numbers, a delivery window and the credi
   expect(job).toContain("LIMIT 25");
   expect(job).toContain("LIMIT 12");
   expect(job).toContain("LIMIT 10");
+});
+
+// Owner 2026-11-14: map what they sell to the trade the data job takes, and tell Mission Control.
+test("a buyer's own words become the data job's trade, or a prompt to ask", () => {
+  expect(tradeForText("IT services")).toBe("it-services");
+  expect(tradeForText("Cloud and software development")).toBe("it-services");
+  expect(tradeForText("Cybersecurity and zero trust")).toBe("cybersecurity");
+  expect(tradeForText("commercial cleaning")).toBe("janitorial");
+  expect(tradeForText("Paving and concrete")).toBe("construction");
+  expect(tradeForText("trash pickup")).toBe("waste-hauling");
+  expect(tradeForText("unit training")).toBeNull();
+  const order = cleanOrder(good)!;
+  expect(runLine(order)).toBe('Report data: run "Managed report data" with state VA and trade it-services.');
+  expect(runLine({ ...order, trade: "court reporting" })).toContain("matches no trade on the site");
+  expect(ownerNotice(order, "cs_1").text).toContain("state VA and trade it-services");
+});
+
+test("Mission Control is told when an order starts and when it is paid, once each", () => {
+  const order = cleanOrder(good)!;
+  const paid = orderAlert(order, "cs_test_1", true);
+  expect(paid.title).toBe("💵 $149 report paid");
+  expect(paid.body).toContain("Acme Federal: IT services in Virginia");
+  expect(paid.url).toBe("/admin/live");
+  const started = orderAlert(order, "cs_test_1", false);
+  expect(started.title).toBe("🧾 Report checkout started");
+  expect(started.tag).not.toBe(paid.tag);
+  const push = readFileSync("src/lib/live-push.server.ts", "utf8");
+  expect(push).toContain("VALUES ('pipeline-report', ${alert.tag})");
+  expect(readFileSync("src/lib/pipeline-report.server.ts", "utf8")).toContain("orderAlert(order, session.id, true)");
+  expect(readFileSync("src/routes/api/pipeline-report/checkout.ts", "utf8")).toContain("orderAlert(order, sessionId, false)");
+});
+
+test("the snapshot reads as a first look, not a cheaper Managed", () => {
+  const page = readFileSync("src/routes/teams.tsx", "utf8");
+  expect(page).toContain("SNAPSHOT_VS_MANAGED");
+  expect(page).toContain(`["Updates", "None. One day's picture", "Rebuilt every month with what changed"]`);
+  expect(readFileSync("src/components/PipelineReportOrder.tsx", "utf8")).toContain("does not update");
 });

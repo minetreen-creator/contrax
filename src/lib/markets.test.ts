@@ -7,9 +7,9 @@ const read = (p: string) => readFileSync(new URL(p, import.meta.url), "utf8");
 
 // Owner 2026-11-10: "replicate this model in other major construction markets" -> "then do 1-4".
 describe("Contractor Support Network markets", () => {
-  test("four markets; only Tampa has a partner (no partner is listed before one signs)", () => {
+  test("four markets; none has a partner (owner 2026-11-14: the Tampa partnership ended)", () => {
     expect(MARKETS.map((m) => m.slug)).toEqual(["tampa", "hampton-roads", "san-diego", "san-antonio"]);
-    expect(MARKETS.filter((m) => m.partner).map((m) => m.partner!.name)).toEqual(["Casa Blue Collar"]);
+    expect(MARKETS.filter((m) => m.partner)).toEqual([]);
     expect(TAMPA_MARKET.path).toBe("/tampa-contractors");
     expect(marketBySlug("san-diego")?.path).toBe("/markets/san-diego");
     expect(marketPitchPath(HAMPTON_ROADS_MARKET)).toBe("/markets/hampton-roads/partners");
@@ -45,7 +45,7 @@ describe("Contractor Support Network markets", () => {
     expect(read("../routes/markets.$slug.tsx")).toContain("<MarketPage market={m}");
     const pitch = read("../routes/markets.$slug_.partners.tsx");
     expect(pitch).toContain('{ name: "robots", content: "noindex" }');
-    expect(pitch).toContain("How it's going in Tampa");
+    expect(pitch).not.toContain("How it's going in Tampa");
     expect(read("../components/MarketPage.tsx")).toContain("See what a partner gets →");
     expect(read("../routes/admin/partners.tsx")).toContain("if (!user.is_admin) throw redirect");
     const map = read("../../scripts/generate-sitemap.mjs");
@@ -64,11 +64,11 @@ describe("Contractor Support Network markets", () => {
   });
 
   // Owner 2026-11-11 ("hide it"): the pitch read "5 times (2 different people)" beside the $99 ask.
-  test("the Tampa result shows on the pitch only once enough people have reached the partner", () => {
+  test("the proof threshold stays; the pitch no longer cites the ended Tampa partnership (owner 2026-11-14)", () => {
     expect(PARTNER_PROOF_MIN_PEOPLE).toBe(25);
     expect([showPartnerProof(0), showPartnerProof(2), showPartnerProof(24), showPartnerProof(25)]).toEqual([false, false, false, true]);
     const pitch = read("../routes/markets.$slug_.partners.tsx");
-    expect(pitch).toContain("{showPartnerProof(r.tampaVisitors) ? (");
-    expect(pitch).not.toContain("r.tampaClicks > 0");
+    expect(pitch).not.toContain("tampaVisitors");
+    expect(pitch).not.toContain("TAMPA_MARKET");
   });
 });

@@ -164,7 +164,7 @@ describe("growth: our own members, prime search pages, partners (owner 2026-11-0
 
 describe("Tampa Contractor Support Network (owner 2026-11-09)", () => {
   test("Tampa Bay bids: a Tampa Bay place plus a Florida hint; build work by title", async () => {
-    const { isTampaBay, isBuildWork, CASA } = await import("./tampa");
+    const { isTampaBay, isBuildWork } = await import("./tampa");
     expect(isTampaBay("Tampa, FL", "City of Tampa")).toBe(true);
     expect(isTampaBay("Largo, Florida", null)).toBe(true);
     expect(isTampaBay("Brandon, MS", "City of Brandon")).toBe(false);
@@ -175,23 +175,10 @@ describe("Tampa Contractor Support Network (owner 2026-11-09)", () => {
     expect(isTampaBay("MacDill AFB, FL", "DLA ENERGY")).toBe(true);
     expect(isBuildWork("HVAC Chiller Replacement - Building 5")).toBe(true);
     expect(isBuildWork("Legal advertising services")).toBe(false);
-    expect(CASA.url).toContain("utm_source=contrax");
     const page = readFileSync(new URL("../components/MarketPage.tsx", import.meta.url), "utf8");
     expect(page).toContain('rel="sponsored noopener"');
     expect(page).toContain("Find the work. Build the team. House the crew.");
     expect(readFileSync(new URL("../../scripts/generate-sitemap.mjs", import.meta.url), "utf8")).toContain('["/tampa-contractors", "daily", "0.6"]');
-  });
-});
-
-describe("Tampa partnership on the homepage (owner 2026-11-09)", () => {
-  test("the homepage shows the Tampa card right under the hero, with the shared facts and the Casa link", () => {
-    const home = readFileSync(new URL("../routes/index.tsx", import.meta.url), "utf8");
-    const at = home.indexOf("<HomeTampaPartner />");
-    expect(at).toBeGreaterThan(home.indexOf("<HomeContractFinder"));
-    expect(at).toBeLessThan(home.indexOf("<StarterPassStrip />"));
-    expect(home.split("<HomeTampaPartner />").length).toBe(2);
-    expect(home).toContain("TAMPA_FACTS.federalConstruction");
-    expect(home).toContain('rel="sponsored noopener"');
   });
 });
 
@@ -205,9 +192,8 @@ describe("pages stay readable in dark mode (owner 2026-11-10 screenshot)", () =>
     }
   });
 
-  test("Tampa page and homepage card show Tampa subs", () => {
+  test("Tampa page shows Tampa subs", () => {
     expect(readFileSync(new URL("./markets.server.ts", import.meta.url), "utf8")).toContain("registeredSubsInCities");
-    expect(readFileSync(new URL("../routes/index.tsx", import.meta.url), "utf8")).toContain("Find Tampa subs →");
   });
 });
 
@@ -221,29 +207,15 @@ describe("no zero headlines when registered subs exist (owner 2026-11-10)", () =
   });
 });
 
-describe("joint announcement line (owner 2026-11-10)", () => {
-  test("homepage and Tampa page carry the line; the hotel comparison is credited to Casa", async () => {
-    const { TAMPA_HEADLINE, CASA_PRICE_NOTE } = await import("./tampa");
-    expect(`${TAMPA_HEADLINE.win} ${TAMPA_HEADLINE.house}, ${TAMPA_HEADLINE.saving}`).toBe("Win the Tampa job on Contrax. House the crew with Casa Blue Collar, for 3x less than hotels");
-    expect(CASA_PRICE_NOTE).toContain("Figures from Casa Blue Collar");
-    for (const f of ["../routes/index.tsx", "./markets.ts"]) {
+describe("Casa Blue Collar partnership removed (owner 2026-11-14)", () => {
+  test("no page, card, link or phone number for the former housing partner remains", async () => {
+    const { TAMPA_MARKET } = await import("./markets");
+    expect(TAMPA_MARKET.partner).toBeNull();
+    const files = ["./tampa.ts", "./markets.ts", "../routes/index.tsx", "../routes/bid.$bidId.tsx", "../routes/contracts-in.$state_.$trade.tsx", "../routes/tampa-contractors.tsx", "../routes/markets.$slug_.partners.tsx"];
+    for (const f of files) {
       const src = readFileSync(new URL(f, import.meta.url), "utf8");
-      expect(src).toContain("TAMPA_HEADLINE.saving");
-      expect(src).toContain("CASA_PRICE_NOTE");
+      expect(src).not.toMatch(/casa ?blue|casabluecollar|598-2666|CrewHousing|HomeTampaPartner/i);
     }
-  });
-});
-
-describe("Casa details from their site (owner 2026-11-10)", () => {
-  test("Tampa page shows Casa's amenities, phone and their own figures, labeled as theirs; no guest reviews", async () => {
-    const { CASA } = await import("./tampa");
-    expect(CASA.phone).toBe("(716) 598-2666");
-    expect(CASA.amenities).toContain("Truck and trailer parking");
-    const page = readFileSync(new URL("../components/MarketPage.tsx", import.meta.url), "utf8");
-    expect(page).toContain("p.amenities.map");
-    expect(page).toContain("tel:${p.tel}");
-    expect(page).toContain("Crew and year counts are also from {p.name}");
-    expect(page).not.toMatch(/Nemeci|Wallas/);
   });
 });
 
@@ -266,11 +238,11 @@ describe("homepage map is a data tool, not a second form (owner 2026-11-10)", ()
 });
 
 describe("'From opportunity to execution.' near the top (owner 2026-11-10)", () => {
-  test("the line sits right under the hero, above the Tampa and subs cards", () => {
+  test("the line sits right under the hero, above the $5 strip", () => {
     const home = readFileSync(new URL("../routes/index.tsx", import.meta.url), "utf8");
     const line = home.indexOf("<HomeExecutionLine />");
     expect(line).toBeGreaterThan(home.indexOf("<HomeContractFinder"));
-    expect(line).toBeLessThan(home.indexOf("<HomeTampaPartner />"));
+    expect(line).toBeLessThan(home.indexOf("<StarterPassStrip />"));
     expect(home).toContain("From opportunity to execution");
     expect(home).toContain("{BRAND_MESSAGE}");
   });

@@ -12,8 +12,6 @@ import {
 import { radarHrefFor, SEO_TRADE_BY_SLUG } from "~/lib/seo-trades";
 import { FederalTradeFacts } from "~/components/FederalTradeFacts";
 import { findSubsPath, tradeWords } from "~/lib/sub-finder";
-import { CrewHousingCard } from "~/components/CrewHousingCard";
-import { showCrewHousingOnStatePage } from "~/lib/tampa";
 
 // /contracts-in/{state}/{trade} — e.g. /contracts-in/virginia/janitorial.
 // The trailing underscore on $state_ keeps this route un-nested, so it renders
@@ -80,10 +78,6 @@ function ContractsInStateTrade() {
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(regionBreadcrumbLd(data.name, { slug: data.trade.slug, label: data.trade.label })) }} />
       )}
       <RegionTradeView data={data} radarHref={radarHref} />
-      {showCrewHousingOnStatePage(data.code, data.trade?.slug) && (
-        // Owner 2026-11-12: Casa Blue Collar on the Florida pages for the trades that bring crews.
-        <CrewHousingCard where="state_page" heading="Bringing a crew to Tampa Bay?" />
-      )}
       {data.code && data.trade && (
         // Loaded after the page renders, so the page itself stays fast (owner 2026-11-09).
         <OpenToAllBids trade={data.trade.radarTerm} state={data.code} where="state_page" tone="light" />

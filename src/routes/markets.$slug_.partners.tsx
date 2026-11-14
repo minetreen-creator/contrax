@@ -1,22 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { SiteHeader } from "~/components/SiteHeader";
-import { PARTNER_CONTACT, PARTNER_TERMS, TAMPA_MARKET, marketBySlug, networkName, showPartnerProof } from "~/lib/markets";
+import { PARTNER_CONTACT, PARTNER_TERMS, marketBySlug, networkName } from "~/lib/markets";
 import { trackEvent } from "~/lib/track";
 
 /**
  * /markets/{slug}/partners — the one-page pitch for a market partner (owner 2026-11-10, item 4): the
- * market's numbers, what a partner gets, how it starts, and the Tampa results so far (live clicks to
- * Casa Blue Collar). For conversations the owner starts; Contrax emails no one from it. noindex.
+ * market's numbers, what a partner gets and how it starts. For conversations the owner starts; Contrax emails no one from it. noindex.
  */
 const getPitch = createServerFn({ method: "GET" })
   .validator((d: unknown) => ({ slug: String((d as { slug?: unknown })?.slug ?? "").toLowerCase().slice(0, 40) }))
   .handler(async ({ data }) => {
     const m = marketBySlug(data.slug);
     if (!m) return null;
-    const { partnerClicks } = await import("~/lib/markets.server");
-    const tampa = await partnerClicks(TAMPA_MARKET);
-    return { slug: m.slug, tampaClicks: tampa.total, tampaVisitors: tampa.visitors };
+    return { slug: m.slug };
   });
 
 export const Route = createFileRoute("/markets/$slug_/partners")({
@@ -28,7 +25,6 @@ export const Route = createFileRoute("/markets/$slug_/partners")({
   component: PitchPage,
 });
 
-const fmtSince = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
 
 function PitchPage() {
   const r = Route.useLoaderData();
@@ -101,16 +97,6 @@ function PitchPage() {
           <p className="mt-1 text-slate-700">{PARTNER_TERMS}</p>
           <p className="mt-1 text-slate-600">Each month you get the count of clicks and calls we sent you, so you can judge it yourself.</p>
         </section>
-
-        {showPartnerProof(r.tampaVisitors) ? (
-          <section className="mt-5 rounded-2xl border border-sky-200 bg-sky-50 p-5 text-sm">
-            <h2 className="text-lg font-bold">How it's going in Tampa</h2>
-            <p className="mt-1 text-slate-800">
-              Since {fmtSince(TAMPA_MARKET.partner!.since)}, contractors have reached our Tampa housing partner, {TAMPA_MARKET.partner!.name}, {r.tampaClicks} time
-              {r.tampaClicks === 1 ? "" : "s"} from Contrax ({r.tampaVisitors} {r.tampaVisitors === 1 ? "person" : "different people"}), by website or phone.
-            </p>
-          </section>
-        ) : null}
 
         <section className="mt-6 rounded-2xl border-2 border-slate-900 bg-white p-5 text-sm">
           <h2 className="text-lg font-bold">Talk to us</h2>

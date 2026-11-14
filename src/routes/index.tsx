@@ -7,9 +7,7 @@ import { HomeContractFinder } from "~/components/HomeContractFinder";
 import { HomeStateMap } from "~/components/HomeStateMap";
 
 import { trackEvent } from "~/lib/track";
-import { CASA, CASA_PRICE_NOTE, TAMPA_FACTS, TAMPA_HEADLINE, TAMPA_PATH } from "~/lib/tampa";
 import { BRAND_MESSAGE, BRAND_STEPS } from "~/lib/brand-message";
-import { MARKETS } from "~/lib/markets";
 import { STARTER_PASS_NOTE } from "~/lib/starter-pass";
 import { SiteHeader } from "~/components/SiteHeader";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
@@ -199,13 +197,10 @@ function Home() {
       <Navbar />
       {/* Homepage cleanup (owner 2026-11-10: "follow your recommendations"): five sections, one path
           down the page. Search → the one message (subs folded into its step 2) → the AI assistant's
-          proof → the $5 pass → the state map. The Tampa card follows the message; the
+          proof → the $5 pass → the state map. The the
           Pathway, app, megaprojects and the extra tool links moved to their own pages and the footer. */}
       <HomeContractFinder sample={sample} openTotal={contractMap?.totals?.totalOpen ?? 0} />
       <HomeExecutionLine />
-      {/* Tampa partnership (owner 2026-11-10): for everyone, since the contractors who need crew housing
-          there are the ones coming from out of state. */}
-      <HomeTampaPartner />
       {/* Before/after proof (owner 2026-11-08): a real bid's notice next to Max's real answer. */}
       {maxProofCurrent !== false ? <HomeMaxProof /> : null}
       {/* The $5 Starter pass (src/lib/starter-pass.ts): the only offer on the page. */}
@@ -251,84 +246,6 @@ function HomeExecutionLine() {
           See public or private jobs that need subs →
         </a>
       </p>
-    </section>
-  );
-}
-
-// Tampa Contractor Support Network (owner 2026-11-09): a partnership with Casa Blue Collar.
-// Every figure is TAMPA_FACTS (src/lib/tampa.ts), the same numbers the Tampa page shows.
-function HomeTampaPartner() {
-  return (
-    <section aria-labelledby="home-tampa-title" className="mx-auto max-w-[1120px] px-4 pt-6 sm:px-6">
-      <div className="grid gap-5 rounded-3xl border border-slate-200 bg-gradient-to-br from-sky-50 to-white p-6 sm:p-8 lg:grid-cols-[1.4fr_1fr] dark:border-slate-700 dark:from-slate-900 dark:to-slate-950">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-sky-700 dark:text-sky-300">🌴 New in Tampa · Partnership</p>
-          <h2 id="home-tampa-title" className={`mt-1 text-[clamp(24px,3vw,30px)] leading-[1.15] font-bold`}>
-            {TAMPA_HEADLINE.win} {TAMPA_HEADLINE.house}, <span className="text-sky-700 dark:text-sky-300">{TAMPA_HEADLINE.saving}*</span>.
-          </h2>
-          <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
-            Contrax and {CASA.name} teamed up for contractors working Tampa government jobs: open bids, certified local subs, and housing for traveling crews.
-          </p>
-          <dl className="mt-4 grid grid-cols-3 gap-3">
-            <div>
-              <dt className="sr-only">Federal construction in Tampa</dt>
-              <dd className="text-2xl font-extrabold text-slate-900 dark:text-white">{TAMPA_FACTS.federalConstruction}</dd>
-              <dd className="text-xs text-slate-600 dark:text-slate-400">federal construction work in Tampa last year</dd>
-            </div>
-            <div>
-              <dt className="sr-only">Share to out-of-state firms</dt>
-              <dd className="text-2xl font-extrabold text-slate-900 dark:text-white">{TAMPA_FACTS.outOfStateShare}</dd>
-              <dd className="text-xs text-slate-600 dark:text-slate-400">went to firms based outside Florida</dd>
-            </div>
-            <div>
-              <dt className="sr-only">Contracts ending soon</dt>
-              <dd className="text-2xl font-extrabold text-slate-900 dark:text-white">{TAMPA_FACTS.endingSoonCount}</dd>
-              <dd className="text-xs text-slate-600 dark:text-slate-400">contracts ({TAMPA_FACTS.endingSoonValue}) up for rebid in 12 months</dd>
-            </div>
-          </dl>
-          <p className="mt-4 text-sm text-slate-700 dark:text-slate-300">
-            Need subs for a Tampa job? <strong>{TAMPA_FACTS.registeredContractors}</strong> construction contractors in Tampa are registered for federal work.{" "}
-            <a href={`${TAMPA_PATH}?source=home#team`} onClick={() => trackEvent("home_tampa_click", "subs")} className="font-semibold text-blue-700 hover:text-blue-600 dark:text-blue-300">
-              Find Tampa subs →
-            </a>
-          </p>
-          <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">{TAMPA_FACTS.asOf}. Source: {TAMPA_FACTS.source}. *{CASA_PRICE_NOTE}</p>
-          <p className="mt-3 text-sm text-slate-700 dark:text-slate-300">
-            Next markets:{" "}
-            {MARKETS.filter((m) => m.slug !== "tampa").map((m, i) => (
-              <span key={m.slug}>
-                {i > 0 ? " · " : ""}
-                <a href={m.path} onClick={() => trackEvent("home_market_click", m.slug)} className="font-semibold text-blue-700 hover:text-blue-600 dark:text-blue-300">{m.name}</a>
-              </span>
-            ))}
-          </p>
-        </div>
-        <div className="flex flex-col justify-center gap-3 rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Housing referral partner</p>
-          <p className="text-lg font-bold">{CASA.name}</p>
-          <p className="text-sm text-slate-700 dark:text-slate-300">{CASA.tagline}: full kitchen, laundry, truck and trailer parking, minutes from the job. {CASA.ask}</p>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            {CASA.stats.filter((st) => st.value !== "3x").map((st) => `${st.value} ${st.label}`).join(" · ")} ·{" "}
-            <a href={`tel:${CASA.tel}`} onClick={() => trackEvent("tampa_housing_referral_click", "home_phone")} className="font-semibold text-blue-700 dark:text-blue-300">{CASA.phone}</a> · {CASA.spanish}
-          </p>
-          <a
-            href={`${TAMPA_PATH}?source=home`}
-            onClick={() => trackEvent("home_tampa_click", "network")}
-            className="inline-flex items-center justify-center gap-1 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600 dark:bg-white dark:text-slate-900"
-          >
-            Tampa bids, subs and crew housing <ArrowRight aria-hidden="true" className="h-4 w-4" />
-          </a>
-          <a
-            href={CASA.url}
-            target="_blank"
-            rel="sponsored noopener"
-            onClick={() => trackEvent("tampa_housing_referral_click", "home")}
-            className="text-center text-sm font-semibold text-blue-700 hover:text-blue-600 dark:text-blue-300"
-          >
-            Visit {CASA.name} →
-          </a>
-        </div>
-      </div>
     </section>
   );
 }

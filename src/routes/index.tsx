@@ -353,6 +353,8 @@ const FOOTER_GROUPS = [
       { href: "/co-op-contracts", label: "Co-op contracts" },
       // Moved off the homepage (owner 2026-11-10 cleanup).
       { href: "/recompetes", label: "Contracts ending soon" },
+      // Owner 2026-11-14: a second path to the done-for-you reports.
+      { href: "/teams#done-for-you", label: "Done-for-you reports" },
     ],
   },
   {

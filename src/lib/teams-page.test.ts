@@ -33,20 +33,23 @@ test("it is canonical, indexable and in the sitemap, and the contractor pages do
   for (const f of ["src/routes/radar.tsx", "src/components/SiteHeader.tsx"]) {
     expect(readFileSync(f, "utf8")).not.toContain('"/teams"');
   }
-  // Owner 2026-11-14: the homepage routes each visitor to a lane, so it links here exactly once.
+  // Owner 2026-11-14: the homepage routes each visitor to a lane, so it links here from the lanes and the footer.
   const home = readFileSync("src/routes/index.tsx", "utf8");
-  expect(home.match(/\/teams/g)?.length).toBe(1);
+  // Once in the lanes under the search and once in the footer (owner 2026-11-14).
+  expect(home.match(/\/teams/g)?.length).toBe(2);
+  expect(home).toContain('{ href: "/teams#done-for-you", label: "Done-for-you reports" }');
   expect(home).toContain('href: "/teams?source=home_lane#done-for-you"');
   expect(home).toContain('href: "/pricing?source=home_lane"');
   expect(home.indexOf("<HomeLanes />")).toBeLessThan(home.indexOf("<HomeExecutionLine />"));
 });
 
 // Owner 2026-11-14: a done-for-you option beside the self-serve plan.
-test("the managed option names one price, is sold by email, and the data job behind its report only reads", () => {
+test("the managed option names one price, is a Stripe subscription, and the data job behind its report only reads", () => {
   expect(page).toContain('export const MANAGED_PRICE = "$499";');
   expect(page).toContain("Contrax Managed: {MANAGED_PRICE} a month");
   expect(page).toContain("mailto:contrax.companyllc@gmail.com?subject=Contrax%20Managed");
-  expect(page).toContain("billed by invoice");
+  expect(page).toContain("<ManagedOrder price={MANAGED_PRICE} />");
+  expect(page).toContain("paid by card through Stripe");
   const job = readFileSync("src/jobs/managed-report-data.ts", "utf8");
   expect(job).not.toMatch(/\b(INSERT|UPDATE|DELETE)\b/);
   expect(readFileSync(".github/workflows/managed-report-data.yml", "utf8")).toContain("READ-ONLY");

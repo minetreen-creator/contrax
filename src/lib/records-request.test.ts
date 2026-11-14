@@ -23,6 +23,7 @@ test("the page promises one a month and is honest about what an agency may relea
   expect(RECORDS_REQUESTS_PER_MONTH).toBe(1);
   const page = readFileSync("src/routes/teams.tsx", "utf8");
   expect(page).toContain("one public-records request a month");
-  expect(page).toContain("the agency decides what it releases, and that can take months");
+  expect(page).toContain("Federal agencies often take 20 to 60 business days or more to answer, state and local offices often 5 to 15");
+  expect(page).toContain("the agency decides what it releases");
   expect(page).toContain('["Winning proposals", "Not included", "One records request a month, filed for you"]');
 });

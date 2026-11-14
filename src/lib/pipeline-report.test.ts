@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { REPORT_CREDIT_NOTE, REPORT_DELIVERY, REPORT_INCLUDES, REPORT_PRICE, REPORT_PRICE_CENTS, cleanOrder, orderAlert, orderFromMetadata, orderMetadata, ownerNotice, runLine, tradeForText } from "./pipeline-report";
+import { REPORT_FOLLOW_UP_DAYS, buyerConfirmation, buyerFollowUp, REPORT_CREDIT_NOTE, REPORT_DELIVERY, REPORT_INCLUDES, REPORT_PRICE, REPORT_PRICE_CENTS, cleanOrder, orderAlert, orderFromMetadata, orderMetadata, ownerNotice, runLine, tradeForText } from "./pipeline-report";
 
 // Owner 2026-11-14: a one-time report for $149 before asking for $499 a month.
 const good = { email: " Buyer@Example.com ", company: "Acme  Federal", state: "va", trade: "IT services" };
@@ -123,4 +123,25 @@ test("the sample report is public, live, and the same function a paid report use
   expect(readFileSync("src/components/PipelineReportOrder.tsx", "utf8")).toContain('href="/sample-report"');
   // Open bids are kept only when the title reads as the trade.
   expect(readFileSync("src/lib/pipeline-report-data.server.ts", "utf8")).toContain("tradeForText(b.title) === trade");
+});
+
+// Owner 2026-11-14: automate the hand-off from one report to a subscription.
+test("the buyer hears at once what is coming, and once more four days later with the credit deadline", () => {
+  const order = cleanOrder(good)!;
+  const c = buyerConfirmation(order);
+  expect(c.subject).toBe("Your Pipeline Snapshot is being prepared: IT services in Virginia");
+  expect(c.text).toContain("within 1 business day");
+  const paid = new Date("2026-11-16T15:00:00Z");
+  const f = buyerFollowUp(order, paid, { holder: "ACME FEDERAL LLC", agency: "Department of Veterans Affairs", endDate: "2027-03-12" });
+  expect(f.text).toContain("held by ACME FEDERAL LLC for Department of Veterans Affairs, ends on March 12, 2027");
+  expect(f.text).toContain("$149 comes off your first month if you start by November 30, 2026");
+  expect(f.text).toContain("$79 a month");
+  expect(f.text).toContain("This is the only follow-up we send about your report.");
+  expect(buyerFollowUp(order, paid, null).text).toContain("The list in your report changes every month");
+  expect(REPORT_FOLLOW_UP_DAYS).toBe(4);
+  const server = readFileSync("src/lib/pipeline-report.server.ts", "utf8");
+  expect(server).toContain("idempotencyKey: `report-confirm-${sessionId}`");
+  expect(server).toContain("idempotencyKey: `report-followup-${sessionId}`");
+  expect(server).toContain("scheduledAt:");
+  expect(server).toContain("if (!send) await tellBuyer(order, session.id);");
 });

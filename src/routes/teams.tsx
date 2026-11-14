@@ -101,7 +101,7 @@ const MANAGED_INCLUDES = [
   "The states you work in, instead of one",
   "A brief on each new solicitation that fits you, with a pursue or pass recommendation",
   "Professional for your team, so anyone can open the full list behind the report",
-  "On request, one public-records request a month for the winning proposal on a contract you are chasing. We file it; the agency decides what it releases, and that can take months",
+  "On request, one public-records request a month for the winning proposal on a contract you are chasing. We file it and tell you the day it goes in. Federal agencies often take 20 to 60 business days or more to answer, state and local offices often 5 to 15, and the agency decides what it releases",
   "Prepared by Contrax and sent by email, so your team reads one document",
 ];
 

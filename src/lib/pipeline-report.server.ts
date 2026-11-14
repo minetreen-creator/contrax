@@ -1,7 +1,7 @@
 import type Stripe from "stripe";
 import { Resend } from "resend";
 import { getStripe } from "./stripe";
-import { REPORT_DELIVERY, REPORT_PRICE_CENTS, REPORT_PRODUCT, orderAlert, orderFromMetadata, orderMetadata, ownerNotice, type ReportOrder } from "./pipeline-report";
+import { REPORT_DELIVERY, REPORT_PRICE_CENTS, REPORT_PRODUCT, REPORT_FOLLOW_UP_DAYS, buyerConfirmation, buyerFollowUp, orderAlert, orderFromMetadata, orderMetadata, ownerNotice, tradeForText, type ReportOrder } from "./pipeline-report";
 import { STATE_NAMES } from "./contract-map";
 
 const SITE = "https://www.contrax.company";
@@ -69,5 +69,43 @@ export async function handleReportEvent(
     if (result.error) throw result.error;
   });
   await deliver({ ...notice, replyTo: order.email });
+  if (!send) await tellBuyer(order, session.id);
   return true;
+}
+
+/**
+ * The buyer's own emails: a confirmation now and one follow-up in REPORT_FOLLOW_UP_DAYS days, which
+ * the email service holds and sends on its own. Each carries an idempotency key from the Stripe
+ * session, so a webhook delivered twice sends once. Never throws: the order already reached the owner.
+ */
+async function tellBuyer(order: ReportOrder, sessionId: string): Promise<void> {
+  try {
+    if (!process.env.RESEND_API_KEY) return;
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const base = { from: "Nathaniel at Contrax <hello@contrax.company>", to: [order.email], replyTo: "contrax.companyllc@gmail.com" };
+    const now = buyerConfirmation(order);
+    const first = await resend.emails.send({ ...base, subject: now.subject, text: now.text }, { idempotencyKey: `report-confirm-${sessionId}` });
+    if (first.error) console.error("[pipeline-report] buyer confirmation failed:", first.error.message);
+    // The largest contract ending soon in their market, when their words map to a trade.
+    let top: { holder: string; agency: string | null; endDate: string } | null = null;
+    const slug = tradeForText(order.trade);
+    if (slug) {
+      try {
+        const { reportData } = await import("./pipeline-report-data.server");
+        const c = (await reportData(order.state, slug, 12)).largest[0];
+        if (c) top = { holder: c.recipient_name, agency: c.sub_agency ?? c.agency, endDate: c.end_date };
+      } catch (e) {
+        console.error("[pipeline-report] follow-up contract lookup failed (sending without it):", (e as Error).message);
+      }
+    }
+    const paidAt = new Date();
+    const later = buyerFollowUp(order, paidAt, top);
+    const second = await resend.emails.send(
+      { ...base, subject: later.subject, text: later.text, scheduledAt: new Date(paidAt.getTime() + REPORT_FOLLOW_UP_DAYS * 86_400_000).toISOString() },
+      { idempotencyKey: `report-followup-${sessionId}` },
+    );
+    if (second.error) console.error("[pipeline-report] buyer follow-up failed:", second.error.message);
+  } catch (e) {
+    console.error("[pipeline-report] buyer emails failed (order already reached the owner):", (e as Error).message);
+  }
 }

@@ -57,7 +57,7 @@ test("the teams page offers the single report above the monthly one", () => {
 // Owner 2026-11-14: say exactly what is in it, when it arrives, and how it counts toward Managed.
 test("the report states its contents in numbers, a delivery window and the credit toward Managed", () => {
   expect(REPORT_DELIVERY).toBe("1 business day");
-  expect(REPORT_INCLUDES.join(" ")).toMatch(/25 largest.*10 agencies.*10 companies.*Up to 5 open bids/);
+  expect(REPORT_INCLUDES.join(" ")).toMatch(/25 largest.*10 agencies.*10 companies.*awarded for.*Up to 5 open bids/);
   expect(REPORT_CREDIT_NOTE).toBe("Move to Contrax Managed within 14 days and the $149 comes off your first month.");
   const form = readFileSync("src/components/PipelineReportOrder.tsx", "utf8");
   expect(form).toContain("Delivered to your inbox within {REPORT_DELIVERY} of payment.");
@@ -66,10 +66,13 @@ test("the report states its contents in numbers, a delivery window and the credi
   expect(page).toContain("Everything in the one-time report, rebuilt every month");
   expect(page).toContain("Bought the one-time report first? {REPORT_CREDIT_NOTE}");
   // The report promises only what the data job returns.
-  const job = readFileSync("src/jobs/managed-report-data.ts", "utf8");
+  const job = readFileSync("src/lib/pipeline-report-data.server.ts", "utf8");
   expect(job).toContain("LIMIT 25");
   expect(job).toContain("LIMIT 12");
   expect(job).toContain("LIMIT 10");
+  expect(job).toContain("percentile_cont(0.5)");
+  expect(job).not.toMatch(/\b(INSERT|UPDATE|DELETE)\b/);
+  expect(readFileSync("src/jobs/managed-report-data.ts", "utf8")).toContain('from "~/lib/pipeline-report-data.server"');
 });
 
 // Owner 2026-11-14: map what they sell to the trade the data job takes, and tell Mission Control.
@@ -107,4 +110,17 @@ test("the snapshot reads as a first look, not a cheaper Managed", () => {
   expect(page).toContain("SNAPSHOT_VS_MANAGED");
   expect(page).toContain(`["Updates", "None. One day's picture", "Rebuilt every month with what changed"]`);
   expect(readFileSync("src/components/PipelineReportOrder.tsx", "utf8")).toContain("does not update");
+});
+
+// Owner 2026-11-14 (competitor review): a real sample anyone can read, built by the paid report's own function.
+test("the sample report is public, live, and the same function a paid report uses", () => {
+  const page = readFileSync("src/routes/sample-report.tsx", "utf8");
+  expect(page).toContain('await reportData(SAMPLE_STATE, SAMPLE_TRADE, 12)');
+  expect(page).toContain('{ name: "robots", content: "index, follow" }');
+  expect(page).toContain("not a promise that the work will be rebid");
+  expect(page).toContain("not as a price to bid");
+  expect(readFileSync("scripts/generate-sitemap.mjs", "utf8")).toContain('["/sample-report", "weekly", "0.7"]');
+  expect(readFileSync("src/components/PipelineReportOrder.tsx", "utf8")).toContain('href="/sample-report"');
+  // Open bids are kept only when the title reads as the trade.
+  expect(readFileSync("src/lib/pipeline-report-data.server.ts", "utf8")).toContain("tradeForText(b.title) === trade");
 });

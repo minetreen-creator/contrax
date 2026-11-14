@@ -45,7 +45,13 @@ export function PipelineReportOrder() {
         One state, one line of work, paid once. Delivered to your inbox within {REPORT_DELIVERY} of payment.
         It shows where you stand on the day it is made and does not update; Contrax Managed below is the version that keeps going.
       </p>
-      <p className="mt-3 text-sm font-semibold text-slate-900">Exactly what is in it:</p>
+      <p className="mt-3 text-sm font-semibold text-slate-900">
+        Exactly what is in it (
+        <a href="/sample-report" onClick={() => trackEvent("teams_cta_click", "sample_report")} className="text-blue-700 underline hover:text-blue-600">
+          read a real sample
+        </a>
+        ):
+      </p>
       <ul className="mt-2 space-y-1.5 text-sm text-slate-700">
         {REPORT_INCLUDES.map((f) => (
           <li key={f}>✓ {f}</li>

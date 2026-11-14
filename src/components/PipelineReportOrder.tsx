@@ -39,10 +39,11 @@ export function PipelineReportOrder() {
 
   return (
     <div className="rounded-2xl border-2 border-slate-900 bg-white p-6">
-      <p className="text-xs font-bold uppercase tracking-wide text-amber-700">Try one first</p>
-      <h2 className="mt-1 text-xl font-bold text-slate-900">One pipeline report: {REPORT_PRICE}</h2>
+      <p className="text-xs font-bold uppercase tracking-wide text-amber-700">Start here · a one-time snapshot</p>
+      <h2 className="mt-1 text-xl font-bold text-slate-900">Pipeline Snapshot report: {REPORT_PRICE}</h2>
       <p className="mt-2 text-sm text-slate-700">
         One state, one line of work, paid once. Delivered to your inbox within {REPORT_DELIVERY} of payment.
+        It shows where you stand on the day it is made and does not update; Contrax Managed below is the version that keeps going.
       </p>
       <p className="mt-3 text-sm font-semibold text-slate-900">Exactly what is in it:</p>
       <ul className="mt-2 space-y-1.5 text-sm text-slate-700">

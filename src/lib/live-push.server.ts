@@ -188,6 +188,33 @@ export async function alertHotLead(v: {
   }
 }
 
+/**
+ * A pipeline report order (owner 2026-11-14: "set up a notification on mission control if someone
+ * submits these"). One push per Stripe session and stage, claimed in visit_alerts so a webhook
+ * Stripe delivers twice alerts once. Never throws.
+ */
+export async function alertReportOrder(alert: { title: string; body: string; tag: string; url: string }): Promise<void> {
+  try {
+    await ensureTables();
+    const subs = (await sql()`SELECT id, endpoint, p256dh, auth FROM push_subscriptions WHERE enabled`) as {
+      id: number;
+      endpoint: string;
+      p256dh: string;
+      auth: string;
+    }[];
+    if (!subs.length) return;
+    const claimed = (await sql()`
+      INSERT INTO visit_alerts (visitor_id, visit_id) VALUES ('pipeline-report', ${alert.tag})
+      ON CONFLICT DO NOTHING RETURNING visitor_id
+    `) as unknown[];
+    if (!claimed.length) return;
+    const sent = await sendTo(subs, alert);
+    await sql()`UPDATE visit_alerts SET sent = ${sent} WHERE visitor_id = 'pipeline-report' AND visit_id = ${alert.tag}`;
+  } catch (err) {
+    console.error("[live-push] report order alert failed (non-fatal):", err);
+  }
+}
+
 /** Push the owner a visitor's live-chat reply. No dedupe: replies are already capped per hour. Never throws. */
 export async function alertChatReply(v: { visitorId: string; body: string }): Promise<void> {
   try {

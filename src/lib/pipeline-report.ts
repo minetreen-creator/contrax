@@ -6,6 +6,7 @@
  * The order lives in the Stripe session's metadata, so there is no table to keep in step.
  */
 import { STATE_NAMES } from "~/lib/contract-map";
+import { SEO_TRADE_BY_SLUG } from "~/lib/seo-trades";
 
 export const REPORT_PRICE = "$149";
 export const REPORT_PRICE_CENTS = 14900;
@@ -61,6 +62,46 @@ export function orderFromMetadata(m: Record<string, string> | null | undefined):
   return cleanOrder({ email: m.report_email, company: m.report_company, state: m.report_state, trade: m.report_trade });
 }
 
+/**
+ * The data trade behind a buyer's own words (owner 2026-11-14: "map what they sell to the right
+ * trade so report generation stays fast"). The report data job takes one of the site's trade slugs;
+ * this picks it from free text so a paid order arrives with its run settings filled in. First match
+ * wins, most specific first. Null means no trade fits and the owner chooses by hand.
+ */
+const TRADE_WORDS: readonly [string, RegExp][] = [
+  ["cybersecurity", /cyber|infosec|information security|zero trust|penetration test|\bsoc\b/],
+  ["it-services", /\bit\b|i\.t\.|information technology|software|cloud|data ?cent|network|help ?desk|managed services|devops|\bai\b|\bweb\b|digital|comput|telecom/],
+  ["janitorial", /janitor|custodia|cleaning|housekeep/],
+  ["security-guard", /security guard|guard services|armed|unarmed|patrol|physical security/],
+  ["waste-hauling", /waste|trash|garbage|refuse|recycl|dumpster|sanitation/],
+  ["trucking", /truck|freight|haul|logistic|transport|deliver|courier/],
+  ["landscaping", /landscap|lawn|mow|grounds|tree|irrigation|snow/],
+  ["hvac", /hvac|heating|air condition|plumb|mechanical|boiler|chiller/],
+  ["electrical", /electric|lighting|wiring|generator|low voltage/],
+  ["construction", /construct|build|contractor|renovat|paving|asphalt|concrete|roof|demolition|civil|carpentr|painting|remodel/],
+];
+export function tradeForText(text: string): string | null {
+  const t = ` ${text.toLowerCase()} `;
+  for (const [slug, re] of TRADE_WORDS) if (re.test(t) && SEO_TRADE_BY_SLUG[slug]) return slug;
+  return null;
+}
+
+/** One line telling the owner how to pull the report's data, or that no trade matched. */
+export function runLine(o: ReportOrder): string {
+  const slug = tradeForText(o.trade);
+  return slug
+    ? `Report data: run "Managed report data" with state ${o.state} and trade ${slug}.`
+    : `Report data: "${o.trade}" matches no trade on the site. Reply to the buyer to pin down the line of work before running it.`;
+}
+
+/** The Mission Control push for an order. `paid` false means the form was sent but not yet paid. */
+export function orderAlert(o: ReportOrder, sessionId: string, paid: boolean): { title: string; body: string; tag: string; url: string } {
+  const what = `${o.company}: ${o.trade} in ${STATE_NAMES[o.state]}`;
+  return paid
+    ? { title: `💵 ${REPORT_PRICE} report paid`, body: `${what}. Due within ${REPORT_DELIVERY}. Send to ${o.email}.`.slice(0, 220), tag: `report-${sessionId}`.slice(0, 64), url: "/admin/live" }
+    : { title: "🧾 Report checkout started", body: `${what} (${o.email}). Not paid yet.`.slice(0, 220), tag: `report-start-${sessionId}`.slice(0, 64), url: "/admin/live" };
+}
+
 /** The email the owner gets when a report is paid for. */
 export function ownerNotice(o: ReportOrder, sessionId: string): { subject: string; text: string } {
   return {
@@ -72,6 +113,7 @@ export function ownerNotice(o: ReportOrder, sessionId: string): { subject: strin
       `State: ${STATE_NAMES[o.state]} (${o.state})`,
       `Line of work: ${o.trade}`,
       `Promised within ${REPORT_DELIVERY}.`,
+      runLine(o),
       `Offer in the report: ${REPORT_CREDIT_NOTE}`,
       `Stripe session: ${sessionId}`,
     ].join("\n\n"),

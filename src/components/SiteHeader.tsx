@@ -90,6 +90,9 @@ export function SiteHeader({ user: userProp }: { user?: HeaderUser }) {
           <a href="/radar" className={link}>Find work</a>
           <WinWorkMenu linkClass={link} />
           {/* Admins get an extra link; drop Pricing on phones so the row still fits. */}
+          {/* Owner 2026-11-14: the done-for-you side has a door on every page. Hidden on phones, where the
+              row is full; phones reach it from the homepage's first section and its footer. */}
+          <a href="/teams" className={`${link} hidden sm:inline`}>For teams</a>
           <a href="/pricing" className={user?.is_admin ? `${link} hidden sm:inline` : link}>Pricing</a>
           {user?.is_admin && (
             <a href="/admin/command" className="rounded-md bg-amber-50 px-2.5 py-1 font-semibold text-amber-600 no-underline hover:text-amber-500">

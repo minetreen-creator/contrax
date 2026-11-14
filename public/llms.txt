@@ -1,6 +1,6 @@
 # Contrax
 
-> Contrax lists open U.S. government bids (federal, state, county, city and school district) and helps small contractors find the ones they can win. Every bid has its own public page with the job, the buyer, the place and the due date. Searching needs no account.
+> Contrax lists open U.S. government bids (federal, state, county, city and school district) and helps small contractors find the ones they can win. For companies with a sales team it also prepares reports of the federal contracts ending in their line of work. Every bid has its own public page with the job, the buyer, the place and the due date. Searching needs no account.
 
 Contrax is operated by Contrax LLC (Virginia) and is available in the United States. Bids come from SAM.gov and from state and local purchasing boards, refreshed several times a day. Closed bids drop off the lists.
 
@@ -47,7 +47,8 @@ Contrax is operated by Contrax LLC (Virginia) and is available in the United Sta
 ## For bid consultants and proposal writers
 
 - [Consultants](https://www.contrax.company/consultants): One login for up to 10 client workspaces, each with its own matched bids, saved bids and pipeline, and a dashboard of every client's deadlines.
-- [Contrax for sales teams](https://www.contrax.company/teams): The Professional plan ($79 a month) for companies with a government sales or proposal person: contracts ending soon with the current holder and value, executive briefs, incumbent pricing, match scoring and proposal drafts.
+- [Contrax for sales teams](https://www.contrax.company/teams): For companies with a government sales or proposal person. Contrax prepares a pipeline report for one state and line of work: the federal contracts ending soon, who holds them, the agencies, what they were awarded for and the open bids that fit. A one-time Pipeline Snapshot is $149; Contrax Managed rebuilds it every month for $499 a month.
+- [Sample pipeline report](https://www.contrax.company/sample-report): A real, live report anyone can read, for federal IT services in Virginia, janitorial in Virginia, or HVAC and plumbing in Texas.
 - [AI assistant connection (MCP)](https://www.contrax.company/api/mcp): A read-only Model Context Protocol endpoint. Tools: contracts_ending_soon (state, line of work) and list_trades. Returns totals and a handful of federal contracts ending soon, with links to the public records.
 
 ## For material suppliers and equipment rental

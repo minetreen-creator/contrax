@@ -24,10 +24,30 @@ const MIN_CONTRACTS = 10;
 /** Registry pages read at most (40 businesses each). */
 const MAX_ROUNDS = 6;
 
+/**
+ * The scheduled run's markets, one a weekday (owner 2026-11-14: "do that" to
+ * selling Professional to companies with a government sales team): states with
+ * many federal contractors, in the two trades where such companies have
+ * someone chasing the work. A hand run names its own state and trade.
+ */
+export const TEAMS_ROTATION: readonly (readonly [string, string])[] = [
+  ["VA", "it-services"], ["MD", "it-services"], ["DC", "it-services"], ["TX", "it-services"], ["CA", "it-services"],
+  ["FL", "it-services"], ["VA", "construction"], ["TX", "construction"], ["GA", "it-services"], ["CO", "it-services"],
+];
+
+/** The market for a given day: the rotation moves one step each calendar day. PURE. */
+export function teamsMarketFor(dayNumber: number): readonly [string, string] {
+  const n = TEAMS_ROTATION.length;
+  return TEAMS_ROTATION[((Math.floor(dayNumber) % n) + n) % n];
+}
+
 async function main() {
   const apply = process.env.APPLY === "true";
-  const state = (process.env.STATE ?? "VA").trim().toUpperCase();
-  const trade = (process.env.TRADE ?? "it-services").trim().toLowerCase();
+  const named = (process.env.STATE ?? "").trim() && (process.env.TRADE ?? "").trim();
+  const [rotState, rotTrade] = teamsMarketFor(Date.now() / 86_400_000);
+  const state = (named ? process.env.STATE! : rotState).trim().toUpperCase();
+  const trade = (named ? process.env.TRADE! : rotTrade).trim().toLowerCase();
+  if (!named) console.log(`No state and trade given: today's market in the rotation is ${state} ${trade}.`);
   const tradeRow = SEO_TRADE_BY_SLUG[trade];
   const place = STATE_NAMES[state];
   if (!tradeRow || !place) throw new Error(`Unknown STATE "${state}" or TRADE "${trade}"`);

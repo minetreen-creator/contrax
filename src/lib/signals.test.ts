@@ -59,3 +59,39 @@ describe("teams outreach email", () => {
     expect(teamsRecompetesPath(null)).toBe("/recompetes");
   });
 });
+
+// Owner 2026-11-14 ("do that"): a weekday batch to companies with a government sales team.
+import { readFileSync } from "node:fs";
+
+describe("teams outreach schedule", () => {
+  const job = readFileSync("src/jobs/teams-outreach.ts", "utf8");
+  const wf = readFileSync(".github/workflows/teams-outreach.yml", "utf8");
+  test("a scheduled run takes the day's market and queues drafts; a hand run still needs apply", () => {
+    expect(wf).toContain('- cron: "47 10 * * 1-5"');
+    expect(wf).toContain("(github.event_name == 'schedule' || inputs.apply) && 'true' || 'false'");
+    expect(wf).toContain("SENDS NOTHING");
+    expect(job).toContain("teamsMarketFor(Date.now() / 86_400_000)");
+  });
+  test("the rotation covers ten markets and every one is a real state and trade", () => {
+    const list = job.slice(job.indexOf("TEAMS_ROTATION"), job.indexOf("];", job.indexOf("TEAMS_ROTATION")));
+    const pairs = [...list.matchAll(/\["([A-Z]{2})", "([a-z-]+)"\]/g)].map((m) => [m[1], m[2]]);
+    expect(pairs.length).toBe(10);
+    for (const [, trade] of pairs) expect(["it-services", "construction"]).toContain(trade);
+    expect(new Set(pairs.map((p) => p.join(":"))).size).toBe(10);
+  });
+});
+
+// Owner 2026-11-14: "cut small contractors to 0 a day since they never answer or buy".
+import { DAILY_CONTRACTOR_FIRST_EMAILS, DAILY_FIRST_EMAILS } from "./outreach";
+
+describe("daily contractor outreach is off", () => {
+  test("the scheduled run queues no contractor first emails; a hand-run focus batch keeps its ceiling", () => {
+    expect(DAILY_CONTRACTOR_FIRST_EMAILS).toBe(0);
+    expect(DAILY_FIRST_EMAILS).toBe(30);
+    const prepare = readFileSync("src/jobs/outreach-prepare.ts", "utf8");
+    expect(prepare).toContain("if (DAILY_CONTRACTOR_FIRST_EMAILS <= 0) {");
+    // The focus branch returns before the daily loop, so it is untouched.
+    expect(prepare.indexOf("if (FOCUS_STATE && FOCUS_TRADE) {")).toBeLessThan(prepare.indexOf("if (DAILY_CONTRACTOR_FIRST_EMAILS <= 0) {"));
+    expect(prepare).toContain("queueForBid(key, b, constructionOutreachTrade(b.title), seenHosts, DAILY_FIRST_EMAILS - queued)");
+  });
+});

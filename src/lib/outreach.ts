@@ -90,8 +90,16 @@ export function bidNeedsPrequalification(agency: string | null | undefined, desc
   return /department of transportation|\bvdot\b/i.test(String(agency ?? "")) || /\bprequalification required\b/i.test(String(description ?? ""));
 }
 
-/** Drafts the daily job may queue (first emails), across all trades. */
+/** Drafts one run may queue (first emails), across all trades. Still the ceiling for a hand-run focus batch. */
 export const DAILY_FIRST_EMAILS = 30;
+/**
+ * First emails the scheduled daily run queues for small local contractors.
+ * Owner 2026-11-14: "cut small contractors to 0 a day since they never answer
+ * or buy". The weekday sends now go to companies with a government sales team
+ * (src/jobs/teams-outreach.ts). A focus run (state + trade) is a deliberate
+ * hand run and is not affected.
+ */
+export const DAILY_CONTRACTOR_FIRST_EMAILS: number = 0;
 /** Businesses emailed per bid. */
 export const BUSINESSES_PER_BID = 2;
 /** A bid must be due at least this far out to be worth a cold email... */

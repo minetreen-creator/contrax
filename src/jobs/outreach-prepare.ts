@@ -18,6 +18,7 @@ import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import {
   addressState,
   BUSINESSES_PER_BID,
+  DAILY_CONTRACTOR_FIRST_EMAILS,
   DAILY_FIRST_EMAILS,
   bidFitsTrade,
   bidIsServiceJob,
@@ -252,10 +253,15 @@ async function main() {
     return;
   }
 
+  // Owner 2026-11-14: the daily run no longer emails small contractors.
+  if (DAILY_CONTRACTOR_FIRST_EMAILS <= 0) {
+    console.log("\nDaily contractor first emails are off (0 a day). Use a focus run (state + trade) for a deliberate batch.");
+    return;
+  }
   let queued = 0;
   const seenHosts = new Set<string>();
   for (const trade of OUTREACH_TRADES) {
-    if (queued >= DAILY_FIRST_EMAILS) break;
+    if (queued >= DAILY_CONTRACTOR_FIRST_EMAILS) break;
     // Only bids whose place is a real town, county or agency: a statewide
     // purchasing group or a bare state name would make "near you" untrue.
     const bids = (await freshBids(trade.match, CANDIDATES_PER_TRADE))
@@ -263,8 +269,8 @@ async function main() {
       .slice(0, BIDS_PER_TRADE);
     console.log(`\n${trade.label}: ${bids.length} fresh local bid(s)`);
     for (const b of bids) {
-      if (queued >= DAILY_FIRST_EMAILS) break;
-      queued += await queueForBid(key, b, trade, seenHosts, DAILY_FIRST_EMAILS - queued);
+      if (queued >= DAILY_CONTRACTOR_FIRST_EMAILS) break;
+      queued += await queueForBid(key, b, trade, seenHosts, DAILY_CONTRACTOR_FIRST_EMAILS - queued);
     }
   }
   console.log(`\nFirst emails queued: ${queued}. Approve them at https://www.contrax.company/admin/outreach`);

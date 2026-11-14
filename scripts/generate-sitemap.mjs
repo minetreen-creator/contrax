@@ -74,6 +74,13 @@ const PRODUCT_PATHS = [
   ["/forecasts", "weekly", "0.6"],
   ["/map", "daily", "0.6"],
   ["/gap-map", "weekly", "0.6"],
+  // SEO audit 2026-11-14: indexable landing pages that were in no sitemap.
+  ["/recompetes", "daily", "0.7"],
+  ["/leads", "weekly", "0.6"],
+  ["/healthcare-contracting", "weekly", "0.6"],
+  ["/contracts-hvac-mechanical", "weekly", "0.6"],
+  ["/success-stories", "monthly", "0.5"],
+  ["/associations", "monthly", "0.5"],
   ["/prime-finder", "weekly", "0.6"],
   // Find your company (owner 2026-11-12): name search for the company pages.
   ["/company", "weekly", "0.7"],

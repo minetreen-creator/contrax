@@ -54,6 +54,8 @@ export const Route = createFileRoute("/example-brief")({
         content:
           "A real, pre-generated AI Executive Brief from Contrax, showing how the mandatory requirements, key deadlines, and red flags of a government solicitation are extracted in seconds.",
       },
+      { property: "og:url", content: "https://www.contrax.company/example-brief" },
     ],
+    links: [{ rel: "canonical", href: "https://www.contrax.company/example-brief" }],
   }),
 });

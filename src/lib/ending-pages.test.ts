@@ -85,3 +85,13 @@ test("the page offers both doors, the list needs an account, and the pages are c
   expect(map).toContain("...endingBlocks,");
   expect(readFileSync("src/components/FederalTradeFacts.tsx", "utf8")).toContain("endingPath(stateName, tradeSlug)");
 });
+
+// Owner 2026-11-15: security guard bids are thin, so that trade's state pages lead with ending contracts.
+test("security guard state pages show ending contracts above the open bids", async () => {
+  const { ENDING_FIRST_TRADES } = await import("./ending-pages");
+  expect([...ENDING_FIRST_TRADES]).toEqual(["security-guard"]);
+  const page = readFileSync("src/routes/contracts-in.$state_.$trade.tsx", "utf8");
+  expect(page.indexOf("{endingFirst && federalFacts}")).toBeGreaterThan(0);
+  expect(page.indexOf("{endingFirst && federalFacts}")).toBeLessThan(page.indexOf("<RegionTradeView"));
+  expect(page.indexOf("{!endingFirst && federalFacts}")).toBeGreaterThan(page.indexOf("<RegionTradeView"));
+});

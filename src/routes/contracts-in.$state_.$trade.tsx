@@ -11,6 +11,7 @@ import {
 } from "~/lib/seo-landing";
 import { radarHrefFor, SEO_TRADE_BY_SLUG } from "~/lib/seo-trades";
 import { FederalTradeFacts } from "~/components/FederalTradeFacts";
+import { ENDING_FIRST_TRADES } from "~/lib/ending-pages";
 import { findSubsPath, tradeWords } from "~/lib/sub-finder";
 
 // /contracts-in/{state}/{trade} — e.g. /contracts-in/virginia/janitorial.
@@ -54,6 +55,11 @@ function ContractsInStateTrade() {
   // Owner 2026-11-03 ("do 2 and 3"): speak the trade's own words (a lawn crew
   // says mowing) and lead with what is open now and what comes next.
   const spoken = data.trade?.slug === "landscaping" ? "mowing & landscaping" : label.toLowerCase();
+  // Trades where long contracts make open bids thin (src/lib/ending-pages.ts ENDING_FIRST_TRADES).
+  const endingFirst = Boolean(data.trade && (ENDING_FIRST_TRADES as readonly string[]).includes(data.trade.slug) && data.federal?.ending?.count);
+  const federalFacts = data.code && data.trade ? (
+    <FederalTradeFacts data={data.federal} tradeSlug={data.trade.slug} tradeLabel={data.trade.label} stateCode={data.code} stateName={name} />
+  ) : null;
   return (
     <SeoLanding
       eyebrow={`Live government bids · ${name}`}
@@ -77,20 +83,21 @@ function ContractsInStateTrade() {
       {data.name && data.trade && (
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(regionBreadcrumbLd(data.name, { slug: data.trade.slug, label: data.trade.label })) }} />
       )}
+      {endingFirst && (
+        // Owner 2026-11-15 ("yes to both"): guard contracts run for years, so few are open at once.
+        // The contracts about to end are the fuller picture for this trade, so they come first.
+        <p className="mx-auto mt-6 max-w-3xl px-4 text-sm text-slate-700">
+          Guard contracts usually run for several years, so only a few are open for bids at any time. The contracts ending soon show
+          where the next ones will come from: who holds the work now, and when it ends.
+        </p>
+      )}
+      {endingFirst && federalFacts}
       <RegionTradeView data={data} radarHref={radarHref} />
       {data.code && data.trade && (
         // Loaded after the page renders, so the page itself stays fast (owner 2026-11-09).
         <OpenToAllBids trade={data.trade.radarTerm} state={data.code} where="state_page" tone="light" />
       )}
-      {data.code && data.trade && (
-        <FederalTradeFacts
-          data={data.federal}
-          tradeSlug={data.trade.slug}
-          tradeLabel={data.trade.label}
-          stateCode={data.code}
-          stateName={name}
-        />
-      )}
+      {!endingFirst && federalFacts}
       {data.code && data.trade && (
         // Owner 2026-11-09: primes bidding these jobs can find local subs here.
         <p className="mx-auto mt-6 max-w-3xl px-4 text-sm text-slate-700">

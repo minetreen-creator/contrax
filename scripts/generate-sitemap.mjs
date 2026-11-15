@@ -31,6 +31,13 @@ import { join } from "node:path";
 import { expandTrade, tradeKeywordPred } from "../src/lib/trade-registry.ts";
 import { resolveBidState } from "../src/lib/location-state.ts";
 import { SEO_TRADES } from "../src/lib/seo-trades.ts";
+import { US_STATES } from "../src/lib/states.ts";
+
+// Kept equal to src/lib/ending-pages.ts by src/lib/ending-pages.test.ts (that file imports with
+// the ~ alias, which this script cannot resolve).
+const ENDING_TRADES = ["janitorial", "hvac", "construction", "landscaping", "security-guard", "it-services"];
+const ENDING_MIN_CONTRACTS = 3;
+const ENDING_STATE_CODES = new Set(US_STATES);
 import { LOW_CONTENT_SQL } from "../src/lib/low-content.ts";
 import { AWARD_EXCLUSION_SQL } from "../src/lib/source-class.ts";
 
@@ -92,6 +99,10 @@ const PRODUCT_PATHS = [
   ["/compare/highergov", "monthly", "0.6"],
   ["/compare/govtribe", "monthly", "0.6"],
   ["/compare/cleatus", "monthly", "0.6"],
+  ["/compare/bidnet-direct", "monthly", "0.6"],
+  ["/compare/govwin-iq", "monthly", "0.6"],
+  ["/compare/demandstar", "monthly", "0.6"],
+  ["/contracts-ending", "weekly", "0.6"],
   // Agency plan for material suppliers and equipment rental (owner 2026-11-12).
   ["/suppliers", "weekly", "0.7"],
   ["/roadmap", "monthly", "0.5"],
@@ -310,6 +321,27 @@ async function main() {
     ([code, slug]) =>
       `  <url>\n    <loc>${PROD_URL}/find-subcontractors/${STATE_SLUGS[code]}/${slug}</loc>\n    <lastmod>${TODAY}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.6</priority>\n  </url>`,
   );
+  // Contracts-ending pages (/contracts-ending/{state}/{trade}, owner 2026-11-14): only markets
+  // the page itself allows into search (src/lib/ending-pages.ts endingIndexable): at least
+  // ENDING_MIN_CONTRACTS ending in 12 months and one of them inside 6 months.
+  const endingCombos = [];
+  try {
+    const db = neon(process.env.DATABASE_URL);
+    const rows = await db`
+      SELECT trade_slug, pop_state AS state FROM recompete_contracts
+      WHERE end_date >= CURRENT_DATE AND end_date <= CURRENT_DATE + INTERVAL '12 months'
+      GROUP BY 1, 2
+      HAVING COUNT(*) >= ${ENDING_MIN_CONTRACTS} AND COUNT(*) FILTER (WHERE end_date <= CURRENT_DATE + 180) > 0
+      ORDER BY 1, 2
+    `;
+    for (const r of rows) if (ENDING_TRADES.includes(r.trade_slug) && STATE_SLUGS[r.state] && ENDING_STATE_CODES.has(r.state)) endingCombos.push([r.state, r.trade_slug]);
+  } catch (err) {
+    console.warn(`[generate-sitemap] contracts-ending query failed (${err?.message ?? err}) — skipping those URLs`);
+  }
+  const endingBlocks = endingCombos.map(
+    ([code, slug]) =>
+      `  <url>\n    <loc>${PROD_URL}/contracts-ending/${STATE_SLUGS[code]}/${slug}</loc>\n    <lastmod>${TODAY}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>`,
+  );
   const productBlocks = PRODUCT_PATHS.map(
     ([p, freq, prio]) =>
       `  <url>\n    <loc>${PROD_URL}${p}</loc>\n    <lastmod>${TODAY}</lastmod>\n    <changefreq>${freq}</changefreq>\n    <priority>${prio}</priority>\n  </url>`,
@@ -349,6 +381,7 @@ async function main() {
     ...regionBlocks,
     ...tradeBlocks,
     ...subBlocks,
+    ...endingBlocks,
     // Owner 2026-11-09 (Search Console): 4,730 FAR clause pages, word for word the government's own
     // text, were most of the "Crawled - currently not indexed" list and brought 4 visitors in 60
     // days. They stay live (and indexable) but leave the sitemap so Google spends its crawl on bid,

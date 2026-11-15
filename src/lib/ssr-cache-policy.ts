@@ -63,6 +63,14 @@ const CLAUSES_PATTERN = /^\/clauses(?:\/[A-Za-z0-9.\-]+)?$/;
 const STATE_LANDING_PATTERN = /^\/contracts-in\/[a-z0-9-]+$/;
 
 /**
+ * Contracts-ending pages (owner 2026-11-14): `/contracts-ending` and
+ * `/contracts-ending/<state>/<trade>`. The loader sends the same public numbers to everyone and
+ * reads no session; the signed-in full list comes from /api/ending-list after the page loads.
+ * About 300 pages, each seven queries to build, so cached copies are served from the edge.
+ */
+const ENDING_PATTERN = /^\/contracts-ending(?:\/[a-z-]+\/[a-z-]+)?$/;
+
+/**
  * City/county and agency landing pages (owner 2026-10-12): `/local-bids`,
  * `/bids-in/<state>/<place>` and `/agency/<slug>`. Their loaders read only open
  * bids (src/lib/local-landing.tsx) and no session.
@@ -93,5 +101,6 @@ export function isPublicSsrCacheable(method: string, pathname: string): boolean 
   if (STATE_LANDING_PATTERN.test(path)) return true;
   if (LOCAL_LANDING_PATTERN.test(path)) return true;
   if (CLAUSES_PATTERN.test(path)) return true;
+  if (ENDING_PATTERN.test(path)) return true;
   return false;
 }

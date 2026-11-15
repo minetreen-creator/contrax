@@ -4,10 +4,10 @@ import { COMPARE_BY_SLUG, COMPARE_TOOLS, CONTRAX_SIDE, compareTitle } from "./co
 
 // Owner 2026-11-14 (competitor review, idea 3): comparison pages, with every claim sourced.
 test("each tool has facts, a source on its own site, and a case for choosing it", () => {
-  expect(COMPARE_TOOLS.map((t) => t.slug)).toEqual(["highergov", "govtribe", "cleatus"]);
+  expect(COMPARE_TOOLS.map((t) => t.slug)).toEqual(["highergov", "govtribe", "cleatus", "bidnet-direct", "govwin-iq", "demandstar"]);
   for (const t of COMPARE_TOOLS) {
     expect(t.facts.length).toBeGreaterThan(0);
-    expect(t.source.url).toMatch(/^https:\/\/(www\.)?(highergov\.com|govtribe\.com|cleat\.ai)\//);
+    expect(t.source.url).toMatch(/^https:\/\/(www\.)?(highergov\.com|govtribe\.com|cleat\.ai|bidnetdirect\.com|deltek\.com|network\.demandstar\.com)\//);
     expect(t.betterWhen.length).toBeGreaterThan(20);
     expect(COMPARE_BY_SLUG[t.slug]).toBe(t);
     expect(compareTitle(t)).toContain(`${t.name} Alternative`);

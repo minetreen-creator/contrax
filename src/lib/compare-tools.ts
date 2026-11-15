@@ -57,6 +57,47 @@ export const COMPARE_TOOLS: readonly CompareTool[] = [
     source: { label: "CLEATUS comparison page", url: "https://www.cleat.ai/alternative/procurement-sciences" },
     betterWhen: "your main need is writing proposals faster and you want to do that work in software yourself.",
   },
+  // Owner 2026-11-14 ("expand /compare"): the three bid-notice and market-intelligence names
+  // buyers search for most. Same rule: only what each company's own page says.
+  {
+    slug: "bidnet-direct",
+    name: "BidNet Direct",
+    what: "A bid-notice service where state and local agencies post solicitations to registered vendors.",
+    facts: [
+      { label: "Free plan", value: "Limited Access, $0: bids from member agencies" },
+      { label: "Statewide Bids", value: "$36 a month, billed annually, for one state" },
+      { label: "Federal Bids", value: "$45 a month, billed annually: adds federal agencies in that state" },
+      { label: "Agencies posting directly", value: "Over 1,100" },
+    ],
+    source: { label: "BidNet Direct vendor plans", url: "https://www.bidnetdirect.com/vendor-solutions" },
+    betterWhen: "you want notices from the local agencies that post there, and you will read and sort them yourself. Its free plan costs nothing.",
+  },
+  {
+    slug: "govwin-iq",
+    name: "Deltek GovWin IQ",
+    what: "A market intelligence subscription for government contractors, sold in packages by market.",
+    facts: [
+      { label: "Price", value: "Not shown on its packages page; you request a demo" },
+      { label: "Federal packages", value: "Essentials, Professional and Advanced" },
+      { label: "Records requests", value: "FOIA services listed at an additional fee" },
+    ],
+    source: { label: "GovWin IQ federal subscription packages", url: "https://www.deltek.com/en/government-contracting/govwin/subscriptions" },
+    betterWhen: "you have a capture team that works on large federal pursuits long before the solicitation and wants analyst research behind it.",
+  },
+  {
+    slug: "demandstar",
+    name: "DemandStar",
+    what: "A bid-notice network where local governments post solicitations to registered suppliers.",
+    facts: [
+      { label: "Free plan", value: "Basic: notices from one agency" },
+      { label: "County plan", value: "From $60 a year per county" },
+      { label: "State plan", value: "$100 to $1,499 a year, by state" },
+      { label: "National plan", value: "$2,699 a year" },
+      { label: "Bid documents", value: "$5 per download outside your subscription area" },
+    ],
+    source: { label: "DemandStar business pricing", url: "https://network.demandstar.com/?p=80" },
+    betterWhen: "the cities and counties you sell to post there and you want their notices sent to you. One county plan costs less than one of our reports.",
+  },
 ];
 
 export const COMPARE_BY_SLUG: Readonly<Record<string, CompareTool>> = Object.fromEntries(COMPARE_TOOLS.map((t) => [t.slug, t]));

@@ -230,7 +230,7 @@ export function outreachRoomToday(sentToday: number, cap: number = DAILY_OUTREAC
 }
 
 /** "pack" (owner 2026-11-14): a construction first email that offers a free Bid Pack, not the $5 pass. */
-export type OutreachKind = "first" | "followup" | "prime" | "leads" | "pack" | "buyer" | "teams" | "warm";
+export type OutreachKind = "first" | "followup" | "prime" | "leads" | "pack" | "buyer" | "teams" | "warm" | "partner";
 
 /** The Contracts Ending Soon view a teams email points at, from the "trade=…&state=…" kept on the row. PURE. */
 export function teamsRecompetesPath(query: string | null | undefined): string {
@@ -249,6 +249,30 @@ export function teamsReportPath(query: string | null | undefined): string {
   if (m && (ENDING_TRADES as readonly string[]).includes(m[1]) && STATE_NAMES[m[2]]) return endingPath(STATE_NAMES[m[2]], m[1]);
   return teamsRecompetesPath(query);
 }
+/** Subject of the reseller email to firms that serve government contractors. */
+export const PARTNER_SUBJECT = "A monthly pipeline report your clients get under your name";
+/**
+ * Firms worth the reseller email, by name (owner 2026-11-15): proposal writers, capture and
+ * government-contracting consultants. Used against the contractor registry. PURE.
+ */
+export const PARTNER_NAME = "proposal|capture|govcon|gov ?con|government contract|federal (consult|contract|business|growth|sales|market)|bid (writ|consult|manage)|contracting (consult|solution|advis|strateg)|rfp";
+export function partnerFirmName(name: string): boolean {
+  return new RegExp(PARTNER_NAME, "i").test(name);
+}
+/** Firms found by hand on 2026-11-15, each from its own website (name, site). */
+export const PARTNER_SEEDS: readonly (readonly [string, string])[] = [
+  ["The Penscribe", "https://thepenscribe.com"],
+  ["OST Global Solutions", "https://www.ostglobalsolutions.com"],
+  ["GovCon Giants", "https://govcongiants.com"],
+  ["FedBiz Access", "https://fedbizaccess.com"],
+  ["Winvale", "https://winvale.com"],
+  ["Coley GSA", "https://www.coleygsa.com"],
+  ["Select GCR", "https://selectgcr.com"],
+  ["iQuasar", "https://iquasar.com"],
+  ["GovCon in a Box", "https://govconinabox.com"],
+  ["Proposal Strategies", "https://proposalstrategies.com"],
+];
+
 /** How many free full reports the teams email offers. The owner sends each one by hand. */
 export const TEAMS_FREE_REPORTS = 10;
 
@@ -392,6 +416,27 @@ export function outreachEmail(i: OutreachEmailInput): { subject: string; text: s
       "I'm Nathaniel, and I run Contrax, a small company that tracks government contracts and the local contractors who do the work.",
       "",
       "Good luck with the contract.",
+    ];
+  } else if (i.kind === "partner") {
+    // Owner 2026-11-15 ("Yes go"): firms that already serve government contractors (proposal
+    // writers, capture and contracting consultants) can give their clients the monthly report
+    // under their own name. They pay a wholesale price per client; the price is agreed on reply,
+    // so the email names none. One ask: reply "sample".
+    subject = PARTNER_SUBJECT;
+    body = [
+      "Hi,",
+      "",
+      `${i.business} helps companies win government contracts, so this is for whoever looks after your clients.`,
+      "",
+      "Your clients keep asking what they should bid on next. Contrax prepares a monthly pipeline report that answers it for one state and line of work: the federal contracts about to end, who holds each one now, the agencies, what contracts like them were awarded for, and the open bids that fit.",
+      "",
+      `Here is a real one: ${link("/sample-report", i.kind, i.contactId)}`,
+      "",
+      "We can prepare that report for each of your clients under your firm's name. You pay us a wholesale price per client and charge what you like, or fold it into your retainer. There is nothing for you to build, and it is month to month.",
+      "",
+      'Reply "sample" with one client\'s state and line of work, and I\'ll send you their report with your name on it, free.',
+      "",
+      "I'm Nathaniel, and I run Contrax.",
     ];
   } else if (i.kind === "warm") {
     // Owner 2026-11-15 ("you write the emails, not me"): the personal note to an account that

@@ -12,6 +12,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { Resend } from "resend";
 import { sql } from "~/db";
+import { PARTNER_SUBJECT } from "~/lib/outreach";
 import { qaExternalUserSQL } from "~/lib/qa-exclusion";
 import { WARM_SUBJECT, warmFirstName, type WarmLead } from "~/lib/warm-leads";
 import {
@@ -291,6 +292,17 @@ export async function queueWarmLeads(): Promise<number> {
   return queued;
 }
 
+/** Queue a reseller draft (owner 2026-11-15). False when the address is already known or on Do not contact. */
+export async function queuePartner(p: { email: string; business: string; website: string | null }): Promise<boolean> {
+  if (!(await isNewAddress(p.email))) return false;
+  const rows = (await sql()`
+    INSERT INTO outreach_contacts (email, kind, business, website, bid_id, bid_title, buyer, due_date, trade_label)
+    VALUES (${p.email.trim().toLowerCase()}, 'partner', ${p.business}, ${p.website}, 0, ${PARTNER_SUBJECT}, ${null},
+            CURRENT_DATE + 30, ${"consulting firm"})
+    ON CONFLICT DO NOTHING RETURNING id`) as unknown[];
+  return rows.length > 0;
+}
+
 export interface QueuedPrime {
   email: string;
   business: string;
@@ -566,7 +578,7 @@ export async function sendDrafts(ids: number[]): Promise<{ sent: number; failed:
     }
     const row = normalize(claimed[0]!);
     // Prime and Award Leads rows have no bid behind bid_id: no posting lookup.
-    const posting = row.kind === "prime" || row.kind === "leads" || row.kind === "teams" || row.kind === "warm" ? null : (await postingUrls([row.bid_id])).get(row.bid_id) ?? null;
+    const posting = row.kind === "prime" || row.kind === "leads" || row.kind === "teams" || row.kind === "warm" || row.kind === "partner" ? null : (await postingUrls([row.bid_id])).get(row.bid_id) ?? null;
     const mail = renderContact(row, postal!, posting);
     const unsub = unsubscribeUrl(row.email);
     try {

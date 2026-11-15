@@ -110,3 +110,30 @@ describe("chatReplyAlertText", () => {
     expect(t.body.startsWith(`"${"x".repeat(139)}…"`)).toBe(true);
   });
 });
+
+// Owner 2026-11-15: "he's been on the upgrade pages the other day but never upgrades" → "yes".
+test("a signed-in account back on a buy page without a plan alerts once a day, with no email or IP", async () => {
+  const { repeatUpgradeEligible, repeatUpgradePage, repeatUpgradeText } = await import("./live-push");
+  const { readFileSync } = await import("node:fs");
+  expect(repeatUpgradePage("/upgrade?plan=starter")).toBe(true);
+  expect(repeatUpgradePage("/pricing")).toBe(true);
+  expect(repeatUpgradePage("/signup")).toBe(false);
+  const free = { subscription_status: null, full_access: false, plan_tier: "basic" };
+  // The first look is not a pattern; the second is.
+  expect(repeatUpgradeEligible(free, 0)).toBe(false);
+  expect(repeatUpgradeEligible(free, 1)).toBe(true);
+  // Paying, granted, demo and unknown accounts never alert.
+  expect(repeatUpgradeEligible({ ...free, subscription_status: "active" }, 3)).toBe(false);
+  expect(repeatUpgradeEligible({ ...free, full_access: true }, 3)).toBe(false);
+  expect(repeatUpgradeEligible({ ...free, plan_tier: "demo" }, 3)).toBe(false);
+  expect(repeatUpgradeEligible(undefined, 3)).toBe(false);
+  const t = repeatUpgradeText({ userId: "412", day: "2026-11-15", city: "Port Saint Lucie", region: "FL", earlierVisits: 1 });
+  expect(t.body).toContain("Port Saint Lucie, FL");
+  expect(t.body).toContain("2nd time");
+  expect(t.body).not.toMatch(/@|\d+\.\d+\.\d+\.\d+/);
+  expect(t.tag).toBe("upgrade-repeat-412-2026-11-15");
+  const server = readFileSync("src/lib/live-push.server.ts", "utf8");
+  expect(server).toContain("VALUES ('upgrade-repeat', ${key})");
+  const intake = readFileSync("src/lib/tracking-intake.ts", "utf8");
+  expect(intake).toContain("if (userId && repeatUpgradePage(pagePath))");
+});

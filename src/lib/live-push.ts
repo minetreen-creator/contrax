@@ -68,6 +68,32 @@ export function hotPushPage(path: string): boolean {
   return HOT_PUSH_PAGE.test((path.split("?")[0] || "/").toLowerCase());
 }
 
+/**
+ * A signed-in account without a paid plan is back on a buy page (owner 2026-11-15: "he's been on
+ * the upgrade pages the other day but never upgrades" → "yes"). These are the people worth a
+ * personal note the same day. `earlierVisits` is how many earlier visits looked at a buy page.
+ */
+const REPEAT_UPGRADE_PAGE = /^\/(pricing|upgrade)(\/|$)/;
+export function repeatUpgradePage(path: string): boolean {
+  return REPEAT_UPGRADE_PAGE.test((path.split("?")[0] || "/").toLowerCase());
+}
+/** Paid, granted and demo accounts are left out; so is anyone we cannot look up. */
+export function repeatUpgradeEligible(u: { subscription_status?: string | null; full_access?: boolean | null; plan_tier?: string | null } | null | undefined, earlierVisits: number): boolean {
+  if (!u || earlierVisits < 1) return false;
+  return u.subscription_status !== "active" && !u.full_access && u.plan_tier !== "demo";
+}
+/** Lock-screen text. Never an IP or email: Mission Control shows who it is. */
+export function repeatUpgradeText(v: { userId: string; day: string; city: string | null; region: string | null; earlierVisits: number }): AlertText & { url: string } {
+  const place = [v.city, v.region].filter(Boolean).join(", ") || "Unknown location";
+  const times = v.earlierVisits + 1;
+  return {
+    title: "👀 Back on the upgrade page",
+    body: `A signed-in account in ${place} is looking at plans for the ${times === 2 ? "2nd" : times === 3 ? "3rd" : `${times}th`} time and has not bought. Worth a personal note today.`,
+    tag: `upgrade-repeat-${v.userId}-${v.day}`.slice(0, 64),
+    url: "/admin/live",
+  };
+}
+
 /** Lock-screen text for a hot lead. Never an IP or email. */
 export function hotAlertText(v: { city: string | null; region: string | null; device: string | null; path: string; visitId: string }): AlertText {
   const place = [v.city, v.region].filter(Boolean).join(", ") || "Unknown location";

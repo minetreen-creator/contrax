@@ -17,8 +17,14 @@ export interface SyncLogRow {
   created_at?: string | Date | null;
 }
 
-/** A sync's retry is logged as its own row minutes later; rows this close are one sync. */
-export const SAME_SYNC_MINUTES = 30;
+/**
+ * A sync's retry is logged as its own row later in the same run; rows this close are one sync.
+ * Owner 2026-11-15: ak_dotpf failed at 20:22 and its retry, which runs at the END of the sync,
+ * failed at 21:19, 57 minutes later. The old 30-minute window read that as two syncs and sent
+ * the email. A sync takes about 70 minutes and syncs start at least four hours apart, so two
+ * hours separates "same sync" from "next sync" with room on both sides.
+ */
+export const SAME_SYNC_MINUTES = 120;
 
 /**
  * Newest-first run rows → one row per sync (owner 2026-11-04: nyc_open_data

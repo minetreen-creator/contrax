@@ -120,6 +120,8 @@ async function main() {
       console.log(`   skip (site does not carry the firm's name) → ${p.name}`);
       continue;
     }
+    // A registry firm named like a software product ("Rfp360.ai") sells a tool, not a service to clients.
+    if (!seeds.has(p.name) && !leads.has(p.name) && /\.(ai|io|app)\b/i.test(p.name)) continue;
     const market = partnerMarketFor(`${p.name} ${home}`);
     if (!apply) {
       queued++;

@@ -1,3 +1,6 @@
+import { STATE_NAMES } from "~/lib/contract-map";
+import { ENDING_TRADES, endingPath } from "~/lib/ending-pages";
+import { REPORT_PRICE } from "~/lib/pipeline-report";
 import { TRADEMARK_LINE } from "~/lib/trademark";
 /**
  * Daily bid outreach (owner 2026-10-23: "I need something that brings in leads
@@ -235,6 +238,20 @@ export function teamsRecompetesPath(query: string | null | undefined): string {
 }
 
 /**
+ * Where a teams email sends its reader (owner 2026-11-15, "go": lead with a free report, not a
+ * pitch): the contracts-ending page for their state and trade when there is one, which shows the
+ * largest contracts, who holds them and what they were awarded for with no account. Otherwise the
+ * Contracts Ending Soon view. PURE.
+ */
+export function teamsReportPath(query: string | null | undefined): string {
+  const m = /^trade=([a-z-]{2,30})&state=([A-Z]{2})$/.exec((query ?? "").trim());
+  if (m && (ENDING_TRADES as readonly string[]).includes(m[1]) && STATE_NAMES[m[2]]) return endingPath(STATE_NAMES[m[2]], m[1]);
+  return teamsRecompetesPath(query);
+}
+/** How many free full reports the teams email offers. The owner sends each one by hand. */
+export const TEAMS_FREE_REPORTS = 10;
+
+/**
  * The buyer's own address among the emails found in a bid's text or on its
  * posting (owner 2026-11-14, buyer notes). Only a government, school or
  * public-body address counts: a bidding portal's support box or a vendor's
@@ -378,20 +395,23 @@ export function outreachEmail(i: OutreachEmailInput): { subject: string; text: s
     // companies registered for federal work in a trade get the count of
     // contracts ending in their state, and the Professional plan page.
     // bidTitle = the headline with the real count; buyer = the recompetes query; place = the state's name.
+    // Owner 2026-11-15 ("go"): lead with the report, not a pitch. The link opens the page for
+    // their own state and trade, and the first ten who ask get the full report free.
     const place = (i.place ?? "").trim() || "your state";
     subject = i.bidTitle.slice(0, 140);
     body = [
       "Hi,",
       "",
-      `${i.business} is registered for federal ${i.tradeLabel} work, so this may be useful to whoever handles your government sales.`,
+      `${i.business} is registered for federal ${i.tradeLabel} work, so I put this together for whoever handles your government sales.`,
       "",
-      `${i.bidTitle}. Each one is on record with the company that holds it now, the agency paying, the value and the end date. That is usually months before a new solicitation is posted.`,
+      `${i.bidTitle}. This page shows the largest ones, the company that holds each one now, the agency, the end date and what contracts like them were awarded for. That is usually months before a new solicitation is posted:`,
+      link(teamsReportPath(i.buyer), i.kind, i.contactId),
       "",
-      `The first few for ${place} are free to look at: ${link(teamsRecompetesPath(i.buyer), i.kind, i.contactId)}`,
+      `That page is the short version. The full report for ${place} adds the 25 largest contracts, the agencies with the most work ending, the companies holding the most of it and which of them must subcontract to small businesses, and the open bids that fit. It normally costs ${REPORT_PRICE}. I'm sending it free to the first ${TEAMS_FREE_REPORTS} companies that ask.`,
       "",
-      `I'm Nathaniel, and I run Contrax. For teams that pursue government contracts, it shows the full list, what each contract was awarded for, and a brief on every new solicitation that says whether it fits: ${link("/teams", i.kind, i.contactId)}`,
+      `Reply "report" and I'll email yours within one business day.`,
       "",
-      "If you would like a walkthrough, reply and I'll set one up.",
+      "I'm Nathaniel, and I run Contrax. We prepare these reports for companies that pursue government contracts.",
     ];
   } else if (i.kind === "buyer") {
     // Owner 2026-11-14 ("thinking outside the box" → idea 2): once a bid has

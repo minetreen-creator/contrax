@@ -612,7 +612,7 @@ export function Launchpad() {
               href="/learn"
               className="self-center text-sm font-semibold text-blue-700 underline"
             >
-              Read the free registration and certification guides →
+              Take the free government contracting courses →
             </a>
           </div>
         </section>

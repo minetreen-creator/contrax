@@ -42,7 +42,6 @@ Contrax is operated by Contrax LLC (Virginia) and is available in the United Sta
 - [Government Contracting Basics](https://www.contrax.company/learn/government-contracting): Finding bids, set-asides and sizing up opportunities.
 - [Bid and compliance checklists](https://www.contrax.company/checklists): One-page checklists by trade.
 - [Launchpad](https://www.contrax.company/launchpad): A self-paced start: registration checklist, capability statement builder and a bid plan.
-- Certification guides: [8(a)](https://www.contrax.company/learn/8a-certification-guide), [HUBZone](https://www.contrax.company/learn/hubzone-guide), [SDVOSB](https://www.contrax.company/learn/sdvosb-guide), [WOSB / EDWOSB](https://www.contrax.company/learn/wosb-edwosb-guide).
 
 ## For bid consultants and proposal writers
 

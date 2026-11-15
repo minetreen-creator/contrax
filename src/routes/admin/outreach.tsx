@@ -183,6 +183,12 @@ function OutreachPage() {
             </button>
             </div>
           </div>
+          {/* Owner 2026-11-15 ("they all had do not contact"): the red link on each row is a button, not a
+              label. It is renamed and this line says so. Nobody on the Do not contact list is ever queued. */}
+          <p className="mt-2 text-xs text-slate-500">
+            Every address here has already been checked against your Do not contact list. The red "Never email them" link under a row is a button:
+            click it only to add that address to the list.
+          </p>
           {!data ? (
             <SectionLoading message="Loading…" />
           ) : data.drafts.length === 0 ? (
@@ -224,7 +230,7 @@ function OutreachPage() {
                           Skip
                         </button>
                         <button className="font-medium text-red-700" disabled={busy} onClick={() => act({ action: "suppress", email: d.email }, () => `${d.email} will never be emailed.`)}>
-                          Do not contact
+                          Never email them
                         </button>
                       </div>
                       {open === d.id && d.preview && (

@@ -21,7 +21,8 @@ export function WarmLeadsCard() {
     <section className="rounded-2xl border border-amber-300 bg-amber-50 p-5">
       <h2 className="text-lg font-bold text-slate-900">Warm leads: looked at the plans, did not buy</h2>
       <p className="mt-1 text-sm text-slate-700">
-        These accounts are the closest to buying. A short personal note from you does more than any automated email. Most recent look first.
+        These accounts are the closest to buying. A personal note to each one is written for you and waiting in Today's emails below: tick it and send.
+        Most recent look first.
       </p>
       {failed && <p className="mt-3 text-sm text-red-700">This list did not load. Reload the page to try again.</p>}
       {!failed && !leads && <p className="mt-3 text-sm text-slate-600">Loading…</p>}
@@ -43,7 +44,7 @@ export function WarmLeadsCard() {
                   <td className="px-3 py-2 whitespace-nowrap">{l.looks} {l.looks === 1 ? "visit" : "visits"}</td>
                   <td className="px-3 py-2 whitespace-nowrap">{day(l.lastLook)}</td>
                   <td className="px-3 py-2 whitespace-nowrap">
-                    <a href={warmLeadMailto(l)} className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-bold text-white hover:bg-slate-700">Write to them</a>
+                    <a href={warmLeadMailto(l)} className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-bold text-white hover:bg-slate-700">Open in my mail</a>
                   </td>
                 </tr>
               ))}

@@ -42,3 +42,21 @@ test("the ending-contracts gate offers the prepared report beside the account", 
   expect(page).toContain('href="/sample-report?source=recompetes"');
   expect(page).toContain("Rather have it prepared for you?");
 });
+
+// Owner 2026-11-14 ("equal"): the homepage speaks to both customers with the same weight.
+test("the homepage opens with one headline and two equal lanes, and the search is the second section", () => {
+  const home = read("src/routes/index.tsx");
+  expect(home).toContain('export const HOME_HEADLINE = "Win government work. Find it yourself, or have it prepared for you.";');
+  expect(home.match(/<h1/g)?.length).toBe(1);
+  expect(home).toContain('heading="h2"');
+  expect(home).toContain('who: "For contractors and small businesses"');
+  expect(home).toContain('who: "For companies with someone who sells to government"');
+  // Neither lane is styled as the main one: both render from the same markup.
+  expect(home.match(/HOME_LANES\.map/g)?.length).toBe(1);
+  const finder = read("src/components/HomeContractFinder.tsx");
+  expect(finder).toContain('id="find-bids"');
+  expect(finder).toContain("const Title = heading;");
+  expect(finder.match(/<h1/g)).toBeNull();
+  // Search engines and assistants are told about both customers.
+  expect(home).toContain("Win government work two ways");
+});

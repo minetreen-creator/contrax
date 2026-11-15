@@ -117,7 +117,10 @@ function dueLabel(due: string | null): string | null {
   return `Due ${d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/New_York" })}`;
 }
 
-export function HomeContractFinder({ sample, openTotal = 0 }: { sample: EverydaySampleBid[]; openTotal?: number }) {
+export function HomeContractFinder({ sample, openTotal = 0, heading = "h1" }: { sample: EverydaySampleBid[]; openTotal?: number; heading?: "h1" | "h2" }) {
+  // The homepage now opens with a choice between two ways to work (owner 2026-11-14), which
+  // carries the page's h1; there this search is the second section and its title an h2.
+  const Title = heading;
   const [lang, setLang] = useState<HeroLang>("en");
   useEffect(() => {
     try {
@@ -243,6 +246,7 @@ export function HomeContractFinder({ sample, openTotal = 0 }: { sample: Everyday
 
   return (
     <section
+      id="find-bids"
       aria-labelledby="first-contract-title"
       className="relative overflow-hidden bg-[#07162e] text-white"
     >
@@ -261,14 +265,14 @@ export function HomeContractFinder({ sample, openTotal = 0 }: { sample: Everyday
               </button>
             ))}
           </div>
-          <h1
+          <Title
             id="first-contract-title"
             className="max-w-2xl text-[1.75rem] font-extrabold leading-[1.12] tracking-tight [text-wrap:balance] sm:text-5xl lg:text-6xl"
           >
             {openTotal > 0
               ? `${c.titleCount(openTotal.toLocaleString("en-US"))} ${c.titleCountTail}`
               : `${c.titleFallback} ${c.titleFallbackTail}`}
-          </h1>
+          </Title>
           <p className="mt-5 hidden max-w-xl text-lg leading-relaxed text-slate-300 sm:mt-6 sm:block">
             {c.sub}
           </p>

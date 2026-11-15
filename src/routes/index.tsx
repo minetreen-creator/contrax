@@ -121,7 +121,7 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
 
 const PAGE_TITLE = "Contrax | Your next government customer starts here";
 const PAGE_DESCRIPTION =
-  "Open government bids for your trade and state, from cities, counties, schools, state and federal buyers. See your best match free. Starter is $5 for 30 days.";
+  "Win government work two ways: search open bids in your trade and state yourself, or have a report of ending contracts and matching bids prepared for your team.";
 
 export const Route = createFileRoute("/")({
   loader: async () => {
@@ -172,7 +172,7 @@ function Home() {
     name: "Contrax",
     legalName: "Contrax LLC",
     description:
-      "Contrax finds open government bids for small trade businesses (landscaping, janitorial, HVAC, plumbing, welding, construction and more) from cities, counties, school districts, state and federal agencies, matched to your trade and state.",
+      "Contrax helps businesses win government work two ways. Contractors and small businesses search open bids from cities, counties, school districts, state and federal agencies, matched to their trade and state. Companies with a sales team get a prepared report of the federal contracts ending in their line of work, who holds them and the open bids that fit.",
     url: "https://www.contrax.company",
     logo: "https://www.contrax.company/logo-square.png",
     email: "contrax.companyllc@gmail.com",
@@ -189,8 +189,10 @@ function Home() {
           down the page. Search → the one message (subs folded into its step 2) → the AI assistant's
           proof → the $5 pass → the state map. The the
           Pathway, app, megaprojects and the extra tool links moved to their own pages and the footer. */}
-      <HomeContractFinder sample={sample} openTotal={contractMap?.totals?.totalOpen ?? 0} />
-      <HomeLanes />
+      {/* Owner 2026-11-14 ("equal"): two customers, so the page opens with the choice between them,
+          each with the same weight; the bid search follows as the do-it-yourself side's first step. */}
+      <HomeChoice />
+      <HomeContractFinder sample={sample} openTotal={contractMap?.totals?.totalOpen ?? 0} heading="h2" />
       <HomeExecutionLine />
       {/* Before/after proof (owner 2026-11-08): a real bid's notice next to Max's real answer. */}
       {maxProofCurrent !== false ? <HomeMaxProof /> : null}
@@ -203,47 +205,57 @@ function Home() {
   );
 }
 
-// Two lanes (owner 2026-11-14): the site teaches a contractor to win the work themselves, while the
-// managed report is done for a company. Each visitor picks a lane before the page says anything else.
+// Two customers, equal billing (owner 2026-11-14: "equal"). The site teaches a contractor to win the
+// work themselves, and prepares the research for a company that would rather read one report.
+// The choice is the first thing on the page; neither card is styled as the main one.
+export const HOME_HEADLINE = "Win government work. Find it yourself, or have it prepared for you.";
 const HOME_LANES = [
   {
     key: "diy",
     tag: "Do it yourself",
     title: "I want to find and win the work myself",
     detail: "Search open bids in your trade and state, get the new ones by email each morning, and let Contrax show you how to bid.",
-    cta: "Start for $5",
-    href: "/pricing?source=home_lane",
+    who: "For contractors and small businesses",
+    cta: "Search open bids",
+    href: "#find-bids",
   },
   {
     key: "dfy",
     tag: "Done for you",
     title: "I want it prepared for my team",
     detail: "We send a report of the contracts ending in your line of work, who holds them and what they are worth. One report or every month.",
+    who: "For companies with someone who sells to government",
     cta: "Read a real report",
-    // Owner 2026-11-14 ("changing the pages a visitor moves through"): show the report before the price.
+    // Show the report before the price.
     href: "/sample-report?source=home_lane",
   },
 ];
 
-function HomeLanes() {
+function HomeChoice() {
   return (
-    <section aria-label="Choose how you want to work" className="mx-auto max-w-[1120px] px-4 pt-8 sm:px-6">
-      <ul className="grid gap-3 sm:grid-cols-2">
-        {HOME_LANES.map((lane) => (
-          <li key={lane.key}>
-            <a
-              href={lane.href}
-              onClick={() => trackEvent("home_lane_click", lane.key)}
-              className="group flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-5 transition hover:-translate-y-0.5 hover:border-blue-400 hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
-            >
-              <span className="text-xs font-bold uppercase tracking-wider text-blue-700 dark:text-blue-300">{lane.tag}</span>
-              <span className="mt-1 text-lg font-bold">{lane.title}</span>
-              <span className="mt-1 text-sm text-slate-600 dark:text-slate-300">{lane.detail}</span>
-              <span className="mt-auto pt-3 text-sm font-semibold text-blue-700 group-hover:text-blue-600 dark:text-blue-300">{lane.cta} →</span>
-            </a>
-          </li>
-        ))}
-      </ul>
+    <section aria-labelledby="home-choice-title" className="bg-[#07162e] px-4 pb-2 pt-8 text-white sm:px-8 sm:pt-12">
+      <div className="mx-auto max-w-7xl">
+        <h1 id="home-choice-title" className="max-w-4xl text-[1.75rem] font-extrabold leading-[1.12] tracking-tight [text-wrap:balance] sm:text-5xl">
+          {HOME_HEADLINE}
+        </h1>
+        <ul className="mt-6 grid gap-3 sm:mt-8 sm:grid-cols-2">
+          {HOME_LANES.map((lane) => (
+            <li key={lane.key}>
+              <a
+                href={lane.href}
+                onClick={() => trackEvent("home_lane_click", lane.key)}
+                className="group flex h-full flex-col rounded-2xl border border-white/15 bg-white/5 p-5 transition hover:-translate-y-0.5 hover:border-amber-400 hover:bg-white/10"
+              >
+                <span className="text-xs font-bold uppercase tracking-wider text-amber-400">{lane.tag}</span>
+                <span className="mt-1 text-lg font-bold sm:text-xl">{lane.title}</span>
+                <span className="mt-1 text-sm text-slate-300">{lane.detail}</span>
+                <span className="mt-2 text-xs text-slate-400">{lane.who}</span>
+                <span className="mt-auto pt-3 text-sm font-semibold text-amber-300 group-hover:text-amber-200">{lane.cta} →</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
     </section>
   );
 }
@@ -331,6 +343,9 @@ const FOOTER_GROUPS = [
       { href: "/radar", label: "Search bids" },
       { href: "/local-bids", label: "City & County Bids" },
       { href: "/pricing", label: "Pricing" },
+      // Owner 2026-11-14 ("teams arent on the footer"): one link, here, so the four columns stay
+      // about the same length (owner 2026-11-11).
+      { href: "/teams", label: "For sales teams" },
       { href: "/blog", label: "Blog" },
     ],
   },
@@ -344,10 +359,6 @@ const FOOTER_GROUPS = [
       { href: "/co-op-contracts", label: "Co-op contracts" },
       // Moved off the homepage (owner 2026-11-10 cleanup).
       { href: "/recompetes", label: "Contracts ending soon" },
-      // Owner 2026-11-14: a second path to the done-for-you reports.
-      // Owner 2026-11-14 ("teams arent on the footer"): the page by its own name, beside the reports link.
-      { href: "/teams", label: "For sales teams" },
-      { href: "/teams#done-for-you", label: "Done-for-you reports" },
     ],
   },
   {

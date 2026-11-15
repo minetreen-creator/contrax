@@ -30,18 +30,17 @@ test("it is canonical, indexable and in the sitemap, and the contractor pages do
   expect(page).toContain('links: [{ rel: "canonical", href: `${PROD_URL}/teams` }]');
   expect(page).toContain('{ name: "robots", content: "index, follow" }');
   expect(readFileSync("scripts/generate-sitemap.mjs", "utf8")).toContain('["/teams", "weekly", "0.7"]');
-  for (const f of ["src/routes/radar.tsx", "src/components/SiteHeader.tsx"]) {
-    expect(readFileSync(f, "utf8")).not.toContain('"/teams"');
-  }
+  expect(readFileSync("src/routes/radar.tsx", "utf8")).not.toContain('"/teams"');
+  // Owner 2026-11-14 ("equal"): the header now carries a "For teams" link on every page.
+  expect(readFileSync("src/components/SiteHeader.tsx", "utf8")).toContain('<a href="/teams" className={`${link} hidden sm:inline`}>For teams</a>');
   // Owner 2026-11-14: the homepage routes each visitor to a lane, so it links here from the lanes and the footer.
   const home = readFileSync("src/routes/index.tsx", "utf8");
-  // The done-for-you lane now shows the sample first; the footer still links here (owner 2026-11-14).
-  expect(home.match(/\/teams/g)?.length).toBe(2);
+  // The done-for-you lane shows the sample first; the footer links here once (owner 2026-11-14).
+  expect(home.match(/"\/teams/g)?.length).toBe(1);
   expect(home).toContain('{ href: "/teams", label: "For sales teams" }');
-  expect(home).toContain('{ href: "/teams#done-for-you", label: "Done-for-you reports" }');
   expect(home).toContain('href: "/sample-report?source=home_lane"');
-  expect(home).toContain('href: "/pricing?source=home_lane"');
-  expect(home.indexOf("<HomeLanes />")).toBeLessThan(home.indexOf("<HomeExecutionLine />"));
+  expect(home).toContain('href: "#find-bids"');
+  expect(home.indexOf("<HomeChoice />")).toBeLessThan(home.indexOf("<HomeContractFinder"));
 });
 
 // Owner 2026-11-14: a done-for-you option beside the self-serve plan.

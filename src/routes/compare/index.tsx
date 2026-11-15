@@ -4,9 +4,9 @@ import { COMPARE_TOOLS } from "~/lib/compare-tools";
 
 const columns = ["Contrax", "GovWin / Deltek", "BidNet / Bonfire", "GovSpend", "Manual Bidding (SAM.gov)", "Consultant / Gov't Contract Specialist"];
 const rows = [
-  ["Pricing", "$5 one time for 30 days (nothing renews); plans $14–199/mo", "$5K–20K+/yr (enterprise)", "$300–800/mo", "Varies by plan", "$0 (but cost of time)", "$3–10K+/mo retainer"],
+  ["Pricing", "$5 one time for 30 days (nothing renews); plans $14–199/mo", "Not published; by demo request", "BidNet Direct: $0 limited plan; $36–45/mo per state, billed annually", "Varies by plan", "$0 (but cost of time)", "$3–10K+/mo retainer"],
   ["Incumbent Pricing Intel", "Yes (5-yr history)", "Partial (enterprise only)", "No", "No", "No", "No"],
-  ["Low-cost start", "$5 for your first 30 days", "No or limited", "No or limited", "No or limited", "N/A", "No"],
+  ["Low-cost start", "$5 for your first 30 days", "No or limited", "BidNet Direct has a $0 plan", "No or limited", "N/A", "No"],
   ["Bid coverage", "Federal + State + Local (nationwide, synced every 4 hours on weekdays)", "Federal only (strong)", "State/Local focused", "Federal spend data", "Limited to what you search", "Depends on their expertise"],
   ["Proposal drafting", "Yes (tailored to each RFP)", "No built-in drafting", "No", "No", "N/A", "Depends on consultant"],
   ["Win probability scoring", "Yes", "Partial (spend analytics)", "No", "Spend analytics", "N/A", "Subjective"],

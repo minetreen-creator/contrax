@@ -14,6 +14,7 @@ import {
   type Recompete,
   type TradeSpending,
 } from "~/lib/federal-trade-data";
+import { ENDING_TRADES, endingMarket, endingPath } from "~/lib/ending-pages";
 
 export interface FederalTradeFactsData {
   spending: TradeSpending | null;
@@ -99,6 +100,12 @@ export function FederalTradeFacts({
           <a href={recompetesHref(tradeSlug, stateCode, 12)} className="mt-4 inline-block rounded-xl bg-slate-900 px-5 py-3 text-sm font-bold text-white hover:bg-slate-700">
             See all contracts ending soon →
           </a>
+          {(ENDING_TRADES as readonly string[]).includes(tradeSlug) && endingMarket(stateName.toLowerCase().replace(/\s+/g, "-"), tradeSlug) && (
+            // Owner 2026-11-14: the page built around these contracts, with what they were awarded for.
+            <a href={endingPath(stateName, tradeSlug)} className="ml-4 mt-4 inline-block text-sm font-semibold text-blue-700 hover:underline">
+              The largest ones and what they were awarded for →
+            </a>
+          )}
         </div>
       )}
       <p className="mt-6 text-xs text-slate-500">

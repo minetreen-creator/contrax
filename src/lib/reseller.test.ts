@@ -78,3 +78,22 @@ test("the turnaround and the client-ownership promise are stated wherever a part
   expect(n.text).toContain("within 1 business day");
   expect(n.text).toContain("Add any client they name to Do not contact");
 });
+
+// Owner 2026-11-15: "Watermark the pages too".
+test("the preview and the sample report carry the invisible mark, and the preview a visible one", async () => {
+  const { decodeWatermarks, watermarkText } = await import("./bid-watermark");
+  // The mark survives a copy and paste and decodes to the token that was served.
+  expect(decodeWatermarks(watermarkText("Half of these contracts were awarded", "a1b2c3d4"))).toEqual(["a1b2c3d4"]);
+  const preview = readFileSync("src/routes/partner-preview.$firm.tsx", "utf8");
+  expect(preview).toContain("recordPageWatermark(`/partner-preview/");
+  expect(preview).toContain("Preview · Contrax");
+  expect(preview).toContain("pointer-events-none");
+  expect(preview.match(/watermarkText\(/g)?.length).toBe(2);
+  const sample = readFileSync("src/routes/sample-report.tsx", "utf8");
+  expect(sample).toContain("recordPageWatermark(`/sample-report?m=${market.key}`)");
+  expect(sample).toContain("watermarkText(");
+  const server = readFileSync("src/lib/bid-watermark.server.ts", "utf8");
+  expect(server).toContain("ADD COLUMN IF NOT EXISTS page TEXT");
+  // The owner's trace tool names the page a mark came from.
+  expect(readFileSync("src/routes/admin/command.tsx", "utf8")).toContain("Report page {h.page}");
+});

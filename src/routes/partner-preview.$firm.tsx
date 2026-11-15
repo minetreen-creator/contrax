@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
+import { watermarkText } from "~/lib/bid-watermark";
 import { awardUrl, formatDollars } from "~/lib/federal-trade-data";
 import type { ReportData } from "~/lib/pipeline-report-data.server";
 import { PARTNER_CLIENT_PROMISE, PARTNER_MARKETS, PARTNER_PRICE, PARTNER_SLA, PARTNER_VOLUME_AT, PARTNER_VOLUME_PRICE, partnerMarket, partnerSlug, type PartnerMarket } from "~/lib/reseller";
@@ -13,10 +14,14 @@ import { PARTNER_CLIENT_PROMISE, PARTNER_MARKETS, PARTNER_PRICE, PARTNER_SLA, PA
  */
 const getPreview = createServerFn({ method: "GET" })
   .validator((d: unknown) => String((d as { firm?: unknown } | null)?.firm ?? "").toLowerCase().slice(0, 80))
-  .handler(async ({ data }): Promise<{ firm: string | null; market: PartnerMarket; report: Pick<ReportData, "stateName" | "tradeLabel" | "asOf" | "until" | "totals" | "priceRange" | "byAgency" | "largest" | "holders" | "openBids"> | null }> => {
+  .handler(async ({ data }): Promise<{ firm: string | null; market: PartnerMarket; wm: string | null; report: Pick<ReportData, "stateName" | "tradeLabel" | "asOf" | "until" | "totals" | "priceRange" | "byAgency" | "largest" | "holders" | "openBids"> | null }> => {
     let firm: string | null = null;
     let market: PartnerMarket = "it";
+    // Owner 2026-11-15 ("watermark the pages too"): an invisible mark that names this visit if the
+    // report's text turns up elsewhere, on top of the visible PREVIEW mark drawn across the page.
+    let wm: string | null = null;
     try {
+      wm = await (await import("~/lib/bid-watermark.server")).recordPageWatermark(`/partner-preview/${/^[a-z0-9-]{2,80}$/.test(data) ? data : "unknown"}`);
       if (/^[a-z0-9-]{2,80}$/.test(data)) {
         const { sql } = await import("~/db");
         const rows = (await sql()`SELECT business, place FROM outreach_contacts WHERE kind = 'partner' ORDER BY id DESC LIMIT 2000`) as { business: string; place: string | null }[];
@@ -27,12 +32,12 @@ const getPreview = createServerFn({ method: "GET" })
       const { reportData } = await import("~/lib/pipeline-report-data.server");
       const r = await reportData(m.state, m.trade, 12);
       return {
-        firm, market,
+        firm, market, wm,
         report: { stateName: r.stateName, tradeLabel: r.tradeLabel, asOf: r.asOf, until: r.until, totals: r.totals, priceRange: r.priceRange, byAgency: r.byAgency.slice(0, 5), largest: r.largest.slice(0, 10), holders: r.holders.slice(0, 5), openBids: r.openBids.slice(0, 3) },
       };
     } catch (e) {
       console.error("[partner-preview] failed", e);
-      return { firm, market, report: null };
+      return { firm, market, wm, report: null };
     }
   });
 
@@ -47,10 +52,14 @@ const th = "px-3 py-2 text-left text-xs font-bold uppercase tracking-wide text-s
 const td = "px-3 py-2 align-top";
 
 function PartnerPreview() {
-  const { firm, report: r } = Route.useLoaderData();
+  const { firm, report: r, wm } = Route.useLoaderData();
   const name = firm ?? "Your Firm";
   return (
-    <main className="bg-white">
+    <main className="relative bg-white">
+      {/* The visible mark: a preview is for looking at, not for handing to a client. It ignores clicks. */}
+      <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-30 flex items-center justify-center overflow-hidden">
+        <span className="-rotate-[28deg] select-none whitespace-nowrap text-[13vw] font-black uppercase tracking-widest text-slate-900/[0.07]">Preview · Contrax</span>
+      </div>
       <p className="bg-amber-100 px-4 py-2 text-center text-xs text-slate-800">
         Preview prepared by Contrax to show how this report would look under your firm's name. {firm ? `${firm} is not affiliated with Contrax.` : ""}
       </p>
@@ -59,7 +68,7 @@ function PartnerPreview() {
           <p className="text-2xl font-extrabold text-slate-900">{name}</p>
           <h1 className="mt-4 text-3xl font-extrabold leading-tight text-slate-900">Government pipeline report</h1>
           {r ? (
-            <p className="mt-2 text-slate-700">Federal {r.tradeLabel} in {r.stateName} · prepared for a client of {name} · {day(r.asOf)}</p>
+            <p className="mt-2 text-slate-700">{watermarkText(`Federal ${r.tradeLabel} in ${r.stateName} · prepared for a client of ${name} · ${day(r.asOf)}`, wm)}</p>
           ) : (
             <p className="mt-2 text-slate-700">The figures are being refreshed. Please check back shortly.</p>
           )}
@@ -82,7 +91,7 @@ function PartnerPreview() {
             </dl>
             {r.priceRange && (
               <p className="mt-5 text-sm text-slate-700">
-                Half of these contracts were awarded for between {formatDollars(r.priceRange.low)} and {formatDollars(r.priceRange.high)}; the midpoint is {formatDollars(r.priceRange.median)}.
+                {watermarkText(`Half of these contracts were awarded for between ${formatDollars(r.priceRange.low)} and ${formatDollars(r.priceRange.high)}; the midpoint is ${formatDollars(r.priceRange.median)}.`, wm)}
               </p>
             )}
             <h2 className="mt-8 text-xl font-bold text-slate-900">The largest contracts ending in the next 6 months</h2>

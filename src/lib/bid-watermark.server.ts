@@ -13,6 +13,9 @@ async function ensureTable(): Promise<void> {
     ip_md5 TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )`;
+  // Owner 2026-11-15 ("watermark the pages too"): report pages carry the same mark. bid_id is 0
+  // for those rows and `page` holds the address that was served.
+  await sql()`ALTER TABLE bid_watermarks ADD COLUMN IF NOT EXISTS page TEXT`;
   ready = true;
 }
 
@@ -31,20 +34,38 @@ export async function recordBidWatermark(bidId: number): Promise<string | null> 
   }
 }
 
+/**
+ * Record a token for this render of a report page (the reseller preview, the sample report).
+ * Fail-open: null means no watermark. `page` is the address served, e.g. "/partner-preview/acme".
+ */
+export async function recordPageWatermark(page: string): Promise<string | null> {
+  try {
+    await ensureTable();
+    const ip = getRequestContext().ip;
+    const ipMd5 = ip ? createHash("md5").update(ip).digest("hex") : null;
+    const token = newWatermarkToken();
+    await sql()`INSERT INTO bid_watermarks (token, bid_id, ip_md5, page) VALUES (${token}, 0, ${ipMd5}, ${page.slice(0, 200)}) ON CONFLICT (token) DO NOTHING`;
+    return token;
+  } catch (e) {
+    console.error("[bid-watermark] page mark not recorded:", (e as Error).message);
+    return null;
+  }
+}
+
 /** Owner lookup: who was served each token (bid, time, and that visit's country and browser). */
 export async function lookupBidWatermarks(tokens: string[]): Promise<
-  { token: string; bid_id: number | null; bid_title: string | null; served_at: string | null; country: string | null; user_agent: string | null; views_that_hour: number }[]
+  { token: string; bid_id: number | null; bid_title: string | null; page: string | null; served_at: string | null; country: string | null; user_agent: string | null; views_that_hour: number }[]
 > {
   if (!tokens.length) return [];
   await ensureTable();
   const out = [];
   for (const token of tokens.slice(0, 20)) {
     const [w] = (await sql()`
-      SELECT w.bid_id, w.created_at, w.ip_md5, b.title FROM bid_watermarks w LEFT JOIN bids b ON b.id = w.bid_id WHERE w.token = ${token}`) as {
-      bid_id: number; created_at: string | Date; ip_md5: string | null; title: string | null;
+      SELECT w.bid_id, w.created_at, w.ip_md5, w.page, b.title FROM bid_watermarks w LEFT JOIN bids b ON b.id = w.bid_id WHERE w.token = ${token}`) as {
+      bid_id: number; created_at: string | Date; ip_md5: string | null; title: string | null; page: string | null;
     }[];
     if (!w) {
-      out.push({ token, bid_id: null, bid_title: null, served_at: null, country: null, user_agent: null, views_that_hour: 0 });
+      out.push({ token, bid_id: null, bid_title: null, page: null, served_at: null, country: null, user_agent: null, views_that_hour: 0 });
       continue;
     }
     const at = new Date(w.created_at);
@@ -61,6 +82,7 @@ export async function lookupBidWatermarks(tokens: string[]): Promise<
       token,
       bid_id: Number(w.bid_id),
       bid_title: w.title ? String(w.title) : null,
+      page: w.page ? String(w.page) : null,
       served_at: at.toISOString(),
       country: pv?.country ?? null,
       user_agent: pv?.user_agent ?? null,

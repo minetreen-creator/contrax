@@ -2,6 +2,7 @@ import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import {
   cleanPartnerOrder, PARTNER_PRODUCT, partnerFromMetadata, partnerMarketFor, partnerMetadata, partnerMonthlyCents, partnerNotice,
+  partnerSiteFits,
   partnerSlug, partnerUnitCents,
 } from "./reseller";
 
@@ -37,6 +38,11 @@ test("the preview address is clean, and the sample fits what the firm's site tal
   expect(partnerMarketFor("Proposal support for IT services, software and cyber firms")).toBe("it");
   expect(partnerMarketFor("We serve janitorial and custodial companies and landscaping crews")).toBe("janitorial");
   expect(partnerMarketFor("Capture and proposal consulting")).toBe("it");
+  // "Contractors" alone is on every government-contracting site and must not tip it to trades.
+  expect(partnerMarketFor("We help government contractors and federal contractors win. Engineering firms welcome.")).toBe("it");
+  expect(partnerSiteFits("Proposal writing and capture management for small businesses")).toBe(true);
+  expect(partnerSiteFits("We help small businesses win federal contracts")).toBe(true);
+  expect(partnerSiteFits("We provide roofing, paving and site work to federal agencies")).toBe(false);
 });
 
 test("checkout bills per client through Stripe, its events stay off the plan tiers, and the preview only names firms we wrote to", () => {
@@ -55,4 +61,39 @@ test("checkout bills per client through Stripe, its events stay off the plan tie
   const page = readFileSync("src/routes/resellers.tsx", "utf8");
   expect(page).toContain("<ResellerOrder />");
   expect(page).toContain("{PARTNER_RETAIL} a month");
+});
+
+// Owner 2026-11-15 ("operational checklist before pressing send"): a stated turnaround and a
+// promise never to solicit a partner's clients, on the page, the preview and the owner's notice.
+test("the turnaround and the client-ownership promise are stated wherever a partner decides", async () => {
+  const { PARTNER_CLIENT_PROMISE, PARTNER_SLA } = await import("./reseller");
+  expect(PARTNER_SLA).toBe("1 business day");
+  expect(PARTNER_CLIENT_PROMISE).toContain("we never contact, market to or solicit your clients");
+  const page = readFileSync("src/routes/resellers.tsx", "utf8");
+  expect(page).toContain("{PARTNER_CLIENT_PROMISE}");
+  expect(page).toContain("within {PARTNER_SLA}");
+  expect(page).toContain("do-not-contact list");
+  expect(readFileSync("src/routes/partner-preview.$firm.tsx", "utf8")).toContain("{PARTNER_CLIENT_PROMISE}");
+  const n = partnerNotice({ email: "a@b.co", firm: "Acme", clients: 3 }, "started", "cs_2");
+  expect(n.text).toContain("within 1 business day");
+  expect(n.text).toContain("Add any client they name to Do not contact");
+});
+
+// Owner 2026-11-15: "Watermark the pages too".
+test("the preview and the sample report carry the invisible mark, and the preview a visible one", async () => {
+  const { decodeWatermarks, watermarkText } = await import("./bid-watermark");
+  // The mark survives a copy and paste and decodes to the token that was served.
+  expect(decodeWatermarks(watermarkText("Half of these contracts were awarded", "a1b2c3d4"))).toEqual(["a1b2c3d4"]);
+  const preview = readFileSync("src/routes/partner-preview.$firm.tsx", "utf8");
+  expect(preview).toContain("recordPageWatermark(`/partner-preview/");
+  expect(preview).toContain("Preview · Contrax");
+  expect(preview).toContain("pointer-events-none");
+  expect(preview.match(/watermarkText\(/g)?.length).toBe(2);
+  const sample = readFileSync("src/routes/sample-report.tsx", "utf8");
+  expect(sample).toContain("recordPageWatermark(`/sample-report?m=${market.key}`)");
+  expect(sample).toContain("watermarkText(");
+  const server = readFileSync("src/lib/bid-watermark.server.ts", "utf8");
+  expect(server).toContain("ADD COLUMN IF NOT EXISTS page TEXT");
+  // The owner's trace tool names the page a mark came from.
+  expect(readFileSync("src/routes/admin/command.tsx", "utf8")).toContain("Report page {h.page}");
 });

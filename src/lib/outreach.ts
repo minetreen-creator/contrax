@@ -1,7 +1,7 @@
 import { STATE_NAMES } from "~/lib/contract-map";
 import { ENDING_TRADES, endingPath } from "~/lib/ending-pages";
 import { REPORT_PRICE } from "~/lib/pipeline-report";
-import { PARTNER_MARKETS, PARTNER_PRICE, PARTNER_RETAIL, PARTNER_VOLUME_AT, PARTNER_VOLUME_PRICE, partnerMarket, partnerSlug } from "~/lib/reseller";
+import { PARTNER_CLIENT_PROMISE, PARTNER_MARKETS, PARTNER_PRICE, PARTNER_RETAIL, PARTNER_SLA, PARTNER_VOLUME_AT, PARTNER_VOLUME_PRICE, partnerMarket, partnerSlug } from "~/lib/reseller";
 import { TRADEMARK_LINE } from "~/lib/trademark";
 import { WARM_SUBJECT, warmLeadLines } from "~/lib/warm-leads";
 /**
@@ -436,6 +436,8 @@ export function outreachEmail(i: OutreachEmailInput): { subject: string; text: s
       link(`/partner-preview/${partnerSlug(i.business)}`, i.kind, i.contactId),
       "",
       `Firms usually offer a deliverable like this to a client for ${PARTNER_RETAIL} a month. Your price from us is ${PARTNER_PRICE} per client per month, or ${PARTNER_VOLUME_PRICE} per client once you have ${PARTNER_VOLUME_AT} or more. You set what your clients pay and keep the difference. It is month to month, and there is nothing for you to build.`,
+      "",
+      `${PARTNER_CLIENT_PROMISE} Send us a new client's state and line of work and their report is ready within ${PARTNER_SLA}.`,
       "",
       'Reply "sample" with one client\'s state and line of work, and I\'ll send you their report with your name on it, free.',
       "",

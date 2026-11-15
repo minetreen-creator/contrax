@@ -17,6 +17,9 @@ test("the reseller email leads with their margin, links a preview under their na
   expect(mail.text).toContain("$199 per client per month, or $149 per client once you have 10 or more");
   expect(mail.text.indexOf("$400 to $500")).toBeLessThan(mail.text.indexOf("$199"));
   expect(mail.text).toContain('Reply "sample"');
+  // Owner 2026-11-15, checklist before sending: the turnaround and the client-ownership promise.
+  expect(mail.text).toContain("we never contact, market to or solicit your clients");
+  expect(mail.text).toContain("their report is ready within 1 business day");
   // Tweak 2: plain text, a link instead of an attachment, no image of any kind.
   expect(mail.html).not.toContain("<img");
   expect(mail.text).toContain("Unsubscribe: https://www.contrax.company/api/outreach/unsubscribe?t=x");

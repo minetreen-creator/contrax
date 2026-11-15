@@ -351,6 +351,8 @@ interface TraceHit {
   token: string;
   bid_id: number | null;
   bid_title: string | null;
+  /** Set when the mark came from a report page, not a bid page (owner 2026-11-15). */
+  page?: string | null;
   served_at: string | null;
   country: string | null;
   user_agent: string | null;
@@ -396,7 +398,11 @@ function TraceCopy() {
                 <span>Code {h.token}: not one of ours, or from before Nov 5.</span>
               ) : (
                 <>
-                  <a href={`/bid/${h.bid_id}`} className="font-semibold text-cyan-300">{h.bid_title || `Bid ${h.bid_id}`}</a>
+                  {h.page ? (
+                    <a href={h.page} className="font-semibold text-cyan-300">Report page {h.page}</a>
+                  ) : (
+                    <a href={`/bid/${h.bid_id}`} className="font-semibold text-cyan-300">{h.bid_title || `Bid ${h.bid_id}`}</a>
+                  )}
                   <p className="mt-1 text-xs text-slate-400">
                     Copied {h.served_at ? etTime(h.served_at) : "?"} ET · {h.country ?? "country unknown"} · same visitor read {h.views_that_hour} bid page{h.views_that_hour === 1 ? "" : "s"} within 30 min
                   </p>

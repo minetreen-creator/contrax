@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { SiteHeader } from "~/components/SiteHeader";
+import { watermarkText } from "~/lib/bid-watermark";
 import { awardUrl, formatDollars } from "~/lib/federal-trade-data";
 import { PipelineReportOrder } from "~/components/PipelineReportOrder";
 import { REPORT_DELIVERY, REPORT_PRICE } from "~/lib/pipeline-report";
@@ -35,10 +36,12 @@ const getSample = createServerFn({ method: "GET" })
     const market = marketFor(data);
     try {
       const { reportData } = await import("~/lib/pipeline-report-data.server");
-      return { market: market.key as MarketKey, report: await reportData(market.state, market.trade, 12) };
+      // Owner 2026-11-15 ("watermark the pages too"): an invisible mark that names this visit.
+      const wm = await (await import("~/lib/bid-watermark.server")).recordPageWatermark(`/sample-report?m=${market.key}`);
+      return { market: market.key as MarketKey, wm, report: await reportData(market.state, market.trade, 12) };
     } catch (e) {
       console.error("[sample-report] failed", e);
-      return { market: market.key as MarketKey, report: null };
+      return { market: market.key as MarketKey, wm: null as string | null, report: null };
     }
   });
 
@@ -106,7 +109,7 @@ function MarketSwitch({ current }: { current: MarketKey }) {
 }
 
 function SampleReport() {
-  const { market, report: r } = Route.useLoaderData();
+  const { market, report: r, wm } = Route.useLoaderData();
   if (!r || !r.totals?.n) {
     return (
       <>
@@ -179,8 +182,8 @@ function SampleReport() {
             <div className="mx-auto max-w-4xl">
               <h2 className="text-xl font-bold text-slate-900">What contracts like these were awarded for</h2>
               <p className="mt-2 text-sm text-slate-700">
-                Half of these contracts were awarded for between {formatDollars(r.priceRange.low)} and {formatDollars(r.priceRange.high)}. The midpoint
-                is {formatDollars(r.priceRange.median)}. Use it to judge which ones are your size, not as a price to bid. A few very large umbrella
+                {watermarkText(`Half of these contracts were awarded for between ${formatDollars(r.priceRange.low)} and ${formatDollars(r.priceRange.high)}. The midpoint is ${formatDollars(r.priceRange.median)}.`, wm)}{" "}
+                Use it to judge which ones are your size, not as a price to bid. A few very large umbrella
                 contracts can make the combined total look bigger than the work one firm could win, so the midpoint is the better guide.
               </p>
             </div>

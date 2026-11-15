@@ -16,6 +16,14 @@ export const PARTNER_VOLUME_PRICE = "$149";
 /** What a firm typically charges its client for a deliverable like this. Contrax sells it direct for $499. */
 export const PARTNER_RETAIL = "$400 to $500";
 export const PARTNER_MAX_CLIENTS = 200;
+/**
+ * The two promises a partner is given before they pay (owner 2026-11-15, "operational checklist
+ * before pressing send"). The page, the preview, the email and the owner's notice all read these.
+ * SLA: how fast a report is ready once the firm sends a new client's state and line of work.
+ */
+export const PARTNER_SLA = "1 business day";
+/** Client ownership. Kept true by the owner: any client a partner names goes on Do not contact. */
+export const PARTNER_CLIENT_PROMISE = "Your clients stay yours. Every report goes to you, not to them, and we never contact, market to or solicit your clients.";
 
 export const partnerUnitCents = (clients: number) => (clients >= PARTNER_VOLUME_AT ? PARTNER_VOLUME_PRICE_CENTS : PARTNER_PRICE_CENTS);
 export const partnerMonthlyCents = (clients: number) => clients * partnerUnitCents(clients);
@@ -38,12 +46,23 @@ export const partnerMarket = (k: unknown): PartnerMarket => (typeof k === "strin
 export function partnerMarketFor(text: string): PartnerMarket {
   const t = text.toLowerCase();
   const count = (re: RegExp) => (t.match(re) ?? []).length;
-  const trades = count(/\b(construction|contractors?|hvac|mechanical|electrical|plumbing|roofing|paving|trades?|a\/e|architect|engineering)\b/g);
+  // "contractor" and "engineering" are on every government-contracting site, so they decide nothing.
+  const trades = count(/\b(construction|hvac|mechanical|electrical|plumbing|roofing|paving|skilled trades|general contractors?|subcontractors?|architects?|facilities maintenance)\b/g);
   const clean = count(/\b(janitorial|custodial|facilit(y|ies) (maintenance|services|management)|landscap\w+|grounds)\b/g);
   const it = count(/\b(it services|information technology|software|cyber\w*|cloud|professional services|technology|saas|data)\b/g);
   if (clean > trades && clean > it) return "janitorial";
   if (trades > it) return "trades";
   return "it";
+}
+
+/**
+ * Whether a firm's own home page reads like a firm that helps other companies win government
+ * work (owner 2026-11-15 dry run: a name such as "Summit Federal Contracting" can be a contractor
+ * itself). The reseller email opens "helps companies win government contracts", so it only goes
+ * where the site says so.
+ */
+export function partnerSiteFits(home: string): boolean {
+  return /proposal (writing|development|management|support|services)|capture (management|support|strategy)|business development (support|services|consult)|(help|helping|helps|assist|guide)s? (you|your (business|company|firm)|companies|businesses|small businesses|clients|contractors|firms) (to )?(win|find|pursue|compete|navigate)|government contract(ing)? consult|gsa schedule (consult|assist|services|support)|bid (writing|writers)|rfp (response|writing|consult)/i.test(home);
 }
 
 export interface PartnerOrder { email: string; firm: string; clients: number }
@@ -81,7 +100,8 @@ export function partnerNotice(o: PartnerOrder, moment: PartnerMoment, ref: strin
         `A reseller subscription started: ${o.clients} client${o.clients === 1 ? "" : "s"} at ${each} each, ${month} a month.`,
         `Firm: ${o.firm}`,
         `Contact: ${o.email}`,
-        "Next: reply and ask for each client's state and line of work, then prepare each report under the firm's name.",
+        `Next: reply and ask for each client's state and line of work, then prepare each report under the firm's name. Promised: each report within ${PARTNER_SLA} of getting a client's details.`,
+        "Also promised: we never contact their clients. Add any client they name to Do not contact on /admin/outreach.",
         `Stripe: ${ref}`,
       ].join("\n\n"),
       title: `💰 New partner: ${month} a month`,

@@ -19,7 +19,6 @@ export const PARTNER_LEADS: readonly (readonly [string, string])[] = [
   ["RSM Federal", "https://www.rsmfederal.com"],
   ["TargetGov", "https://www.targetgov.com"],
   ["Govology", "https://govology.com"],
-  ["The RFP Success Company", "https://www.therfpsuccesscompany.com"],
   ["Ferlise Associates", "https://ferliseassociates.com"],
   ["Proposal Foundry", "https://proposal-foundry.com"],
   ["BAFO Services", "https://www.bafoservices.com"],
@@ -67,7 +66,16 @@ export const PARTNER_LEADS: readonly (readonly [string, string])[] = [
   ["Federal Contracts Corp Consulting", "https://federalcontractsconsulting.com"],
   ["Bid Solutions Group", "https://bidsolutionsgroup.com"],
   ["The Proposal Lab", "https://theproposallab.com"],
+  ["Power3", "https://power3.com"],
+  ["B2G Victory", "https://b2gvictory.com"],
+  ["NVS Strategic Solutions", "https://nvsstrategicsolutions.com"],
+  ["Caprid Consulting", "https://capridconsulting.com"],
+  ["Raigime", "https://raigime.com"],
+  ["Strategic Proposals", "https://strategicproposals.com"],
 ];
+
+/** Where firms usually publish an address when the home page and its own links show none. */
+export const CONTACT_PATHS: readonly string[] = ["/contact", "/contact-us", "/about", "/about-us"];
 
 /** Words too common in these firms' names to prove a page is theirs. */
 const GENERIC = new Set(["the", "and", "of", "for", "llc", "inc", "co", "corp", "company", "group", "consulting", "consultants", "associates", "solutions", "services", "strategies", "advisors", "management", "international", "global"]);

@@ -293,12 +293,12 @@ export async function queueWarmLeads(): Promise<number> {
 }
 
 /** Queue a reseller draft (owner 2026-11-15). False when the address is already known or on Do not contact. */
-export async function queuePartner(p: { email: string; business: string; website: string | null }): Promise<boolean> {
+export async function queuePartner(p: { email: string; business: string; website: string | null; market: string }): Promise<boolean> {
   if (!(await isNewAddress(p.email))) return false;
   const rows = (await sql()`
-    INSERT INTO outreach_contacts (email, kind, business, website, bid_id, bid_title, buyer, due_date, trade_label)
+    INSERT INTO outreach_contacts (email, kind, business, website, bid_id, bid_title, buyer, due_date, trade_label, place)
     VALUES (${p.email.trim().toLowerCase()}, 'partner', ${p.business}, ${p.website}, 0, ${PARTNER_SUBJECT}, ${null},
-            CURRENT_DATE + 30, ${"consulting firm"})
+            CURRENT_DATE + 30, ${"consulting firm"}, ${p.market})
     ON CONFLICT DO NOTHING RETURNING id`) as unknown[];
   return rows.length > 0;
 }

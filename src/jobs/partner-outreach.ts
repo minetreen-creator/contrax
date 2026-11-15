@@ -13,7 +13,8 @@ import { sql } from "~/db";
 import { emailFitsSite, PARTNER_NAME, PARTNER_SEEDS } from "~/lib/outreach";
 import { ensureOutreach, isNewAddress, queuePartner } from "~/lib/outreach.server";
 import { siteHost } from "~/lib/prospect-finder";
-import { siteEmails } from "./prospect-finder";
+import { partnerMarketFor } from "~/lib/reseller";
+import { fetchPage, siteEmails } from "./prospect-finder";
 
 /** Drafts per run. */
 const WANTED = Math.min(Math.max(Number(process.env.WANTED) || 50, 1), 60);
@@ -59,14 +60,22 @@ async function main() {
       continue;
     }
     if (!email || !(await isNewAddress(email))) continue;
+    // Owner 2026-11-15: match the preview to the firm's niche, from its name and its own home page.
+    let home = "";
+    try {
+      home = (await fetchPage(website)).replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>|<[^>]+>/g, " ").slice(0, 20_000);
+    } catch {
+      /* the name alone decides */
+    }
+    const market = partnerMarketFor(`${p.name} ${home}`);
     if (!apply) {
       queued++;
-      console.log(`   would queue → ${p.name}`);
+      console.log(`   would queue → ${p.name} [${market}]`);
       continue;
     }
-    if (await queuePartner({ email, business: p.name, website })) {
+    if (await queuePartner({ email, business: p.name, website, market })) {
       queued++;
-      console.log(`   ✉️ ${p.name}`);
+      console.log(`   ✉️ ${p.name} [${market}]`);
     }
   }
   console.log(apply ? `\nReseller emails queued: ${queued}. Send them at https://www.contrax.company/admin/outreach` : `\nWould queue ${queued}. Re-run with apply = true.`);

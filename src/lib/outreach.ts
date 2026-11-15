@@ -1,6 +1,7 @@
 import { STATE_NAMES } from "~/lib/contract-map";
 import { ENDING_TRADES, endingPath } from "~/lib/ending-pages";
 import { REPORT_PRICE } from "~/lib/pipeline-report";
+import { PARTNER_MARKETS, PARTNER_PRICE, PARTNER_RETAIL, PARTNER_VOLUME_AT, PARTNER_VOLUME_PRICE, partnerMarket, partnerSlug } from "~/lib/reseller";
 import { TRADEMARK_LINE } from "~/lib/trademark";
 import { WARM_SUBJECT, warmLeadLines } from "~/lib/warm-leads";
 /**
@@ -418,21 +419,23 @@ export function outreachEmail(i: OutreachEmailInput): { subject: string; text: s
       "Good luck with the contract.",
     ];
   } else if (i.kind === "partner") {
-    // Owner 2026-11-15 ("Yes go"): firms that already serve government contractors (proposal
-    // writers, capture and contracting consultants) can give their clients the monthly report
-    // under their own name. They pay a wholesale price per client; the price is agreed on reply,
-    // so the email names none. One ask: reply "sample".
+    // Owner 2026-11-15 ("Yes go", then three tweaks): firms that already serve government
+    // contractors can give their clients the monthly report under their own name. The email leads
+    // with what the firm keeps, links a preview under its name built on contracts in its own niche
+    // (no attachment, plain text, no tracking pixel), and asks one thing. place = the sample market.
+    const market = PARTNER_MARKETS[partnerMarket(i.place)];
     subject = PARTNER_SUBJECT;
     body = [
       "Hi,",
       "",
       `${i.business} helps companies win government contracts, so this is for whoever looks after your clients.`,
       "",
-      "Your clients keep asking what they should bid on next. Contrax prepares a monthly pipeline report that answers it for one state and line of work: the federal contracts about to end, who holds each one now, the agencies, what contracts like them were awarded for, and the open bids that fit.",
+      "Your clients keep asking what they should bid on next. We prepare a monthly pipeline report that answers it: the federal contracts about to end in their state and line of work, who holds each one now, the agencies, what contracts like them were awarded for, and the open bids that fit.",
       "",
-      `Here is a real one: ${link("/sample-report", i.kind, i.contactId)}`,
+      `I made a preview of how it would look under your name, built on real ${market.says} contracts:`,
+      link(`/partner-preview/${partnerSlug(i.business)}`, i.kind, i.contactId),
       "",
-      "We can prepare that report for each of your clients under your firm's name. You pay us a wholesale price per client and charge what you like, or fold it into your retainer. There is nothing for you to build, and it is month to month.",
+      `Firms usually offer a deliverable like this to a client for ${PARTNER_RETAIL} a month. Your price from us is ${PARTNER_PRICE} per client per month, or ${PARTNER_VOLUME_PRICE} per client once you have ${PARTNER_VOLUME_AT} or more. You set what your clients pay and keep the difference. It is month to month, and there is nothing for you to build.`,
       "",
       'Reply "sample" with one client\'s state and line of work, and I\'ll send you their report with your name on it, free.',
       "",

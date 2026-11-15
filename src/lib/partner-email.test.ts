@@ -3,19 +3,22 @@ import { readFileSync } from "node:fs";
 import { outreachEmail, PARTNER_SEEDS, PARTNER_SUBJECT, partnerFirmName } from "./outreach";
 
 // Owner 2026-11-15 ("Yes go"): sell through firms that already serve government contractors.
-test("the reseller email offers the report under the firm's name, names no price, and asks one thing", () => {
+test("the reseller email leads with their margin, links a preview under their name in their niche, and asks one thing", () => {
   const mail = outreachEmail({
-    kind: "partner", business: "Acme Proposal Group", bidId: 0, bidTitle: PARTNER_SUBJECT, buyer: null, due: "2026-12-15",
-    tradeLabel: "consulting firm", postalAddress: "203 Homestead Dr, Colonial Heights VA 23834",
+    kind: "partner", business: "Acme Proposal Group, LLC", bidId: 0, bidTitle: PARTNER_SUBJECT, buyer: null, due: "2026-12-15",
+    tradeLabel: "consulting firm", place: "trades", postalAddress: "203 Homestead Dr, Colonial Heights VA 23834",
     unsubscribeUrl: "https://www.contrax.company/api/outreach/unsubscribe?t=x", contactId: 12,
   });
   expect(mail.subject).toBe("A monthly pipeline report your clients get under your name");
-  expect(mail.text).toContain("Acme Proposal Group helps companies win government contracts");
-  expect(mail.text).toContain("https://www.contrax.company/sample-report?utm_source=email&utm_medium=outreach&utm_campaign=bid_outreach_partner&oc=12");
-  expect(mail.text).toContain("under your firm's name");
+  expect(mail.text).toContain("https://www.contrax.company/partner-preview/acme-proposal-group-llc?utm_source=email&utm_medium=outreach&utm_campaign=bid_outreach_partner&oc=12");
+  expect(mail.text).toContain("built on real construction and facilities trades contracts");
+  // Owner 2026-11-15, tweak 1: the retail anchor first, then the wholesale tiers.
+  expect(mail.text).toContain("for $400 to $500 a month");
+  expect(mail.text).toContain("$199 per client per month, or $149 per client once you have 10 or more");
+  expect(mail.text.indexOf("$400 to $500")).toBeLessThan(mail.text.indexOf("$199"));
   expect(mail.text).toContain('Reply "sample"');
-  // The wholesale price is agreed on reply; the owner has not set one.
-  expect(mail.text).not.toContain("$");
+  // Tweak 2: plain text, a link instead of an attachment, no image of any kind.
+  expect(mail.html).not.toContain("<img");
   expect(mail.text).toContain("Unsubscribe: https://www.contrax.company/api/outreach/unsubscribe?t=x");
 });
 
@@ -35,4 +38,6 @@ test("the job queues drafts only, skips known and Do not contact addresses, and 
   expect(wf).toContain("SENDS NOTHING");
   expect(wf).not.toContain("schedule:");
   expect(readFileSync("src/lib/outreach.server.ts", "utf8")).toContain("VALUES (${p.email.trim().toLowerCase()}, 'partner'");
+  // Tweak 3: the preview's market is chosen from the firm's own name and home page.
+  expect(job).toContain("partnerMarketFor(`${p.name} ${home}`)");
 });

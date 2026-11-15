@@ -3,6 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { SiteHeader } from "~/components/SiteHeader";
 import {
+  ENDING_ACCOUNT_ROWS,
   ENDING_FREE_ROWS,
   ENDING_TRADES,
   endingDescription,
@@ -17,6 +18,7 @@ import {
 } from "~/lib/ending-pages";
 import { awardUrl, formatDollars } from "~/lib/federal-trade-data";
 import { REPORT_DELIVERY, REPORT_PRICE } from "~/lib/pipeline-report";
+import { RADAR_PRO_HREF } from "~/lib/plan-gates";
 import { seoHead } from "~/lib/seo-landing";
 import { SEO_TRADE_BY_SLUG } from "~/lib/seo-trades";
 import { trackEvent } from "~/lib/track";
@@ -25,7 +27,7 @@ import { trackEvent } from "~/lib/track";
  * /contracts-ending/{state}/{trade} — e.g. /contracts-ending/virginia/janitorial (owner
  * 2026-11-14). The public part of a Pipeline Snapshot for one market, built by the same function
  * a paid report uses. Rules and wording live in src/lib/ending-pages.ts. The loader sends only the
- * public part; the full list comes from /api/ending-list for a signed-in account.
+ * public part; /api/ending-list gives a free account 10 rows and Professional the full list.
  */
 const PROD_URL = "https://www.contrax.company";
 
@@ -117,17 +119,42 @@ function FullList({ m, p, askNow }: { m: EndingMarket; p: EndingPublic; askNow: 
   if (state === "open" && full) {
     return (
       <section className="mx-auto max-w-4xl px-4 py-10">
-        <h2 className="text-xl font-bold text-slate-900">The full list: {full.largest.length} largest contracts ending in the next 6 months</h2>
+        <h2 className="text-xl font-bold text-slate-900">
+          {full.full ? "The full list: " : "Your account: "}the {full.largest.length} largest contracts ending in the next 6 months
+        </h2>
         <ContractTable rows={full.largest} />
-        <h2 className="mt-10 text-xl font-bold text-slate-900">Agencies with the most work ending</h2>
-        <ol className="mt-3 max-w-2xl space-y-2 text-sm text-slate-700">
-          {full.byAgency.map((a, i) => (
-            <li key={a.agency} className="flex justify-between gap-3 border-b border-slate-100 pb-2">
-              <span>{i + 1}. {a.agency}</span>
-              <span className="whitespace-nowrap font-semibold text-slate-900">{formatDollars(a.total)} · {a.n.toLocaleString("en-US")}</span>
-            </li>
-          ))}
-        </ol>
+        {full.full ? (
+          <>
+            <h2 className="mt-10 text-xl font-bold text-slate-900">Agencies with the most work ending</h2>
+            <ol className="mt-3 max-w-2xl space-y-2 text-sm text-slate-700">
+              {full.byAgency.map((a, i) => (
+                <li key={a.agency} className="flex justify-between gap-3 border-b border-slate-100 pb-2">
+                  <span>{i + 1}. {a.agency}</span>
+                  <span className="whitespace-nowrap font-semibold text-slate-900">{formatDollars(a.total)} · {a.n.toLocaleString("en-US")}</span>
+                </li>
+              ))}
+            </ol>
+          </>
+        ) : (
+          <div className="mt-6 rounded-xl border border-amber-300 bg-amber-50 p-5">
+            <p className="font-semibold text-slate-900">
+              {full.more > 0 ? `${full.more} more contracts and the agency breakdown` : "The agency breakdown"} come with the Pipeline Snapshot or Contrax Professional.
+            </p>
+            <p className="mt-1 text-sm text-slate-700">
+              The Snapshot is the whole report prepared for you, {REPORT_PRICE} once, emailed within {REPORT_DELIVERY}.
+            </p>
+            <a
+              href="/sample-report#order"
+              onClick={() => trackEvent("ending_page_click", "snapshot_after_account")}
+              className="mt-4 inline-block rounded-xl bg-amber-500 px-5 py-3 text-sm font-bold text-slate-950 hover:bg-amber-400"
+            >
+              See a sample and order →
+            </a>
+            <a href={RADAR_PRO_HREF} onClick={() => trackEvent("ending_page_click", "professional")} className="ml-4 text-sm font-semibold text-blue-700 hover:underline">
+              Or see Professional →
+            </a>
+          </div>
+        )}
       </section>
     );
   }
@@ -139,13 +166,13 @@ function FullList({ m, p, askNow }: { m: EndingMarket; p: EndingPublic; askNow: 
           {p.more > 0 ? `${p.more} more contracts and the agency breakdown` : "The agency breakdown and the rest of the report"}
         </h2>
         <p className="mt-2 max-w-2xl text-sm text-slate-700">
-          This page shows the {Math.min(ENDING_FREE_ROWS, p.top.length)} largest. The full list of up to 25, and which of {p.agencies.toLocaleString("en-US")}{" "}
-          {p.agencies === 1 ? "agency has" : "agencies have"} the most work ending, are open two ways.
+          This page shows the {Math.min(ENDING_FREE_ROWS, p.top.length)} largest. A free account opens the {ENDING_ACCOUNT_ROWS} largest. The full list of up to 25,
+          and which of {p.agencies.toLocaleString("en-US")} {p.agencies === 1 ? "agency has" : "agencies have"} the most work ending, come in the Pipeline Snapshot.
         </p>
         <div className="mt-6 grid gap-4 md:grid-cols-2">
           <div className="rounded-xl border border-slate-200 bg-white p-5">
             <h3 className="font-bold text-slate-900">Free account</h3>
-            <p className="mt-1 text-sm text-slate-700">Read the full list and the agencies on this page. No card.</p>
+            <p className="mt-1 text-sm text-slate-700">Read the {ENDING_ACCOUNT_ROWS} largest on this page. No card.</p>
             <a
               href={signup}
               onClick={() => trackEvent("ending_page_click", "signup")}
@@ -156,13 +183,13 @@ function FullList({ m, p, askNow }: { m: EndingMarket; p: EndingPublic; askNow: 
             <p className="mt-3 text-sm text-slate-700">
               Already have one?{" "}
               <button type="button" onClick={() => void load()} disabled={state === "loading"} className="font-semibold text-blue-700 hover:underline">
-                {state === "loading" ? "Loading…" : "Show the full list"}
+                {state === "loading" ? "Loading…" : "Show my list"}
               </button>
             </p>
             {state === "signin" && (
               <p className="mt-2 text-sm text-slate-700">
                 You are not signed in.{" "}
-                <a href="/login" className="font-semibold text-blue-700 hover:underline">Sign in</a>, then come back to this page and choose "Show the full list".
+                <a href="/login" className="font-semibold text-blue-700 hover:underline">Sign in</a>, then come back to this page and choose "Show my list".
               </p>
             )}
             {state === "failed" && <p className="mt-2 text-sm text-red-700">The list did not load. Please try again in a minute.</p>}

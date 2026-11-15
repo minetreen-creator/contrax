@@ -12,6 +12,8 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { Resend } from "resend";
 import { sql } from "~/db";
+import { qaExternalUserSQL } from "~/lib/qa-exclusion";
+import { WARM_SUBJECT, warmFirstName, type WarmLead } from "~/lib/warm-leads";
 import {
   bidFitsTrade,
   bidIsServiceJob,
@@ -239,6 +241,54 @@ export async function queueTeams(p: { email: string; business: string; website: 
             CURRENT_DATE + 30, ${p.tradeLabel}, ${p.place})
     ON CONFLICT DO NOTHING RETURNING id`) as unknown[];
   return rows.length > 0;
+}
+
+/**
+ * Accounts without a paid plan that have opened /upgrade or /pricing, most recent first (owner
+ * 2026-11-15). Paying, admin, demo and test accounts are left out. Shared by the admin list and
+ * the queue below.
+ */
+export async function warmLeads(limit = 100): Promise<WarmLead[]> {
+  const rows = (await sql()`
+    SELECT u.id, u.email, u.company_name, u.created_at, v.looks, v.last_look
+    FROM users u
+    JOIN (
+      SELECT user_id, COUNT(DISTINCT COALESCE(visit_id, created_at::date::text))::int AS looks, MAX(created_at) AS last_look
+      FROM page_views
+      WHERE user_id IS NOT NULL AND (path LIKE '/upgrade%' OR path LIKE '/pricing%')
+      GROUP BY user_id
+    ) v ON v.user_id = u.id::text
+    WHERE ${sql().unsafe(qaExternalUserSQL())}
+      AND COALESCE(u.subscription_status, '') <> 'active'
+      AND NOT COALESCE(u.full_access, false)
+    ORDER BY v.last_look DESC
+    LIMIT ${limit}
+  `) as { id: number; email: string; company_name: string | null; created_at: string | null; looks: number; last_look: string | null }[];
+  return rows.map((r) => ({
+    id: r.id, email: r.email, company: r.company_name, looks: r.looks,
+    signedUp: r.created_at ? new Date(r.created_at).toISOString() : null,
+    lastLook: r.last_look ? new Date(r.last_look).toISOString() : null,
+  }));
+}
+
+/**
+ * Queue the personal note for every warm lead not already written to (owner 2026-11-15: "you
+ * write the emails, not me"). One note per account, ever: an address already on the list, sent
+ * or waiting, or on Do not contact, is skipped. Returns how many were queued.
+ */
+export async function queueWarmLeads(): Promise<number> {
+  await ensureOutreach();
+  let queued = 0;
+  for (const l of await warmLeads()) {
+    if (!(await isNewAddress(l.email))) continue;
+    const rows = (await sql()`
+      INSERT INTO outreach_contacts (email, kind, business, website, bid_id, bid_title, buyer, due_date, trade_label, place)
+      VALUES (${l.email.trim().toLowerCase()}, 'warm', ${l.company || l.email}, ${null}, 0, ${WARM_SUBJECT}, ${warmFirstName(l.email)},
+              CURRENT_DATE + 30, ${"account"}, ${l.company})
+      ON CONFLICT DO NOTHING RETURNING id`) as unknown[];
+    if (rows.length) queued++;
+  }
+  return queued;
 }
 
 export interface QueuedPrime {
@@ -516,7 +566,7 @@ export async function sendDrafts(ids: number[]): Promise<{ sent: number; failed:
     }
     const row = normalize(claimed[0]!);
     // Prime and Award Leads rows have no bid behind bid_id: no posting lookup.
-    const posting = row.kind === "prime" || row.kind === "leads" || row.kind === "teams" ? null : (await postingUrls([row.bid_id])).get(row.bid_id) ?? null;
+    const posting = row.kind === "prime" || row.kind === "leads" || row.kind === "teams" || row.kind === "warm" ? null : (await postingUrls([row.bid_id])).get(row.bid_id) ?? null;
     const mail = renderContact(row, postal!, posting);
     const unsub = unsubscribeUrl(row.email);
     try {

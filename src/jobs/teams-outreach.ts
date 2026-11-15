@@ -12,7 +12,7 @@
 import { STATE_NAMES } from "~/lib/contract-map";
 import { queryRecompetes } from "~/lib/federal-trade-data.server";
 import { emailFitsSite } from "~/lib/outreach";
-import { ensureOutreach, isNewAddress, queueTeams } from "~/lib/outreach.server";
+import { ensureOutreach, isNewAddress, queueTeams, queueWarmLeads } from "~/lib/outreach.server";
 import { siteHost } from "~/lib/prospect-finder";
 import { SEO_TRADE_BY_SLUG } from "~/lib/seo-trades";
 import { searchRegistrants, siteEmails } from "./prospect-finder";
@@ -52,6 +52,15 @@ async function main() {
   const place = STATE_NAMES[state];
   if (!tradeRow || !place) throw new Error(`Unknown STATE "${state}" or TRADE "${trade}"`);
   await ensureOutreach();
+  // Owner 2026-11-15 ("you write the emails, not me"): the personal note to every account that
+  // looked at the plans and did not buy is written and queued here too. Fail-open.
+  if (apply) {
+    try {
+      console.log(`Warm-lead notes queued: ${await queueWarmLeads()}.`);
+    } catch (e) {
+      console.error("Warm-lead notes failed (the teams batch continues):", (e as Error).message);
+    }
+  }
   const { count } = await queryRecompetes({ trade, state, months: 12, limit: 1 });
   console.log(`${count} federal ${tradeRow.label} contracts in ${place} end in the next 12 months.${apply ? "" : " Dry run."}`);
   if (count < MIN_CONTRACTS) {

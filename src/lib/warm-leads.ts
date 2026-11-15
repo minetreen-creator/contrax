@@ -19,29 +19,34 @@ const first = (email: string) => {
   return m ? m[1][0].toUpperCase() + m[1].slice(1).toLowerCase() : null;
 };
 
-/** The note, as a subject and body. It never says we watched them on the site. */
+export const WARM_SUBJECT = "Quick question about your Contrax account";
+
+/** The first name an address plainly shows ("brandon.smith@" → "Brandon"), or null. Never a guess. */
+export const warmFirstName = (email: string) => first(email);
+
+/** The note's lines, without a signature. It never says we watched them on the site. */
+export function warmLeadLines(name: string | null, company: string | null): string[] {
+  const who = company ? ` for ${company}` : "";
+  return [
+    name ? `Hi ${name},` : "Hi,",
+    "",
+    `I'm Nathaniel, the founder of Contrax. You opened an account with us${who}, and I wanted to check in personally.`,
+    "",
+    "What kind of government work are you looking for, and where? If you reply with your line of work and the area you cover, I'll send you the open bids that fit this week, no charge.",
+    "",
+    "If you've looked at the plans and something held you back, I'd like to hear that too. Price, the wrong bids, something confusing on the site: whatever it was, tell me and I'll fix what I can.",
+    "",
+    "One thing that may help: you can try everything for $5. That gets you 30 days of every open bid, and nothing renews.",
+    "",
+    "Thanks for giving Contrax a look.",
+  ];
+}
+
+/** The note, as a subject and body, for the owner's own mail. */
 export function warmLeadNote(l: Pick<WarmLead, "email" | "company">): { subject: string; body: string } {
-  const name = first(l.email);
-  const who = l.company ? ` for ${l.company}` : "";
   return {
-    subject: "Quick question about your Contrax account",
-    body: [
-      name ? `Hi ${name},` : "Hi,",
-      "",
-      `I'm Nathaniel, the founder of Contrax. You opened an account with us${who}, and I wanted to check in personally.`,
-      "",
-      "What kind of government work are you looking for, and where? If you reply with your line of work and the area you cover, I'll send you the open bids that fit this week, no charge.",
-      "",
-      "If you've looked at the plans and something held you back, I'd like to hear that too. Price, the wrong bids, something confusing on the site: whatever it was, tell me and I'll fix what I can.",
-      "",
-      "One thing that may help: you can try everything for $5. That gets you 30 days of every open bid, and nothing renews.",
-      "",
-      "Thanks for giving Contrax a look.",
-      "",
-      "Nathaniel Minetree",
-      "Owner and CEO, Contrax LLC",
-      "contrax.company",
-    ].join("\n"),
+    subject: WARM_SUBJECT,
+    body: [...warmLeadLines(first(l.email), l.company), "", "Nathaniel Minetree", "Owner and CEO, Contrax LLC", "contrax.company"].join("\n"),
   };
 }
 

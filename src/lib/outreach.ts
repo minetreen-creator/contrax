@@ -2,6 +2,7 @@ import { STATE_NAMES } from "~/lib/contract-map";
 import { ENDING_TRADES, endingPath } from "~/lib/ending-pages";
 import { REPORT_PRICE } from "~/lib/pipeline-report";
 import { TRADEMARK_LINE } from "~/lib/trademark";
+import { WARM_SUBJECT, warmLeadLines } from "~/lib/warm-leads";
 /**
  * Daily bid outreach (owner 2026-10-23: "I need something that brings in leads
  * and traffic"). Each weekday morning a job finds fresh open bids, looks up
@@ -229,7 +230,7 @@ export function outreachRoomToday(sentToday: number, cap: number = DAILY_OUTREAC
 }
 
 /** "pack" (owner 2026-11-14): a construction first email that offers a free Bid Pack, not the $5 pass. */
-export type OutreachKind = "first" | "followup" | "prime" | "leads" | "pack" | "buyer" | "teams";
+export type OutreachKind = "first" | "followup" | "prime" | "leads" | "pack" | "buyer" | "teams" | "warm";
 
 /** The Contracts Ending Soon view a teams email points at, from the "trade=…&state=…" kept on the row. PURE. */
 export function teamsRecompetesPath(query: string | null | undefined): string {
@@ -345,6 +346,8 @@ export function outreachEmail(i: OutreachEmailInput): { subject: string; text: s
     `Contrax LLC, ${i.postalAddress} · ${TRADEMARK_LINE}`,
     i.kind === "buyer"
       ? `You're receiving this because this address is listed with the solicitation above. Unsubscribe: ${i.unsubscribeUrl}`
+      : i.kind === "warm"
+      ? `You're receiving this because you have a Contrax account. Unsubscribe: ${i.unsubscribeUrl}`
       : `You're receiving this because ${i.business} lists this address on its website. Unsubscribe: ${i.unsubscribeUrl}`,
   ];
 
@@ -390,6 +393,12 @@ export function outreachEmail(i: OutreachEmailInput): { subject: string; text: s
       "",
       "Good luck with the contract.",
     ];
+  } else if (i.kind === "warm") {
+    // Owner 2026-11-15 ("you write the emails, not me"): the personal note to an account that
+    // looked at the plans and did not buy, written here and queued like every other draft.
+    // buyer = the first name the address plainly shows (or null); place = the company (or null).
+    subject = WARM_SUBJECT;
+    body = warmLeadLines((i.buyer ?? "").trim() || null, (i.place ?? "").trim() || null);
   } else if (i.kind === "teams") {
     // Owner 2026-11-14 ("so we can sell to the big buyers not small businesses"):
     // companies registered for federal work in a trade get the count of

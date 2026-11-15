@@ -1,0 +1,48 @@
+name: Partner Outreach
+
+# Owner 2026-11-15 ("Yes go"): the reseller email for firms that already serve government
+# contractors (src/jobs/partner-outreach.ts). SENDS NOTHING: it queues drafts the owner sends on
+# /admin/outreach. Run by hand; without apply it only prints.
+
+on:
+  workflow_dispatch:
+    inputs:
+      wanted:
+        description: "How many drafts to queue (1 to 60)"
+        type: string
+        default: "50"
+      apply:
+        description: "Queue the drafts (leave off for a dry run)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: outreach-prepare
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  partners:
+    name: Queue reseller emails
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      WANTED: ${{ inputs.wanted }}
+      APPLY: ${{ inputs.apply && 'true' || 'false' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Partner outreach
+        run: bun run partner-outreach

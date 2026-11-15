@@ -1,0 +1,58 @@
+import { expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
+import {
+  cleanPartnerOrder, PARTNER_PRODUCT, partnerFromMetadata, partnerMarketFor, partnerMetadata, partnerMonthlyCents, partnerNotice,
+  partnerSlug, partnerUnitCents,
+} from "./reseller";
+
+// Owner 2026-11-15: reseller pricing ("$199/client for 1-9, dropping to $149/client at 10+"),
+// niche-matched previews, and "make sure these payments can be put on stripe too".
+test("wholesale price is $199 a client, and $149 on every client from the tenth", () => {
+  expect(partnerUnitCents(1)).toBe(19900);
+  expect(partnerUnitCents(9)).toBe(19900);
+  expect(partnerUnitCents(10)).toBe(14900);
+  expect(partnerMonthlyCents(9)).toBe(179100);
+  // Ten clients cost less than nine: the push to bring the whole roster.
+  expect(partnerMonthlyCents(10)).toBe(149000);
+  expect(partnerMonthlyCents(15)).toBe(223500);
+});
+
+test("an order needs a real email, a firm and 1 to 200 clients, and survives Stripe metadata", () => {
+  expect(cleanPartnerOrder({ email: "a@b.co", firm: "Acme", clients: "7" })).toEqual({ email: "a@b.co", firm: "Acme", clients: 7 });
+  for (const bad of [{ email: "x", firm: "Acme", clients: 3 }, { email: "a@b.co", firm: "", clients: 3 }, { email: "a@b.co", firm: "Acme", clients: 0 }, { email: "a@b.co", firm: "Acme", clients: 201 }]) expect(cleanPartnerOrder(bad)).toBeNull();
+  const o = { email: "a@b.co", firm: "Acme Proposal Group", clients: 12 };
+  expect(partnerMetadata(o).product).toBe(PARTNER_PRODUCT);
+  expect(PARTNER_PRODUCT).toBe("contrax_reseller");
+  expect(partnerFromMetadata(partnerMetadata(o))).toEqual(o);
+  expect(partnerFromMetadata({ product: "contrax_managed" })).toBeNull();
+  const n = partnerNotice(o, "started", "cs_1");
+  expect(n.title).toBe("💰 New partner: $1,788 a month");
+  expect(n.text).toContain("12 clients at $149 each, $1,788 a month");
+});
+
+test("the preview address is clean, and the sample fits what the firm's site talks about", () => {
+  expect(partnerSlug("Acme Proposal Group, LLC")).toBe("acme-proposal-group-llc");
+  expect(partnerSlug("Smith & Jones Consulting")).toBe("smith-and-jones-consulting");
+  expect(partnerMarketFor("We help construction contractors and HVAC and electrical trades win bids")).toBe("trades");
+  expect(partnerMarketFor("Proposal support for IT services, software and cyber firms")).toBe("it");
+  expect(partnerMarketFor("We serve janitorial and custodial companies and landscaping crews")).toBe("janitorial");
+  expect(partnerMarketFor("Capture and proposal consulting")).toBe("it");
+});
+
+test("checkout bills per client through Stripe, its events stay off the plan tiers, and the preview only names firms we wrote to", () => {
+  const server = readFileSync("src/lib/reseller.server.ts", "utf8");
+  expect(server).toContain('mode: "subscription"');
+  expect(server).toContain("quantity: order.clients");
+  expect(server).toContain("unit_amount: partnerUnitCents(order.clients)");
+  const stripe = readFileSync("src/lib/stripe.ts", "utf8");
+  expect(stripe).toContain("if (await handleResellerEvent(event)) return { success: true };");
+  // The older association checkout keeps its own address.
+  expect(readFileSync("src/routes/api/partners/checkout.ts", "utf8")).not.toContain("reseller");
+  const preview = readFileSync("src/routes/partner-preview.$firm.tsx", "utf8");
+  expect(preview).toContain("WHERE kind = 'partner'");
+  expect(preview).toContain('content: "noindex, nofollow"');
+  expect(preview).toContain("is not affiliated with Contrax");
+  const page = readFileSync("src/routes/resellers.tsx", "utf8");
+  expect(page).toContain("<ResellerOrder />");
+  expect(page).toContain("{PARTNER_RETAIL} a month");
+});

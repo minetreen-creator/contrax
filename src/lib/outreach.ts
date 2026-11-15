@@ -1,6 +1,7 @@
 import { STATE_NAMES } from "~/lib/contract-map";
 import { ENDING_TRADES, endingPath } from "~/lib/ending-pages";
 import { REPORT_PRICE } from "~/lib/pipeline-report";
+import { PARTNER_MARKETS, PARTNER_PRICE, PARTNER_RETAIL, PARTNER_VOLUME_AT, PARTNER_VOLUME_PRICE, partnerMarket, partnerSlug } from "~/lib/reseller";
 import { TRADEMARK_LINE } from "~/lib/trademark";
 import { WARM_SUBJECT, warmLeadLines } from "~/lib/warm-leads";
 /**
@@ -230,7 +231,7 @@ export function outreachRoomToday(sentToday: number, cap: number = DAILY_OUTREAC
 }
 
 /** "pack" (owner 2026-11-14): a construction first email that offers a free Bid Pack, not the $5 pass. */
-export type OutreachKind = "first" | "followup" | "prime" | "leads" | "pack" | "buyer" | "teams" | "warm";
+export type OutreachKind = "first" | "followup" | "prime" | "leads" | "pack" | "buyer" | "teams" | "warm" | "partner";
 
 /** The Contracts Ending Soon view a teams email points at, from the "trade=…&state=…" kept on the row. PURE. */
 export function teamsRecompetesPath(query: string | null | undefined): string {
@@ -249,6 +250,30 @@ export function teamsReportPath(query: string | null | undefined): string {
   if (m && (ENDING_TRADES as readonly string[]).includes(m[1]) && STATE_NAMES[m[2]]) return endingPath(STATE_NAMES[m[2]], m[1]);
   return teamsRecompetesPath(query);
 }
+/** Subject of the reseller email to firms that serve government contractors. */
+export const PARTNER_SUBJECT = "A monthly pipeline report your clients get under your name";
+/**
+ * Firms worth the reseller email, by name (owner 2026-11-15): proposal writers, capture and
+ * government-contracting consultants. Used against the contractor registry. PURE.
+ */
+export const PARTNER_NAME = "proposal|capture|govcon|gov ?con|government contract|federal (consult|contract|business|growth|sales|market)|bid (writ|consult|manage)|contracting (consult|solution|advis|strateg)|rfp";
+export function partnerFirmName(name: string): boolean {
+  return new RegExp(PARTNER_NAME, "i").test(name);
+}
+/** Firms found by hand on 2026-11-15, each from its own website (name, site). */
+export const PARTNER_SEEDS: readonly (readonly [string, string])[] = [
+  ["The Penscribe", "https://thepenscribe.com"],
+  ["OST Global Solutions", "https://www.ostglobalsolutions.com"],
+  ["GovCon Giants", "https://govcongiants.com"],
+  ["FedBiz Access", "https://fedbizaccess.com"],
+  ["Winvale", "https://winvale.com"],
+  ["Coley GSA", "https://www.coleygsa.com"],
+  ["Select GCR", "https://selectgcr.com"],
+  ["iQuasar", "https://iquasar.com"],
+  ["GovCon in a Box", "https://govconinabox.com"],
+  ["Proposal Strategies", "https://proposalstrategies.com"],
+];
+
 /** How many free full reports the teams email offers. The owner sends each one by hand. */
 export const TEAMS_FREE_REPORTS = 10;
 
@@ -392,6 +417,29 @@ export function outreachEmail(i: OutreachEmailInput): { subject: string; text: s
       "I'm Nathaniel, and I run Contrax, a small company that tracks government contracts and the local contractors who do the work.",
       "",
       "Good luck with the contract.",
+    ];
+  } else if (i.kind === "partner") {
+    // Owner 2026-11-15 ("Yes go", then three tweaks): firms that already serve government
+    // contractors can give their clients the monthly report under their own name. The email leads
+    // with what the firm keeps, links a preview under its name built on contracts in its own niche
+    // (no attachment, plain text, no tracking pixel), and asks one thing. place = the sample market.
+    const market = PARTNER_MARKETS[partnerMarket(i.place)];
+    subject = PARTNER_SUBJECT;
+    body = [
+      "Hi,",
+      "",
+      `${i.business} helps companies win government contracts, so this is for whoever looks after your clients.`,
+      "",
+      "Your clients keep asking what they should bid on next. We prepare a monthly pipeline report that answers it: the federal contracts about to end in their state and line of work, who holds each one now, the agencies, what contracts like them were awarded for, and the open bids that fit.",
+      "",
+      `I made a preview of how it would look under your name, built on real ${market.says} contracts:`,
+      link(`/partner-preview/${partnerSlug(i.business)}`, i.kind, i.contactId),
+      "",
+      `Firms usually offer a deliverable like this to a client for ${PARTNER_RETAIL} a month. Your price from us is ${PARTNER_PRICE} per client per month, or ${PARTNER_VOLUME_PRICE} per client once you have ${PARTNER_VOLUME_AT} or more. You set what your clients pay and keep the difference. It is month to month, and there is nothing for you to build.`,
+      "",
+      'Reply "sample" with one client\'s state and line of work, and I\'ll send you their report with your name on it, free.',
+      "",
+      "I'm Nathaniel, and I run Contrax.",
     ];
   } else if (i.kind === "warm") {
     // Owner 2026-11-15 ("you write the emails, not me"): the personal note to an account that

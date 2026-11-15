@@ -754,6 +754,11 @@ export async function handleStripeWebhook(
   const { handleManagedEvent } = await import("~/lib/contrax-managed.server");
   if (await handleManagedEvent(event)) return { success: true };
 
+  // Reseller partners (owner 2026-11-15: "make sure these payments can be put on stripe too"):
+  // product "contrax_reseller", billed per client; its events never reach the plan tiers.
+  const { handleResellerEvent } = await import("~/lib/reseller.server");
+  if (await handleResellerEvent(event)) return { success: true };
+
   // Paid local-subcontractor list (owner 2026-10-30): product "sub_list".
   const { handleSubListEvent } = await import("~/lib/sub-list.server");
   if (await handleSubListEvent(event)) return { success: true };

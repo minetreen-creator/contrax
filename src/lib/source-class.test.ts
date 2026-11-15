@@ -109,7 +109,8 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // + Palm Beach County Schools (BidNet) and Pasco County Schools (IonWave), 2026-11-14 (1370 → 1372).
     // + City of West Palm Beach, 2026-11-14 (1372 → 1373).
     // + Palm Bay, Sebastian (Bonfire), Pompano Beach (IonWave), 2026-11-14 (1373 → 1376).
-    expect(Object.keys(SOURCE_CLASSES).length).toBe(1376);
+    // + Long Beach Transit, NCTD, Port of Long Beach, Burbank airport (PlanetBids), 2026-11-15 (1376 → 1380).
+    expect(Object.keys(SOURCE_CLASSES).length).toBe(1380);
   });
 
   test("every registry label is classified (no collector is unclassified)", () => {
@@ -212,7 +213,8 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // + Palm Beach County Schools (BidNet) and Pasco County Schools (IonWave), 2026-11-14 (1286 → 1288).
     // + City of West Palm Beach, 2026-11-14 (1288 → 1289).
     // + Palm Bay, Sebastian (Bonfire), Pompano Beach (IonWave), 2026-11-14 (1289 → 1292).
-    expect(TAIL_SOURCES.length).toBe(1292);
+    // + Long Beach Transit, NCTD, Port of Long Beach, Burbank airport (PlanetBids), 2026-11-15 (1292 → 1296).
+    expect(TAIL_SOURCES.length).toBe(1296);
   });
 
   test("every city registry entry the product fetches is LOCAL with a city name", () => {

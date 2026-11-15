@@ -8,6 +8,8 @@ import {
   seoHead,
 } from "~/lib/seo-landing";
 import { StatePlaceLinks } from "~/lib/local-landing";
+import { PreparedForYou } from "~/components/PreparedForYou";
+import { endingMarket } from "~/lib/ending-pages";
 
 export const Route = createFileRoute("/contracts-in/$state")({
   loader: ({ params }) => getRegionData({ data: { slug: params.state } }),
@@ -45,6 +47,10 @@ function ContractsInState() {
       }
     >
       <RegionView data={data} />
+      {data.name && endingMarket(data.name.toLowerCase().replace(/\s+/g, "-"), "janitorial") && (
+        // Owner 2026-11-14: the done-for-you reports, for the 50 states and DC that have ending-contract pages.
+        <PreparedForYou stateName={data.name} />
+      )}
       {data.code && data.name && (
         <StatePlaceLinks stateCode={data.code} stateName={data.name} />
       )}

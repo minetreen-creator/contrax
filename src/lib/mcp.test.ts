@@ -70,3 +70,25 @@ test("the route is POST-only JSON, rate-limits data calls and reads through the 
   expect(route).toContain("GET: notAllowed");
   expect(readFileSync("public/llms.txt", "utf8")).toContain("https://www.contrax.company/api/mcp");
 });
+
+// Owner 2026-11-14 (traffic idea 3): a public page for the connection, and the offer on state pages.
+test("the /mcp page reads its tools from the endpoint's own list and is in the sitemap and llms.txt", async () => {
+  const { readFileSync } = await import("node:fs");
+  const page = readFileSync("src/routes/mcp.tsx", "utf8");
+  expect(page).toContain("MCP_TOOLS.map((t) =>");
+  expect(page).toContain('export const MCP_URL = "https://www.contrax.company/api/mcp"');
+  // The stated limit is the one the endpoint enforces.
+  expect(page).toContain("export const MCP_CALLS_PER_HOUR = 40;");
+  expect(readFileSync("src/routes/api/mcp.ts", "utf8")).toContain('"mcp_tools_call_ip", 40, 3600');
+  expect(readFileSync("scripts/generate-sitemap.mjs", "utf8")).toContain('["/mcp", "monthly", "0.6"]');
+  expect(readFileSync("public/llms.txt", "utf8")).toContain("https://www.contrax.company/mcp)");
+});
+
+test("state pages name both prepared reports at the site's prices", async () => {
+  const { readFileSync } = await import("node:fs");
+  const block = readFileSync("src/components/PreparedForYou.tsx", "utf8");
+  expect(block).toContain("Pipeline Snapshot · {REPORT_PRICE} once");
+  expect(block).toContain('export const MANAGED_PRICE_LINE = "$499 a month"');
+  expect(readFileSync("src/routes/teams.tsx", "utf8")).toContain('export const MANAGED_PRICE = "$499"');
+  expect(readFileSync("src/routes/contracts-in.$state.tsx", "utf8")).toContain("<PreparedForYou stateName={data.name} />");
+});

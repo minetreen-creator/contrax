@@ -45,7 +45,7 @@ Pursue HUBZone certification if: your principal office is in a qualifying area, 
 
 Skip it, for now, if: your address isn't in a HUBZone, your workforce is spread across non-qualifying areas with no realistic path to 35%, or you're at capacity already — because the certification is a commitment to a hiring and location strategy, not a badge. And remember it's not either/or: HUBZone is one of several certifications you can hold at once. An 8(a), SDVOSB, or WOSB firm in a qualifying area should absolutely add HUBZone — the set-asides and the price preference stack.
 
-For a detailed look at the qualification steps, the HUBZone map, and the application itself, see our [HUBZone certification guide](/learn/hubzone-guide). The short version: if your geography works, HUBZone is one of the highest-ROI certifications a small business can hold — and if it doesn't, no amount of hustle changes a map.
+The short version: if your geography works, HUBZone is one of the highest-ROI certifications a small business can hold — and if it doesn't, no amount of hustle changes a map.
 
 ## Related articles
 - [8(a) Certification: A Complete Guide](/blog/8a-certification-guide)

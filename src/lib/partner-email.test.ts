@@ -35,7 +35,7 @@ test("firms are picked by what their name says they do, and seeds are real sites
 
 test("the job queues drafts only, skips known and Do not contact addresses, and is run by hand", () => {
   const job = readFileSync("src/jobs/partner-outreach.ts", "utf8");
-  expect(job).toContain("if (!email || !(await isNewAddress(email))) continue;");
+  expect(job).toContain("if (!(await isNewAddress(email))) {");
   expect(job).toContain('const apply = process.env.APPLY === "true";');
   const wf = readFileSync(".github/workflows/partner-outreach.yml", "utf8");
   expect(wf).toContain("SENDS NOTHING");

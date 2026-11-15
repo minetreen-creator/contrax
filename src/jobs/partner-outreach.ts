@@ -13,7 +13,7 @@ import { sql } from "~/db";
 import { emailFitsSite, PARTNER_NAME, PARTNER_SEEDS } from "~/lib/outreach";
 import { ensureOutreach, isNewAddress, queuePartner } from "~/lib/outreach.server";
 import { siteHost } from "~/lib/prospect-finder";
-import { partnerMarketFor } from "~/lib/reseller";
+import { partnerMarketFor, partnerSiteFits } from "~/lib/reseller";
 import { fetchPage, siteEmails } from "./prospect-finder";
 
 /** Drafts per run. */
@@ -45,6 +45,7 @@ async function main() {
   await ensureOutreach();
   const firms = [...PARTNER_SEEDS.map(([name, website]) => ({ name, website })), ...(await registryFirms())];
   console.log(`${firms.length} candidate firms (${PARTNER_SEEDS.length} hand-checked).${apply ? "" : " Dry run."}`);
+  const seeds = new Set(PARTNER_SEEDS.map(([name]) => name));
   const seenHosts = new Set<string>();
   let queued = 0;
   for (const p of firms) {
@@ -66,6 +67,11 @@ async function main() {
       home = (await fetchPage(website)).replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>|<[^>]+>/g, " ").slice(0, 20_000);
     } catch {
       /* the name alone decides */
+    }
+    // A registry firm must say on its own site that it helps others win government work.
+    if (!seeds.has(p.name) && !partnerSiteFits(home)) {
+      console.log(`   skip (site does not read as a consultancy) → ${p.name}`);
+      continue;
     }
     const market = partnerMarketFor(`${p.name} ${home}`);
     if (!apply) {

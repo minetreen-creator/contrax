@@ -2,6 +2,7 @@ import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import {
   cleanPartnerOrder, PARTNER_PRODUCT, partnerFromMetadata, partnerMarketFor, partnerMetadata, partnerMonthlyCents, partnerNotice,
+  partnerSiteFits,
   partnerSlug, partnerUnitCents,
 } from "./reseller";
 
@@ -37,6 +38,11 @@ test("the preview address is clean, and the sample fits what the firm's site tal
   expect(partnerMarketFor("Proposal support for IT services, software and cyber firms")).toBe("it");
   expect(partnerMarketFor("We serve janitorial and custodial companies and landscaping crews")).toBe("janitorial");
   expect(partnerMarketFor("Capture and proposal consulting")).toBe("it");
+  // "Contractors" alone is on every government-contracting site and must not tip it to trades.
+  expect(partnerMarketFor("We help government contractors and federal contractors win. Engineering firms welcome.")).toBe("it");
+  expect(partnerSiteFits("Proposal writing and capture management for small businesses")).toBe(true);
+  expect(partnerSiteFits("We help small businesses win federal contracts")).toBe(true);
+  expect(partnerSiteFits("We provide roofing, paving and site work to federal agencies")).toBe(false);
 });
 
 test("checkout bills per client through Stripe, its events stay off the plan tiers, and the preview only names firms we wrote to", () => {

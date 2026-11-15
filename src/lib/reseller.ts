@@ -38,12 +38,23 @@ export const partnerMarket = (k: unknown): PartnerMarket => (typeof k === "strin
 export function partnerMarketFor(text: string): PartnerMarket {
   const t = text.toLowerCase();
   const count = (re: RegExp) => (t.match(re) ?? []).length;
-  const trades = count(/\b(construction|contractors?|hvac|mechanical|electrical|plumbing|roofing|paving|trades?|a\/e|architect|engineering)\b/g);
+  // "contractor" and "engineering" are on every government-contracting site, so they decide nothing.
+  const trades = count(/\b(construction|hvac|mechanical|electrical|plumbing|roofing|paving|skilled trades|general contractors?|subcontractors?|architects?|facilities maintenance)\b/g);
   const clean = count(/\b(janitorial|custodial|facilit(y|ies) (maintenance|services|management)|landscap\w+|grounds)\b/g);
   const it = count(/\b(it services|information technology|software|cyber\w*|cloud|professional services|technology|saas|data)\b/g);
   if (clean > trades && clean > it) return "janitorial";
   if (trades > it) return "trades";
   return "it";
+}
+
+/**
+ * Whether a firm's own home page reads like a firm that helps other companies win government
+ * work (owner 2026-11-15 dry run: a name such as "Summit Federal Contracting" can be a contractor
+ * itself). The reseller email opens "helps companies win government contracts", so it only goes
+ * where the site says so.
+ */
+export function partnerSiteFits(home: string): boolean {
+  return /proposal (writing|development|management|support|services)|capture (management|support|strategy)|business development (support|services|consult)|(help|helping|helps|assist|guide)s? (you|your (business|company|firm)|companies|businesses|small businesses|clients|contractors|firms) (to )?(win|find|pursue|compete|navigate)|government contract(ing)? consult|gsa schedule (consult|assist|services|support)|bid (writing|writers)|rfp (response|writing|consult)/i.test(home);
 }
 
 export interface PartnerOrder { email: string; firm: string; clients: number }

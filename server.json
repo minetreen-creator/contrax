@@ -1,0 +1,14 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.minetreen-creator/contrax",
+  "title": "Contrax: US federal contracts ending soon",
+  "description": "US federal contracts ending soon by state and trade: holders, agencies, award sizes, open bids.",
+  "version": "1.0.0",
+  "websiteUrl": "https://www.contrax.company/mcp",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://www.contrax.company/api/mcp"
+    }
+  ]
+}

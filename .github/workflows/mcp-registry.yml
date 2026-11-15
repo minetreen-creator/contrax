@@ -1,0 +1,48 @@
+# Publishes server.json to the official MCP Registry (owner 2026-11-14, traffic idea 3: list the
+# Contrax AI connection in the AI tool directories; the other directories copy from this one).
+# Run by hand after changing server.json (bump "version" first: the registry refuses a repeat).
+# Signs in with this repository's own GitHub identity, so there is no key or secret to keep.
+name: Publish to MCP Registry
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Check server.json without publishing"
+        type: boolean
+        default: false
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check the endpoint answers
+        run: |
+          curl -sS -m 20 -X POST https://www.contrax.company/api/mcp \
+            -H 'Content-Type: application/json' -H 'Accept: application/json, text/event-stream' \
+            -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | tee /tmp/tools.json | head -c 400
+          grep -q contracts_ending_soon /tmp/tools.json
+
+      - name: Install mcp-publisher
+        run: |
+          curl -sSL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+          ./mcp-publisher --help | head -5
+
+      - name: Sign in to the MCP Registry
+        run: ./mcp-publisher login github-oidc
+
+      - name: Publish server.json
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then ./mcp-publisher publish --dry-run; else ./mcp-publisher publish; fi
+
+      - name: Show the listing
+        if: ${{ !inputs.dry_run }}
+        run: curl -sS "https://registry.modelcontextprotocol.io/v0/servers?search=io.github.minetreen-creator/contrax" | head -c 1200

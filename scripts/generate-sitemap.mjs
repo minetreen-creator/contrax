@@ -103,6 +103,7 @@ const PRODUCT_PATHS = [
   ["/compare/govwin-iq", "monthly", "0.6"],
   ["/compare/demandstar", "monthly", "0.6"],
   ["/contracts-ending", "weekly", "0.6"],
+  ["/mcp", "monthly", "0.6"],
   // Agency plan for material suppliers and equipment rental (owner 2026-11-12).
   ["/suppliers", "weekly", "0.7"],
   ["/roadmap", "monthly", "0.5"],

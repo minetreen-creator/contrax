@@ -271,7 +271,8 @@ function TeamsPage() {
           {/* Owner 2026-11-14 (competitor review): an AI-assistant connection, as the self-serve tools offer. */}
           <p id="ai" className="mt-4 scroll-mt-6 text-sm text-slate-700">
             <strong>Use an AI assistant?</strong> Add <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">https://www.contrax.company/api/mcp</code> as
-            a custom connector in Claude or another assistant that supports MCP, then ask it which contracts are ending in your state and trade.
+            a custom connector in Claude or another assistant that supports MCP, then ask it which contracts are ending in your state and trade.{" "}
+            <a href="/mcp" className="font-semibold text-blue-700 hover:underline">How it works →</a>
           </p>
           <p className="mt-4 text-sm text-slate-600">
             Contract data comes from public records: USAspending.gov for federal awards, and each agency's own posting for bids.

@@ -27,7 +27,7 @@ jobs:
   partners:
     name: Queue reseller emails
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       WANTED: ${{ inputs.wanted }}

@@ -6,20 +6,22 @@
  * reseller email. Queues drafts only; nothing is sent until the owner sends them on
  * /admin/outreach. Dry run unless APPLY=true.
  *
- * Firms come from the hand-checked seeds in src/lib/outreach.ts first, then from the contractor
- * registry: consulting NAICS codes with a name that says what they do (PARTNER_NAME).
+ * Firms come from the hand-checked seeds in src/lib/outreach.ts first, then the collected leads in
+ * ./partner-leads.ts (each must pass the site and name checks), then from the contractor
+ * registry: a name that says what they do (PARTNER_NAME), consulting NAICS codes first.
  */
 import { sql } from "~/db";
 import { emailFitsSite, PARTNER_NAME, PARTNER_SEEDS } from "~/lib/outreach";
 import { ensureOutreach, isNewAddress, queuePartner } from "~/lib/outreach.server";
 import { siteHost } from "~/lib/prospect-finder";
 import { partnerMarketFor, partnerSiteFits } from "~/lib/reseller";
+import { nameOnSite, PARTNER_LEADS } from "./partner-leads";
 import { fetchPage, siteEmails } from "./prospect-finder";
 
 /** Drafts per run. */
 const WANTED = Math.min(Math.max(Number(process.env.WANTED) || 50, 1), 60);
 /** Registry firms read at most. */
-const MAX_FIRMS = 400;
+const MAX_FIRMS = 150;
 /** Management, marketing and other consulting: where these firms register. */
 const NAICS = ["541611", "541613", "541618", "541990"];
 
@@ -28,10 +30,9 @@ async function registryFirms(): Promise<{ name: string; website: string }[]> {
     const rows = (await sql()`
       SELECT name, url FROM sam_registrants
       WHERE url IS NOT NULL AND url <> ''
-        AND naics && ${NAICS}::text[]
         AND name ~* ${PARTNER_NAME}
         AND (expires IS NULL OR expires >= CURRENT_DATE)
-      ORDER BY md5(uei || ${String(Math.floor(Date.now() / 86_400_000))})
+      ORDER BY (naics && ${NAICS}::text[]) DESC, md5(uei || ${String(Math.floor(Date.now() / 86_400_000))})
       LIMIT ${MAX_FIRMS}`) as { name: string; url: string }[];
     return rows.map((r) => ({ name: r.name, website: r.url }));
   } catch (e) {
@@ -43,9 +44,14 @@ async function registryFirms(): Promise<{ name: string; website: string }[]> {
 async function main() {
   const apply = process.env.APPLY === "true";
   await ensureOutreach();
-  const firms = [...PARTNER_SEEDS.map(([name, website]) => ({ name, website })), ...(await registryFirms())];
-  console.log(`${firms.length} candidate firms (${PARTNER_SEEDS.length} hand-checked).${apply ? "" : " Dry run."}`);
+  const firms = [
+    ...PARTNER_SEEDS.map(([name, website]) => ({ name, website })),
+    ...PARTNER_LEADS.map(([name, website]) => ({ name, website })),
+    ...(await registryFirms()),
+  ];
+  console.log(`${firms.length} candidate firms (${PARTNER_SEEDS.length} hand-checked, ${PARTNER_LEADS.length} collected leads).${apply ? "" : " Dry run."}`);
   const seeds = new Set(PARTNER_SEEDS.map(([name]) => name));
+  const leads = new Set(PARTNER_LEADS.map(([name]) => name));
   const seenHosts = new Set<string>();
   let queued = 0;
   for (const p of firms) {
@@ -58,9 +64,17 @@ async function main() {
     try {
       email = (await siteEmails(website)).emails.find((e) => emailFitsSite(e, host, p.name));
     } catch {
+      if (leads.has(p.name)) console.log(`   skip (site did not load) → ${p.name}`);
       continue;
     }
-    if (!email || !(await isNewAddress(email))) continue;
+    if (!email) {
+      if (leads.has(p.name)) console.log(`   skip (no address published on its site) → ${p.name}`);
+      continue;
+    }
+    if (!(await isNewAddress(email))) {
+      if (leads.has(p.name)) console.log(`   skip (already written to, or do not contact) → ${p.name}`);
+      continue;
+    }
     // Owner 2026-11-15: match the preview to the firm's niche, from its name and its own home page.
     let home = "";
     try {
@@ -71,6 +85,11 @@ async function main() {
     // A registry firm must say on its own site that it helps others win government work.
     if (!seeds.has(p.name) && !partnerSiteFits(home)) {
       console.log(`   skip (site does not read as a consultancy) → ${p.name}`);
+      continue;
+    }
+    // A collected lead must also carry its own name on the page: the address may be someone else's.
+    if (leads.has(p.name) && !nameOnSite(p.name, home)) {
+      console.log(`   skip (site does not carry the firm's name) → ${p.name}`);
       continue;
     }
     const market = partnerMarketFor(`${p.name} ${home}`);

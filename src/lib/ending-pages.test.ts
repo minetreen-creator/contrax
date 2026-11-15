@@ -2,7 +2,8 @@ import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import {
   ENDING_FREE_BIDS, ENDING_FREE_ROWS, ENDING_MIN_CONTRACTS, ENDING_STATES, ENDING_TRADES,
-  endingDescription, endingIndexable, endingMarket, endingPath, endingTitle, endingYears, fullSlice, publicSlice,
+  accountSlice, endingDescription, endingIndexable, endingMarket, endingPath, endingTitle, endingYears, publicSlice,
+  ENDING_ACCOUNT_ROWS,
 } from "./ending-pages";
 import type { ReportData } from "./pipeline-report-data.server";
 import { isPublicSsrCacheable } from "./ssr-cache-policy";
@@ -40,9 +41,17 @@ test("a visitor is sent 5 contracts and 2 bids; holders and the agency list neve
   expect(sent).not.toContain("Agency 3");
   expect(sent).not.toContain("hasPlan");
   expect(sent).not.toContain("Co 7");
-  const full = fullSlice(report(40));
-  expect(full.largest.length).toBe(25);
-  expect(full.byAgency.length).toBe(10);
+  // Owner 2026-11-14 ("1"): a free account sees 10 and no agencies; Professional sees it all.
+  const free = accountSlice(report(40), false);
+  expect(free).toMatchObject({ full: false, more: 15, byAgency: [] });
+  expect(free.largest.length).toBe(ENDING_ACCOUNT_ROWS);
+  const pro = accountSlice(report(40), true);
+  expect(pro.largest.length).toBe(25);
+  expect(pro.byAgency.length).toBe(10);
+  expect(readFileSync("src/routes/api/ending-list.ts", "utf8")).toContain("accountSlice(await reportData(market.code, market.trade, 12), professional)");
+  const older = readFileSync("src/routes/recompetes.tsx", "utf8");
+  expect(older).toContain("limit: hasAccess ? FULL_LIMIT : signedIn ? ACCOUNT_ROWS : PREVIEW_ROWS");
+  expect(older).toContain("const ACCOUNT_ROWS = ENDING_ACCOUNT_ROWS;");
 });
 
 test("thin markets stay out of search; titles say federal and carry the years", () => {

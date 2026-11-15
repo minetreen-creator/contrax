@@ -4,6 +4,7 @@ import { SiteHeader } from "~/components/SiteHeader";
 import { fmtEndDate, RecompeteRow } from "~/components/FederalTradeFacts";
 import { STATE_NAMES } from "~/lib/contract-map";
 import { formatDollars, RECOMPETE_MONTH_CHOICES, type Recompete } from "~/lib/federal-trade-data";
+import { ENDING_ACCOUNT_ROWS } from "~/lib/ending-pages";
 import { RADAR_PRO_HREF, RADAR_PRO_PRICE_NOTE } from "~/lib/plan-gates";
 import { SEO_TRADES, SEO_TRADE_BY_SLUG } from "~/lib/seo-trades";
 import { trackEvent } from "~/lib/track";
@@ -23,6 +24,9 @@ const TITLE = "Federal Contracts Ending Soon by Trade and State | Contrax";
 const DESC =
   "Federal janitorial, security, construction, HVAC, IT and other contracts whose end date is in the next 6 to 18 months, with the current holder and value. Prepare before the rebid is posted.";
 const PREVIEW_ROWS = 3;
+// Owner 2026-11-14 ("1"): one rule on both ending-contract pages. A visitor sees a few, a free
+// account sees 10 (ENDING_ACCOUNT_ROWS), Professional sees everything.
+const ACCOUNT_ROWS = ENDING_ACCOUNT_ROWS;
 const FULL_LIMIT = 500;
 
 interface Search {
@@ -62,7 +66,7 @@ const getRecompetesPage = createServerFn({ method: "GET" })
     let failed = false;
     try {
       const { queryRecompetes } = await import("~/lib/federal-trade-data.server");
-      result = await queryRecompetes({ ...data, limit: hasAccess ? FULL_LIMIT : PREVIEW_ROWS });
+      result = await queryRecompetes({ ...data, limit: hasAccess ? FULL_LIMIT : signedIn ? ACCOUNT_ROWS : PREVIEW_ROWS });
     } catch (e) {
       console.error("[recompetes] query failed:", e);
       failed = true;
@@ -197,7 +201,7 @@ function RecompetesPage() {
                   onClick={() => trackEvent(d.signedIn ? "recompetes_upgrade_click" : "recompetes_signup_click", d.trade)}
                   className="mt-3 inline-block rounded-xl bg-blue-700 px-5 py-3 text-sm font-bold text-white hover:bg-blue-800"
                 >
-                  {d.signedIn ? "Upgrade to see the full list" : "Create an account to see the full list"}
+                  {d.signedIn ? "Upgrade to see the full list" : `Create a free account to see ${ACCOUNT_ROWS}`}
                 </a>
                 {d.signedIn && <p className="mt-2 text-xs text-slate-500">{RADAR_PRO_PRICE_NOTE}</p>}
                 {/* Owner 2026-11-14: a visitor who will not make an account can still have the list prepared. */}

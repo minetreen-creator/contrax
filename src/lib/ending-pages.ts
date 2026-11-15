@@ -2,8 +2,8 @@
  * Search pages for contracts ending soon: /contracts-ending/{state}/{trade} (owner 2026-11-14,
  * "Scale Programmatic 'Expiring Contract' SEO Pages"). Six trades in every state and DC. Each page
  * is the public part of a Pipeline Snapshot for that market: the 5 largest contracts ending, what
- * contracts like them were awarded for and 2 open bids. The full 25 and the agency breakdown sit
- * behind a free account or the paid Snapshot. Every figure is a USAspending.gov record; a market
+ * contracts like them were awarded for and 2 open bids. A free account sees 10; the full 25 and the
+ * agency breakdown come with Professional or the paid Snapshot. Every figure is a USAspending.gov record; a market
  * with too little to show stays out of search results and out of the sitemap. PURE.
  */
 import { STATE_NAMES } from "~/lib/contract-map";
@@ -16,6 +16,12 @@ export const ENDING_TRADES = ["janitorial", "hvac", "construction", "landscaping
 /** Shown to everyone. */
 export const ENDING_FREE_ROWS = 5;
 export const ENDING_FREE_BIDS = 2;
+/**
+ * What a free account sees (owner 2026-11-14, "1": a free account was getting the 25 contracts and
+ * the agency list, two things the $149 Snapshot sells). Visitors see 5, a free account 10, and the
+ * full 25 with the agency breakdown is for Professional or the Snapshot. /recompetes uses the same 10.
+ */
+export const ENDING_ACCOUNT_ROWS = 10;
 /** Fewer contracts than this and the page is too thin to list in search. */
 export const ENDING_MIN_CONTRACTS = 3;
 
@@ -60,9 +66,12 @@ export function publicSlice(r: ReportData): EndingPublic {
   };
 }
 
-/** What a signed-in visitor gets on top: the full list and the agencies. */
-export interface EndingFull { largest: ReportData["largest"]; byAgency: ReportData["byAgency"] }
-export const fullSlice = (r: ReportData): EndingFull => ({ largest: r.largest, byAgency: r.byAgency.slice(0, 10) });
+/** What a signed-in visitor gets on top. `full` is true for Professional: every row and the agencies. */
+export interface EndingFull { full: boolean; largest: ReportData["largest"]; more: number; byAgency: ReportData["byAgency"] }
+export function accountSlice(r: ReportData, professional: boolean): EndingFull {
+  if (professional) return { full: true, largest: r.largest, more: 0, byAgency: r.byAgency.slice(0, 10) };
+  return { full: false, largest: r.largest.slice(0, ENDING_ACCOUNT_ROWS), more: Math.max(0, r.largest.length - ENDING_ACCOUNT_ROWS), byAgency: [] };
+}
 
 export const endingIndexable = (p: EndingPublic | null | undefined) => Boolean(p && p.totals.n >= ENDING_MIN_CONTRACTS && p.top.length > 0);
 

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { alertNewlyDeadSources, deadSourceEmail, isDeadRun, likelyCause, newlyDeadTwice } from "./source-alerts";
+import { alertNewlyDeadSources, deadSourceEmail, isDeadRun, likelyCause, newlyDeadTwice, onePerSync } from "./source-alerts";
 
 // Owner 2026-11-03: "what can we do to stop the source dropoff?" → "yes".
 const dead = { fetched: 0, errors: "HTTP 403 for https://www.wallnj.gov/bids.aspx" };
@@ -76,5 +76,26 @@ describe("a sync and its retry are one sync (owner 2026-11-04: nyc_open_data)", 
     const { onePerSync, newlyDeadTwice } = await import("./source-alerts");
     const h = [dead("2026-11-04T16:33:00Z"), dead("2026-11-04T16:31:00Z"), dead("2026-11-04T12:33:00Z"), dead("2026-11-04T12:31:00Z"), ok("2026-11-04T08:32:00Z")];
     expect(newlyDeadTwice(onePerSync(h))).toBe(true);
+  });
+});
+
+describe("a retry at the end of a long sync is the same sync (owner 2026-11-15, ak_dotpf)", () => {
+  test("a failure and its retry 57 minutes later, after a good sync that morning, sends no email", () => {
+    const history = [
+      { fetched: 0, errors: "ak_dotpf unreachable: request failed: The operation was aborted.", created_at: "2026-11-15T21:19:02Z" },
+      { fetched: 0, errors: "ak_dotpf unreachable: request failed: The operation was aborted.", created_at: "2026-11-15T20:22:32Z" },
+      { fetched: 10, errors: null, created_at: "2026-11-15T15:10:00Z" },
+    ];
+    expect(onePerSync(history)).toHaveLength(2);
+    expect(newlyDeadTwice(onePerSync(history))).toBe(false);
+  });
+
+  test("failures in two separate syncs five hours apart still send it", () => {
+    const history = [
+      { fetched: 0, errors: "timeout", created_at: "2026-11-15T20:22:32Z" },
+      { fetched: 0, errors: "timeout", created_at: "2026-11-15T15:10:00Z" },
+      { fetched: 10, errors: null, created_at: "2026-11-14T20:10:00Z" },
+    ];
+    expect(newlyDeadTwice(onePerSync(history))).toBe(true);
   });
 });

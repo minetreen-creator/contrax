@@ -218,6 +218,11 @@ const HOME_LANES = [
     who: "For contractors and small businesses",
     cta: "Search open bids",
     href: "#find-bids",
+    moreLabel: "Also:",
+    more: [
+      { label: "City and county bids", href: "/local-bids?source=home_lane" },
+      { label: "Pricing", href: "/pricing?source=home_lane" },
+    ],
   },
   {
     key: "dfy",
@@ -228,6 +233,13 @@ const HOME_LANES = [
     cta: "Read a real report",
     // Show the report before the price.
     href: "/sample-report?source=home_lane",
+    // A cleaning or HVAC contractor should land on numbers their own size, not federal IT.
+    moreLabel: "Samples by trade:",
+    more: [
+      { label: "Janitorial", href: "/sample-report?m=va-janitorial&source=home_lane" },
+      { label: "HVAC and plumbing", href: "/sample-report?m=tx-hvac&source=home_lane" },
+      { label: "IT services", href: "/sample-report?source=home_lane_it" },
+    ],
   },
 ];
 
@@ -244,7 +256,7 @@ function HomeChoice() {
               <a
                 href={lane.href}
                 onClick={() => trackEvent("home_lane_click", lane.key)}
-                className="group flex h-full flex-col rounded-2xl border border-white/15 bg-white/5 p-5 transition hover:-translate-y-0.5 hover:border-amber-400 hover:bg-white/10"
+                className="group flex flex-col rounded-2xl border border-white/15 bg-white/5 p-5 transition hover:-translate-y-0.5 hover:border-amber-400 hover:bg-white/10 sm:min-h-[15rem]"
               >
                 <span className="text-xs font-bold uppercase tracking-wider text-amber-400">{lane.tag}</span>
                 <span className="mt-1 text-lg font-bold sm:text-xl">{lane.title}</span>
@@ -252,6 +264,14 @@ function HomeChoice() {
                 <span className="mt-2 text-xs text-slate-400">{lane.who}</span>
                 <span className="mt-auto pt-3 text-sm font-semibold text-amber-300 group-hover:text-amber-200">{lane.cta} →</span>
               </a>
+              <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 px-1 text-xs text-slate-400">
+                <span>{lane.moreLabel}</span>
+                {lane.more.map((m) => (
+                  <a key={m.href} href={m.href} onClick={() => trackEvent("home_lane_click", `${lane.key}_more`)} className="font-semibold text-slate-200 underline underline-offset-2 hover:text-amber-300">
+                    {m.label}
+                  </a>
+                ))}
+              </p>
             </li>
           ))}
         </ul>
@@ -292,6 +312,13 @@ function HomeExecutionLine() {
         ·{" "}
         <a href="/subs-wanted" onClick={() => trackEvent("home_subs_search", "board")} className="font-semibold text-blue-700 hover:text-blue-600 dark:text-blue-300">
           See public or private jobs that need subs →
+        </a>
+      </p>
+      {/* Owner 2026-11-14: tell teams that already work in an AI assistant that Contrax plugs into it. */}
+      <p className="mt-2 text-center text-sm text-slate-600 dark:text-slate-300">
+        Use an AI assistant?{" "}
+        <a href="/teams?source=home_ai#ai" onClick={() => trackEvent("home_ai_click", "connect")} className="font-semibold text-blue-700 hover:text-blue-600 dark:text-blue-300">
+          Connect Contrax to Claude and other assistants →
         </a>
       </p>
     </section>
@@ -390,6 +417,15 @@ const FOOTER_LEGAL_LINKS = [
   { href: "/terms", label: "Terms" },
 ];
 
+// Owner 2026-11-14: the comparison pages get footer links without a fifth column, so the four
+// columns stay about the same length (owner 2026-11-11). One row under them.
+const FOOTER_COMPARE_LINKS = [
+  { href: "/compare/highergov", label: "Contrax vs. HigherGov" },
+  { href: "/compare/govtribe", label: "Contrax vs. GovTribe" },
+  { href: "/compare/cleatus", label: "Contrax vs. CLEATUS" },
+  { href: "/compare", label: "All comparisons" },
+];
+
 function Footer() {
   const linkClass = "inline-block rounded-sm py-1 leading-6 hover:text-[#0f1f38] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current dark:hover:text-white";
   return (
@@ -407,6 +443,12 @@ function Footer() {
                 ))}
               </ul>
             </div>
+          ))}
+        </nav>
+        <nav aria-label="Compare" className="flex flex-wrap items-center gap-x-6 gap-y-1 border-t border-[#dde3ec] py-4 dark:border-[#24334f]">
+          <span className="font-semibold text-[#0f1f38] dark:text-white">Compare</span>
+          {FOOTER_COMPARE_LINKS.map((link) => (
+            <a key={link.href} href={link.href} className={linkClass}>{link.label}</a>
           ))}
         </nav>
         <div className="flex flex-col gap-4 border-t border-[#dde3ec] pt-5 sm:flex-row sm:items-center sm:justify-between dark:border-[#24334f]">

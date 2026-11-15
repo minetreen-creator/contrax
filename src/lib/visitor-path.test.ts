@@ -60,3 +60,26 @@ test("the homepage opens with one headline and two equal lanes, and the search i
   // Search engines and assistants are told about both customers.
   expect(home).toContain("Win government work two ways");
 });
+
+// Owner 2026-11-14: three tweaks to the homepage.
+test("the footer links the comparison pages in a row, not a fifth column", () => {
+  const home = read("src/routes/index.tsx");
+  for (const t of ["highergov", "govtribe", "cleatus"]) expect(home).toContain(`{ href: "/compare/${t}", label: "Contrax vs. `);
+  expect(home).toContain('<nav aria-label="Compare"');
+  // "All comparisons" leads to a page that actually lists them.
+  expect(read("src/routes/compare/index.tsx")).toContain("href={`/compare/${t.slug}`}");
+  expect(home).toContain("lg:grid-cols-4");
+});
+
+test("the homepage mentions the AI connection under the three steps and points at the instructions", () => {
+  expect(read("src/routes/index.tsx")).toContain('href="/teams?source=home_ai#ai"');
+  expect(read("src/routes/teams.tsx")).toContain('<p id="ai"');
+});
+
+test("each lane carries small links of the same shape; the report lane offers a sample per trade", () => {
+  const home = read("src/routes/index.tsx");
+  expect(home).toContain('{ label: "Janitorial", href: "/sample-report?m=va-janitorial&source=home_lane" }');
+  expect(home).toContain('{ label: "HVAC and plumbing", href: "/sample-report?m=tx-hvac&source=home_lane" }');
+  expect(home.match(/moreLabel: /g)?.length).toBe(2);
+  expect(home.match(/lane\.more\.map/g)?.length).toBe(1);
+});

@@ -45,11 +45,15 @@ describe("teams outreach email", () => {
     unsubscribeUrl: "https://www.contrax.company/api/outreach/unsubscribe?t=abc",
     contactId: 9,
   });
-  test("leads with the real count, links the free view and the teams page, and names no price", () => {
+  // Owner 2026-11-15 ("go"): the email now leads with the report for the reader's own market and
+  // offers the full one free to the first ten who ask. It names the report's normal price once, as
+  // what the free report is worth, and no longer links the plan page.
+  test("leads with the real count, links the reader's own market page, and offers the full report free", () => {
     expect(m.subject).toBe("212 federal IT services contracts in Virginia end in the next 12 months");
-    expect(m.text).toContain("https://www.contrax.company/recompetes?trade=it-services&state=VA&utm_source=email&utm_medium=outreach&utm_campaign=bid_outreach_teams&oc=9");
-    expect(m.text).toContain("https://www.contrax.company/teams?utm_source=email");
-    expect(m.text).not.toContain("$");
+    expect(m.text).toContain("https://www.contrax.company/contracts-ending/virginia/it-services?utm_source=email&utm_medium=outreach&utm_campaign=bid_outreach_teams&oc=9");
+    expect(m.text).not.toContain("https://www.contrax.company/teams");
+    expect(m.text).toContain("It normally costs $149. I'm sending it free to the first 10 companies that ask.");
+    expect(m.text.match(/\$/g)?.length).toBe(1);
     expect(m.text).toContain("100 Main St, Richmond VA 23219");
     expect(m.text).toContain("https://www.contrax.company/api/outreach/unsubscribe?t=abc");
   });

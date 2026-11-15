@@ -2,6 +2,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { getCurrentUser } from "~/lib/auth";
 import { AdminHeader, AdminTabs, MrrScoreboard, SectionError, SectionLoading, timeFmt } from "~/components/AdminShared";
+import { WarmLeadsCard } from "~/components/WarmLeadsCard";
 
 /**
  * /admin/outreach — approve the day's "Open bid near you" emails (owner
@@ -113,6 +114,8 @@ function OutreachPage() {
         </p>
         {error && <SectionError message={error} />}
         {notice && <div className="rounded-2xl border border-green-200 bg-green-50 p-4 text-sm text-green-800">{notice}</div>}
+
+        <WarmLeadsCard />
 
         <section className="rounded-2xl border border-slate-200 bg-white p-5">
           <h2 className="text-lg font-bold text-slate-900">Mailing address</h2>

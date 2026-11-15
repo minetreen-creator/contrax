@@ -82,6 +82,13 @@ export const PLANETBIDS_BOARDS: readonly PlanetbidsBoard[] = [
   { source: "ca_central_san_planetbids", cid: 14663, agency: "Central Contra Costa Sanitary District", location: "Contra Costa County, CA", idPrefix: "centralsanplanetbids" },
   { source: "ca_fresno_planetbids", cid: 14769, agency: "City of Fresno", location: "Fresno, CA", idPrefix: "fresnoplanetbids" },
   { source: "ca_smud_planetbids", cid: 73214, agency: "Sacramento Municipal Utility District", location: "Sacramento, CA", idPrefix: "smudplanetbids" },
+  // Owner 2026-11-15 ("yes to both": security guard bids are thin; transit, port and airport
+  // authorities buy guard work and post on their own portals). Portal ids are from each agency's own
+  // public bid notices; the first sync after this change is their first read.
+  { source: "ca_long_beach_transit_planetbids", cid: 28908, agency: "Long Beach Transit", location: "Long Beach, CA", idPrefix: "longbeachtransitplanetbids" },
+  { source: "ca_nctd_planetbids", cid: 20134, agency: "North County Transit District", location: "San Diego County, CA", idPrefix: "nctdplanetbids" },
+  { source: "ca_port_of_long_beach_planetbids", cid: 19236, agency: "Port of Long Beach", location: "Long Beach, CA", idPrefix: "portoflongbeachplanetbids" },
+  { source: "ca_burbank_airport_planetbids", cid: 21910, agency: "Burbank-Glendale-Pasadena Airport Authority", location: "Burbank, CA", idPrefix: "burbankairportplanetbids" },
 ];
 
 export interface PlanetbidsBid {

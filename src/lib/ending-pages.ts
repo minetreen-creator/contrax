@@ -13,6 +13,11 @@ import { US_STATES } from "~/lib/states";
 
 /** The six trades that get a page in every state. */
 export const ENDING_TRADES = ["janitorial", "hvac", "construction", "landscaping", "security-guard", "it-services"] as const;
+/**
+ * Trades whose state pages show ending contracts above the open bids (owner 2026-11-15: security
+ * guard bids "are very thin"). Guard contracts run for years, so few are open at any moment.
+ */
+export const ENDING_FIRST_TRADES = ["security-guard"] as const;
 /** Shown to everyone. */
 export const ENDING_FREE_ROWS = 5;
 export const ENDING_FREE_BIDS = 2;

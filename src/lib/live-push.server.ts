@@ -14,7 +14,7 @@
  */
 import webpush from "web-push";
 import { sql } from "~/db";
-import { alertText, chatReplyAlertText, hotAlertText, subscriptionExpired, type PushSubscriptionInput } from "~/lib/live-push";
+import { alertText, chatReplyAlertText, hotAlertText, repeatUpgradeEligible, repeatUpgradeText, subscriptionExpired, type PushSubscriptionInput } from "~/lib/live-push";
 
 let ready: Promise<void> | null = null;
 function ensureTables(): Promise<void> {
@@ -185,6 +185,39 @@ export async function alertHotLead(v: {
     await sql()`UPDATE visit_alerts SET sent = ${sent} WHERE visitor_id = ${v.visitorId} AND visit_id = ${key}`;
   } catch (err) {
     console.error("[live-push] hot-lead alert failed (non-fatal):", err);
+  }
+}
+
+/**
+ * A signed-in account with no paid plan is back on a buy page after looking on an earlier visit
+ * (rules and wording in live-push.ts). One push per account per day, claimed in visit_alerts.
+ * Never throws.
+ */
+export async function alertRepeatUpgrade(v: { userId: string; visitId: string; city: string | null; region: string | null }): Promise<void> {
+  try {
+    const id = Number(v.userId);
+    if (!Number.isInteger(id) || id <= 0) return;
+    await ensureTables();
+    const subs = (await sql()`SELECT id, endpoint, p256dh, auth FROM push_subscriptions WHERE enabled`) as { id: number; endpoint: string; p256dh: string; auth: string }[];
+    if (!subs.length) return;
+    const [earlier, account] = await Promise.all([
+      sql()`SELECT COUNT(DISTINCT visit_id)::int AS n FROM page_views
+            WHERE user_id = ${v.userId} AND visit_id IS NOT NULL AND visit_id <> ${v.visitId} AND (path LIKE '/upgrade%' OR path LIKE '/pricing%')`,
+      sql()`SELECT subscription_status, full_access, plan_tier FROM users WHERE id = ${id}`,
+    ]);
+    const earlierVisits = Number((earlier as { n: number }[])[0]?.n ?? 0);
+    if (!repeatUpgradeEligible((account as { subscription_status: string | null; full_access: boolean | null; plan_tier: string | null }[])[0], earlierVisits)) return;
+    const day = new Date().toISOString().slice(0, 10);
+    const key = `${v.userId}#${day}`;
+    const claimed = (await sql()`
+      INSERT INTO visit_alerts (visitor_id, visit_id) VALUES ('upgrade-repeat', ${key})
+      ON CONFLICT DO NOTHING RETURNING visitor_id
+    `) as unknown[];
+    if (!claimed.length) return;
+    const sent = await sendTo(subs, repeatUpgradeText({ userId: v.userId, day, city: v.city, region: v.region, earlierVisits }));
+    await sql()`UPDATE visit_alerts SET sent = ${sent} WHERE visitor_id = 'upgrade-repeat' AND visit_id = ${key}`;
+  } catch (err) {
+    console.error("[live-push] repeat-upgrade alert failed (non-fatal):", err);
   }
 }
 

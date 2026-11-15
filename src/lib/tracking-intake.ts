@@ -803,6 +803,12 @@ export async function handleIntake(request: Request, kindOverride?: IntakeKind, 
         if (hotPushPage(pagePath)) {
           await alertHotLead({ visitorId, visitId, path: pagePath, city: ctx.city, region: ctx.region, device: ctx.device_type });
         }
+        // Owner 2026-11-15: a signed-in account back on a buy page without a plan.
+        const { repeatUpgradePage } = await import("~/lib/live-push");
+        if (userId && repeatUpgradePage(pagePath)) {
+          const { alertRepeatUpgrade } = await import("~/lib/live-push.server");
+          await alertRepeatUpgrade({ userId, visitId, city: ctx.city, region: ctx.region });
+        }
       }
     }
 

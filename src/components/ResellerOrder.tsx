@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { PARTNER_MAX_CLIENTS, PARTNER_VOLUME_AT, partnerMonthlyCents, partnerUnitCents } from "~/lib/reseller";
+import { PARTNER_MAX_CLIENTS, PARTNER_SLA, PARTNER_VOLUME_AT, partnerMonthlyCents, partnerUnitCents } from "~/lib/reseller";
 import { trackEvent } from "~/lib/track";
 
 const field = "mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900";
@@ -41,7 +41,7 @@ export function ResellerOrder() {
   if (outcome === "started") {
     return (
       <p role="status" className="mt-5 rounded-lg bg-emerald-50 p-4 text-sm font-semibold text-emerald-900">
-        You are signed up. We will email you today to ask for each client's state and line of work, and the first reports follow within 2 business days.
+        You are signed up. We will email you to ask for each client's state and line of work, and each report follows within {PARTNER_SLA} of your reply.
       </p>
     );
   }

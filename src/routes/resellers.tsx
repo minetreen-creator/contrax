@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ResellerOrder } from "~/components/ResellerOrder";
 import { SiteHeader } from "~/components/SiteHeader";
-import { PARTNER_PRICE, PARTNER_RETAIL, PARTNER_VOLUME_AT, PARTNER_VOLUME_PRICE } from "~/lib/reseller";
+import { PARTNER_CLIENT_PROMISE, PARTNER_PRICE, PARTNER_RETAIL, PARTNER_SLA, PARTNER_VOLUME_AT, PARTNER_VOLUME_PRICE } from "~/lib/reseller";
 import { seoHead } from "~/lib/seo-landing";
 
 /**
@@ -57,8 +57,18 @@ function Resellers() {
           <ul className="mt-5 list-disc space-y-1 pl-5 text-sm">
             <li>Month to month. Add or remove clients by email; the bill follows.</li>
             <li>Nothing to build. Tell us each client's state and line of work and we prepare the report under your name.</li>
-            <li>First reports within 2 business days. Contract data comes from USAspending.gov public records.</li>
+            <li>Send us a new client's state and line of work and their report is ready within {PARTNER_SLA}, then again every month.</li>
+            <li>Contract data comes from USAspending.gov public records.</li>
           </ul>
+
+          <div className="mt-8 rounded-2xl border border-slate-200 bg-slate-50 p-6">
+            <h2 className="text-lg font-bold text-slate-900">Your clients stay yours</h2>
+            <p className="mt-2 text-sm">{PARTNER_CLIENT_PROMISE}</p>
+            <p className="mt-2 text-sm">
+              You do not have to tell us who a client is: a state and a line of work are enough to build the report. If you do name a client, we
+              put them on our do-not-contact list so none of our own emails can reach them.
+            </p>
+          </div>
 
           <div id="order" className="mt-10 scroll-mt-6 rounded-2xl border border-amber-300 bg-amber-50 p-6">
             <h2 className="text-xl font-bold text-slate-900">Start with your first clients</h2>

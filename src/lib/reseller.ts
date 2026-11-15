@@ -16,6 +16,14 @@ export const PARTNER_VOLUME_PRICE = "$149";
 /** What a firm typically charges its client for a deliverable like this. Contrax sells it direct for $499. */
 export const PARTNER_RETAIL = "$400 to $500";
 export const PARTNER_MAX_CLIENTS = 200;
+/**
+ * The two promises a partner is given before they pay (owner 2026-11-15, "operational checklist
+ * before pressing send"). The page, the preview, the email and the owner's notice all read these.
+ * SLA: how fast a report is ready once the firm sends a new client's state and line of work.
+ */
+export const PARTNER_SLA = "1 business day";
+/** Client ownership. Kept true by the owner: any client a partner names goes on Do not contact. */
+export const PARTNER_CLIENT_PROMISE = "Your clients stay yours. Every report goes to you, not to them, and we never contact, market to or solicit your clients.";
 
 export const partnerUnitCents = (clients: number) => (clients >= PARTNER_VOLUME_AT ? PARTNER_VOLUME_PRICE_CENTS : PARTNER_PRICE_CENTS);
 export const partnerMonthlyCents = (clients: number) => clients * partnerUnitCents(clients);
@@ -92,7 +100,8 @@ export function partnerNotice(o: PartnerOrder, moment: PartnerMoment, ref: strin
         `A reseller subscription started: ${o.clients} client${o.clients === 1 ? "" : "s"} at ${each} each, ${month} a month.`,
         `Firm: ${o.firm}`,
         `Contact: ${o.email}`,
-        "Next: reply and ask for each client's state and line of work, then prepare each report under the firm's name.",
+        `Next: reply and ask for each client's state and line of work, then prepare each report under the firm's name. Promised: each report within ${PARTNER_SLA} of getting a client's details.`,
+        "Also promised: we never contact their clients. Add any client they name to Do not contact on /admin/outreach.",
         `Stripe: ${ref}`,
       ].join("\n\n"),
       title: `💰 New partner: ${month} a month`,

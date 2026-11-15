@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { awardUrl, formatDollars } from "~/lib/federal-trade-data";
 import type { ReportData } from "~/lib/pipeline-report-data.server";
-import { PARTNER_MARKETS, PARTNER_PRICE, PARTNER_VOLUME_AT, PARTNER_VOLUME_PRICE, partnerMarket, partnerSlug, type PartnerMarket } from "~/lib/reseller";
+import { PARTNER_CLIENT_PROMISE, PARTNER_MARKETS, PARTNER_PRICE, PARTNER_SLA, PARTNER_VOLUME_AT, PARTNER_VOLUME_PRICE, partnerMarket, partnerSlug, type PartnerMarket } from "~/lib/reseller";
 
 /**
  * /partner-preview/{firm} — how the monthly report looks under a firm's own name (owner
@@ -137,8 +137,9 @@ function PartnerPreview() {
         <div className="mx-auto max-w-4xl">
           <h2 className="text-xl font-bold">Give this to each of your clients, every month, under your name</h2>
           <p className="mt-2 text-sm text-slate-300">
-            {PARTNER_PRICE} per client per month, or {PARTNER_VOLUME_PRICE} per client from {PARTNER_VOLUME_AT} clients. You set what your clients pay. Month to month. Source: USAspending.gov contract records.
+            {PARTNER_PRICE} per client per month, or {PARTNER_VOLUME_PRICE} per client from {PARTNER_VOLUME_AT} clients. You set what your clients pay. Month to month. A new client's report is ready within {PARTNER_SLA}. Source: USAspending.gov contract records.
           </p>
+          <p className="mt-2 text-sm text-slate-300">{PARTNER_CLIENT_PROMISE}</p>
           <a href="/resellers" className="mt-5 inline-block rounded-xl bg-amber-500 px-6 py-3 text-sm font-bold text-slate-950 hover:bg-amber-400">See how it works and what you keep →</a>
         </div>
       </section>

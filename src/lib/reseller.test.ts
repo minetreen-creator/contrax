@@ -62,3 +62,19 @@ test("checkout bills per client through Stripe, its events stay off the plan tie
   expect(page).toContain("<ResellerOrder />");
   expect(page).toContain("{PARTNER_RETAIL} a month");
 });
+
+// Owner 2026-11-15 ("operational checklist before pressing send"): a stated turnaround and a
+// promise never to solicit a partner's clients, on the page, the preview and the owner's notice.
+test("the turnaround and the client-ownership promise are stated wherever a partner decides", async () => {
+  const { PARTNER_CLIENT_PROMISE, PARTNER_SLA } = await import("./reseller");
+  expect(PARTNER_SLA).toBe("1 business day");
+  expect(PARTNER_CLIENT_PROMISE).toContain("we never contact, market to or solicit your clients");
+  const page = readFileSync("src/routes/resellers.tsx", "utf8");
+  expect(page).toContain("{PARTNER_CLIENT_PROMISE}");
+  expect(page).toContain("within {PARTNER_SLA}");
+  expect(page).toContain("do-not-contact list");
+  expect(readFileSync("src/routes/partner-preview.$firm.tsx", "utf8")).toContain("{PARTNER_CLIENT_PROMISE}");
+  const n = partnerNotice({ email: "a@b.co", firm: "Acme", clients: 3 }, "started", "cs_2");
+  expect(n.text).toContain("within 1 business day");
+  expect(n.text).toContain("Add any client they name to Do not contact");
+});

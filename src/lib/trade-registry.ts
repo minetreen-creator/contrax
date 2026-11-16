@@ -2310,12 +2310,15 @@ export function verifyTradePrecision(): void {
       "Trucking/Hauling",
     '"freight" text hit must resolve to the Trucking/Hauling trade',
   );
-  // "freight delivery" → the freight-delivery sub-term EXACTLY (six codes) with
-  // NO 488510 — the old stem-on-"freight" no longer inherits Logistics.
+  // "freight delivery" → the freight-delivery sub-term EXACTLY with NO 488510 — the old
+  // stem-on-"freight" no longer inherits Logistics. Seven codes since the owner added the
+  // postal code 491110 for USPS mail routes on 2026-10-16; this check still said six, so it
+  // threw here and nothing below it ran for a month (found 2026-11-16).
   const fdExact = expandTrade("freight delivery");
+  const fdWant = ["492110", "484110", "484121", "484122", "484220", "484230", "491110"];
   assert(
-    fdExact.naicsCodes.length === 6 && !fdExact.naicsCodes.includes("488510"),
-    '"freight delivery" must be EXACTLY the six freight codes with NO 488510 — got ' +
+    fdExact.naicsCodes.length === fdWant.length && fdWant.every((c) => fdExact.naicsCodes.includes(c)) && !fdExact.naicsCodes.includes("488510"),
+    '"freight delivery" must be EXACTLY the six freight codes plus postal 491110, with NO 488510 — got ' +
       JSON.stringify(fdExact.naicsCodes),
   );
   // Other carrier-intent freight phrases stay trucking-only, no 488510.

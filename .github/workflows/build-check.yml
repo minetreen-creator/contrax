@@ -161,7 +161,7 @@ jobs:
       # (src/jobs/sources/fixtures/sam-trades/), and the per-opportunity detail
       # fetcher is INJECTED. No DATABASE_URL is required.
       - name: Janitorial + trucking ingestion tests (unit, deterministic, zero network)
-        run: bun test src/jobs/sources/sam-gov-trades.test.ts src/lib/janitorial-trucking.test.ts
+        run: bun test src/jobs/sources/sam-gov-trades.test.ts src/lib/janitorial-trucking.test.ts src/lib/trade-precision.test.ts src/lib/goods-search.test.ts
       # THE NIGHTLY SAM CSV IMPORT + THE SET-ASIDE LABEL CONTRACT (engineer flag,
       # 2026-10-19). Both suites existed and passed locally but NO workflow named them,
       # so they ran nowhere — the same way runner.dedupe.test.ts went unrun for weeks.

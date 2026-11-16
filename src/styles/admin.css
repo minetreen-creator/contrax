@@ -375,3 +375,7 @@
   .admin-console .mc-tile-value { font-size: 24px; }
   .admin-console .mc-tile-icon { width: 32px; height: 32px; }
 }
+/* The picture's top bar: the logo leads and the page name sits small beside it (owner's screenshot
+   2026-11-16 showed the admin-wide h1 size making "Mission control" tower over the logo). */
+.admin-console main .mc-topbar h1 { font-size: 15px; line-height: 1.2; letter-spacing: 0; font-weight: 600; color: #cbd5e1; }
+.admin-console .mc-topbar img { height: 30px; }

@@ -250,13 +250,28 @@ export type HolderTier = "report" | "managed";
 export function holderTier(total: number, states: number): HolderTier {
   return total >= HOLDER_MANAGED_MIN_TOTAL || states >= HOLDER_MANAGED_MIN_STATES ? "managed" : "report";
 }
-/** What a holder row keeps in `buyer`: the page query, the offer and the agency of its own contract. PURE. */
-export function packHolder(query: string, tier: HolderTier, agency: string | null): string {
-  return [query, tier, (agency ?? "").replace(/\|/g, " ").trim()].join("|");
+/**
+ * What the email is built on. "ending": the company's contract ends and the agency buys the work
+ * again (services such as janitorial). "open": the bids open in its state today. Construction gets
+ * "open" (owner 2026-11-16): a construction contract ending means the job is finished, not that it
+ * goes back out to bid, so the "ending" email would say something untrue.
+ */
+export type HolderMode = "ending" | "open";
+export const HOLDER_OPEN_TRADES: readonly string[] = ["construction"];
+export const holderMode = (trade: string): HolderMode => (HOLDER_OPEN_TRADES.includes(trade) ? "open" : "ending");
+/** What a holder row keeps in `buyer`: the page query, the offer, the agency of its own contract and the mode. PURE. */
+export function packHolder(query: string, tier: HolderTier, agency: string | null, mode: HolderMode = "ending"): string {
+  return [query, tier, (agency ?? "").replace(/\|/g, " ").trim(), mode].join("|");
 }
-export function unpackHolder(buyer: string | null | undefined): { query: string; tier: HolderTier; agency: string | null } {
-  const [query = "", tier = "", agency = ""] = String(buyer ?? "").split("|");
-  return { query, tier: tier === "managed" ? "managed" : "report", agency: agency.trim() || null };
+export function unpackHolder(buyer: string | null | undefined): { query: string; tier: HolderTier; agency: string | null; mode: HolderMode } {
+  const [query = "", tier = "", agency = "", mode = ""] = String(buyer ?? "").split("|");
+  return { query, tier: tier === "managed" ? "managed" : "report", agency: agency.trim() || null, mode: mode === "open" ? "open" : "ending" };
+}
+/** The open-bids page a holder email in "open" mode links: /contracts-in/{state}/{trade}. PURE. */
+export function holderOpenPath(query: string | null | undefined): string {
+  const m = /^trade=([a-z-]{2,30})&state=([A-Z]{2})$/.exec((query ?? "").trim());
+  const name = m ? STATE_NAMES[m[2]] : null;
+  return m && name ? `/contracts-in/${name.toLowerCase().replace(/\s+/g, "-")}/${m[1]}` : "/radar";
 }
 
 /** The Contracts Ending Soon view a teams email points at, from the "trade=…&state=…" kept on the row. PURE. */
@@ -505,33 +520,59 @@ export function outreachEmail(i: OutreachEmailInput): { subject: string; text: s
     const h = unpackHolder(i.buyer);
     const place = (i.place ?? "").trim() || "your state";
     const agency = h.agency ?? "a federal agency";
-    subject = `Your ${h.agency ?? `federal ${i.tradeLabel}`} contract ends ${due}`.slice(0, 140);
-    const offer = h.tier === "managed"
-      ? [
-          `For a company with work in several places, Contrax Managed does this every month: it rebuilds the report for each state you work in and briefs you on each new bid that fits. It is ${MANAGED_PRICE} a month, month to month:`,
-          link("/teams", i.kind, i.contactId),
-          "",
-          `If you would rather start smaller, the report for one state is a one-time ${REPORT_PRICE}, emailed within ${REPORT_DELIVERY}. Here is a real one to read first:`,
-          link("/sample-report", i.kind, i.contactId),
-        ]
-      : [
-          `The full report for ${place} lists the 25 largest, the agencies with the most work ending, the companies holding the most of it, what contracts like these were awarded for and the open bids that fit. It marks the contracts that were awarded without open bidding, so you can see which ones are open to compete for.`,
-          "",
-          `It is a one-time ${REPORT_PRICE}, emailed within ${REPORT_DELIVERY}. Here is a real one to read first:`,
-          link("/sample-report", i.kind, i.contactId),
-        ];
-    body = [
-      "Hi,",
+    const trade = i.tradeLabel.toLowerCase();
+    const managed = (lead: string) => [
+      `${lead} Contrax Managed does this every month: it rebuilds the report for each state you work in and briefs you on each new bid that fits. It is ${MANAGED_PRICE} a month, month to month:`,
+      link("/teams", i.kind, i.contactId),
       "",
-      `Federal records show ${i.business} holds a ${i.tradeLabel} contract with ${agency} that ends ${due}. When a contract ends, the agency usually buys the work again, so this is for whoever handles your government sales.`,
-      "",
-      `${i.bidTitle}. This page shows the largest ones, the company that holds each one now, the agency and the end date. That is usually months before a new solicitation is posted:`,
-      link(teamsReportPath(h.query), i.kind, i.contactId),
-      "",
-      ...offer,
-      "",
-      "I'm Nathaniel, and I run Contrax. We prepare these reports for companies that pursue government contracts.",
+      `If you would rather start smaller, the report for one state is a one-time ${REPORT_PRICE}, emailed within ${REPORT_DELIVERY}. Here is a real one to read first:`,
+      link("/sample-report", i.kind, i.contactId),
     ];
+    const sign = "I'm Nathaniel, and I run Contrax. We prepare these reports for companies that pursue government contracts.";
+    if (h.mode === "open") {
+      // bidTitle = "N construction bids are open in State today", counted the way the linked page counts.
+      subject = i.bidTitle.slice(0, 140);
+      const offer = h.tier === "managed"
+        ? managed("For a company with work in several places,")
+        : [
+            `If you want the whole market laid out, the one-time report for ${place} shows which federal agencies buy the most ${trade} there, the companies winning it, what jobs like these were awarded for and the open bids that fit. It is ${REPORT_PRICE}, emailed within ${REPORT_DELIVERY}. Here is a real one to read first:`,
+            link("/sample-report", i.kind, i.contactId),
+          ];
+      body = [
+        "Hi,",
+        "",
+        `Federal records show ${i.business} holds a ${trade} contract with ${agency} in ${place}, so this is for whoever finds your next job.`,
+        "",
+        `${i.bidTitle}, from federal, state, city, county and school buyers, in one list:`,
+        link(holderOpenPath(h.query), i.kind, i.contactId),
+        "",
+        ...offer,
+        "",
+        sign,
+      ];
+    } else {
+      subject = `Your ${h.agency ?? `federal ${i.tradeLabel}`} contract ends ${due}`.slice(0, 140);
+      const offer = h.tier === "managed"
+        ? managed("For a company with work in several places,")
+        : [
+            `The full report for ${place} lists the 25 largest, the agencies with the most work ending, the companies holding the most of it, what contracts like these were awarded for and the open bids that fit. It marks the contracts that were awarded without open bidding, so you can see which ones are open to compete for.`,
+            "",
+            `It is a one-time ${REPORT_PRICE}, emailed within ${REPORT_DELIVERY}. Here is a real one to read first:`,
+            link("/sample-report", i.kind, i.contactId),
+          ];
+      body = [
+        "Hi,",
+        "",
+        `Federal records show ${i.business} holds a ${i.tradeLabel} contract with ${agency} that ends ${due}. When a contract ends, the agency usually buys the work again, so this is for whoever handles your government sales.`,
+        "",
+        `${i.bidTitle}. This page shows the largest ones, the company that holds each one now, the agency and the end date. That is usually months before a new solicitation is posted:`,
+        link(teamsReportPath(h.query), i.kind, i.contactId),
+        "",
+        ...offer,
+        "",
+        sign,
+      ];
+    }
   } else if (i.kind === "buyer") {
     // Owner 2026-11-14 ("thinking outside the box" → idea 2): once a bid has
     // gone out to local contractors, tell its buyer. It reports something

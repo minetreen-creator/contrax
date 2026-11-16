@@ -16,8 +16,10 @@ describe("holder emails", () => {
     expect(holderTier(12_000_000, 1)).toBe("managed");
     expect(holderTier(2_000_000, 3)).toBe("managed");
     const packed = packHolder("trade=janitorial&state=NY", "managed", "Public Buildings | Service");
-    expect(unpackHolder(packed)).toEqual({ query: "trade=janitorial&state=NY", tier: "managed", agency: "Public Buildings   Service" });
-    expect(unpackHolder(null)).toEqual({ query: "", tier: "report", agency: null });
+    expect(unpackHolder(packed)).toEqual({ query: "trade=janitorial&state=NY", tier: "managed", agency: "Public Buildings   Service", mode: "ending" });
+    expect(unpackHolder(null)).toEqual({ query: "", tier: "report", agency: null, mode: "ending" });
+    // Rows queued before the mode existed have three parts and stay "ending".
+    expect(unpackHolder("trade=janitorial&state=NY|report|GSA").mode).toBe("ending");
   });
 
   test("the report email opens with their own contract and names only the one-time price", async () => {
@@ -50,5 +52,28 @@ describe("holder emails", () => {
     expect(job).toContain("emailFitsSite(e, host, h.name)");
     expect(job).toContain("isNewAddress(email)");
     expect(readFileSync(".github/workflows/holders-outreach.yml", "utf8")).toContain("APPLY: ${{ inputs.apply && 'true' || 'false' }}");
+  });
+
+  // A construction contract ending means the job is finished, not that it goes back out to bid.
+  test("construction is built on the bids open today and never says the contract will be bought again", async () => {
+    const { outreachEmail, packHolder, holderMode, holderOpenPath } = await import("./outreach");
+    expect(holderMode("construction")).toBe("open");
+    expect(holderMode("janitorial")).toBe("ending");
+    expect(holderOpenPath("trade=construction&state=VA")).toBe("/contracts-in/virginia/construction");
+    expect(holderOpenPath("nonsense")).toBe("/radar");
+    const input = { ...base, tradeLabel: "Construction", place: "Virginia", bidTitle: "214 construction bids are open in Virginia today" };
+    const e = outreachEmail({ ...input, buyer: packHolder("trade=construction&state=VA", "report", "Department of the Navy", "open") });
+    expect(e.subject).toBe("214 construction bids are open in Virginia today");
+    expect(e.text).toContain("holds a construction contract with Department of the Navy in Virginia");
+    expect(e.text).toContain("/contracts-in/virginia/construction?");
+    expect(e.text).toContain("It is $149");
+    expect(e.text).not.toContain("buys the work again");
+    expect(e.text).not.toContain("ends Mar 31");
+    expect(e.text).not.toContain("$499");
+    const big = outreachEmail({ ...input, buyer: packHolder("trade=construction&state=VA", "managed", null, "open") });
+    expect(big.text.indexOf("$499 a month")).toBeGreaterThan(0);
+    expect(big.text.indexOf("$499 a month")).toBeLessThan(big.text.indexOf("one-time $149"));
+    const { readFileSync } = require("node:fs") as typeof import("node:fs");
+    expect(readFileSync("src/jobs/holders-outreach.ts", "utf8")).toContain("stateRadarMatches(db, { trade: tradeRow.radarTerm, state: st })");
   });
 });

@@ -23,7 +23,7 @@ export const Route = createFileRoute("/admin/outreach")({
 interface Draft {
   id: number;
   email: string;
-  kind: "first" | "followup" | "prime" | "leads" | "pack" | "buyer" | "teams" | "warm" | "partner";
+  kind: "first" | "followup" | "prime" | "leads" | "pack" | "buyer" | "teams" | "warm" | "partner" | "holder";
   business: string;
   website: string | null;
   bid_title: string;
@@ -203,7 +203,7 @@ function OutreachPage() {
                       <p className="text-sm font-semibold text-slate-900">
                         {d.business}{" "}
                         <span className={`ml-1 rounded-full px-2 py-0.5 text-xs ${d.kind === "followup" ? "bg-amber-100 text-amber-800" : d.kind === "prime" ? "bg-emerald-50 text-emerald-700" : d.kind === "leads" ? "bg-violet-50 text-violet-700" : d.kind === "pack" ? "bg-orange-50 text-orange-700" : d.kind === "buyer" ? "bg-slate-100 text-slate-700" : d.kind === "teams" ? "bg-indigo-50 text-indigo-700" : "bg-blue-50 text-blue-700"}`}>
-                          {d.kind === "partner" ? "Reseller: report under their name" : d.kind === "warm" ? "Warm lead: personal note" : d.kind === "followup" ? "Follow-up" : d.kind === "prime" ? "Prime: free sub list" : d.kind === "leads" ? "Award Leads: free state list" : d.kind === "pack" ? "Bid Pack: free sample" : d.kind === "buyer" ? "Buyer note: bid sent to contractors" : d.kind === "teams" ? "Teams: contracts ending in their state" : "First email"}
+                          {d.kind === "holder" ? "Contract holder: their contract is ending" : d.kind === "partner" ? "Reseller: report under their name" : d.kind === "warm" ? "Warm lead: personal note" : d.kind === "followup" ? "Follow-up" : d.kind === "prime" ? "Prime: free sub list" : d.kind === "leads" ? "Award Leads: free state list" : d.kind === "pack" ? "Bid Pack: free sample" : d.kind === "buyer" ? "Buyer note: bid sent to contractors" : d.kind === "teams" ? "Teams: contracts ending in their state" : "First email"}
                         </span>
                       </p>
                       <p className="text-xs text-slate-500">
@@ -216,7 +216,9 @@ function OutreachPage() {
                         )}
                       </p>
                       <p className="mt-1 text-sm text-slate-700">
-                        {d.kind === "partner"
+                        {d.kind === "holder"
+                          ? `${d.trade_label} · ${d.place ?? "—"} · holds a contract ending soon · ${d.bid_title}`
+                          : d.kind === "partner"
                           ? "Serves government contractors: could resell the monthly report to its clients"
                           : d.kind === "warm"
                           ? "Has an account, looked at the plans and did not buy"
@@ -278,7 +280,7 @@ function OutreachPage() {
               {data.recent.map((r) => (
                 <li key={r.id} className="flex flex-wrap justify-between gap-2 py-2">
                   <span>
-                    {r.business} <span className="text-slate-500">({r.email})</span> · {r.kind === "partner" ? "reseller" : r.kind === "warm" ? "warm lead" : r.kind === "followup" ? "follow-up" : r.kind === "prime" ? "prime" : r.kind === "leads" ? "award leads" : r.kind === "pack" ? "bid pack" : r.kind === "buyer" ? "buyer note" : r.kind === "teams" ? "teams" : "first"}
+                    {r.business} <span className="text-slate-500">({r.email})</span> · {r.kind === "holder" ? "contract holder" : r.kind === "partner" ? "reseller" : r.kind === "warm" ? "warm lead" : r.kind === "followup" ? "follow-up" : r.kind === "prime" ? "prime" : r.kind === "leads" ? "award leads" : r.kind === "pack" ? "bid pack" : r.kind === "buyer" ? "buyer note" : r.kind === "teams" ? "teams" : "first"}
                   </span>
                   <span className={r.status === "failed" ? "text-red-700" : "text-slate-500"}>
                     {r.status === "failed" ? `failed: ${r.error ?? ""}` : r.sent_at ? timeFmt(r.sent_at) : ""}

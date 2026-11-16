@@ -1,0 +1,54 @@
+name: Holders Outreach
+
+# Owner 2026-11-16: emails for bigger contractors, found as the companies that
+# hold an openly bid federal contract ending in the next 12 months in one trade
+# (src/jobs/holders-outreach.ts). SENDS NOTHING: it queues drafts the owner
+# approves on /admin/outreach. Run by hand; without apply it only prints.
+
+on:
+  workflow_dispatch:
+    inputs:
+      trade:
+        description: "Trade slug (janitorial, construction, hvac, security-guard, ...)"
+        type: string
+        required: true
+      state:
+        description: "State, two letters (blank = every state)"
+        type: string
+        default: ""
+      apply:
+        description: "Queue the drafts (leave off for a dry run)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: outreach-prepare
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  holders:
+    name: Queue holder emails
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      STATE: ${{ inputs.state }}
+      TRADE: ${{ inputs.trade }}
+      APPLY: ${{ inputs.apply && 'true' || 'false' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Holders outreach
+        run: bun run holders-outreach

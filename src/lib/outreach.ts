@@ -1,6 +1,6 @@
 import { STATE_NAMES } from "~/lib/contract-map";
 import { ENDING_TRADES, endingPath } from "~/lib/ending-pages";
-import { REPORT_PRICE } from "~/lib/pipeline-report";
+import { REPORT_DELIVERY, REPORT_PRICE } from "~/lib/pipeline-report";
 import { PARTNER_CLIENT_PROMISE, PARTNER_MARKETS, PARTNER_PRICE, PARTNER_RETAIL, PARTNER_SLA, PARTNER_VOLUME_AT, PARTNER_VOLUME_PRICE, partnerMarket, partnerSlug } from "~/lib/reseller";
 import { TRADEMARK_LINE } from "~/lib/trademark";
 import { WARM_SUBJECT, warmLeadLines } from "~/lib/warm-leads";
@@ -232,7 +232,32 @@ export function outreachRoomToday(sentToday: number, cap: number = DAILY_OUTREAC
 }
 
 /** "pack" (owner 2026-11-14): a construction first email that offers a free Bid Pack, not the $5 pass. */
-export type OutreachKind = "first" | "followup" | "prime" | "leads" | "pack" | "buyer" | "teams" | "warm" | "partner";
+export type OutreachKind = "first" | "followup" | "prime" | "leads" | "pack" | "buyer" | "teams" | "warm" | "partner" | "holder";
+
+/**
+ * Holder emails (owner 2026-11-16: "we need to reach agencies" = bigger contractors, "go with the
+ * $149 bridge", then "maybe find bigger companies for the $499 offer too"). A company that holds an
+ * openly bid federal contract ending in the next 12 months is a mid-size contractor by definition.
+ * The email opens with its own contract and end date, both from the federal record. Most get the
+ * one-time report; a holder with this much ending, or work in several states, gets the monthly
+ * plan first and the report as the smaller start.
+ */
+export const HOLDER_MIN_TOTAL = 1_000_000;
+export const HOLDER_MANAGED_MIN_TOTAL = 10_000_000;
+export const HOLDER_MANAGED_MIN_STATES = 3;
+export const MANAGED_PRICE = "$499";
+export type HolderTier = "report" | "managed";
+export function holderTier(total: number, states: number): HolderTier {
+  return total >= HOLDER_MANAGED_MIN_TOTAL || states >= HOLDER_MANAGED_MIN_STATES ? "managed" : "report";
+}
+/** What a holder row keeps in `buyer`: the page query, the offer and the agency of its own contract. PURE. */
+export function packHolder(query: string, tier: HolderTier, agency: string | null): string {
+  return [query, tier, (agency ?? "").replace(/\|/g, " ").trim()].join("|");
+}
+export function unpackHolder(buyer: string | null | undefined): { query: string; tier: HolderTier; agency: string | null } {
+  const [query = "", tier = "", agency = ""] = String(buyer ?? "").split("|");
+  return { query, tier: tier === "managed" ? "managed" : "report", agency: agency.trim() || null };
+}
 
 /** The Contracts Ending Soon view a teams email points at, from the "trade=…&state=…" kept on the row. PURE. */
 export function teamsRecompetesPath(query: string | null | undefined): string {
@@ -470,6 +495,40 @@ export function outreachEmail(i: OutreachEmailInput): { subject: string; text: s
       `That page is the short version. The full report for ${place} adds the 25 largest contracts, the agencies with the most work ending, the companies holding the most of it and which of them must subcontract to small businesses, and the open bids that fit. It normally costs ${REPORT_PRICE}. I'm sending it free to the first ${TEAMS_FREE_REPORTS} companies that ask.`,
       "",
       `Reply "report" and I'll email yours within one business day.`,
+      "",
+      "I'm Nathaniel, and I run Contrax. We prepare these reports for companies that pursue government contracts.",
+    ];
+  } else if (i.kind === "holder") {
+    // Owner 2026-11-16: bigger contractors, $149 first. bidTitle = the headline with the count of
+    // openly bid contracts; buyer = packHolder(...); due = the end date of the company's own
+    // contract; place = the state's name. Every fact is from the federal record.
+    const h = unpackHolder(i.buyer);
+    const place = (i.place ?? "").trim() || "your state";
+    const agency = h.agency ?? "a federal agency";
+    subject = `Your ${h.agency ?? `federal ${i.tradeLabel}`} contract ends ${due}`.slice(0, 140);
+    const offer = h.tier === "managed"
+      ? [
+          `For a company with work in several places, Contrax Managed does this every month: it rebuilds the report for each state you work in and briefs you on each new bid that fits. It is ${MANAGED_PRICE} a month, month to month:`,
+          link("/teams", i.kind, i.contactId),
+          "",
+          `If you would rather start smaller, the report for one state is a one-time ${REPORT_PRICE}, emailed within ${REPORT_DELIVERY}. Here is a real one to read first:`,
+          link("/sample-report", i.kind, i.contactId),
+        ]
+      : [
+          `The full report for ${place} lists the 25 largest, the agencies with the most work ending, the companies holding the most of it, what contracts like these were awarded for and the open bids that fit. It marks the contracts that were awarded without open bidding, so you can see which ones are open to compete for.`,
+          "",
+          `It is a one-time ${REPORT_PRICE}, emailed within ${REPORT_DELIVERY}. Here is a real one to read first:`,
+          link("/sample-report", i.kind, i.contactId),
+        ];
+    body = [
+      "Hi,",
+      "",
+      `Federal records show ${i.business} holds a ${i.tradeLabel} contract with ${agency} that ends ${due}. When a contract ends, the agency usually buys the work again, so this is for whoever handles your government sales.`,
+      "",
+      `${i.bidTitle}. This page shows the largest ones, the company that holds each one now, the agency and the end date. That is usually months before a new solicitation is posted:`,
+      link(teamsReportPath(h.query), i.kind, i.contactId),
+      "",
+      ...offer,
       "",
       "I'm Nathaniel, and I run Contrax. We prepare these reports for companies that pursue government contracts.",
     ];

@@ -102,3 +102,11 @@ describe("Mission Control, the picture's layout", () => {
     expect(readFileSync("src/routes/api/admin/live-console.ts", "utf8")).toContain("trend: await loadTrend(db),");
   });
 });
+
+// Owner's screenshot 2026-11-16: the admin-wide h1 size made the page name tower over the logo.
+test("the top bar's page name stays small beside the logo", () => {
+  const { readFileSync } = require("node:fs") as typeof import("node:fs");
+  const css = readFileSync("src/styles/admin.css", "utf8");
+  expect(css).toContain(".admin-console main .mc-topbar h1 { font-size: 15px;");
+  expect(css).toContain(".admin-console .mc-topbar img { height: 30px; }");
+});

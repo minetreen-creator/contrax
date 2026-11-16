@@ -3,6 +3,7 @@ import { HomeMaxProof } from "~/components/HomeMaxProof";
 import { createServerFn } from "@tanstack/react-start";
 import { readFile } from "node:fs/promises";
 import { ArrowRight } from "lucide-react";
+import { HomeBidPreview } from "~/components/HomeBidPreview";
 import { HomeContractFinder } from "~/components/HomeContractFinder";
 import { HomeStateMap } from "~/components/HomeStateMap";
 
@@ -192,6 +193,8 @@ function Home() {
       {/* Owner 2026-11-14 ("equal"): two customers, so the page opens with the choice between them,
           each with the same weight; the bid search follows as the do-it-yourself side's first step. */}
       <HomeChoice />
+      {/* Owner 2026-11-16: a real open bid per trade, the notice beside the brief, right under the hero. */}
+      <HomeBidPreview />
       <HomeContractFinder sample={sample} openTotal={contractMap?.totals?.totalOpen ?? 0} heading="h2" />
       <HomeExecutionLine />
       {/* Before/after proof (owner 2026-11-08): a real bid's notice next to Max's real answer. */}

@@ -40,7 +40,33 @@ export interface CockpitStats {
   topState: { code: string; count: number } | null;
   trades: CockpitTradeRow[];
   soonest: CockpitBid | null;
+  /**
+   * Owner 2026-11-16 (the dark dashboard): the dollar figures the open bids state, added up, and
+   * how many bids stated one. Most notices state none, so the tile always says "across N bids".
+   */
+  statedValue: { total: number; count: number };
+  /** Open bids closing in each of the next six weeks, this week first. */
+  byWeek: { label: string; count: number }[];
+  /** The five open bids closing soonest, with whole days left. */
+  top: (CockpitBid & { daysLeft: number })[];
 }
+
+/**
+ * The dollar amount a bid states, or null when it states none ("Not specified", blank). A range
+ * counts as its lower figure, so the total is never more than the notices say. PURE.
+ */
+export function parseStatedValue(v: string | null | undefined): number | null {
+  const m = /\$\s?(\d[\d,]*(?:\.\d+)?)\s*(k|m|b|thousand|million|billion)?\b/i.exec(String(v ?? ""));
+  if (!m) return null;
+  const n = Number(m[1].replace(/,/g, ""));
+  if (!Number.isFinite(n) || n <= 0) return null;
+  const unit = (m[2] ?? "").toLowerCase();
+  const mult = unit.startsWith("b") ? 1e9 : unit.startsWith("m") ? 1e6 : unit.startsWith("k") || unit.startsWith("t") ? 1e3 : 1;
+  return n * mult;
+}
+
+export const COCKPIT_WEEKS = 6;
+const WEEK_LABELS = ["This week", "Next week", "In 3 weeks", "In 4 weeks", "In 5 weeks", "In 6 weeks"] as const;
 
 const DAY = 86_400_000;
 
@@ -77,8 +103,21 @@ export function cockpitStats(bids: readonly CockpitBid[], savedCount: number, no
     // "Other" is not a trade: it always goes last.
     .sort((a, b) => Number(a.trade === "Other") - Number(b.trade === "Other") || b.count - a.count || a.trade.localeCompare(b.trade));
 
-  const soonest = [...open].sort((a, b) => Date.parse(a.due_date!) - Date.parse(b.due_date!))[0] ?? null;
+  const bySoonest = [...open].sort((a, b) => Date.parse(a.due_date!) - Date.parse(b.due_date!));
+  const soonest = bySoonest[0] ?? null;
+  const values = open.map((b) => parseStatedValue(b.estimated_value)).filter((n): n is number => n !== null);
+  const byWeek = WEEK_LABELS.map((label, i) => ({
+    label,
+    count: open.filter((b) => {
+      const d = (Date.parse(b.due_date!) - now) / DAY;
+      return d > i * 7 && d <= (i + 1) * 7;
+    }).length,
+  }));
+  const closingSoonest = bySoonest.slice(0, 5).map((b) => ({ ...b, daysLeft: Math.max(0, Math.floor((Date.parse(b.due_date!) - now) / DAY)) }));
   return {
+    statedValue: { total: values.reduce((a, n) => a + n, 0), count: values.length },
+    byWeek,
+    top: closingSoonest,
     open: open.length,
     newThisWeek,
     newLastWeek,

@@ -16,6 +16,10 @@ on:
         description: "State, two letters (blank = every state)"
         type: string
         default: ""
+      max_total:
+        description: "Leave out holders with more than this many dollars ending (blank = no limit)"
+        type: string
+        default: ""
       apply:
         description: "Queue the drafts (leave off for a dry run)"
         type: boolean
@@ -37,6 +41,7 @@ jobs:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       STATE: ${{ inputs.state }}
       TRADE: ${{ inputs.trade }}
+      MAX_TOTAL: ${{ inputs.max_total }}
       APPLY: ${{ inputs.apply && 'true' || 'false' }}
     steps:
       - name: Checkout repository

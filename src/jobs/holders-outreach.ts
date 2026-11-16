@@ -11,13 +11,17 @@
  * federal ID; the email is one that site publishes. Queues drafts only; nothing is sent until the
  * owner approves the list on /admin/outreach.
  *
+ * Construction (holderMode "open"): a construction contract ending means the job is finished, so
+ * the email is built on the bids open in the company's state today, counted the way the page it
+ * links counts them. MAX_TOTAL (dollars, optional) leaves out the largest builders.
+ *
  * Dry run unless APPLY=true. STATE is optional (blank = every state).
  */
 import { sql } from "~/db";
 import { STATE_NAMES } from "~/lib/contract-map";
 import { addMonths, formatDollars } from "~/lib/federal-trade-data";
 import { ensureFederalTradeTables } from "~/lib/federal-trade-data.server";
-import { emailFitsSite, HOLDER_MIN_TOTAL, holderTier, packHolder } from "~/lib/outreach";
+import { emailFitsSite, HOLDER_MIN_TOTAL, holderMode, holderTier, packHolder } from "~/lib/outreach";
 import { ensureOutreach, isNewAddress, queueHolder } from "~/lib/outreach.server";
 import { siteHost } from "~/lib/prospect-finder";
 import { SEO_TRADE_BY_SLUG } from "~/lib/seo-trades";
@@ -29,6 +33,17 @@ const WANTED = 30;
 const MAX_HOLDERS = 250;
 /** A state with fewer openly bid contracts ending than this gives the email nothing to say. */
 const MIN_CONTRACTS = 5;
+
+/**
+ * Websites looked up by hand for large holders the registry has no site for (it lists small
+ * businesses only), keyed by federal ID. Each was read from a public company profile on
+ * 2026-11-16. Only the website is taken from here; the address still has to be one that site
+ * publishes, and a company whose site shows none is skipped like any other.
+ */
+export const HOLDER_SITES: Readonly<Record<string, string>> = {
+  RCDCJ4GKA7S3: "https://www.mbmionline.com", // Main Building Maintenance, Inc., San Antonio TX
+  EHMRD16DNEU4: "https://www.integrity-corp.com", // Integrity National Corporation, Silver Spring MD
+};
 
 interface HolderRow {
   uei: string;
@@ -54,6 +69,8 @@ async function main() {
   await ensureOutreach();
   const s = sql();
   const until = addMonths(new Date().toISOString().slice(0, 10), 12);
+  const mode = holderMode(trade);
+  const maxTotal = Number(process.env.MAX_TOTAL) > 0 ? Number(process.env.MAX_TOTAL) : null;
   const statePred = state ? s`AND c.pop_state = ${state}` : s``;
 
   const marked = (await s`SELECT COUNT(*) FILTER (WHERE not_competed IS NOT NULL)::int AS known, COUNT(*)::int AS n FROM recompete_contracts
@@ -70,7 +87,7 @@ async function main() {
       SELECT recipient_uei AS uei, MAX(recipient_name) AS name, COUNT(*)::int AS n, SUM(amount)::float AS total, COUNT(DISTINCT pop_state)::int AS states
       FROM recompete_contracts
       WHERE trade_slug = ${trade} AND end_date >= CURRENT_DATE AND end_date <= ${until} AND not_competed = false AND recipient_uei IS NOT NULL
-      GROUP BY recipient_uei HAVING SUM(amount) >= ${HOLDER_MIN_TOTAL}
+      GROUP BY recipient_uei HAVING SUM(amount) >= ${HOLDER_MIN_TOTAL} AND (${maxTotal}::float IS NULL OR SUM(amount) <= ${maxTotal}::float)
     )
     SELECT h.uei, h.name, h.n, h.total, h.states, r.url, c.pop_state, c.agency, c.sub_agency, to_char(c.end_date, 'YYYY-MM-DD') AS end_date
     FROM h
@@ -86,6 +103,13 @@ async function main() {
 
   const openCount = new Map<string, number>();
   const countFor = async (st: string): Promise<number> => {
+    if (!openCount.has(st) && mode === "open") {
+      // The same count /contracts-in/{state}/{trade} shows, so the email and the page agree.
+      const { sql: db } = await import("~/db");
+      const { stateRadarMatches } = await import("~/lib/radar-candidates");
+      const split = await stateRadarMatches(db, { trade: tradeRow.radarTerm, state: st });
+      openCount.set(st, split.local.length);
+    }
     if (!openCount.has(st)) {
       const r = (await s`SELECT COUNT(*)::int AS n FROM recompete_contracts WHERE trade_slug = ${trade} AND pop_state = ${st}
         AND end_date >= CURRENT_DATE AND end_date <= ${until} AND not_competed = false`) as { n: number }[];
@@ -100,31 +124,34 @@ async function main() {
   for (const h of holders) {
     if (queued >= WANTED) break;
     const size = `${formatDollars(h.total)} in ${h.n} contract${h.n === 1 ? "" : "s"}, ${h.states} state${h.states === 1 ? "" : "s"}`;
-    if (!h.url) {
+    const url = h.url ?? HOLDER_SITES[h.uei] ?? null;
+    if (!url) {
       noSite.push(`${h.name} (${size})`);
       continue;
     }
-    const host = siteHost(h.url);
+    const host = siteHost(url);
     if (!host || seenHosts.has(host)) continue;
     seenHosts.add(host);
     const place = STATE_NAMES[h.pop_state];
     const count = place ? await countFor(h.pop_state) : 0;
     if (!place || count < MIN_CONTRACTS) continue;
-    const { emails } = await siteEmails(h.url);
+    const { emails } = await siteEmails(url);
     const email = emails.find((e) => emailFitsSite(e, host, h.name));
     if (!email || !(await isNewAddress(email))) {
       console.log(`   skipped (${email ? "address already written to" : "no address on its site"}) → ${h.name}`);
       continue;
     }
     const tier = holderTier(h.total, h.states);
-    const headline = `${count.toLocaleString("en-US")} openly bid federal ${tradeRow.label} contracts in ${place} end in the next 12 months`;
+    const headline = mode === "open"
+      ? `${count.toLocaleString("en-US")} ${tradeRow.label.toLowerCase()} bids are open in ${place} today`
+      : `${count.toLocaleString("en-US")} openly bid federal ${tradeRow.label} contracts in ${place} end in the next 12 months`;
     const agency = h.sub_agency ?? h.agency;
     if (!apply) {
       queued++;
-      console.log(`   would queue [${tier}] → ${h.name} — ${email} · ${size} · ${agency ?? "agency not listed"}, ${place}, ends ${h.end_date}`);
+      console.log(`   would queue [${tier}, ${count} ${mode === "open" ? "open bids" : "ending"}] → ${h.name} — ${email} · ${size} · ${agency ?? "agency not listed"}, ${place}, ends ${h.end_date}`);
       continue;
     }
-    if (await queueHolder({ email, business: h.name, website: h.url, headline, packed: packHolder(`trade=${trade}&state=${h.pop_state}`, tier, agency), endDate: h.end_date, tradeLabel: tradeRow.label, place })) {
+    if (await queueHolder({ email, business: h.name, website: url, headline, packed: packHolder(`trade=${trade}&state=${h.pop_state}`, tier, agency, mode), endDate: h.end_date, tradeLabel: tradeRow.label, place })) {
       queued++;
       console.log(`   queued [${tier}] → ${h.name} · ${size}`);
     }

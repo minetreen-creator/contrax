@@ -43,6 +43,7 @@ const MIN_CONTRACTS = 5;
 export const HOLDER_SITES: Readonly<Record<string, string>> = {
   RCDCJ4GKA7S3: "https://www.mbmionline.com", // Main Building Maintenance, Inc., San Antonio TX
   EHMRD16DNEU4: "https://www.integrity-corp.com", // Integrity National Corporation, Silver Spring MD
+  F24EPDZZMHY7: "https://www.cmtfl.com", // Creative Management Technology, Inc., Cocoa Beach / Rockledge FL
 };
 
 interface HolderRow {

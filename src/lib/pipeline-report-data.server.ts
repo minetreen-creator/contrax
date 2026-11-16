@@ -21,14 +21,19 @@ export interface ReportData {
   months: number;
   asOf: string;
   until: string;
-  totals: { n: number; total: number; holders: number };
+  /**
+   * `notCompeted`: how many of the n were awarded without open bidding (reserved by law or
+   * sole-source), and their combined value. `competitionKnown` is false until the sync has marked
+   * this market, and then nothing is said about competition.
+   */
+  totals: { n: number; total: number; holders: number; notCompeted: number; notCompetedTotal: number; competitionKnown: boolean };
   /** What contracts like these were awarded for: the middle half and the midpoint, in dollars. */
   priceRange: { low: number; median: number; high: number } | null;
   byAgency: { agency: string; n: number; total: number }[];
   byMonth: { month: string; n: number; total: number }[];
-  largest: { award_key: string; award_id: string; recipient_name: string; amount: number; end_date: string; agency: string | null; sub_agency: string | null; description: string; naics_code: string | null }[];
+  largest: { award_key: string; award_id: string; recipient_name: string; amount: number; end_date: string; agency: string | null; sub_agency: string | null; description: string; naics_code: string | null; not_competed: boolean | null }[];
   /** `hasPlan`: on the SBA or GSA directory of primes with a small-business subcontracting plan (the Prime Finder's source). */
-  holders: { recipient_name: string; n: number; total: number; hasPlan: boolean }[];
+  holders: { recipient_name: string; n: number; total: number; hasPlan: boolean; notCompeted: number }[];
   openBids: { id: number; title: string; agency: string | null; due: string }[];
 }
 
@@ -45,12 +50,14 @@ export async function reportData(stateIn: string, tradeIn: string, monthsIn = 12
   const until = addMonths(new Date().toISOString().slice(0, 10), months);
   const where = s`trade_slug = ${trade} AND pop_state = ${state} AND end_date >= CURRENT_DATE AND end_date <= ${until}`;
   const [totals, byAgency, byMonth, largest, holders, range] = await Promise.all([
-    s`SELECT COUNT(*)::int AS n, COALESCE(SUM(amount),0)::float AS total, COUNT(DISTINCT recipient_name)::int AS holders FROM recompete_contracts WHERE ${where}`,
+    s`SELECT COUNT(*)::int AS n, COALESCE(SUM(amount),0)::float AS total, COUNT(DISTINCT recipient_name)::int AS holders,
+        COUNT(*) FILTER (WHERE not_competed)::int AS "notCompeted", COALESCE(SUM(amount) FILTER (WHERE not_competed),0)::float AS "notCompetedTotal",
+        COALESCE(BOOL_OR(not_competed IS NOT NULL), false) AS "competitionKnown" FROM recompete_contracts WHERE ${where}`,
     s`SELECT COALESCE(sub_agency, agency, 'Unknown') AS agency, COUNT(*)::int AS n, SUM(amount)::float AS total FROM recompete_contracts WHERE ${where} GROUP BY 1 ORDER BY total DESC LIMIT 12`,
     s`SELECT to_char(date_trunc('month', end_date), 'YYYY-MM') AS month, COUNT(*)::int AS n, SUM(amount)::float AS total FROM recompete_contracts WHERE ${where} GROUP BY 1 ORDER BY 1`,
-    s`SELECT award_key, award_id, recipient_name, amount::float AS amount, to_char(end_date, 'YYYY-MM-DD') AS end_date, agency, sub_agency, LEFT(COALESCE(description, ''), 220) AS description, naics_code
+    s`SELECT award_key, award_id, recipient_name, amount::float AS amount, to_char(end_date, 'YYYY-MM-DD') AS end_date, agency, sub_agency, LEFT(COALESCE(description, ''), 220) AS description, naics_code, not_competed
       FROM recompete_contracts WHERE ${where} AND end_date <= CURRENT_DATE + 180 ORDER BY amount DESC LIMIT 25`,
-    s`SELECT recipient_name, MAX(recipient_uei) AS uei, COUNT(*)::int AS n, SUM(amount)::float AS total FROM recompete_contracts WHERE ${where} GROUP BY 1 ORDER BY total DESC LIMIT 10`,
+    s`SELECT recipient_name, MAX(recipient_uei) AS uei, COUNT(*)::int AS n, SUM(amount)::float AS total, COUNT(*) FILTER (WHERE not_competed)::int AS "notCompeted" FROM recompete_contracts WHERE ${where} GROUP BY 1 ORDER BY total DESC LIMIT 10`,
     s`SELECT percentile_cont(0.25) WITHIN GROUP (ORDER BY amount)::float AS low, percentile_cont(0.5) WITHIN GROUP (ORDER BY amount)::float AS median,
         percentile_cont(0.75) WITHIN GROUP (ORDER BY amount)::float AS high FROM recompete_contracts WHERE ${where} AND amount > 0`,
   ]);
@@ -65,7 +72,7 @@ export async function reportData(stateIn: string, tradeIn: string, monthsIn = 12
   const openBids = candidates.filter((b) => tradeForText(b.title) === trade).slice(0, REPORT_OPEN_BIDS);
   // Which of the top holders must subcontract to small businesses. Its own query, so a missing
   // directory table costs the badge and nothing else.
-  const held = holders as { recipient_name: string; uei: string | null; n: number; total: number }[];
+  const held = holders as { recipient_name: string; uei: string | null; n: number; total: number; notCompeted: number }[];
   let withPlan = new Set<string>();
   try {
     const ueis = held.map((h) => h.uei).filter((u): u is string => Boolean(u));
@@ -81,7 +88,7 @@ export async function reportData(stateIn: string, tradeIn: string, monthsIn = 12
     priceRange: r && r.median != null ? { low: Number(r.low), median: Number(r.median), high: Number(r.high) } : null,
     byAgency: byAgency as ReportData["byAgency"], byMonth: byMonth as ReportData["byMonth"],
     largest: largest as ReportData["largest"],
-    holders: held.map((h) => ({ recipient_name: h.recipient_name, n: h.n, total: h.total, hasPlan: Boolean(h.uei && withPlan.has(h.uei)) })),
+    holders: held.map((h) => ({ recipient_name: h.recipient_name, n: h.n, total: h.total, hasPlan: Boolean(h.uei && withPlan.has(h.uei)), notCompeted: Number(h.notCompeted) || 0 })),
     openBids,
   };
 }

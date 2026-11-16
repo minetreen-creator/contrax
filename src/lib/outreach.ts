@@ -216,15 +216,16 @@ export const FOLLOWUP_MIN_DAYS_TO_DUE = 2;
 /** Most emails one "send" click may send. */
 export const MAX_SEND_PER_BATCH = 50;
 /**
- * Owner 2026-11-02: "always keep outreach to less than 100 due to resend daily
- * limits". Resend sends 100 emails a day for the whole account, so outreach
- * stops at 80 and leaves 20 for everything else. It was 90 until 2026-11-14,
- * when the owner hit the limit on the day paid-order notices, buyer
- * confirmations and Mission Control's order emails began to share it. Each
- * morning the waiting drafts are trimmed to this, and sending stops here for
- * the (UTC) day.
+ * Most outreach emails in one (UTC) day. Until 2026-11-16 Resend's free plan
+ * sent 100 emails a day for the whole account, so outreach stopped at 80
+ * (owner 2026-11-02: "always keep outreach to less than 100 due to resend daily
+ * limits"). That day the owner moved to Resend's paid plan (50,000 a month, no
+ * daily limit), so the limit is now about the sending reputation of the domain,
+ * not the plan: a jump from 80 cold emails a day to many hundreds is what gets
+ * a domain marked as spam. Raise it in steps, not at once. Each morning the
+ * waiting drafts are trimmed to this, and sending stops here for the day.
  */
-export const DAILY_OUTREACH_CAP = 80;
+export const DAILY_OUTREACH_CAP = 200;
 /** How many outreach emails may still go out today, given how many already did. PURE. */
 export function outreachRoomToday(sentToday: number, cap: number = DAILY_OUTREACH_CAP): number {
   return Math.max(0, cap - Math.max(0, Math.floor(sentToday || 0)));

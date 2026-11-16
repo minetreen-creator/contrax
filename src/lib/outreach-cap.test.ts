@@ -3,11 +3,11 @@ import { readFileSync } from "node:fs";
 import { DAILY_OUTREACH_CAP, MAX_SEND_PER_BATCH, outreachRoomToday } from "./outreach";
 
 // Owner 2026-11-02: "always keep outreach to less than 100 due to resend daily limits".
+// Owner 2026-11-16: moved to Resend's paid plan, so the limit now protects the sending domain.
 describe("daily outreach cap", () => {
-  test("stays under Resend's 100 a day with room for account emails", () => {
-    expect(DAILY_OUTREACH_CAP).toBeLessThan(100);
-    // Owner 2026-11-14: 20 kept back for order notices, buyer confirmations, sign-ups and resets.
-    expect(DAILY_OUTREACH_CAP).toBe(80);
+  test("is raised in steps on the paid plan, not removed", () => {
+    expect(DAILY_OUTREACH_CAP).toBe(200);
+    expect(DAILY_OUTREACH_CAP).toBeLessThanOrEqual(500);
     expect(MAX_SEND_PER_BATCH).toBeLessThanOrEqual(DAILY_OUTREACH_CAP);
   });
 

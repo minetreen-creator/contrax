@@ -40,7 +40,8 @@ describe("Mission Control layout", () => {
     for (const label of ['label: "People today"', 'label: "Searches"', 'label: "Paid today"']) expect(page).toContain(label);
     // Owner 2026-11-04: "Thats a stat I don't really need."
     expect(page).not.toContain('label: "Checkouts"');
-    expect(page).toContain("data.feed.slice(0, 10)");
+    // Owner 2026-11-16: the picture has a short text panel, so the feed shows five.
+    expect(page).toContain("data.feed.slice(0, 5)");
     expect(page).toContain("data.online.slice(0, 5)");
     expect(page).toContain('v.lead?.level === "hot" ? " is-hot" : ""');
   });
@@ -52,5 +53,52 @@ describe("Mission Control layout", () => {
     // The overlays sit inside the page's .admin-console; a second one added a
     // full empty screen at the bottom (owner 2026-11-03).
     expect(page.match(/className="admin-console/g)?.length).toBe(1);
+  });
+});
+
+// Owner 2026-11-16: "I want it to look just like screenshot" — the picture's layout, Mission
+// Control's own numbers.
+describe("Mission Control, the picture's layout", () => {
+  test("fourteen Eastern days ending today, with zeros where nothing was counted", async () => {
+    const { trendDays, fillTrend, TREND_DAYS } = await import("./live-console");
+    const days = trendDays(Date.parse("2026-11-16T19:30:00Z"));
+    expect(days).toHaveLength(TREND_DAYS);
+    expect(days[0]).toBe("2026-11-03");
+    expect(days[13]).toBe("2026-11-16");
+    // 03:30 UTC is still the evening before in New York.
+    expect(trendDays(Date.parse("2026-11-16T03:30:00Z"))[13]).toBe("2026-11-15");
+    const t = fillTrend(days, { "2026-11-16": 11, "2026-11-15": 9 }, { "2026-11-16": 7 });
+    expect(t[13]).toEqual({ day: "2026-11-16", people: 11, searches: 7 });
+    expect(t[12]).toEqual({ day: "2026-11-15", people: 9, searches: 0 });
+    expect(t[0]).toEqual({ day: "2026-11-03", people: 0, searches: 0 });
+  });
+
+  test("the chart lines stay inside the box and the area closes on the baseline", async () => {
+    const { trendPaths } = await import("./live-console");
+    const p = trendPaths([0, 5, 10], 100, 50, 10);
+    expect(p.line).toBe("M0.0 50.0 L50.0 25.0 L100.0 0.0");
+    expect(p.area).toBe("M0.0 50.0 L50.0 25.0 L100.0 0.0 L100.0 50 L0.0 50 Z");
+    expect(trendPaths([], 100, 50, 10)).toEqual({ line: "", area: "" });
+    expect(trendPaths([4], 100, 50, 8).line).toBe("M0 25.0 L100 25.0");
+    // A zero maximum cannot divide by zero.
+    expect(trendPaths([0, 0], 100, 50, 0).line).toBe("M0.0 50.0 L100.0 50.0");
+  });
+
+  test("a search's result count is read from its own text", async () => {
+    const { matchCount } = await import("./live-console");
+    expect(matchCount("72 matches")).toBe(72);
+    expect(matchCount("0 matches")).toBe(0);
+    expect(matchCount("1 match")).toBe(1);
+    expect(matchCount("1,204 matches")).toBe(1204);
+    expect(matchCount(null)).toBeNull();
+    expect(matchCount("Michigan")).toBeNull();
+  });
+
+  test("the page keeps every way into a visitor's trail and the slide-out panels", () => {
+    const { readFileSync } = require("node:fs") as typeof import("node:fs");
+    const page = readFileSync("src/routes/admin/live.tsx", "utf8");
+    for (const piece of ["<SearchTable feed={data.feed} now={now} />", "<TrendChart trend={data.trend ?? []} />", "<OnlineNow count={data.onlineCount}", "onChat={openChat}", "setPanel(true)", "setAppPanel(true)", "<JarvisDock", "/logo-horizontal-white.png"]) expect(page).toContain(piece);
+    expect(page).toContain('label: "On the site now"');
+    expect(readFileSync("src/routes/api/admin/live-console.ts", "utf8")).toContain("trend: await loadTrend(db),");
   });
 });

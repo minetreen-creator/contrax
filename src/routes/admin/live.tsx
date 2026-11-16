@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { afterWakeWord, bootReport, isWakePhrase, JARVIS_VISUALS, type JarvisAction, type JarvisServerStats, type JarvisSnapshot, type JarvisVisual, type SimMonth, type SimResult } from "~/lib/jarvis";
 import { announcements, isRedAlert, pageName, type Announcement, type AnnounceState } from "~/lib/hot-leads";
 import { speakable } from "~/lib/speakable";
-import { Search, UserPlus, Timer, CreditCard, PartyPopper, Radio, Flame, DollarSign, X, Volume2, VolumeX, ScanEye, Mic, TrendingUp, Smartphone } from "lucide-react";
+import { Search, UserPlus, Timer, CreditCard, PartyPopper, Radio, Flame, DollarSign, X, Volume2, VolumeX, ScanEye, Mic, TrendingUp, Smartphone, Users, Eye } from "lucide-react";
 import type { AppStats, AppWindowCounts } from "~/lib/app-stats";
 import { dollars, weekGrowthLabel, type InvestorNumbers } from "~/lib/investor-numbers";
 import { getCurrentUser } from "~/lib/auth";
@@ -27,7 +27,10 @@ import {
   type TodayStats,
   type TrialCard,
   type TrialHeat,
+  type TrendDay,
   dayChange,
+  matchCount,
+  trendPaths,
 } from "~/lib/live-console";
 import type { TrackedVisitor, VisitorTrail } from "~/lib/scraper-watch";
 
@@ -55,6 +58,8 @@ interface LiveData {
   investor?: InvestorNumbers | null;
   /** The Contrax app: installs and alerts (owner 2026-11-07). */
   app?: AppStats | null;
+  /** People and searches on each of the last 14 Eastern days (owner 2026-11-16). */
+  trend?: TrendDay[];
 }
 
 const POLL_MS = 15_000;
@@ -1611,18 +1616,20 @@ function LivePage() {
       <AdminHeader scoreboard={<MrrScoreboard />} />
       <main className="mx-auto max-w-6xl space-y-6 px-4 py-8">
         <AdminTabs active="live" />
-        {/* Owner 2026-11-03 rework ("doesn't look too lengthy and looks cool"):
-            one screen. Today's four numbers, the live map with who's on the
-            site, and one feed. Money, trials and tracked visitors slide out;
-            Jarvis is a button in the corner. */}
-        <section className="live-shell live-cockpit">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
+        {/* Owner 2026-11-16 ("I want it to look just like screenshot"): the layout of a dashboard
+            picture the owner liked, filled with Mission Control's own numbers. A logo bar; four
+            tiles; the latest searches beside the map; a 14-day chart beside what just happened;
+            then who is on the site, since every visitor there opens a trail. Money, trials and
+            the app still slide out; Jarvis is still the button in the corner. */}
+        <section className="live-shell live-cockpit mc-shell">
+          <div className="mc-topbar">
+            <div className="flex min-w-0 items-center gap-3">
+              <img src="/logo-horizontal-white.png" alt="Contrax" className="h-6 w-auto shrink-0" />
               <span className="live-dot" aria-hidden="true" />
-              <h1 className="text-2xl font-bold text-white">Mission control</h1>
-              <VoiceToggle on={voice.on} onToggle={voice.toggle} supported={voice.supported} />
+              <h1 className="truncate text-base font-semibold text-white">Mission control</h1>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <VoiceToggle on={voice.on} onToggle={voice.toggle} supported={voice.supported} />
               <button type="button" onClick={() => setAppPanel(true)} className="live-panel-btn">
                 <Smartphone size={14} aria-hidden="true" /> App
                 {data?.app?.sinceLaunch.installs ? <span className="live-panel-count">{data.app.sinceLaunch.installs}</span> : null}
@@ -1636,24 +1643,37 @@ function LivePage() {
 
           {error ? <SectionError message={error} /> : !data ? <SectionLoading message="Tuning in…" /> : (
             <>
-              <StatStrip today={data.today ?? null} />
+              <StatStrip today={data.today ?? null} online={data.onlineCount} />
 
-              <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
-                <SearchMap stats={data.map} visitors={data.online} now={now} onChat={openChat} />
-                <OnlineNow count={data.onlineCount} visitors={data.online.slice(0, 5)} now={now} hidden={data.scannersHidden ?? 0} onTrack={openTrack} />
+              <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
+                <div className="mc-panel">
+                  <h2 className="mc-title">Contract Radar: latest searches</h2>
+                  <SearchTable feed={data.feed} now={now} />
+                </div>
+                <div className="mc-panel">
+                  <h2 className="mc-title">Searches by state, last 48 hours</h2>
+                  <SearchMap stats={data.map} visitors={data.online} now={now} onChat={openChat} />
+                </div>
               </div>
 
-              <div className="mt-5">
-                <h2 className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                  <Radio size={13} aria-hidden="true" /> What just happened
-                </h2>
-                {data.feed.length ? (
-                  <ul className="live-feed live-feed-short">
-                    {data.feed.slice(0, 10).map((f) => <FeedRow key={f.id} item={f} now={now} fresh={fresh.has(f.id)} />)}
-                  </ul>
-                ) : (
-                  <p className="text-sm text-slate-400">Quiet for the last 48 hours.</p>
-                )}
+              <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
+                <div className="mc-panel">
+                  <TrendChart trend={data.trend ?? []} />
+                </div>
+                <div className="mc-panel">
+                  <h2 className="mc-title flex items-center gap-2"><Radio size={14} aria-hidden="true" /> What just happened</h2>
+                  {data.feed.length ? (
+                    <ul className="live-feed live-feed-short mc-feed">
+                      {data.feed.slice(0, 5).map((f) => <FeedRow key={f.id} item={f} now={now} fresh={fresh.has(f.id)} />)}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-slate-400">Quiet for the last 48 hours.</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="mc-panel mt-4">
+                <OnlineNow count={data.onlineCount} visitors={data.online.slice(0, 5)} now={now} hidden={data.scannersHidden ?? 0} onTrack={openTrack} />
               </div>
             </>
           )}
@@ -1720,39 +1740,134 @@ function LivePage() {
   );
 }
 
-/** Today's four numbers vs yesterday (Eastern), across the top. */
-function StatStrip({ today }: { today: TodayStats | null }) {
+/** Four tiles across the top: an icon, a label, today's number and how it compares (Eastern). */
+function StatStrip({ today, online }: { today: TodayStats | null; online: number }) {
   if (!today) return null;
   const money = (n: number) => `$${n.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
-  const cards: { label: string; value: string; change: ReturnType<typeof dayChange> | null; color: string; note?: string }[] = [
-    { label: "People today", value: today.people.today.toLocaleString("en-US"), change: dayChange(today.people.today, today.people.yesterdaySoFar), color: "#22d3ee", note: `${today.people.yesterday.toLocaleString("en-US")} all day yesterday · bots and scanners left out` },
-    {
-      label: "Searches",
-      value: today.searches.today.toLocaleString("en-US"),
-      change: dayChange(today.searches.today, today.searches.yesterdaySoFar),
-      color: "#38bdf8",
-      note: `${today.searches.yesterday.toLocaleString("en-US")} all day yesterday${today.searches.zeroToday ? ` · ${today.searches.zeroToday} found nothing today` : ""}`,
-    },
+  const cards: { label: string; value: string; change: ReturnType<typeof dayChange> | null; color: string; note?: string; icon: typeof Search; lead?: boolean }[] = [
+    { label: "People today", value: today.people.today.toLocaleString("en-US"), change: dayChange(today.people.today, today.people.yesterdaySoFar), color: "#2dd4bf", icon: Users, lead: true, note: `${today.people.yesterday.toLocaleString("en-US")} all day yesterday · bots and scanners left out` },
     // Owner 2026-11-04: "Thats a stat I don't really need" (Checkouts tile removed).
     {
       label: "Paid today",
       value: today.paid ? money(today.paid.today) : "—",
       change: today.paid ? dayChange(today.paid.today, today.paid.yesterdaySoFar, true) : null,
       color: "#4ade80",
+      icon: DollarSign,
       note: today.paid ? `${today.paid.salesToday} sale${today.paid.salesToday === 1 ? "" : "s"}` : "Stripe not reachable",
+    },
+    { label: "On the site now", value: online.toLocaleString("en-US"), change: null, color: "#fbbf24", icon: Eye, note: online ? "tap one below to see their trail" : "nobody right now" },
+    {
+      label: "Searches",
+      value: today.searches.today.toLocaleString("en-US"),
+      change: dayChange(today.searches.today, today.searches.yesterdaySoFar),
+      color: "#38bdf8",
+      icon: Search,
+      note: `${today.searches.yesterday.toLocaleString("en-US")} all day yesterday${today.searches.zeroToday ? ` · ${today.searches.zeroToday} found nothing today` : ""}`,
     },
   ];
   return (
-    <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-      {cards.map((c) => (
-        <div key={c.label} className="live-bigstat" style={{ ["--kind" as string]: c.color }}>
-          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">{c.label}</span>
-          <span className="live-bigstat-value" style={{ color: c.color }}>{c.value}</span>
-          {c.change ? <span className={`live-bigstat-change is-${c.change.dir}`}>{c.change.label}</span> : null}
-          {c.note ? <span className="text-[11px] text-slate-500">{c.note}</span> : null}
-        </div>
-      ))}
+    <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      {cards.map((c) => {
+        const Icon = c.icon;
+        return (
+          <div key={c.label} className={`mc-tile ${c.lead ? "is-lead" : ""}`} style={{ ["--kind" as string]: c.color }}>
+            <span className="mc-tile-icon" aria-hidden="true"><Icon size={18} /></span>
+            <div className="min-w-0 flex-1">
+              <span className="block text-xs text-slate-300">{c.label}</span>
+              <span className="mc-tile-value">{c.value}</span>
+              {c.change ? <span className={`live-bigstat-change is-${c.change.dir} block`}>{c.change.label}</span> : null}
+              {c.note ? <span className="block truncate text-[11px] text-slate-500" title={c.note}>{c.note}</span> : null}
+            </div>
+          </div>
+        );
+      })}
     </div>
+  );
+}
+
+/** The latest Contract Radar searches: what, where, what it found (a bar against the largest) and when. */
+function SearchTable({ feed, now }: { feed: FeedItem[]; now: number }) {
+  const rows = feed.filter((f) => f.kind === "search").slice(0, 6);
+  if (!rows.length) return <p className="text-sm text-slate-400">No searches in the last 48 hours.</p>;
+  const max = Math.max(1, ...rows.map((r) => matchCount(r.detail) ?? 0));
+  return (
+    <table className="mc-table">
+      <thead>
+        <tr>
+          <th>Search</th>
+          <th className="hidden sm:table-cell">Where</th>
+          <th>Found</th>
+          <th className="text-right">When</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((r) => {
+          const n = matchCount(r.detail);
+          return (
+            <tr key={r.id}>
+              <td className="font-semibold text-white">{r.title}</td>
+              <td className="hidden text-slate-300 sm:table-cell">{r.place ?? "Not known"}</td>
+              <td>
+                <span className="flex items-center gap-2">
+                  <span className="mc-bar" aria-hidden="true"><i style={{ width: `${n ? Math.max(4, (n / max) * 100) : 0}%`, background: n ? "#2dd4bf" : "transparent" }} /></span>
+                  <span className={`tabular-nums ${n === 0 ? "font-semibold text-rose-400" : "text-slate-200"}`}>{n === null ? r.detail ?? "" : n.toLocaleString("en-US")}</span>
+                </span>
+              </td>
+              <td className="whitespace-nowrap text-right text-slate-400" title={new Date(r.at).toLocaleString()}>{agoLabel(r.at, now)}</td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  );
+}
+
+/** People and searches on each of the last 14 days, as two filled lines. */
+function TrendChart({ trend }: { trend: TrendDay[] }) {
+  const W = 640;
+  const H = 170;
+  const max = Math.max(1, ...trend.map((d) => Math.max(d.people, d.searches)));
+  const people = trendPaths(trend.map((d) => d.people), W, H, max);
+  const searches = trendPaths(trend.map((d) => d.searches), W, H, max);
+  const label = (day: string) => new Date(`${day}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+  const ticks = trend.length ? [0, Math.floor((trend.length - 1) / 2), trend.length - 1] : [];
+  return (
+    <>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="mc-title !mb-0">People and searches, last 14 days</h2>
+        <p className="flex items-center gap-4 text-xs text-slate-300">
+          <span className="flex items-center gap-1.5"><i className="mc-key" style={{ background: "#2dd4bf" }} /> People</span>
+          <span className="flex items-center gap-1.5"><i className="mc-key" style={{ background: "#3b82f6" }} /> Searches</span>
+        </p>
+      </div>
+      {trend.length ? (
+        <>
+          <div className="mt-3 flex gap-2">
+            <div className="flex flex-col justify-between text-right text-[10px] tabular-nums text-slate-500" style={{ height: H / 1.6 }} aria-hidden="true">
+              <span>{max.toLocaleString("en-US")}</span>
+              <span>{Math.round(max / 2).toLocaleString("en-US")}</span>
+              <span>0</span>
+            </div>
+            <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="mc-chart" role="img" aria-label={`People and searches per day. Today: ${trend[trend.length - 1].people} people, ${trend[trend.length - 1].searches} searches.`}>
+              <defs>
+                <linearGradient id="mc-people" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor="#2dd4bf" stopOpacity="0.55" /><stop offset="1" stopColor="#2dd4bf" stopOpacity="0.05" /></linearGradient>
+                <linearGradient id="mc-searches" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor="#3b82f6" stopOpacity="0.45" /><stop offset="1" stopColor="#3b82f6" stopOpacity="0.04" /></linearGradient>
+              </defs>
+              {[0.25, 0.5, 0.75].map((f) => <line key={f} x1="0" x2={W} y1={H * f} y2={H * f} stroke="rgba(148,163,184,0.12)" strokeWidth="1" />)}
+              <path d={searches.area} fill="url(#mc-searches)" />
+              <path d={searches.line} fill="none" stroke="#3b82f6" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+              <path d={people.area} fill="url(#mc-people)" />
+              <path d={people.line} fill="none" stroke="#2dd4bf" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+            </svg>
+          </div>
+          <div className="ml-8 mt-1 flex justify-between text-[10px] text-slate-500">
+            {ticks.map((i) => <span key={i}>{label(trend[i].day)}</span>)}
+          </div>
+        </>
+      ) : (
+        <p className="mt-3 text-sm text-slate-400">The chart is unavailable right now.</p>
+      )}
+    </>
   );
 }
 

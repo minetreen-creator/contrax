@@ -380,3 +380,44 @@ export function dayChange(today: number, yesterdaySoFar: number, money = false):
   const n = money ? `$${Math.abs(diff).toLocaleString("en-US", { maximumFractionDigits: 2 })}` : Math.abs(diff).toLocaleString("en-US");
   return { dir: diff > 0 ? "up" : "down", label: `${diff > 0 ? "▲" : "▼"} ${n} vs this time yesterday` };
 }
+
+// ─── Mission Control, the 14-day chart (owner 2026-11-16) ─────────────────────
+
+export const TREND_DAYS = 14;
+/** One Eastern day: real people on the site and searches run. */
+export interface TrendDay { day: string; people: number; searches: number }
+
+/** The last `days` Eastern dates ending today, oldest first, as YYYY-MM-DD. PURE. */
+export function trendDays(nowMs: number, days: number = TREND_DAYS): string[] {
+  const today = new Date(etDayStartMs(nowMs) + 12 * 3_600_000);
+  return Array.from({ length: days }, (_, i) => {
+    const d = new Date(today.getTime() - (days - 1 - i) * 86_400_000);
+    return new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(d);
+  });
+}
+
+/** Every day in the window, zero where nothing was counted. PURE. */
+export function fillTrend(days: readonly string[], people: Record<string, number>, searches: Record<string, number>): TrendDay[] {
+  return days.map((day) => ({ day, people: Math.max(0, Math.floor(people[day] ?? 0)), searches: Math.max(0, Math.floor(searches[day] ?? 0)) }));
+}
+
+/**
+ * SVG path data for one line of the chart and the filled area under it, in a w × h box with the
+ * given top value. One value gives a flat line; none gives empty strings. PURE.
+ */
+export function trendPaths(values: readonly number[], w: number, h: number, max: number): { line: string; area: string } {
+  if (!values.length) return { line: "", area: "" };
+  const top = Math.max(1, max);
+  const step = values.length > 1 ? w / (values.length - 1) : 0;
+  const pts = values.map((v, i) => [values.length > 1 ? i * step : w / 2, h - (Math.max(0, v) / top) * h] as const);
+  const line = pts.map(([x, y], i) => `${i ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)}`).join(" ");
+  const first = pts[0][0].toFixed(1);
+  const last = pts[pts.length - 1][0].toFixed(1);
+  return { line: values.length > 1 ? line : `M0 ${pts[0][1].toFixed(1)} L${w} ${pts[0][1].toFixed(1)}`, area: values.length > 1 ? `${line} L${last} ${h} L${first} ${h} Z` : "" };
+}
+
+/** The number at the start of a search's result ("72 matches" → 72); null when it has none. PURE. */
+export function matchCount(detail: string | null | undefined): number | null {
+  const m = /^(\d[\d,]*)\s+match/.exec(String(detail ?? "").trim());
+  return m ? Number(m[1].replace(/,/g, "")) : null;
+}

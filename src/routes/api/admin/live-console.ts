@@ -33,6 +33,10 @@ import {
   type StateSearchStat,
   type TodayStats,
   type TrialCard,
+  type TrendDay,
+  fillTrend,
+  trendDays,
+  TREND_DAYS,
 } from "~/lib/live-console";
 
 /**
@@ -425,6 +429,7 @@ async function handler({ request }: { request: Request }) {
       money,
       paid48h: stripe?.count48h ?? null,
       today: await loadToday(db, stripe),
+      trend: await loadTrend(db),
       investor: await loadInvestorNumbers(now, money?.starterPass ?? null),
       app: await loadAppStats(db),
       map,
@@ -592,6 +597,57 @@ async function loadStripePaid(now: number): Promise<{ count48h: number; day: Ret
     console.error("[api/admin/live-console] paid checkouts unavailable:", e);
     return null;
   }
+}
+
+/**
+ * Mission Control's chart (owner 2026-11-16): real people and searches on each of the last 14
+ * Eastern days, counted with the same exclusions as the top strip, so today's point equals the
+ * "People today" and "Searches" tiles. A failing piece reads as zeros, not as a failed console.
+ */
+async function loadTrend(db: ReturnType<typeof sql>): Promise<TrendDay[]> {
+  const days = trendDays(Date.now());
+  const human = `NOT ${BOT_EXCLUSION_SQL} AND ${qaFunnelExclusionSQL()} AND ${adminFunnelExclusionSQL()}`;
+  const since = `((NOW() AT TIME ZONE 'America/New_York')::date - ${TREND_DAYS - 1})::timestamp AT TIME ZONE 'America/New_York'`;
+  const people: Record<string, number> = {};
+  const searches: Record<string, number> = {};
+  try {
+    const rows = (await db.query(
+      `SELECT visitor_id, to_char((created_at AT TIME ZONE 'America/New_York')::date, 'YYYY-MM-DD') AS day, COUNT(*)::int AS views,
+              MIN(created_at) AS first_at, MAX(created_at) AS last_at,
+              BOOL_OR(user_id IS NOT NULL) AS signed_in,
+              (ARRAY_AGG(city ORDER BY created_at DESC))[1] AS city,
+              (ARRAY_AGG(region ORDER BY created_at DESC))[1] AS region
+       FROM page_views
+       WHERE created_at >= ${since} AND visitor_id IS NOT NULL AND path NOT LIKE '/admin%' AND ${human}
+       GROUP BY visitor_id, 2`,
+    )) as { day: string; views: number; first_at: string; last_at: string; signed_in: boolean; city: string | null; region: string | null }[];
+    for (const r of rows) {
+      const span = (Date.parse(r.last_at) - Date.parse(r.first_at)) / 1000;
+      if (!r.signed_in && (emailLinkSweep(Number(r.views), span) || dataCenterLocation(r.city, r.region))) continue;
+      people[r.day] = (people[r.day] ?? 0) + 1;
+    }
+  } catch (e) {
+    console.error("[api/admin/live-console] people trend unavailable:", e);
+  }
+  try {
+    const rows = (await db.query(
+      `SELECT to_char((s.created_at AT TIME ZONE 'America/New_York')::date, 'YYYY-MM-DD') AS day, COUNT(*)::int AS n
+       FROM radar_search_log s
+       LEFT JOIN users u ON u.id = s.user_id
+       WHERE s.created_at >= ${since.replace(/created_at/g, "s.created_at")}
+         AND COALESCE(u.is_admin, FALSE) = FALSE
+         AND (s.visitor_id IS NULL OR s.visitor_id NOT IN (
+           SELECT DISTINCT visitor_id FROM funnel_events
+           WHERE visitor_id IS NOT NULL AND created_at > NOW() - INTERVAL '30 days'
+             AND NOT ${adminFunnelExclusionSQL()}
+         ))
+       GROUP BY 1`,
+    )) as { day: string; n: number }[];
+    for (const r of rows) searches[r.day] = Number(r.n);
+  } catch (e) {
+    console.error("[api/admin/live-console] searches trend unavailable:", e);
+  }
+  return fillTrend(days, people, searches);
 }
 
 /**

@@ -16,7 +16,7 @@ import {
   type EndingMarket,
   type EndingPublic,
 } from "~/lib/ending-pages";
-import { awardUrl, formatDollars } from "~/lib/federal-trade-data";
+import { awardUrl, formatDollars, notCompetedNote } from "~/lib/federal-trade-data";
 import { REPORT_DELIVERY, REPORT_PRICE } from "~/lib/pipeline-report";
 import { RADAR_PRO_HREF } from "~/lib/plan-gates";
 import { seoHead } from "~/lib/seo-landing";
@@ -80,6 +80,7 @@ function ContractTable({ rows }: { rows: EndingPublic["top"] }) {
             <tr key={c.award_key} className="border-t border-slate-200">
               <td className={td}>
                 <a href={awardUrl(c.award_key)} target="_blank" rel="noopener noreferrer" className="font-semibold text-blue-700 hover:text-blue-600">{c.recipient_name}</a>
+                {c.not_competed && <span className="ml-2 whitespace-nowrap rounded bg-slate-200 px-1.5 py-0.5 text-xs font-bold text-slate-700" title="Awarded without open bidding, per the federal record">Not competed</span>}
               </td>
               <td className={td}>{c.sub_agency ?? c.agency ?? "Not listed"}</td>
               <td className={`${td} whitespace-nowrap`}>{formatDollars(c.amount)}</td>
@@ -263,7 +264,8 @@ function ContractsEnding() {
                     </div>
                   ))}
                 </dl>
-                <p className="mt-3 text-xs text-slate-400">As of {day(p.asOf)}. Source: USAspending.gov contract records.</p>
+                {notCompetedNote(p.totals) && <p className="mt-4 max-w-2xl rounded-xl border border-amber-300/40 bg-amber-300/10 px-4 py-3 text-sm text-amber-100">{notCompetedNote(p.totals)}</p>}
+            <p className="mt-3 text-xs text-slate-400">As of {day(p.asOf)}. Source: USAspending.gov contract records.</p>
               </>
             ) : (
               <p className="mt-3 max-w-2xl text-slate-300">

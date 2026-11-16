@@ -10,13 +10,13 @@ import { isPublicSsrCacheable } from "./ssr-cache-policy";
 
 // Owner 2026-11-14: "Scale Programmatic 'Expiring Contract' SEO Pages" — six trades in every
 // state, the top 5 contracts, the price range and 2 open bids in the open, the rest gated.
-const row = (i: number) => ({ award_key: `k${i}`, award_id: `a${i}`, recipient_name: `Co ${i}`, amount: 1000 * (30 - i), end_date: "2027-02-01", agency: "GSA", sub_agency: null, description: "", naics_code: "561720" });
+const row = (i: number) => ({ award_key: `k${i}`, award_id: `a${i}`, recipient_name: `Co ${i}`, amount: 1000 * (30 - i), end_date: "2027-02-01", agency: "GSA", sub_agency: null, description: "", naics_code: "561720", not_competed: null });
 const report = (n: number): ReportData => ({
   state: "VA", stateName: "Virginia", trade: "janitorial", tradeLabel: "Janitorial", months: 12, asOf: "2026-11-14", until: "2027-11-14",
-  totals: { n, total: 5_000_000, holders: 9 }, priceRange: { low: 40_000, median: 120_000, high: 600_000 },
+  totals: { n, total: 5_000_000, holders: 9, notCompeted: 0, notCompetedTotal: 0, competitionKnown: false }, priceRange: { low: 40_000, median: 120_000, high: 600_000 },
   byAgency: Array.from({ length: 12 }, (_, i) => ({ agency: `Agency ${i}`, n: 2, total: 1000 })), byMonth: [],
   largest: Array.from({ length: Math.min(n, 25) }, (_, i) => row(i)),
-  holders: [{ recipient_name: "Co 0", n: 3, total: 9000, hasPlan: true }],
+  holders: [{ recipient_name: "Co 0", n: 3, total: 9000, hasPlan: true, notCompeted: 0 }],
   openBids: Array.from({ length: 5 }, (_, i) => ({ id: i, title: `Janitorial ${i}`, agency: null, due: "2026-12-20" })),
 });
 

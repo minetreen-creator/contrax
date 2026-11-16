@@ -132,11 +132,22 @@ export const RECOMPETE_AMOUNT_BANDS: readonly { lower_bound: number; upper_bound
   { lower_bound: 1_000_000 },
 ];
 
+/**
+ * "Extent competed" codes on the federal record that mean the contract was awarded without open
+ * bidding (owner 2026-11-16, "b"): B not available for competition (work reserved by law, such as
+ * the AbilityOne nonprofits that hold much federal janitorial work), C not competed, G not competed
+ * under simplified procedures, NDO non-competitive delivery order. A contract awarded this way
+ * usually is not opened to other bidders when it ends, so the reports say how many there are
+ * and do not present them as work a reader can go and win.
+ */
+export const NOT_COMPETED_CODES = ["B", "C", "G", "NDO"] as const;
+
 export function recompeteRequestBody(
   naics: readonly string[],
   page: number,
   today: string,
   band: { lower_bound: number; upper_bound?: number } = { lower_bound: RECOMPETE_MIN_AMOUNT },
+  notCompetedOnly = false,
 ) {
   const start = addMonths(today, -12 * RECOMPETE_ACTIVITY_YEARS);
   return {
@@ -145,6 +156,7 @@ export function recompeteRequestBody(
       naics_codes: [...naics],
       award_amounts: [{ ...band }],
       time_period: [{ start_date: start, end_date: today }],
+      ...(notCompetedOnly ? { extent_competed_type_codes: [...NOT_COMPETED_CODES] } : {}),
     },
     fields: [...RECOMPETE_FIELDS],
     sort: "End Date",
@@ -170,6 +182,8 @@ export interface Recompete {
   pop_state: string | null;
   naics_code: string | null;
   naics_description: string | null;
+  /** Awarded without open bidding (NOT_COMPETED_CODES). null or absent: not known. */
+  not_competed?: boolean | null;
 }
 
 const text = (v: unknown): string | null => {
@@ -338,6 +352,19 @@ export function formatDollars(n: number): string {
 }
 
 /** Public USAspending page for an award, so every row can be checked. */
+/**
+ * The sentence the ending pages and reports show under the headline numbers when some of the
+ * contracts were awarded without open bidding (see NOT_COMPETED_CODES). null when the market has
+ * not been marked yet or has none: nothing is claimed that the federal record does not say. PURE.
+ */
+export function notCompetedNote(t: { n: number; notCompeted?: number; notCompetedTotal?: number; competitionKnown?: boolean }): string | null {
+  const x = Math.floor(Number(t.notCompeted) || 0);
+  if (!t.competitionKnown || x <= 0 || !(t.n > 0)) return null;
+  const rest = Math.max(0, t.n - x);
+  const count = x === t.n ? (x === 1 ? "This contract was" : `All ${x.toLocaleString("en-US")} of these contracts were`) : `${x.toLocaleString("en-US")} of these ${t.n.toLocaleString("en-US")} contracts (${formatDollars(Number(t.notCompetedTotal) || 0)}) were`;
+  return `${count} awarded without open bidding, for example work reserved by law for nonprofits that employ people with disabilities, or a sole-source award. Contracts like these are often not opened to other bidders when they end.${rest > 0 ? ` That leaves ${rest.toLocaleString("en-US")} that were competed.` : ""}`;
+}
+
 export const awardUrl = (awardKey: string) => `https://www.usaspending.gov/award/${encodeURIComponent(awardKey)}`;
 
 /** /recompetes deep link for a trade and state. */

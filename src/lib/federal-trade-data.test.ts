@@ -163,3 +163,44 @@ describe("spending figures", () => {
     expect(formatDollars(48_000)).toBe("$48,000");
   });
 });
+
+// Owner 2026-11-16 ("b"): much federal janitorial work is held by nonprofits under a program that
+// reserves it by law, so "contracts ending" overstated what a cleaning company can go and win.
+describe("contracts awarded without open bidding", () => {
+  test("the marking walk asks only for the not-competed codes; the main walk does not filter", async () => {
+    const { recompeteRequestBody, NOT_COMPETED_CODES } = await import("./federal-trade-data");
+    const main = recompeteRequestBody(["561720"], 1, "2026-11-16");
+    expect("extent_competed_type_codes" in main.filters).toBe(false);
+    const marked = recompeteRequestBody(["561720"], 1, "2026-11-16", { lower_bound: 25_000 }, true);
+    expect((marked.filters as { extent_competed_type_codes?: string[] }).extent_competed_type_codes).toEqual([...NOT_COMPETED_CODES]);
+    expect(NOT_COMPETED_CODES).toEqual(["B", "C", "G", "NDO"]);
+    expect(marked.filters.naics_codes).toEqual(main.filters.naics_codes);
+  });
+
+  test("the note states the count, the dollars and what is left, and stays silent when unknown", async () => {
+    const { notCompetedNote } = await import("./federal-trade-data");
+    expect(notCompetedNote({ n: 82, notCompeted: 0, notCompetedTotal: 0, competitionKnown: true })).toBeNull();
+    expect(notCompetedNote({ n: 82, notCompeted: 30, notCompetedTotal: 5e7, competitionKnown: false })).toBeNull();
+    expect(notCompetedNote({ n: 82 })).toBeNull();
+    const note = notCompetedNote({ n: 82, notCompeted: 30, notCompetedTotal: 60_000_000, competitionKnown: true })!;
+    expect(note).toContain("30 of these 82 contracts");
+    expect(note).toContain("awarded without open bidding");
+    expect(note).toContain("That leaves 52 that were competed.");
+    const all = notCompetedNote({ n: 4, notCompeted: 4, notCompetedTotal: 1e6, competitionKnown: true })!;
+    expect(all.startsWith("All 4 of these contracts were")).toBe(true);
+    expect(all).not.toContain("That leaves");
+  });
+
+  test("the sync marks rows, keeps an earlier mark when a walk fails, and the report counts them", () => {
+    const { readFileSync } = require("node:fs") as typeof import("node:fs");
+    const server = readFileSync("src/lib/federal-trade-data.server.ts", "utf8");
+    expect(server).toContain("ADD COLUMN IF NOT EXISTS not_competed BOOLEAN");
+    expect(server).toContain("notCompetedKeys.has(k.award_key) ? true : marked ? false : null");
+    expect(server).toContain("COALESCE(EXCLUDED.not_competed, recompete_contracts.not_competed)");
+    const report = readFileSync("src/lib/pipeline-report-data.server.ts", "utf8");
+    expect(report).toContain("COUNT(*) FILTER (WHERE not_competed)");
+    for (const page of ["src/routes/sample-report.tsx", "src/routes/contracts-ending/$state.$trade.tsx"]) {
+      expect(readFileSync(page, "utf8")).toContain("notCompetedNote(");
+    }
+  });
+});

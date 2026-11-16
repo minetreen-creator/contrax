@@ -44,6 +44,8 @@ export async function ensureFederalTradeTables(): Promise<void> {
     PRIMARY KEY (award_key, trade_slug)
   )`;
   await sql()`CREATE INDEX IF NOT EXISTS recompete_trade_state_end_idx ON recompete_contracts (trade_slug, pop_state, end_date)`;
+  // Owner 2026-11-16: awarded without open bidding (see NOT_COMPETED_CODES). NULL = not known yet.
+  await sql()`ALTER TABLE recompete_contracts ADD COLUMN IF NOT EXISTS not_competed BOOLEAN`;
   await sql()`CREATE TABLE IF NOT EXISTS federal_trade_spending (
     trade_slug TEXT NOT NULL,
     state TEXT NOT NULL,
@@ -96,17 +98,18 @@ async function upsertRecompetes(rows: Recompete[]): Promise<void> {
     const col = <K extends keyof Recompete>(k: K) => b.map((r) => r[k]);
     await sql()`
       INSERT INTO recompete_contracts (award_key, trade_slug, award_id, recipient_name, recipient_uei, amount, start_date,
-                                       end_date, agency, sub_agency, description, pop_state, naics_code, naics_description, synced_at)
+                                       end_date, agency, sub_agency, description, pop_state, naics_code, naics_description, not_competed, synced_at)
       SELECT *, NOW() FROM UNNEST(
         ${col("award_key")}::text[], ${col("trade_slug")}::text[], ${col("award_id")}::text[], ${col("recipient_name")}::text[],
         ${col("recipient_uei")}::text[], ${col("amount")}::bigint[], ${col("start_date")}::date[], ${col("end_date")}::date[],
         ${col("agency")}::text[], ${col("sub_agency")}::text[], ${col("description")}::text[], ${col("pop_state")}::text[],
-        ${col("naics_code")}::text[], ${col("naics_description")}::text[])
+        ${col("naics_code")}::text[], ${col("naics_description")}::text[], ${b.map((r) => r.not_competed ?? null)}::boolean[])
       ON CONFLICT (award_key, trade_slug) DO UPDATE SET
         award_id = EXCLUDED.award_id, recipient_name = EXCLUDED.recipient_name, recipient_uei = EXCLUDED.recipient_uei,
         amount = EXCLUDED.amount, start_date = EXCLUDED.start_date, end_date = EXCLUDED.end_date, agency = EXCLUDED.agency,
         sub_agency = EXCLUDED.sub_agency, description = EXCLUDED.description, pop_state = EXCLUDED.pop_state,
-        naics_code = EXCLUDED.naics_code, naics_description = EXCLUDED.naics_description, synced_at = NOW()`;
+        naics_code = EXCLUDED.naics_code, naics_description = EXCLUDED.naics_description,
+        not_competed = COALESCE(EXCLUDED.not_competed, recompete_contracts.not_competed), synced_at = NOW()`;
   }
 }
 
@@ -117,6 +120,9 @@ export interface RecompeteSyncResult {
   pages: number;
   kept: number;
   complete: boolean;
+  /** Contracts kept that were awarded without open bidding, and whether that second walk finished. */
+  notCompeted: number;
+  marked: boolean;
 }
 
 /**
@@ -179,14 +185,44 @@ export async function syncRecompetes(opts: { dryRun?: boolean; maxPages?: number
         }
       }
     }
+    // Second walk, same codes and bands, only contracts awarded without open bidding: their keys
+    // mark the rows kept above. A walk that fails or is cut short leaves unmatched rows unknown
+    // (null) instead of calling them competed.
+    const notCompetedKeys = new Set<string>();
+    let marked = true;
+    for (const code of naics) {
+      for (const band of RECOMPETE_AMOUNT_BANDS) {
+        let walkDone = false;
+        try {
+          for (let page = 1; page <= maxPages; page++) {
+            const data = await post("/search/spending_by_award/", recompeteRequestBody([code], page, today, band, true));
+            const results = (data.results as Record<string, unknown>[] | undefined) ?? [];
+            pages++;
+            const r = pickRecompetes(results, trade, today, windowEnd);
+            for (const k of r.kept) notCompetedKeys.add(k.award_key);
+            const hasNext = !!(data.page_metadata as { hasNext?: boolean } | undefined)?.hasNext;
+            if (r.done || !hasNext) {
+              walkDone = walkComplete(r.done, hasNext, page);
+              break;
+            }
+            await pause(300);
+          }
+        } catch (e) {
+          log(`[recompetes] ${trade} ${code} not-competed walk failed: ${(e as Error).message.slice(0, 160)}`);
+        }
+        if (!walkDone) marked = false;
+      }
+    }
     // One award can repeat across pages when the index shifts mid-walk.
     const unique = [...new Map(kept.map((k) => [k.award_key, k])).values()];
+    for (const k of unique) k.not_competed = notCompetedKeys.has(k.award_key) ? true : marked ? false : null;
+    const notCompeted = unique.filter((k) => k.not_competed).length;
     if (!opts.dryRun) {
       await upsertRecompetes(unique);
       if (complete) await sql()`DELETE FROM recompete_contracts WHERE trade_slug = ${trade} AND synced_at < ${runStart}`;
     }
-    log(`[recompetes] ${trade}: pages=${pages} kept=${unique.length} complete=${complete}`);
-    out.push({ trade, errors, pages, kept: unique.length, complete });
+    log(`[recompetes] ${trade}: pages=${pages} kept=${unique.length} complete=${complete} not_competed=${notCompeted} marked=${marked}`);
+    out.push({ trade, errors, pages, kept: unique.length, complete, notCompeted, marked });
   }
   if (!opts.dryRun) await sql()`DELETE FROM recompete_contracts WHERE end_date < CURRENT_DATE`;
   return out;
@@ -282,6 +318,7 @@ function rowToRecompete(r: Record<string, unknown>): Recompete {
     pop_state: (r.pop_state as string) ?? null,
     naics_code: (r.naics_code as string) ?? null,
     naics_description: (r.naics_description as string) ?? null,
+    not_competed: r.not_competed == null ? null : Boolean(r.not_competed),
   };
 }
 

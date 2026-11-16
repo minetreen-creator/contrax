@@ -1,0 +1,39 @@
+name: Trade Coverage
+
+# Owner 2026-11-16: "we need more janitorial sources nationwide". Prints, for one trade, the open
+# bids per state and the sources they came from (src/jobs/trade-coverage.ts). READ-ONLY: it
+# changes nothing and sends nothing. Run by hand; the numbers are in the log.
+
+on:
+  workflow_dispatch:
+    inputs:
+      trade:
+        description: "Trade slug (janitorial, construction, ...)"
+        type: string
+        default: "janitorial"
+
+permissions:
+  contents: read
+
+jobs:
+  data:
+    name: Trade coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      TRADE: ${{ inputs.trade }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Trade coverage
+        run: bun run trade-coverage

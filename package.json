@@ -35,6 +35,7 @@
     "holders-outreach": "bun run src/jobs/holders-outreach.ts",
     "ending-alerts": "bun run src/jobs/ending-alerts.ts",
     "managed-report-data": "bun run src/jobs/managed-report-data.ts",
+    "trade-coverage": "bun run src/jobs/trade-coverage.ts",
     "signals-probe": "bun run src/jobs/signals-probe.ts",
     "account-set-trade": "bun run src/jobs/account-set-trade.ts",
     "award-check": "bun run src/jobs/check-awards.ts",

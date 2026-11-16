@@ -59,6 +59,16 @@ export function isConstructionExpansion(expansion: TradeExpansion): boolean {
   return !expansion.isNaics && expansion.naicsCodes.includes("236220");
 }
 
+/** A federal product listing: a numeric supply-class prefix ("16--ACTUATOR") or a stock number. */
+const PRODUCT_LISTING_RE = /^\s*(?:\d{2,4}\s*--|nsn[\s:#]*\d{4}-?\d{2}-?\d{3}-?\d{4})/i;
+/** POSIX form of the supply-class prefix, for the SQL candidate filter. */
+export const PRODUCT_LISTING_SQL_RE = "^\\s*[0-9]{2,4}\\s*--";
+
+/** True for the goods search ("commodity", "commodities", "goods"): the one search that WANTS product buys. */
+export function isGoodsExpansion(expansion: TradeExpansion): boolean {
+  return !expansion.isNaics && expansion.terms.includes("commodities") && expansion.terms.includes("furnish and deliver");
+}
+
 /** How long a radar `trade` input may be — ONE definition everywhere (owner
  *  09-07: the 64-vs-120 mismatch is fixed by this single constant; every
  *  storage/capture/display surface applies it). */
@@ -1334,6 +1344,27 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
     naics: [],
     exactOnly: true,
   },
+  // Owner 2026-11-16: a visitor searched "Commodity" in California and got 0 matches. Purchasing
+  // offices call goods buys "commodities", so the word (and "goods") now finds supply and
+  // equipment purchases. Exact phrases only: a specific search such as "office supplies" keeps
+  // its own narrow meaning and never widens into every goods buy.
+  "goods-commodities": {
+    label: "Goods/Commodities",
+    synonyms: [
+      "commodity",
+      "commodities",
+      "goods",
+      "purchase of",
+      "equipment purchase",
+      "supply and delivery",
+      "supply and deliver",
+      "furnish and deliver",
+      "materials and supplies",
+      "supplies and equipment",
+    ],
+    naics: [],
+    exactOnly: true,
+  },
 };
 
 /** 6-digit NAICS code (strict, per the existing /^\d{6}$/ convention). */
@@ -1972,6 +2003,8 @@ export function isStrongTradeMatch(
   // MECHANICAL") is a parts order, never trade work (owner 2026-11-01: an El
   // Paso HVAC search showed an aircraft actuator as its top "Strong Match").
   // Service notices use letter codes ("J041--", "Z1DA--"), so they are untouched.
+  // The goods search is the exception: a product listing is exactly what it asks for.
+  if (isGoodsExpansion(expansion) && PRODUCT_LISTING_RE.test(titleText)) return true;
   if (/^\s*\d{2,4}\s*--/.test(titleText)) return false;
   // Same for a stock-number parts order ("NSN 5640013713262; INSULATION BLOCK,
   // THERMAL" read as insulation work, owner 2026-11-07).
@@ -2048,6 +2081,8 @@ export function tradeKeywordPred(sql: any, expansion: TradeExpansion): any {
   // Rows our classifier stamped Construction (the map's count) are candidates;
   // isStrongTradeMatch decides which are shown.
   if (isConstructionExpansion(expansion)) clauses.push(s`category = 'Construction'`);
+  // Federal product listings rarely say "purchase" or "supplies"; their supply-class prefix marks them.
+  if (isGoodsExpansion(expansion)) clauses.push(s`COALESCE(title,'') ~ ${PRODUCT_LISTING_SQL_RE}`);
   if (clauses.length === 0) return s``;
   let acc = clauses[0] as any;
   for (let i = 1; i < clauses.length; i++) {

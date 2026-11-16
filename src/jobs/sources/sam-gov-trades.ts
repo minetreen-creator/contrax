@@ -60,6 +60,7 @@ import {
   mapSamItem,
   stripHtml,
   type OpportunityDetail,
+  type PlaceOfPerformance,
   type RawBid,
 } from "./sam-gov";
 import { tradePassExclusion } from "~/lib/trade-classification";
@@ -72,8 +73,15 @@ export const TRADE_MAX_PAGES = 4;
 /** Nationwide trucking backfill: up to 500 notices per filter, fetched serially. */
 export const TRUCKING_MAX_PAGES = 20;
 
+/**
+ * Janitorial: SAM reported 209 active notices on 2026-11-16 and the pass read the newest 100, so
+ * half were never stored (owner: "we need more janitorial sources nationwide"). 12 pages reads 300.
+ */
+export const JANITORIAL_MAX_PAGES = 12;
+
 export function tradePageLimit(filter: SamTradeFilter): number {
-  return filter.trade === "trucking" ? TRUCKING_MAX_PAGES : TRADE_MAX_PAGES;
+  if (filter.trade === "trucking") return TRUCKING_MAX_PAGES;
+  return filter.trade === "janitorial" ? JANITORIAL_MAX_PAGES : TRADE_MAX_PAGES;
 }
 /** Inter-page politeness delay (same as the national pass). */
 export const TRADE_DELAY_MS = 500;
@@ -215,7 +223,7 @@ export interface TradeFetchDeps {
   /** Page fetcher (injected in tests to feed saved fixtures; zero network). */
   fetchJson?: (url: string) => Promise<any>;
   /** Detail fetcher (injected in tests; defaults to the real endpoint). */
-  detailFetcher?: (noticeId: string) => Promise<OpportunityDetail>;
+  detailFetcher?: (noticeId: string) => Promise<OpportunityDetail & { placeOfPerformance?: PlaceOfPerformance | null }>;
   /** Override the inter-page politeness delay (tests use 0). */
   delayMs?: number;
   /** Max pages for this invocation (defaults to TRADE_MAX_PAGES). */

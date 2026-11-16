@@ -18,6 +18,7 @@
  * same fields the same way.
  */
 
+import { STATE_NAMES } from "~/lib/contract-map";
 import { mapCategory } from "~/lib/trade-classification";
 import { failureDetail, FetchFailures, httpFailureDetail } from "../fetch-failure";
 
@@ -109,6 +110,23 @@ export function stripHtml(html: string): string {
     .trim();
 }
 
+/**
+ * Where the work is, from the notice's own place of performance (owner 2026-11-16: 22 of 29 open
+ * federal janitorial notices were stored as "United States", so no state search showed them).
+ * "City, ST" when both are given, the state alone otherwise, null when the notice names no US state.
+ */
+export function placeLocation(p: { city?: { name?: string } | null; state?: { code?: string; name?: string } | null } | null | undefined): string | null {
+  const code = String(p?.state?.code ?? "").trim().toUpperCase();
+  if (!STATE_NAMES[code]) return null;
+  const city = String(p?.city?.name ?? "").trim();
+  return city ? `${city}, ${code}` : code;
+}
+
+/** A location that names no state: the detail's place of performance is worth one request. */
+export function isVagueLocation(location: string): boolean {
+  return location === "United States";
+}
+
 export function extractLocation(orgHierarchy: any[], description: string): string {
   // Try to extract state/city from the deepest org name (often includes location)
   const deepest = orgHierarchy?.[orgHierarchy.length - 1];
@@ -116,7 +134,8 @@ export function extractLocation(orgHierarchy: any[], description: string): strin
     const name = deepest.name;
     // Common patterns: "W6QM MICC-FORT BUCHANAN (RC)", "FA2823 AFTC PZIO"
     const stateMatch = name.match(/\(([A-Z]{2})\)/);
-    if (stateMatch) return stateMatch[1];
+    // "(RC)" is an Army office suffix, not a state: only a real state code counts (2026-11-16).
+    if (stateMatch && STATE_NAMES[stateMatch[1]]) return stateMatch[1];
   }
 
   // Try extracting from description
@@ -442,7 +461,7 @@ export interface MapSamItemOptions {
    *  pass passes `page<n>-<index>`, preserving its pre-existing behavior). */
   fallbackId?: string;
   /** Detail fetcher override (deterministic tests inject saved fixtures). */
-  detailFetcher?: (noticeId: string) => Promise<OpportunityDetail>;
+  detailFetcher?: (noticeId: string) => Promise<OpportunityDetail & { placeOfPerformance?: PlaceOfPerformance | null }>;
 }
 
 /**
@@ -465,7 +484,7 @@ export async function mapSamItem(
   const deepestOrg = orgs[orgs.length - 1];
   const agency = deepestOrg?.name || "Federal Agency";
 
-  const location = extractLocation(orgs, description);
+  let location = extractLocation(orgs, description);
   const category = mapCategory(item.type?.value || "", item.title, description);
 
   const dueDate = item.responseDate || item.responseDateActual || null;
@@ -495,9 +514,11 @@ export async function mapSamItem(
   let setAside = extractSetAsideFromItem(item, description);
   let naicsCode = opts.filterNaics ?? extractNaicsCode(item);
   let psc = opts.filterPsc ?? null;
-  if (noticeId && (!setAside || !naicsCode || !psc)) {
-    const fetchDetail = opts.detailFetcher ?? fetchOpportunityDetail;
+  if (noticeId && (!setAside || !naicsCode || !psc || isVagueLocation(location))) {
+    const fetchDetail = opts.detailFetcher ?? fetchOpportunityDetailFull;
     const detail = await fetchDetail(noticeId);
+    // The notice's own place of performance beats a guess from the office name or the text.
+    if (isVagueLocation(location)) location = placeLocation(detail.placeOfPerformance) ?? location;
     if (!setAside) setAside = detail.setAside;
     if (!naicsCode) naicsCode = detail.naicsCode;
     if (!psc) psc = detail.psc;

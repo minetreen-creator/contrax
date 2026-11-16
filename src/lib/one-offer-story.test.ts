@@ -61,3 +61,21 @@ describe("one offer story", () => {
     expect(read("src/lib/stripe.ts")).toContain("starterPass ? STARTER_PASS_SUBMIT_MESSAGE : CHECKOUT_SUBMIT_MESSAGE");
   });
 });
+
+// Owner 2026-11-16: "$5 offers dont go far" — the $149 report is offered the moment someone has paid.
+describe("the report offer after checkout", () => {
+  const page = readFileSync("src/routes/post-checkout.tsx", "utf8");
+  test("a paying member sees the prepared report, at the report's own price, linked to the real sample", () => {
+    expect(page).toContain("{!savingsProduct && <ReportOffer />}");
+    expect(page).toContain('href="/sample-report?source=post-checkout"');
+    expect(page).toContain("Pipeline Snapshot · {REPORT_PRICE} once");
+    expect(page).toContain("Emailed within {REPORT_DELIVERY}");
+    expect(page).not.toContain("$149");
+    expect(page).toContain('trackEvent("post_checkout_click", "sample_report")');
+  });
+  test("a pass buyer has time to read it, and the pass note still comes first", () => {
+    expect(page).toContain("const PASS_REDIRECT_MS = 12_000;");
+    expect(page).toContain("passEnd ? PASS_REDIRECT_MS : 1500");
+    expect(page.indexOf("Nothing renews</span>")).toBeLessThan(page.indexOf("{!savingsProduct && <ReportOffer />}"));
+  });
+});

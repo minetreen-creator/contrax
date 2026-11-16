@@ -34,6 +34,17 @@ const MAX_HOLDERS = 250;
 /** A state with fewer openly bid contracts ending than this gives the email nothing to say. */
 const MIN_CONTRACTS = 5;
 
+/**
+ * Websites looked up by hand for large holders the registry has no site for (it lists small
+ * businesses only), keyed by federal ID. Each was read from a public company profile on
+ * 2026-11-16. Only the website is taken from here; the address still has to be one that site
+ * publishes, and a company whose site shows none is skipped like any other.
+ */
+export const HOLDER_SITES: Readonly<Record<string, string>> = {
+  RCDCJ4GKA7S3: "https://www.mbmionline.com", // Main Building Maintenance, Inc., San Antonio TX
+  EHMRD16DNEU4: "https://www.integrity-corp.com", // Integrity National Corporation, Silver Spring MD
+};
+
 interface HolderRow {
   uei: string;
   name: string;
@@ -113,17 +124,18 @@ async function main() {
   for (const h of holders) {
     if (queued >= WANTED) break;
     const size = `${formatDollars(h.total)} in ${h.n} contract${h.n === 1 ? "" : "s"}, ${h.states} state${h.states === 1 ? "" : "s"}`;
-    if (!h.url) {
+    const url = h.url ?? HOLDER_SITES[h.uei] ?? null;
+    if (!url) {
       noSite.push(`${h.name} (${size})`);
       continue;
     }
-    const host = siteHost(h.url);
+    const host = siteHost(url);
     if (!host || seenHosts.has(host)) continue;
     seenHosts.add(host);
     const place = STATE_NAMES[h.pop_state];
     const count = place ? await countFor(h.pop_state) : 0;
     if (!place || count < MIN_CONTRACTS) continue;
-    const { emails } = await siteEmails(h.url);
+    const { emails } = await siteEmails(url);
     const email = emails.find((e) => emailFitsSite(e, host, h.name));
     if (!email || !(await isNewAddress(email))) {
       console.log(`   skipped (${email ? "address already written to" : "no address on its site"}) → ${h.name}`);
@@ -139,7 +151,7 @@ async function main() {
       console.log(`   would queue [${tier}, ${count} ${mode === "open" ? "open bids" : "ending"}] → ${h.name} — ${email} · ${size} · ${agency ?? "agency not listed"}, ${place}, ends ${h.end_date}`);
       continue;
     }
-    if (await queueHolder({ email, business: h.name, website: h.url, headline, packed: packHolder(`trade=${trade}&state=${h.pop_state}`, tier, agency, mode), endDate: h.end_date, tradeLabel: tradeRow.label, place })) {
+    if (await queueHolder({ email, business: h.name, website: url, headline, packed: packHolder(`trade=${trade}&state=${h.pop_state}`, tier, agency, mode), endDate: h.end_date, tradeLabel: tradeRow.label, place })) {
       queued++;
       console.log(`   queued [${tier}] → ${h.name} · ${size}`);
     }

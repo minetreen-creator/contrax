@@ -18,6 +18,8 @@ import { setCookie } from "@tanstack/react-start/server";
 import { useEffect, useState, useCallback } from "react";
 import { hashPassword } from "~/lib/password";
 import { checkoutBidToOpen, clearCheckoutBid, clearCheckoutStarted } from "~/lib/checkout-resume";
+import { REPORT_DELIVERY, REPORT_PRICE } from "~/lib/pipeline-report";
+import { trackEvent } from "~/lib/track";
 
 const SESSION_TTL_DAYS = 30;
 const SESSION_COOKIE = "contrax_session";
@@ -267,6 +269,28 @@ function SuccessIcon() {
 
 // ── Page Component ─────────────────────────────────────────────────────────────
 
+/** How long a $5 pass buyer stays on this page before moving on; "Continue" skips the wait. */
+const PASS_REDIRECT_MS = 12_000;
+
+/**
+ * The prepared report, offered to someone who has just paid (owner 2026-11-16: "$5 offers dont go
+ * far"; "Why not" to putting the prepared report here). One link to the real sample, where the order
+ * form is. Price and delivery are the report's own constants.
+ */
+function ReportOffer() {
+  return (
+    <a
+      href="/sample-report?source=post-checkout"
+      onClick={() => trackEvent("post_checkout_click", "sample_report")}
+      className="mt-3 block rounded-lg border border-slate-900 bg-white px-3 py-3 text-left text-sm text-slate-700 hover:bg-slate-50"
+    >
+      <span className="block font-bold text-slate-900">Want it prepared for you? Pipeline Snapshot · {REPORT_PRICE} once</span>
+      We build one report for your state and line of work: the federal contracts ending, who holds them and the open bids that fit.
+      Emailed within {REPORT_DELIVERY}. <span className="font-semibold text-blue-700">Read a real sample →</span>
+    </a>
+  );
+}
+
 function PostCheckoutPage() {
   const { session_id, plan } = Route.useSearch();
   const navigate = useNavigate();
@@ -327,7 +351,8 @@ function PostCheckoutPage() {
             return;
           }
           navigate({ to: getRedirectTarget(result.plan) });
-        }, passEnd ? 6000 : 1500);
+          // A pass buyer gets time to read the pass note and the report offer below (owner 2026-11-16).
+        }, passEnd ? PASS_REDIRECT_MS : 1500);
       } catch (err) {
         if (cancelled) return;
         setStatus("error");
@@ -432,6 +457,7 @@ function PostCheckoutPage() {
                   next time; we emailed it a link to set your password.
                 </p>
               )}
+              {!savingsProduct && <ReportOffer />}
               {!savingsProduct && (
                 <a
                   href="/app?source=post-checkout"

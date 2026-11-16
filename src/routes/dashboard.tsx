@@ -1695,7 +1695,7 @@ function DashboardPage({ user, trial, onTrialStarted }: { user: AuthUser; trial:
             learnings, Launchpad, Bid Scout and certification cards are off the dashboard;
             their pages still work by direct link. */}
         {/* Owner 2026-11-06: big numbers with context, a map and a trade table for the contractor's own matches. */}
-        {data?.bids && data.bids.length > 0 && <DashboardCockpit bids={data.bids} savedCount={savedBids.size} summaries={data.summaries} />}
+        {data?.bids && data.bids.length > 0 && <DashboardCockpit bids={data.bids} savedCount={savedBids.size} />}
         {profile && <GettingStarted hasSavedBids={(data?.savedMatches.length ?? 0) > 0} hasDrafts={(data?.drafts.length ?? 0) > 0} />}
 
 

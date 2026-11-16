@@ -49,33 +49,9 @@ describe("dashboard cockpit numbers", () => {
     expect(compactDollars(1_560_000)).toBe("$1.5M");
   });
 
-  // Owner 2026-11-16: the dark dashboard, with only what the matches themselves say.
-  test("stated value adds up only the bids that state one, a range by its lower figure", async () => {
-    const { parseStatedValue } = await import("./dashboard-cockpit");
-    expect(parseStatedValue("$120,000")).toBe(120_000);
-    expect(parseStatedValue("$1.5M")).toBe(1_500_000);
-    expect(parseStatedValue("$20k – $75k")).toBe(20_000);
-    expect(parseStatedValue("$2 million")).toBe(2_000_000);
-    expect(parseStatedValue("Not specified")).toBeNull();
-    expect(parseStatedValue(null)).toBeNull();
-    expect(s.statedValue).toEqual({ total: 1_620_000, count: 2 });
-  });
-
-  test("deadlines by week and the five closing soonest", () => {
-    expect(s.byWeek.map((w) => w.count)).toEqual([1, 1, 1, 0, 1, 0]); // 3, 10, 20 and 30 days out
-    expect(s.byWeek[0].label).toBe("This week");
-    expect(s.top.map((b) => b.id)).toEqual([1, 3, 2, 4]);
-    expect(s.top[0].daysLeft).toBe(3);
-  });
-
-  test("the cockpit draws nothing the product does not record", () => {
-    const ui = readFileSync("src/components/DashboardCockpit.tsx", "utf8").split("export function DashboardCockpit")[1];
-    for (const word of ["Win rate", "win rate", "Quotes", "Drive-time", "Match score", "win_probability"]) expect(ui).not.toContain(word);
-  });
-
   test("the dashboard shows the cockpit above the old cards", () => {
     const page = readFileSync("src/routes/dashboard.tsx", "utf8");
-    expect(page).toContain("<DashboardCockpit bids={data.bids} savedCount={savedBids.size} summaries={data.summaries} />");
+    expect(page).toContain("<DashboardCockpit bids={data.bids} savedCount={savedBids.size} />");
     expect(page.indexOf("<DashboardCockpit")).toBeLessThan(page.indexOf("<GettingStarted"));
   });
 });

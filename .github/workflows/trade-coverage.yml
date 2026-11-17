@@ -11,6 +11,10 @@ on:
         description: "Trade slug (janitorial, construction, ...)"
         type: string
         default: "janitorial"
+      states:
+        description: "Optional: states to break down by source, comma separated (NY,FL)"
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -23,6 +27,7 @@ jobs:
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       TRADE: ${{ inputs.trade }}
+      STATES: ${{ inputs.states }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

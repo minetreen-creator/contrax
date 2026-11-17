@@ -40,8 +40,25 @@ async function main() {
   } catch (e) {
     federal.error = e instanceof Error ? e.message : String(e);
   }
+  // Is a thin state short of sources, or short of matches? (owner 2026-11-16: "Go" on New York and
+  // Florida.) Per source whose label starts with the state: open rows, open rows whose title reads
+  // like cleaning work, and the cleaning titles a member's search does NOT show. Read-only.
+  const byState: Record<string, unknown> = {};
+  for (const st of (process.env.STATES ?? "").split(",").map((v) => v.trim().toUpperCase()).filter((v) => STATE_NAMES[v])) {
+    try {
+      const s = sql();
+      const prefix = `${st.toLowerCase()}\\_%`;
+      const word = "(janitor|custodia|cleaning|housekeep|window washing|floor care|carpet clean|porter service)";
+      const sources = await s`SELECT source, count(*)::int AS open, count(*) FILTER (WHERE title ~* ${word})::int AS cleaning FROM bids WHERE due_date > NOW() AND source LIKE ${prefix} GROUP BY source ORDER BY 2 DESC`;
+      const titled = (await s`SELECT id, source, title, set_aside, location FROM bids WHERE due_date > NOW() AND source LIKE ${prefix} AND title ~* ${word} ORDER BY due_date LIMIT 150`) as { id: number; source: string; title: string; set_aside: string | null; location: string | null }[];
+      const shown = new Set((await stateRadarMatches(sql, { trade: trade.radarTerm, state: st })).local.map((r: { id: number }) => r.id));
+      byState[st] = { sources, cleaningTitles: titled.length, shown: titled.filter((r) => shown.has(r.id)).length, notShown: titled.filter((r) => !shown.has(r.id)).map((r) => `${r.source} | ${r.title.slice(0, 90)} | ${r.set_aside ?? ""} | ${r.location ?? ""}`) };
+    } catch (e) {
+      byState[st] = { error: e instanceof Error ? e.message : String(e) };
+    }
+  }
   console.log("===TRADE-COVERAGE-JSON-START===");
-  console.log(JSON.stringify({ trade: slug, nationwide, states: thinnest(rows).map((r) => ({ state: r.state, open: r.open, federal: r.federal, local: r.open - r.federal, sources: r.sources })), sources: sourceTotals(rows), federal }));
+  console.log(JSON.stringify({ trade: slug, nationwide, states: thinnest(rows).map((r) => ({ state: r.state, open: r.open, federal: r.federal, local: r.open - r.federal, sources: r.sources })), sources: sourceTotals(rows), federal, byState }));
   console.log("===TRADE-COVERAGE-JSON-END===");
 }
 

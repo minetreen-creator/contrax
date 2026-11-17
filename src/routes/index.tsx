@@ -9,6 +9,7 @@ import { HomeStateMap } from "~/components/HomeStateMap";
 
 import { trackEvent } from "~/lib/track";
 import { BRAND_MESSAGE, BRAND_STEPS } from "~/lib/brand-message";
+import { BID_PREP_GUARANTEE, BID_PREP_INCLUDES, BID_PREP_MIN_DAYS, BID_PREP_NO_PROMISE, BID_PREP_PRICE, BID_PREP_YOU_PROVIDE } from "~/lib/bid-prep";
 import { STARTER_PASS_ANCHOR, STARTER_PASS_NOTE } from "~/lib/starter-pass";
 import { SiteHeader } from "~/components/SiteHeader";
 import { PUBLIC_OPEN_BIDS_WHERE } from "~/lib/open-count";
@@ -197,6 +198,7 @@ function Home() {
       {/* Owner 2026-11-16: the trade and state search is the first action under the two cards. */}
       <HomeContractFinder sample={sample} openTotal={contractMap?.totals?.totalOpen ?? 0} heading="h2" />
       <HomeBidPreview />
+      <HomeBidPrep />
       <HomeExecutionLine sample={sample} />
       {/* Before/after proof (owner 2026-11-08): a real bid's notice next to Max's real answer. */}
       {maxProofCurrent !== false ? <HomeMaxProof /> : null}
@@ -280,6 +282,52 @@ function HomeChoice() {
             </li>
           ))}
         </ul>
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Bid Prep on the homepage (owner 2026-11-17: "shouldn't the bid prep be on the homepage?"). The
+ * service is bought on a bid's own page, so this says what it is and sends the visitor to pick a bid.
+ * Every line comes from src/lib/bid-prep.ts, the same words the bid page and the checkout use.
+ */
+function HomeBidPrep() {
+  return (
+    <section aria-labelledby="home-bid-prep-title" className="mx-auto max-w-[1120px] px-4 pt-10 sm:px-6">
+      <div className="rounded-2xl border-2 border-emerald-500 bg-emerald-50 p-5 sm:p-7 dark:bg-emerald-950/30">
+        <p className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">Done for you · {BID_PREP_PRICE} one time</p>
+        <h2 id="home-bid-prep-title" className="mt-1 text-2xl font-bold leading-tight sm:text-3xl">Found a bid but hate the paperwork? We prepare it for you.</h2>
+        <div className="mt-4 grid gap-5 sm:grid-cols-2">
+          <div>
+            <p className="text-sm font-bold">What we do</p>
+            <ul className="mt-2 space-y-1.5 text-sm text-slate-700 dark:text-slate-200">
+              {BID_PREP_INCLUDES.map((f) => (
+                <li key={f}>✓ {f}</li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <p className="text-sm font-bold">What you provide</p>
+            <ul className="mt-2 space-y-1.5 text-sm text-slate-700 dark:text-slate-200">
+              {BID_PREP_YOU_PROVIDE.map((f) => (
+                <li key={f}>• {f}</li>
+              ))}
+            </ul>
+            <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">{BID_PREP_GUARANTEE}</p>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{BID_PREP_NO_PROMISE}</p>
+          </div>
+        </div>
+        <a
+          href="#find-bids"
+          onClick={() => trackEvent("home_bid_prep_click", "find")}
+          className="mt-5 inline-block rounded-xl bg-emerald-600 px-5 py-3 text-sm font-bold text-white hover:bg-emerald-500"
+        >
+          Pick a bid for us to prepare →
+        </a>
+        <p className="mt-2 text-xs text-slate-600 dark:text-slate-400">
+          Offered on state, county, city and school bids with {BID_PREP_MIN_DAYS} or more days left. Open the bid and press "Prepare this bid for me".
+        </p>
       </div>
     </section>
   );

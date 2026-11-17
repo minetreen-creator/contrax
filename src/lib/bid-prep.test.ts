@@ -62,6 +62,9 @@ describe("bid prep", () => {
   test("the bid page shows the offer, the webhook handles it and checkout reads the bid itself", () => {
     expect(readFileSync("src/routes/bid.$bidId.tsx", "utf8")).toContain("<BidPrepOffer bidId={bid.id} dueDate={bid.prep_ok ? bid.due_date : null} />");
     expect(readFileSync("src/lib/stripe.ts", "utf8")).toContain("handleBidPrepEvent(event)");
+    const home = readFileSync("src/routes/index.tsx", "utf8");
+    expect(home).toContain("<HomeBidPrep />");
+    expect(home).toContain("{BID_PREP_INCLUDES.map(");
     const route = readFileSync("src/routes/api/bid-prep/checkout.ts", "utf8");
     expect(route).toContain("FROM bids WHERE id = ${req.bidId}");
     expect(route).toContain("bidPrepOffered(bid.due_date)");

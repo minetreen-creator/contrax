@@ -62,6 +62,9 @@ describe("bid prep", () => {
   test("the bid page shows the offer, the webhook handles it and checkout reads the bid itself", () => {
     expect(readFileSync("src/routes/bid.$bidId.tsx", "utf8")).toContain("<BidPrepOffer bidId={bid.id} dueDate={bid.prep_ok ? bid.due_date : null} />");
     expect(readFileSync("src/lib/stripe.ts", "utf8")).toContain("handleBidPrepEvent(event)");
+    expect(readFileSync("src/routes/radar.tsx", "utf8")).toContain('href="/prep?source=radar"');
+    expect(readFileSync("src/lib/email.ts", "utf8")).toContain("https://www.contrax.company/prep?source=bid_email");
+    expect(readFileSync("src/routes/prep.tsx", "utf8")).toContain("utm_campaign=bid_prep#bid-prep");
     const home = readFileSync("src/routes/index.tsx", "utf8");
     expect(home).toContain("<HomeBidPrep />");
     expect(home).toContain("{BID_PREP_INCLUDES.map(");

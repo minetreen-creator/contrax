@@ -5,6 +5,7 @@
  * and bid-digest emails after each sync run.
  */
 
+import { BID_PREP_MIN_DAYS, BID_PREP_PRICE } from "~/lib/bid-prep";
 import { digestBidsToList } from "./digest-recipients";
 import { OPEN_TO_ALL_EMAIL_MAX } from "./digest-open-to-all";
 import { HEAD_START_DAYS } from "./head-start";
@@ -1157,6 +1158,16 @@ export function bidDigestHtml(
         </td>
       </tr>` : ""}
       ${daily?.subFinderHtml ?? weekly?.subFinderHtml ?? ""}
+      <!-- Bid Prep (owner 2026-11-17): one line under the bids, in every bid email. -->
+      <tr>
+        <td style="padding:0 32px 24px;text-align:center;">
+          <p style="margin:0;padding:14px 16px;background:#ecfdf5;border:1px solid #10b981;border-radius:10px;color:#064e3b;font-size:14px;line-height:1.6;">
+            <strong>Hate the paperwork? We prepare the bid for you: ${BID_PREP_PRICE}, one time.</strong>
+            You set your prices and sign. For state and local bids with ${BID_PREP_MIN_DAYS} or more days left.
+            <a href="https://www.contrax.company/prep?source=bid_email" style="color:#047857;font-weight:700;text-decoration:none;">See how it works →</a>
+          </p>
+        </td>
+      </tr>
       <!-- Footer -->
       <tr>
         <td style="background:#f9fafb;padding:20px 32px;text-align:center;border-top:1px solid #e5e7eb;">

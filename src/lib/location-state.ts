@@ -733,6 +733,9 @@ export const KNOWN_CITY_STATE: Record<string, string> = {
   "wilkes-barre": "PA",
 };
 
+/** State and territory codes that are also everyday words. */
+const WORD_LIKE_CODES = new Set(["IN", "OR", "AS", "ME", "OK", "HI", "DE", "LA", "CO", "AL", "MA", "PA", "ID"]);
+
 /**
  * Contradictory-location flag (owner v3). Returns true when the row's own
  * title/description carries a specific place signal — a state name/code, or a
@@ -765,11 +768,19 @@ export function locationConflict(
   //    ONLY in the comma-preceded form ("VIRGINIA BEACH, VA"): a bare "VA" in
   //    "VA Medical Center" is a department designator (Veterans Affairs), not
   //    a Virginia place signal — never flag on it.
-  const codeRe = /(?:,\s*)([A-Za-z]{2})(?=$|[\s,.)/])/g;
-  let m: RegExpExecArray | null;
-  while ((m = codeRe.exec(text)) !== null) {
-    const code = m[1].toUpperCase();
-    if (STATE_CODES.has(code) && code !== resolvedState) return true;
+  //    The code must be written in capitals: ordinary prose (", as required", ", in accordance",
+  //    ", or equal") is not American Samoa, Indiana or Oregon (2026-11-17: a Lawrence, KS custodial
+  //    notice was held out of Kansas by ", as"). In an all-capitals field the word-like codes are
+  //    skipped, since "REPAIR, OR REPLACE" cannot be told from a place.
+  for (const field of [String(title ?? ""), String(description ?? "")]) {
+    const allCaps = !/[a-z]/.test(field);
+    const codeRe = /(?:,\s*)([A-Z]{2})(?=$|[\s,.)/])/g;
+    let m: RegExpExecArray | null;
+    while ((m = codeRe.exec(field)) !== null) {
+      const code = m[1];
+      if (allCaps && WORD_LIKE_CODES.has(code)) continue;
+      if (STATE_CODES.has(code) && code !== resolvedState) return true;
+    }
   }
 
   // 2) A known major city in a DIFFERENT state (covers "BASE NEW ORLEANS",

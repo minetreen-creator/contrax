@@ -126,3 +126,14 @@ test("bid opens are counted beside searches, by the same people rules", async ()
   expect(api.indexOf("dataCenterLocation(r.city, r.region))) continue;")).toBeLessThan(api.indexOf("if (r.opened_bid && out.bidOpens)"));
   expect(readFileSync("src/routes/admin/live.tsx", "utf8")).toContain("note2: bidOpensNote(today.bidOpens),");
 });
+
+// Owner 2026-11-17: 39 of 40 searches on the feed were email link scanners (a new id each time, no page loaded).
+test("Mission Control counts a search only when a person ran it", () => {
+  const { readFileSync } = require("node:fs") as typeof import("node:fs");
+  const api = readFileSync("src/routes/api/admin/live-console.ts", "utf8");
+  expect(api).toContain("export const REAL_SEARCHER_SQL = `(s.user_id IS NOT NULL OR (s.visitor_id IS NOT NULL AND EXISTS (");
+  expect(api).toContain("AND NOT ${BOT_EXCLUSION_SQL}");
+  // The feed, the map, the 14-day trend and today's tile all use the same rule.
+  expect(api.match(/AND \$\{db\.unsafe\(REAL_SEARCHER_SQL\)\}/g)?.length).toBe(2);
+  expect(api.match(/AND \$\{REAL_SEARCHER_SQL\}/g)?.length).toBe(2);
+});

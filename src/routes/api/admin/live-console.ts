@@ -39,6 +39,19 @@ import {
   TREND_DAYS, BID_PAGE_SQL } from "~/lib/live-console";
 
 /**
+ * A search by a person (owner 2026-11-17: 39 of 40 searches on the feed came from visitors that
+ * never loaded a page: email link scanners opening the search links in outreach and digest emails,
+ * each under a new id). Counted only when the searcher is signed in or loaded at least one page
+ * that passes the same bot rule as People today.
+ */
+export const REAL_SEARCHER_SQL = `(s.user_id IS NOT NULL OR (s.visitor_id IS NOT NULL AND EXISTS (
+  SELECT 1 FROM page_views
+  WHERE page_views.visitor_id = s.visitor_id
+    AND page_views.created_at > s.created_at - INTERVAL '2 days'
+    AND NOT ${BOT_EXCLUSION_SQL}
+)))`;
+
+/**
  * GET /api/admin/live-console — the owner console's live activity feed and
  * trial countdown board (src/lib/live-console.ts). Admin only.
  *
@@ -101,6 +114,7 @@ async function handler({ request }: { request: Request }) {
         ) loc ON TRUE
         WHERE s.created_at > NOW() - INTERVAL '48 hours'
           AND COALESCE(u.is_admin, FALSE) = FALSE
+          AND ${db.unsafe(REAL_SEARCHER_SQL)}
           AND (s.visitor_id IS NULL OR s.visitor_id NOT IN (
             SELECT DISTINCT visitor_id FROM funnel_events
             WHERE visitor_id IS NOT NULL AND created_at > NOW() - INTERVAL '30 days'
@@ -228,6 +242,7 @@ async function handler({ request }: { request: Request }) {
         WHERE s.created_at > NOW() - INTERVAL '48 hours'
           AND s.state <> ''
           AND COALESCE(u.is_admin, FALSE) = FALSE
+          AND ${db.unsafe(REAL_SEARCHER_SQL)}
         GROUP BY s.state
       `) as { state: string; searches: number; zero: number; last_at: string }[];
       map = rows.map((r) => ({ state: r.state, searches: Number(r.searches), zero: Number(r.zero), lastAt: new Date(r.last_at).toISOString() }));
@@ -635,6 +650,7 @@ async function loadTrend(db: ReturnType<typeof sql>): Promise<TrendDay[]> {
        LEFT JOIN users u ON u.id = s.user_id
        WHERE s.created_at >= ${since.replace(/created_at/g, "s.created_at")}
          AND COALESCE(u.is_admin, FALSE) = FALSE
+         AND ${REAL_SEARCHER_SQL}
          AND (s.visitor_id IS NULL OR s.visitor_id NOT IN (
            SELECT DISTINCT visitor_id FROM funnel_events
            WHERE visitor_id IS NOT NULL AND created_at > NOW() - INTERVAL '30 days'
@@ -708,6 +724,7 @@ async function loadToday(db: ReturnType<typeof sql>, stripe: { day: ReturnType<t
        LEFT JOIN users u ON u.id = s.user_id
        WHERE s.created_at >= ${since}
          AND COALESCE(u.is_admin, FALSE) = FALSE
+         AND ${REAL_SEARCHER_SQL}
          AND (s.visitor_id IS NULL OR s.visitor_id NOT IN (
            SELECT DISTINCT visitor_id FROM funnel_events
            WHERE visitor_id IS NOT NULL AND created_at > NOW() - INTERVAL '30 days'

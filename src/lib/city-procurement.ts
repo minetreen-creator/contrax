@@ -6,7 +6,7 @@
  * (via RawBid). All five endpoints are Socrata SODA datasets — public data,
  * no API key required.
  *
- *   NYC     data.cityofnewyork.us   /resource/3khw-qi8f  (City Record solicitations)
+ *   NYC     data.cityofnewyork.us   /resource/dg92-zbpx  (City Record: open procurement solicitations)
  *   Chicago data.cityofchicago.org  /resource/rsxa-ify5  (Contracts)
  *   LA      data.lacity.org         /resource/hf3r-utnq  (RAMP Open Bid Opportunities)
  *   SF      data.sfgov.org          /resource/cqi5-hm2d  (Supplier Contracts)
@@ -26,6 +26,7 @@
  *    `chicago_open_data`, ...) which the UI uses to badge Federal vs City bids.
  *  - Pagination is capped (2 pages × 100 rows) so the daily cron stays light.
  */
+import { newestPerPin, NYC_CROL_DATASET, nycAgency, nycCrolQuery, nycDeadline, nycTitle } from "~/lib/nyc-city-record";
 import type { RawBid } from "../jobs/sources/sam-gov";
 import { failureDetail, FetchFailures, httpFailureDetail } from "../jobs/fetch-failure";
 
@@ -53,10 +54,16 @@ export interface CitySourceConfig {
   location: string;
   /** Socrata portal root (e.g. "https://data.cityofnewyork.us"). */
   baseUrl: string;
-  /** SODA dataset id (e.g. "3khw-qi8f"). */
+  /** SODA dataset id (e.g. "dg92-zbpx"). */
   datasetId: string;
   /** Dataset landing page, used as fallback source_url. */
   datasetPageUrl: string;
+  /** Extra SODA parameters ($where, $order, $select) for a dataset that must be filtered. */
+  query?: (now: number) => Record<string, string>;
+  /** Pages of 100 this source may read (default 2). */
+  maxPages?: number;
+  /** Applied to the mapped rows of one fetch (e.g. one row per solicitation). */
+  after?: (rows: RawBid[]) => RawBid[];
   /** Fetch this city's procurement records (isolated from other cities). */
   fetch: () => Promise<RawBid[]>;
 }
@@ -148,11 +155,14 @@ export function nycCityRecordNoticeUrl(id: string): string {
 /** NYC City Record Online — active solicitations with due dates. */
 function mapNyc(record: SocrataRecord, source: Omit<CitySourceConfig, "fetch">, index: number): RawBid | null {
   const id = text(first(record, "request_id"));
-  const title = text(first(record, "short_title", "title"), "Untitled Opportunity");
-  const agency = text(first(record, "agency_name", "agency"), "City of New York");
+  const title = nycTitle(text(first(record, "short_title", "title"), "Untitled Opportunity"));
+  const agency = nycAgency(text(first(record, "agency_name", "agency")));
   const description = stripHtml(first(record, "additional_description_1", "description"));
   const category = text(first(record, "category_description", "category"), "Other");
-  const dueDate = text(first(record, "due_date", "response_due_date", "bid_due_date")) || null;
+  const printedDue = text(first(record, "due_date", "response_due_date", "bid_due_date")) || null;
+  // The dataset prints New York wall time with no zone; stored as the instant it names.
+  const dueDate = nycDeadline(printedDue) ?? printedDue;
+  const pin = text(first(record, "pin"));
   const fullText = `${title} ${description} ${text(first(record, "selection_method_description"))} ${text(first(record, "type_of_notice_description"))}`;
   return {
     external_id: `nyc-${id || `row-${index}`}`,
@@ -165,6 +175,7 @@ function mapNyc(record: SocrataRecord, source: Omit<CitySourceConfig, "fetch">, 
     estimated_value: "Not specified",
     source_url: id ? nycCityRecordNoticeUrl(id) : source.datasetPageUrl,
     set_aside: detectSetAside(fullText),
+    solicitation_number: pin || null,
   };
 }
 
@@ -295,9 +306,11 @@ async function fetchSocrataBids(source: Omit<CitySourceConfig, "fetch">, mapReco
   // partial failure must not throw away readable data).
   const failures = new FetchFailures();
 
-  for (let page = 0; page < MAX_PAGES; page++) {
+  const maxPages = source.maxPages ?? MAX_PAGES;
+  for (let page = 0; page < maxPages; page++) {
     try {
       const params = new URLSearchParams({
+        ...(source.query ? source.query(Date.now()) : {}),
         $limit: String(PAGE_SIZE),
         $offset: String(page * PAGE_SIZE),
       });
@@ -337,7 +350,7 @@ async function fetchSocrataBids(source: Omit<CitySourceConfig, "fetch">, mapReco
       }
       console.log(`  [${source.name}] page ${page + 1}: ${payload.length} records (total ${results.length})`);
       if (payload.length < PAGE_SIZE) break;
-      if (page < MAX_PAGES - 1) await new Promise((resolve) => setTimeout(resolve, DELAY_MS));
+      if (page < maxPages - 1) await new Promise((resolve) => setTimeout(resolve, DELAY_MS));
     } catch (e) {
       const detail = failureDetail(e);
       console.error(`  [${source.name}] page ${page + 1} error:`, detail);
@@ -348,7 +361,7 @@ async function fetchSocrataBids(source: Omit<CitySourceConfig, "fetch">, mapReco
   // Nothing readable at all for THIS city ⇒ that city's source is DEAD (it is its
   // own run-log row), while the other four cities are unaffected.
   failures.assertReached(source.name, results.length);
-  return results;
+  return source.after ? source.after(results) : results;
 }
 
 // ── City source registry ──────────────────────────────────────────────────────
@@ -367,8 +380,12 @@ export const CITY_SOURCES: CitySourceConfig[] = [
     cityName: "New York City",
     location: "New York, NY",
     baseUrl: "https://data.cityofnewyork.us",
-    datasetId: "3khw-qi8f",
-    datasetPageUrl: "https://data.cityofnewyork.us/City-Government/City-Record-Online/3khw-qi8f",
+    // Owner 2026-11-16: read open solicitations, not the first 200 of a million notices.
+    datasetId: NYC_CROL_DATASET,
+    datasetPageUrl: "https://data.cityofnewyork.us/d/dg92-zbpx",
+    query: nycCrolQuery,
+    maxPages: 10,
+    after: newestPerPin,
     map: mapNyc,
   }),
   makeSource({

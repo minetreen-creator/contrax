@@ -237,7 +237,7 @@ jobs:
       - name: Vercel cron → daily emails dispatch tests (unit, deterministic, zero network)
         run: bun test src/lib/cron-dispatch.test.ts src/lib/ci-db-lock.test.ts
       - name: USAspending federal trade data tests (unit, deterministic, zero network)
-        run: bun test src/lib/federal-trade-data.test.ts src/lib/outreach-holder.test.ts src/lib/bid-preview.test.ts src/lib/trade-coverage.test.ts src/jobs/sources/sam-place.test.ts
+        run: bun test src/lib/federal-trade-data.test.ts src/lib/outreach-holder.test.ts src/lib/bid-preview.test.ts src/lib/trade-coverage.test.ts src/jobs/sources/sam-place.test.ts src/lib/nyc-city-record.test.ts
       - name: Source provenance class map tests (unit, deterministic, zero network)
         run: bun test src/lib/source-class.test.ts src/lib/location-foreign-pop.test.ts src/lib/place-of-performance.test.ts
       # D14 CORPUS-LABEL ALARM — the post-PR-1 metrics layer (owner-locked order

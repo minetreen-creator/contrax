@@ -19,6 +19,7 @@
  */
 
 import { STATE_NAMES } from "~/lib/contract-map";
+import { titlePlace } from "~/lib/title-place";
 import { mapCategory } from "~/lib/trade-classification";
 import { failureDetail, FetchFailures, httpFailureDetail } from "../fetch-failure";
 
@@ -526,6 +527,8 @@ export async function mapSamItem(
     if (!solicitationNumber) solicitationNumber = detail.solicitationNumber;
     if (opts.detailDelay !== false) await new Promise((r) => setTimeout(r, 120));
   }
+  // No place of performance on the notice: the title often names it ("Janitorial Services Wichita, KS").
+  if (isVagueLocation(location)) location = titlePlace(String(item.title ?? "")) ?? location;
 
   return {
     external_id: `sam-${item._id || item.solicitationNumber || opts.fallbackId || ""}`,

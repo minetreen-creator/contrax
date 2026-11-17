@@ -226,6 +226,22 @@ export const MAX_SEND_PER_BATCH = 50;
  * waiting drafts are trimmed to this, and sending stops here for the day.
  */
 export const DAILY_OUTREACH_CAP = 200;
+/**
+ * Automatic sending (owner 2026-11-17, away for a few days: "Send them automatically"). The
+ * weekday job asks the live site to send waiting drafts a few at a time, so every email is rendered
+ * and signed by the site itself, the daily cap above still holds, and nothing on the do-not-contact
+ * list is ever sent. AUTO_SEND_BATCH is small because one site request has only seconds to run.
+ */
+export const AUTO_SEND_BATCH = 8;
+/** Most site requests one run of the job makes: a guard against a loop, well above cap / batch. */
+export const AUTO_SEND_MAX_CALLS = 40;
+/** A ticket is good for one request and this many minutes. */
+export const AUTO_SEND_TICKET_MINUTES = 10;
+/** Should the job stop after this answer? PURE. */
+export function autoSendDone(r: { sent: number; failed: number; skipped: number; left: number; room: number }): boolean {
+  return r.left <= 0 || r.room <= 0 || r.sent + r.failed + r.skipped === 0;
+}
+
 /** How many outreach emails may still go out today, given how many already did. PURE. */
 export function outreachRoomToday(sentToday: number, cap: number = DAILY_OUTREACH_CAP): number {
   return Math.max(0, cap - Math.max(0, Math.floor(sentToday || 0)));

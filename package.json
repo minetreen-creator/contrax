@@ -33,6 +33,7 @@
     "teams-outreach": "bun run src/jobs/teams-outreach.ts",
     "partner-outreach": "bun run src/jobs/partner-outreach.ts",
     "holders-outreach": "bun run src/jobs/holders-outreach.ts",
+    "outreach-send": "bun run src/jobs/outreach-send.ts",
     "ending-alerts": "bun run src/jobs/ending-alerts.ts",
     "managed-report-data": "bun run src/jobs/managed-report-data.ts",
     "trade-coverage": "bun run src/jobs/trade-coverage.ts",

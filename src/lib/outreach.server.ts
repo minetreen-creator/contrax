@@ -9,13 +9,15 @@
  *   outreach_settings     the postal address printed in every email, set on
  *                         /admin/outreach (kept out of the public repository)
  */
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { Resend } from "resend";
 import { sql } from "~/db";
 import { PARTNER_SUBJECT } from "~/lib/outreach";
 import { qaExternalUserSQL } from "~/lib/qa-exclusion";
 import { WARM_SUBJECT, warmFirstName, type WarmLead } from "~/lib/warm-leads";
 import {
+  AUTO_SEND_BATCH,
+  AUTO_SEND_TICKET_MINUTES,
   bidFitsTrade,
   bidIsServiceJob,
   DAILY_OUTREACH_CAP,
@@ -614,4 +616,46 @@ export async function sendDrafts(ids: number[]): Promise<{ sent: number; failed:
     }
   }
   return { sent, failed, skipped };
+}
+
+// ── Automatic sending (owner 2026-11-17) ─────────────────────────────────────
+// The weekday job (src/jobs/outreach-send.ts) cannot sign unsubscribe links the way the site does,
+// so it does not send. It writes a one-use ticket here and asks the site to send; the site checks
+// the ticket against the database and sends through sendDrafts like the admin page does.
+
+async function ensureTickets(): Promise<void> {
+  await sql()`CREATE TABLE IF NOT EXISTS outreach_send_tickets (
+    ticket TEXT PRIMARY KEY,
+    expires_at TIMESTAMPTZ NOT NULL
+  )`;
+}
+
+/** A fresh one-use ticket (job side). */
+export async function issueSendTicket(): Promise<string> {
+  await ensureTickets();
+  const ticket = randomBytes(32).toString("base64url");
+  await sql()`DELETE FROM outreach_send_tickets WHERE expires_at < NOW()`;
+  await sql()`INSERT INTO outreach_send_tickets (ticket, expires_at) VALUES (${ticket}, NOW() + ${`${AUTO_SEND_TICKET_MINUTES} minutes`}::interval)`;
+  return ticket;
+}
+
+/** True once for a ticket that exists and has not run out (site side). */
+export async function redeemSendTicket(ticket: string): Promise<boolean> {
+  if (!/^[A-Za-z0-9_-]{40,60}$/.test(ticket)) return false;
+  await ensureTickets();
+  const rows = (await sql()`DELETE FROM outreach_send_tickets WHERE ticket = ${ticket} AND expires_at > NOW() RETURNING ticket`) as unknown[];
+  return rows.length === 1;
+}
+
+/** Sends the next few waiting drafts, in the order the admin page lists them. */
+export async function autoSendNext(batch: number = AUTO_SEND_BATCH): Promise<{ sent: number; failed: number; skipped: number; left: number; room: number }> {
+  await ensureOutreach();
+  const room = outreachRoomToday(await sentToday());
+  const waiting = (await sql()`
+    SELECT id FROM outreach_contacts WHERE status = 'draft' AND due_date >= CURRENT_DATE + 2
+    ORDER BY kind DESC, due_date ASC, id ASC LIMIT ${Math.max(1, Math.min(batch, MAX_SEND_PER_BATCH))}`) as { id: number }[];
+  if (room === 0 || waiting.length === 0) return { sent: 0, failed: 0, skipped: 0, left: waiting.length, room };
+  const r = await sendDrafts(waiting.map((w) => Number(w.id)));
+  const [left] = (await sql()`SELECT COUNT(*)::int AS n FROM outreach_contacts WHERE status = 'draft' AND due_date >= CURRENT_DATE + 2`) as { n: number }[];
+  return { ...r, left: left?.n ?? 0, room: outreachRoomToday(await sentToday()) };
 }

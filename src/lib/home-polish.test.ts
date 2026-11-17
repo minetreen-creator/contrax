@@ -6,11 +6,11 @@ import { EVERYDAY_SAMPLE_TRADES, isHandsOnWork, pickEverydaySample } from "./sam
 describe("homepage examples are everyday trades, not SDVOSB jargon", () => {
   test("one row per trade, in trade order, skipping unreadable titles", () => {
     const rows = [
-      { naics_code: "561730", title: "Landscape Maintenance for Neighborhood Parcels", agency: "City of Virginia Beach" },
-      { naics_code: "561720", title: "59--ACCESSORY KIT", agency: "DLA" },
-      { naics_code: "561720", title: "Custodial Services for City Hall", agency: "Town of Cary" },
-      { naics_code: "561730", title: "Mowing Services", agency: "County" },
-      { naics_code: "561612", title: "Security Guard Services", agency: "Port Authority" },
+      { naics_code: "561730", title: "Landscape Maintenance for Neighborhood Parcels", agency: "City of Virginia Beach", location: "Virginia Beach, VA" },
+      { naics_code: "561720", title: "59--ACCESSORY KIT", agency: "DLA", location: "Columbus, OH" },
+      { naics_code: "561720", title: "Custodial Services for City Hall", agency: "Town of Cary", location: "Cary, NC" },
+      { naics_code: "561730", title: "Mowing Services", agency: "County", location: "Wake County, NC" },
+      { naics_code: "561612", title: "Security Guard Services", agency: "Port Authority", location: "Newark, NJ" },
     ];
     expect(pickEverydaySample(rows)).toEqual([2, 0, 4]);
     expect(EVERYDAY_SAMPLE_TRADES.map((t) => t.label)).toContain("Janitorial");
@@ -23,9 +23,9 @@ describe("homepage examples are everyday trades, not SDVOSB jargon", () => {
   });
   test("an agency's own listing beats an aggregator copy; the copy is the fallback", () => {
     const rows = [
-      { naics_code: "561720", title: "Research Park Custodial Services", agency: "Washington Purchasing Group (BidNet Direct)", source: "wa_bidnet" },
-      { naics_code: "561720", title: "Custodial Services for City Hall", agency: "City of Raleigh", source: "nc_raleigh" },
-      { naics_code: "561730", title: "Lawn Weed Control Bid", agency: "Utah Purchasing Group (BidNet Direct)", source: "ut_bidnet" },
+      { naics_code: "561720", title: "Research Park Custodial Services", agency: "Washington Purchasing Group (BidNet Direct)", source: "wa_bidnet", location: "Washington" },
+      { naics_code: "561720", title: "Custodial Services for City Hall", agency: "City of Raleigh", source: "nc_raleigh", location: "Raleigh, NC" },
+      { naics_code: "561730", title: "Lawn Weed Control Bid", agency: "Utah Purchasing Group (BidNet Direct)", source: "ut_bidnet", location: "Utah" },
     ];
     expect(pickEverydaySample(rows)).toEqual([1, 2]);
   });
@@ -90,5 +90,32 @@ describe("homepage tightening", () => {
     expect(includes).toContain("The 12-month total");
     // The report has no buyer contact details, so the card must not promise them.
     expect(page).not.toMatch(/buyer contacts?/i);
+  });
+});
+
+// Owner 2026-11-17: "Two Quick Polish Opportunities".
+describe("homepage examples are jobs in the United States, local buyers first", () => {
+  test("an embassy job abroad is never an example", async () => {
+    const { isDomesticExample } = await import("./sample-bids");
+    const madrid = { naics_code: "561720", title: "GLQ and TDY apartment cleaning services", agency: "U.S. EMBASSY MADRID", source: "sam_naics_561720", location: "United States" };
+    expect(isDomesticExample(madrid)).toBe(false);
+    expect(isDomesticExample({ title: "Janitorial Services", agency: "ACQUISITION OFFICE", location: "Madrid" })).toBe(false);
+    expect(isDomesticExample({ title: "Janitorial Services", agency: "Town of Cary", location: "Cary, NC" })).toBe(true);
+    expect(pickEverydaySample([madrid])).toEqual([]);
+  });
+  test("a school or city listing comes before a federal one for the same trade", () => {
+    const rows = [
+      { naics_code: "561720", title: "Custodial Services, Federal Building", agency: "GSA PBS", source: "sam_naics_561720", location: "Dugway, UT" },
+      { naics_code: "561720", title: "Custodial Services for Three Elementary Schools", agency: "Osceola County School Board", source: "fl_osceola_vendorlink", location: "Osceola County, FL" },
+    ];
+    expect(pickEverydaySample(rows)).toEqual([1]);
+    // With only the federal row, it is still a real U.S. job and is used.
+    expect(pickEverydaySample(rows.slice(0, 1))).toEqual([0]);
+  });
+  test("the search block reads as the second section, not a second hero", () => {
+    const finder = readFileSync("src/components/HomeContractFinder.tsx", "utf8");
+    expect(finder).toContain('heading === "h2" ? "border-t border-white/10" : ""');
+    expect(finder).toContain("sm:text-3xl lg:text-4xl");
+    expect(finder).toContain("{c.eyebrow}");
   });
 });

@@ -123,6 +123,21 @@ export function placeContradictsSource(r: { source?: string | null; location?: s
   return !!home && !!where && where !== home;
 }
 
+/** A federal source label ("sam_gov", "sam_naics_561720", a state-name door). PURE. */
+function isFederalSource(source: string | null | undefined): boolean {
+  const s = String(source ?? "");
+  return SOURCE_CLASSES[s]?.class === "federal" || /^sam/i.test(s);
+}
+
+/**
+ * A job a U.S. tradesperson could drive to: its location names a U.S. state, and neither the
+ * title nor the buyer is an embassy, consulate or overseas post. PURE.
+ */
+export function isDomesticExample(r: { title?: string | null; agency?: string | null; location?: string | null }): boolean {
+  if (/\b(embassy|embassies|consulate|overseas|oconus)\b/i.test(`${r.title ?? ""} ${r.agency ?? ""}`)) return false;
+  return resolveBidState(r.location ?? null, null) !== null;
+}
+
 export function pickEverydaySample(
   rows: readonly { naics_code: string | null; title: string | null; agency: string | null; source?: string | null; location?: string | null }[],
 ): number[] {
@@ -136,10 +151,16 @@ export function pickEverydaySample(
         !isProductListingTitle(title) &&
         !isCodeHeavyTitle(title) &&
         isHandsOnWork(title) &&
-        !placeContradictsSource(r)
+        !placeContradictsSource(r) &&
+        isDomesticExample(r)
       );
     };
-    let i = rows.findIndex((r) => fits(r) && !isAggregatorMirror(r));
+    // Owner 2026-11-16 (homepage review): the first example was apartment cleaning for the U.S.
+    // Embassy in Madrid. Every example is a job in a U.S. state, and a state, city, county or
+    // school buyer comes before a federal one: that is the work the page is about.
+    const direct = (r: (typeof rows)[number]) => fits(r) && !isAggregatorMirror(r);
+    let i = rows.findIndex((r) => direct(r) && !isFederalSource(r.source));
+    if (i < 0) i = rows.findIndex(direct);
     if (i < 0) i = rows.findIndex(fits);
     if (i >= 0) picked.push(i);
   }

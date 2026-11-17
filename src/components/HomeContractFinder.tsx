@@ -65,6 +65,7 @@ export const HERO_COPY = {
   en: {
     titleCount: (n: string) => `${n} Government Contracts.`,
     titleCountTail: "Find Your Next Opportunity.",
+    eyebrow: "Do it yourself · search by trade and state",
     titleFallback: "Your next government customer",
     titleFallbackTail: "starts here.",
     sub: "Federal, state, city, county and school bids in all 50 states, matched to your trade.",
@@ -83,6 +84,7 @@ export const HERO_COPY = {
   es: {
     titleCount: (n: string) => `${n} contratos del gobierno.`,
     titleCountTail: "Encuentre su próxima oportunidad.",
+    eyebrow: "Hágalo usted mismo · busque por oficio y estado",
     titleFallback: "Su próximo cliente del gobierno",
     titleFallbackTail: "empieza aquí.",
     sub: "Licitaciones federales, estatales, municipales, de condados y escuelas en los 50 estados y Puerto Rico, según su oficio.",
@@ -248,7 +250,9 @@ export function HomeContractFinder({ sample, openTotal = 0, heading = "h1" }: { 
     <section
       id="find-bids"
       aria-labelledby="first-contract-title"
-      className="relative overflow-hidden bg-[#07162e] text-white"
+      // Owner 2026-11-17 (homepage review): under the two cards this is the second section, so it
+      // gets a dividing line, a small label and a smaller title instead of reading as a second hero.
+      className={`relative overflow-hidden bg-[#07162e] text-white ${heading === "h2" ? "border-t border-white/10" : ""}`}
     >
       <div className="relative mx-auto grid max-w-7xl items-center gap-5 px-4 pb-14 pt-4 sm:gap-12 sm:px-8 sm:pb-20 sm:pt-16 lg:grid-cols-[1.1fr_1fr] lg:gap-16 lg:pb-24">
         <div>
@@ -265,9 +269,10 @@ export function HomeContractFinder({ sample, openTotal = 0, heading = "h1" }: { 
               </button>
             ))}
           </div>
+          {heading === "h2" ? <p className="mb-2 text-xs font-bold uppercase tracking-wider text-amber-400">{c.eyebrow}</p> : null}
           <Title
             id="first-contract-title"
-            className="max-w-2xl text-[1.75rem] font-extrabold leading-[1.12] tracking-tight [text-wrap:balance] sm:text-5xl lg:text-6xl"
+            className={`max-w-2xl font-extrabold leading-[1.12] tracking-tight [text-wrap:balance] ${heading === "h2" ? "text-2xl sm:text-3xl lg:text-4xl" : "text-[1.75rem] sm:text-5xl lg:text-6xl"}`}
           >
             {openTotal > 0
               ? `${c.titleCount(openTotal.toLocaleString("en-US"))} ${c.titleCountTail}`

@@ -7,7 +7,8 @@
  */
 import { sql } from "~/db";
 import { STATE_NAMES } from "~/lib/contract-map";
-import { defaultRadarMatches, stateRadarMatches } from "~/lib/radar-candidates";
+import { defaultRadarMatches, fetchStrictRadarRows, stateRadarMatches } from "~/lib/radar-candidates";
+import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { SEO_TRADE_BY_SLUG } from "~/lib/seo-trades";
 import { coverageRow, sourceTotals, thinnest } from "~/lib/trade-coverage";
 
@@ -52,6 +53,12 @@ async function main() {
       const sources = await s`SELECT source, count(*)::int AS open, count(*) FILTER (WHERE title ~* ${word})::int AS cleaning FROM bids WHERE due_date > NOW() AND source LIKE ${prefix} GROUP BY source ORDER BY 2 DESC`;
       const titled = (await s`SELECT id, source, title, set_aside, location FROM bids WHERE due_date > NOW() AND source LIKE ${prefix} AND title ~* ${word} ORDER BY due_date LIMIT 150`) as { id: number; source: string; title: string; set_aside: string | null; location: string | null }[];
       const shown = new Set((await stateRadarMatches(sql, { trade: trade.radarTerm, state: st })).local.map((r: { id: number }) => r.id));
+      // Why a cleaning title is not shown: was it read by the search query at all, and is it listable?
+      const raw = new Set((await fetchStrictRadarRows(sql, { trade: trade.radarTerm, state: st, certId: "sb" })).rows.map((r: { id: number }) => r.id));
+      const ids = titled.filter((r) => !shown.has(r.id)).map((r) => r.id);
+      const flags = ids.length ? await s`SELECT id, (${s.unsafe(LOW_CONTENT_SQL)}) AS content_ok, due_date, length(COALESCE(description,'')) AS desc_len FROM bids WHERE id = ANY(${ids})` : [];
+      const shownTitles = (await stateRadarMatches(sql, { trade: trade.radarTerm, state: st })).local.map((r: { id: number; source: string; title: string }) => `${r.id} ${r.source} | ${String(r.title).slice(0, 70)}`);
+      (byState as Record<string, unknown>)[`${st}_why`] = { flags: (flags as { id: number; content_ok: boolean; due_date: string; desc_len: number }[]).map((f) => ({ ...f, inRaw: raw.has(f.id), title: titled.find((t) => t.id === f.id)?.title.slice(0, 60) })), shownTitles };
       byState[st] = { sources, cleaningTitles: titled.length, shown: titled.filter((r) => shown.has(r.id)).length, notShown: titled.filter((r) => !shown.has(r.id)).map((r) => `${r.source} | ${r.title.slice(0, 90)} | ${r.set_aside ?? ""} | ${r.location ?? ""}`) };
     } catch (e) {
       byState[st] = { error: e instanceof Error ? e.message : String(e) };

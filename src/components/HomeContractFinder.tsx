@@ -284,7 +284,7 @@ export function HomeContractFinder({ sample, openTotal = 0, heading = "h1" }: { 
           <p className="mt-4 hidden max-w-xl text-lg leading-relaxed text-slate-300 lg:block">
             {c.sub}
           </p>
-          <p className="mt-3 hidden rounded-full border border-white/20 bg-white/5 px-3 py-1 text-xs font-semibold text-slate-200 sm:inline-flex">
+          <p className="mt-3 hidden rounded-full border border-white/20 px-3 py-1 text-xs font-semibold text-slate-200 sm:inline-flex">
             {c.veteran}
           </p>
           <a

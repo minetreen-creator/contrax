@@ -254,7 +254,7 @@ export function HomeContractFinder({ sample, openTotal = 0, heading = "h1" }: { 
       // gets a dividing line, a small label and a smaller title instead of reading as a second hero.
       className={`relative overflow-hidden bg-[#07162e] text-white ${heading === "h2" ? "border-t border-white/10" : ""}`}
     >
-      <div className="relative mx-auto grid max-w-7xl items-center gap-5 px-4 pb-14 pt-4 sm:gap-12 sm:px-8 sm:pb-20 sm:pt-16 lg:grid-cols-[1.1fr_1fr] lg:gap-16 lg:pb-24">
+      <div className="relative mx-auto grid max-w-7xl items-center gap-5 px-4 pb-10 pt-4 sm:gap-6 sm:px-8 sm:pb-12 sm:pt-8 lg:grid-cols-[1.1fr_1fr] lg:gap-16 lg:pb-16">
         <div>
           <div className="mb-3 inline-flex rounded-full border border-white/20 bg-white/5 p-1 text-xs font-bold sm:mb-4" role="group" aria-label="Language / Idioma">
             {(["en", "es"] as const).map((l) => (
@@ -278,22 +278,25 @@ export function HomeContractFinder({ sample, openTotal = 0, heading = "h1" }: { 
               ? `${c.titleCount(openTotal.toLocaleString("en-US"))} ${c.titleCountTail}`
               : `${c.titleFallback} ${c.titleFallbackTail}`}
           </Title>
-          <p className="mt-5 hidden max-w-xl text-lg leading-relaxed text-slate-300 sm:mt-6 sm:block">
+          {/* Owner 2026-11-17 (homepage review): the trade buttons come first. Below the wide layout the
+              supporting lines are left out, so nobody scrolls past text to reach the search; the
+              veteran line is a badge, not a paragraph. */}
+          <p className="mt-4 hidden max-w-xl text-lg leading-relaxed text-slate-300 lg:block">
             {c.sub}
           </p>
-          <p className="mt-6 hidden text-sm leading-relaxed text-slate-400 sm:block">
+          <p className="mt-3 hidden rounded-full border border-white/20 bg-white/5 px-3 py-1 text-xs font-semibold text-slate-200 sm:inline-flex">
             {c.veteran}
           </p>
           <a
             href="/local-bids"
-            className="mt-5 hidden text-sm font-semibold text-blue-200 underline underline-offset-4 hover:text-white sm:inline-block"
+            className="mt-4 hidden text-sm font-semibold text-blue-200 underline underline-offset-4 hover:text-white lg:block"
           >
             {c.local}
           </a>
           {/* Competitor X-Ray (owner 2026-11-08: "a secondary tab or homepage bar"). */}
           <a
             href="/competitor-xray"
-            className="mt-2 hidden text-sm font-semibold text-amber-300 underline underline-offset-4 hover:text-white sm:block"
+            className="mt-2 hidden text-sm font-semibold text-amber-300 underline underline-offset-4 hover:text-white lg:block"
           >
             {c.xray}
           </a>

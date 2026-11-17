@@ -228,13 +228,15 @@ const HOME_LANES = [
     more: [
       { label: "City and county bids", href: "/local-bids?source=home_lane" },
       { label: "Pricing", href: "/pricing?source=home_lane" },
+      // Owner 2026-11-17: the paperwork service is offered from the top of the page, not only lower down.
+      { label: "$199 Bid Prep: we do the paperwork", href: "#bid-prep" },
     ],
   },
   {
     key: "dfy",
     // Owner 2026-11-17: "Done for you" now names Bid Prep alone; this card is the reports for sales teams.
-    tag: "For sales teams",
-    title: "I want it prepared for my team",
+    tag: "Expiring contract reports · for sales teams",
+    title: "Show my team the contracts ending in our trade",
     // Owner 2026-11-16: name the scale. Every figure here is in REPORT_INCLUDES (src/lib/pipeline-report.ts).
     detail: "We send a report of the federal contracts ending in your line of work over the next 12 months: the 25 largest with who holds each one, the agency and the value, and the 10 companies holding the most. One report or every month.",
     who: "For companies with someone who sells to government",
@@ -295,10 +297,11 @@ function HomeChoice() {
  */
 function HomeBidPrep() {
   return (
-    <section aria-labelledby="home-bid-prep-title" className="mx-auto max-w-[1120px] px-4 pt-10 sm:px-6">
+    <section id="bid-prep" aria-labelledby="home-bid-prep-title" className="mx-auto max-w-[1120px] scroll-mt-20 px-4 pt-10 sm:px-6">
       <div className="rounded-2xl border-2 border-emerald-500 bg-emerald-50 p-5 sm:p-7 dark:bg-emerald-950/30">
-        <p className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">Done for you · {BID_PREP_PRICE} one time</p>
+        <p className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">Done-for-you Bid Prep · {BID_PREP_PRICE} one time</p>
         <h2 id="home-bid-prep-title" className="mt-1 text-2xl font-bold leading-tight sm:text-3xl">Found a bid but hate the paperwork? We prepare it for you.</h2>
+        <p className="mt-2 text-sm font-semibold text-slate-800 dark:text-slate-100">You put in your prices and sign. We handle every form, compliance check and attachment.</p>
         <div className="mt-4 grid gap-5 sm:grid-cols-2">
           <div>
             <p className="text-sm font-bold">What we do</p>

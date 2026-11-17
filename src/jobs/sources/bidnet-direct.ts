@@ -96,6 +96,25 @@ export const BIDNET_PAGE_DELAY_MS = 3_000;
  */
 export const BIDNET_PAGES_PER_PASS = 15;
 /**
+ * List pages one whole sync may read across every BidNet group (owner alert 2026-11-17: after
+ * about 105 pages in one sync BidNet answered "HTTP 202" to the last two groups, Massachusetts on
+ * its 7th page and West Virginia on its first). A 202 there is BidNet asking a reader to wait, so
+ * the answer is to ask for less: once the budget is spent, each remaining group reads only its
+ * first page (the newest postings) and takes the rest on its next daily turn.
+ */
+export const BIDNET_PAGES_PER_SYNC = 80;
+/** Pages read so far this sync. `limit` is Infinity until the runner starts a sync's budget. */
+export const bidnetPageBudget = { used: 0, limit: Number.POSITIVE_INFINITY };
+/** Called once at the start of a sync (src/jobs/runner.ts). */
+export function startBidnetPageBudget(limit: number = BIDNET_PAGES_PER_SYNC): void {
+  bidnetPageBudget.used = 0;
+  bidnetPageBudget.limit = limit;
+}
+/** BidNet's "wait" answer. Not a broken page: the reader stops asking for the rest of this sync. */
+export class BidNetSlowDown extends Error {
+  constructor(public readonly url: string) { super(`HTTP 202 for ${url}`); }
+}
+/**
  * Per-pass abort (default). A pass that runs past it FAILS CLOSED — it never
  * reports a partial group as the whole group. A group too large to finish inside
  * it raises `passTimeoutMs` in its own config (`ca_bidnet`, 99 pages → 240 s).
@@ -445,7 +464,13 @@ export function createBidNetGroup(cfg: BidNetGroupConfig): BidNetGroup {
       },
       signal,
     });
+    if (resp.status === 202) {
+      // Spend the rest of the budget: no later group pages through BidNet this sync.
+      bidnetPageBudget.used = Math.max(bidnetPageBudget.used, bidnetPageBudget.limit);
+      throw new BidNetSlowDown(url);
+    }
     if (resp.status !== 200) fail(httpFailureDetail(resp.status, url));
+    bidnetPageBudget.used += 1;
     return await resp.text();
   }
 
@@ -479,12 +504,22 @@ export function createBidNetGroup(cfg: BidNetGroupConfig): BidNetGroup {
         .filter((l) => l.pageNumber > 1)
         .map((l) => l.href)
         .filter((href) => !seen.has(href));
-      while (queue.length > 0 && pages.length < pagesThisPass) {
+      while (queue.length > 0 && pages.length < pagesThisPass && bidnetPageBudget.used < bidnetPageBudget.limit) {
         const href = queue.shift()!;
         if (seen.has(href)) continue;
         seen.add(href);
         await sleep(pageDelayMs);
-        const html = await getHtml(href, controller.signal);
+        let html: string;
+        try {
+          html = await getHtml(href, controller.signal);
+        } catch (e) {
+          // Asked to wait part-way through: keep the pages already read (the newest postings) and stop.
+          if (e instanceof BidNetSlowDown) {
+            console.warn(`  ${cfg.source}: BidNet answered HTTP 202 (wait) on ${href}; keeping the ${pages.length} page(s) already read`);
+            break;
+          }
+          throw e;
+        }
         if (!bidNetListShapeOk(html))
           fail(
             `page shape changed: BidNet list page ${href} has no solicitations table`,
@@ -497,6 +532,8 @@ export function createBidNetGroup(cfg: BidNetGroupConfig): BidNetGroup {
       }
     } catch (e) {
       if (e instanceof SourceUnreachableError) throw e;
+      // On the first page there is nothing to keep, so the group honestly fails this turn.
+      if (e instanceof BidNetSlowDown) fail(httpFailureDetail(202, e.url));
       fail(requestFailureDetail(e));
     } finally {
       clearTimeout(timer);

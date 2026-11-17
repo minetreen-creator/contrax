@@ -1,9 +1,41 @@
-/** Official CSV snapshot; deliberately imported only by the server search route. */
+/**
+ * Official CSV snapshot, used only by the server search route.
+ *
+ * The file (1.4 MB) is a static asset, public/data/grants-snapshot.json, fetched once per server
+ * instance from the site serving the request (owner 2026-11-17: the render function was 100 bytes
+ * under its 12 MB ceiling and this was its largest single item). Same pattern as the ZIP table in
+ * src/lib/town/data.ts. It is public federal data, already shown on the grants page.
+ */
 import { gunzipSync } from 'node:zlib';
-import snapshot from '~/data/grants-snapshot.json';
 type SnapshotRow = Record<'opportunity_id'|'opportunity_number'|'opportunity_title'|'opportunity_status'|'agency_code'|'agency_name'|'post_date'|'close_date'|'forecasted_close_date'|'updated_at'|'estimated_total_program_funding'|'award_floor'|'award_ceiling'|'applicant_types'|'applicant_eligibility_description'|'funding_categories'|'summary_description'|'url', string>;
-export const GRANTS_SNAPSHOT_RECORDS: SnapshotRow[] = JSON.parse(gunzipSync(Buffer.from(snapshot.recordsGzipBase64, 'base64')).toString('utf8'));
-if (GRANTS_SNAPSHOT_RECORDS.length !== snapshot.recordCount) throw new Error('Incomplete grants snapshot');
+export interface GrantsSnapshot { records: SnapshotRow[]; asOf: string }
+
+/** The file's own shape → usable rows. Throws when the row count does not match the file's own count. */
+export function decodeGrantsSnapshot(raw: { downloadedAt: string; recordCount: number; recordsGzipBase64: string }): GrantsSnapshot {
+  const records: SnapshotRow[] = JSON.parse(gunzipSync(Buffer.from(raw.recordsGzipBase64, 'base64')).toString('utf8'));
+  if (records.length !== raw.recordCount) throw new Error('Incomplete grants snapshot');
+  return { records, asOf: raw.downloadedAt };
+}
+
+let loaded: Promise<GrantsSnapshot> | null = null;
+/** Fetched once per server instance; a failed load is forgotten so the next request tries again. */
+export function loadGrantsSnapshot(origin: string): Promise<GrantsSnapshot> {
+  if (!loaded) {
+    loaded = (async () => {
+      for (const o of [...new Set([origin, 'https://www.contrax.company'])]) {
+        try {
+          const res = await fetch(`${o}/data/grants-snapshot.json`, { signal: AbortSignal.timeout(10_000) });
+          if (res.ok) return decodeGrantsSnapshot(await res.json());
+        } catch {
+          /* try the next origin */
+        }
+      }
+      throw new Error('grants-snapshot.json unavailable');
+    })();
+    loaded.catch(() => { loaded = null; });
+  }
+  return loaded;
+}
 import { APPLICANT_TYPES, PAGE_SIZE, classifyGrantStatus, mapGrantResult, filterResultsForStatus, tallyGrantStatuses, type GrantsSearchParams } from '~/lib/grants';
 
 const applicantEnums: Record<string, string> = {
@@ -30,13 +62,12 @@ function sourceDay(raw: string): string | null {
  return Number.isFinite(d.getTime()) && d.toISOString().slice(0,10) === raw ? `${m[2]}/${m[3]}/${m[1]}` : null;
 }
 const labels = new Map(APPLICANT_TYPES.map(o => [applicantEnums[o.value], o.label]));
-export const GRANTS_SNAPSHOT_AS_OF = snapshot.downloadedAt;
-export const GRANTS_SNAPSHOT_SIZE = GRANTS_SNAPSHOT_RECORDS.length;
 
-export function searchGrantsSnapshot(params: GrantsSearchParams, now: Date = new Date()) {
+/** The search itself, over rows already loaded (PURE). */
+export function searchGrantsRecords(snap: GrantsSnapshot, params: GrantsSearchParams, now: Date = new Date()) {
  const words = params.keyword.toLowerCase().split(/\s+/).filter(Boolean);
  const agency = params.agency === 'USDOJ' ? 'DOJ' : params.agency;
- const rows = GRANTS_SNAPSHOT_RECORDS.filter(r => {
+ const rows = snap.records.filter(r => {
    const text = [r.opportunity_title,r.opportunity_number,r.summary_description,r.agency_name].join(' ').toLowerCase();
    return words.every(w => text.includes(w)) &&
      (!agency || r.agency_code === agency || r.agency_code.startsWith(agency + '-')) &&
@@ -63,6 +94,11 @@ export function searchGrantsSnapshot(params: GrantsSearchParams, now: Date = new
  });
  const visible = filterResultsForStatus(mapped, params.status);
  return { results:visible.slice((params.page-1)*PAGE_SIZE, params.page*PAGE_SIZE), totalCount:visible.length,
-   asOf:GRANTS_SNAPSHOT_AS_OF,
+   asOf:snap.asOf,
    excluded:{expiredPosted:tally.expiredPosted,missingDeadline:tally.missingDeadline,forecasts:tally.forecast} };
+}
+
+/** Loads the snapshot (once per server instance) and searches it. `origin` is the site serving this request. */
+export async function searchGrantsSnapshot(params: GrantsSearchParams, origin: string, now: Date = new Date()) {
+ return searchGrantsRecords(await loadGrantsSnapshot(origin), params, now);
 }

@@ -14,7 +14,7 @@ let foundingSearchFails = false;
 let legacyProduct = false;
 // Starter "$5 first month" coupon state, driven per test.
 let couponMissing = false;
-let couponAmountOff = 900; // $14 → $9 (owner 2026-11-09)
+let couponAmountOff = 500; // $14 → $9 (owner 2026-11-17)
 const couponsCreated: any[] = [];
 mock.module("stripe", () => ({
   default: class FakeStripe {
@@ -167,14 +167,14 @@ describe("Starter $9 first month", () => {
     couponMissing = true;
     expect((await stripeLib.createCheckoutSession("starter", { userId: 42 })).success).toBe(true);
     expect(couponsCreated).toEqual([
-      { id: "contrax_starter_first_month_5_v2", amount_off: 900, currency: "usd", duration: "once", name: "Starter: $9 first month" },
+      { id: "contrax_starter_first_month_9_v1", amount_off: 500, currency: "usd", duration: "once", name: "Starter: $9 first month" },
     ]);
     const session = created[0];
     expect(session.line_items).toEqual([
       { price_data: { currency: "usd", product: "prod_starter", unit_amount: 1400, recurring: { interval: "month" } }, quantity: 1 },
     ]);
-    expect(session.discounts).toEqual([{ coupon: "contrax_starter_first_month_5_v2" }]);
-    expect(session.metadata.first_month_offer).toBe("contrax_starter_first_month_5_v2");
+    expect(session.discounts).toEqual([{ coupon: "contrax_starter_first_month_9_v1" }]);
+    expect(session.metadata.first_month_offer).toBe("contrax_starter_first_month_9_v1");
     expect(session.subscription_data.metadata).toEqual(session.metadata);
   });
 
@@ -197,7 +197,7 @@ describe("Starter $9 first month", () => {
       const r = await stripeLib.createCheckoutSession("starter", {});
       expect(r.success).toBe(false);
       expect(created).toHaveLength(0);
-    } finally { couponAmountOff = 900; }
+    } finally { couponAmountOff = 500; }
   });
 });
 

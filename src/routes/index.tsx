@@ -16,7 +16,7 @@ import {
   buildContractMap,
   type ContractMapAggregate,
 } from "~/lib/contract-map";
-import { getEverydaySample } from "~/lib/sample-bids";
+import { getEverydaySample, type EverydaySampleBid } from "~/lib/sample-bids";
 import { MAX_PROOF, maxProofStillCurrent } from "~/lib/max-proof";
 
 // ── Server Functions ──────────────────────────────────────────────────────────
@@ -194,9 +194,10 @@ function Home() {
           each with the same weight; the bid search follows as the do-it-yourself side's first step. */}
       <HomeChoice />
       {/* Owner 2026-11-16: a real open bid per trade, the notice beside the brief, right under the hero. */}
-      <HomeBidPreview />
+      {/* Owner 2026-11-16: the trade and state search is the first action under the two cards. */}
       <HomeContractFinder sample={sample} openTotal={contractMap?.totals?.totalOpen ?? 0} heading="h2" />
-      <HomeExecutionLine />
+      <HomeBidPreview />
+      <HomeExecutionLine sample={sample} />
       {/* Before/after proof (owner 2026-11-08): a real bid's notice next to Max's real answer. */}
       {maxProofCurrent !== false ? <HomeMaxProof /> : null}
       {/* The $5 Starter pass (src/lib/starter-pass.ts): the only offer on the page. */}
@@ -231,7 +232,8 @@ const HOME_LANES = [
     key: "dfy",
     tag: "Done for you",
     title: "I want it prepared for my team",
-    detail: "We send a report of the contracts ending in your line of work, who holds them and what they are worth. One report or every month.",
+    // Owner 2026-11-16: name the scale. Every figure here is in REPORT_INCLUDES (src/lib/pipeline-report.ts).
+    detail: "We send a report of the federal contracts ending in your line of work over the next 12 months: the 25 largest with who holds each one, the agency and the value, and the 10 companies holding the most. One report or every month.",
     who: "For companies with someone who sells to government",
     cta: "Read a real report",
     // Show the report before the price.
@@ -284,7 +286,10 @@ function HomeChoice() {
 }
 
 // "From opportunity to execution." (owner 2026-11-10): Contrax doesn't stop at the bid list.
-function HomeExecutionLine() {
+function HomeExecutionLine({ sample = [] }: { sample?: EverydaySampleBid[] }) {
+  // Owner 2026-11-16: the same search link appeared four times in two scrolls. Step 1 now shows what
+  // arrives each morning, built from the same real open bids as the examples above; never invented.
+  const morning = sample.slice(0, 2);
   // Owner 2026-11-10: the whole marketing story is one line (src/lib/brand-message.ts).
   return (
     <section aria-labelledby="home-execution-title" className="mx-auto max-w-[1120px] px-4 pt-12 sm:px-6">
@@ -301,6 +306,17 @@ function HomeExecutionLine() {
               <span className="text-xs font-bold text-blue-700 dark:text-blue-300">Step {i + 1}</span>
               <span className="mt-1 text-lg font-bold">{st.title}</span>
               <span className="mt-1 text-sm text-slate-600 dark:text-slate-300">{st.detail}</span>
+              {i === 0 && morning.length > 0 ? (
+                <span className="mt-3 block rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800">
+                  <span className="block text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">Your morning email · real bids open today</span>
+                  {morning.map((b) => (
+                    <span key={b.id} className="mt-2 block border-t border-slate-200 pt-2 text-xs dark:border-slate-700">
+                      <span className="block font-semibold text-slate-900 line-clamp-1 dark:text-white">{b.title}</span>
+                      <span className="block text-slate-500 dark:text-slate-400">{[b.trade, b.location].filter(Boolean).join(" · ")}</span>
+                    </span>
+                  ))}
+                </span>
+              ) : null}
               <span className="mt-auto pt-3 text-sm font-semibold text-blue-700 group-hover:text-blue-600 dark:text-blue-300">{st.cta} →</span>
             </a>
           </li>

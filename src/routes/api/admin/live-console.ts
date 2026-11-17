@@ -36,8 +36,7 @@ import {
   type TrendDay,
   fillTrend,
   trendDays,
-  TREND_DAYS,
-} from "~/lib/live-console";
+  TREND_DAYS, BID_PAGE_SQL } from "~/lib/live-console";
 
 /**
  * GET /api/admin/live-console — the owner console's live activity feed and
@@ -664,6 +663,7 @@ async function loadToday(db: ReturnType<typeof sql>, stripe: { day: ReturnType<t
   const out: TodayStats = {
     people: { today: 0, yesterday: 0, yesterdaySoFar: 0 },
     searches: { today: 0, yesterday: 0, yesterdaySoFar: 0, zeroToday: 0 },
+    bidOpens: { today: 0, yesterday: 0, yesterdaySoFar: 0 },
     checkouts: { today: 0, yesterday: 0, yesterdaySoFar: 0 },
     paid: stripe ? stripe.day : null,
   };
@@ -672,12 +672,14 @@ async function loadToday(db: ReturnType<typeof sql>, stripe: { day: ReturnType<t
       `SELECT visitor_id, ${isToday} AS is_today, COUNT(*)::int AS views,
               MIN(created_at) AS first_at, MAX(created_at) AS last_at,
               BOOL_OR(user_id IS NOT NULL) AS signed_in,
+              BOOL_OR(${BID_PAGE_SQL}) AS opened_bid,
+              MIN(created_at) FILTER (WHERE ${BID_PAGE_SQL}) AS bid_at,
               (ARRAY_AGG(city ORDER BY created_at DESC))[1] AS city,
               (ARRAY_AGG(region ORDER BY created_at DESC))[1] AS region
        FROM page_views
        WHERE created_at >= ${since} AND visitor_id IS NOT NULL AND path NOT LIKE '/admin%' AND ${human}
        GROUP BY visitor_id, 2`,
-    )) as { visitor_id: string; is_today: boolean; views: number; first_at: string; last_at: string; signed_in: boolean; city: string | null; region: string | null }[];
+    )) as { visitor_id: string; is_today: boolean; views: number; first_at: string; last_at: string; signed_in: boolean; opened_bid: boolean; bid_at: string | null; city: string | null; region: string | null }[];
     for (const r of rows) {
       const span = (Date.parse(r.last_at) - Date.parse(r.first_at)) / 1000;
       if (!r.signed_in && (emailLinkSweep(Number(r.views), span) || dataCenterLocation(r.city, r.region))) continue;
@@ -685,6 +687,13 @@ async function loadToday(db: ReturnType<typeof sql>, stripe: { day: ReturnType<t
       else {
         out.people.yesterday++;
         if (Date.parse(r.first_at) <= Date.now() - 24 * 60 * 60 * 1000) out.people.yesterdaySoFar++;
+      }
+      if (r.opened_bid && out.bidOpens) {
+        if (r.is_today) out.bidOpens.today++;
+        else {
+          out.bidOpens.yesterday++;
+          if (r.bid_at && Date.parse(r.bid_at) <= Date.now() - 24 * 60 * 60 * 1000) out.bidOpens.yesterdaySoFar++;
+        }
       }
     }
   } catch (e) {

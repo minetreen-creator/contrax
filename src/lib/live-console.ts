@@ -315,6 +315,11 @@ export interface TodayStats {
   /** Real people (bots, QA, admin and email link scanners left out). */
   people: DayPair;
   searches: DayPair & { zeroToday: number };
+  /**
+   * People who opened a bid's own page (owner 2026-11-16: visitors from a Facebook post land on a
+   * page that already lists bids, so they read bids without ever searching). Same people rules.
+   */
+  bidOpens?: DayPair;
   /** Visitors who reached Stripe's payment page. */
   checkouts: DayPair;
   /** Dollars paid through Stripe; null when Stripe could not be read. */
@@ -420,4 +425,13 @@ export function trendPaths(values: readonly number[], w: number, h: number, max:
 export function matchCount(detail: string | null | undefined): number | null {
   const m = /^(\d[\d,]*)\s+match/.exec(String(detail ?? "").trim());
   return m ? Number(m[1].replace(/,/g, "")) : null;
+}
+
+/** A bid's own page ("/bid/314898", with or without a query), not the bid list or a state page. PURE. */
+export const BID_PAGE_SQL = "path ~ '^/bid/[0-9]+'";
+
+/** "12 people opened a bid today (5 yesterday)". PURE. */
+export function bidOpensNote(b: { today: number; yesterday: number } | undefined): string | null {
+  if (!b) return null;
+  return `${b.today.toLocaleString("en-US")} ${b.today === 1 ? "person" : "people"} opened a bid today (${b.yesterday.toLocaleString("en-US")} yesterday)`;
 }

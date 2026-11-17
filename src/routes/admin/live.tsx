@@ -31,6 +31,7 @@ import {
   dayChange,
   matchCount,
   trendPaths,
+  bidOpensNote,
 } from "~/lib/live-console";
 import type { TrackedVisitor, VisitorTrail } from "~/lib/scraper-watch";
 
@@ -1744,7 +1745,7 @@ function LivePage() {
 function StatStrip({ today, online }: { today: TodayStats | null; online: number }) {
   if (!today) return null;
   const money = (n: number) => `$${n.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
-  const cards: { label: string; value: string; change: ReturnType<typeof dayChange> | null; color: string; note?: string; icon: typeof Search; lead?: boolean }[] = [
+  const cards: { label: string; value: string; change: ReturnType<typeof dayChange> | null; color: string; note?: string; note2?: string | null; icon: typeof Search; lead?: boolean }[] = [
     { label: "People today", value: today.people.today.toLocaleString("en-US"), change: dayChange(today.people.today, today.people.yesterdaySoFar), color: "#2dd4bf", icon: Users, lead: true, note: `${today.people.yesterday.toLocaleString("en-US")} all day yesterday · bots and scanners left out` },
     // Owner 2026-11-04: "Thats a stat I don't really need" (Checkouts tile removed).
     {
@@ -1763,6 +1764,8 @@ function StatStrip({ today, online }: { today: TodayStats | null; online: number
       color: "#38bdf8",
       icon: Search,
       note: `${today.searches.yesterday.toLocaleString("en-US")} all day yesterday${today.searches.zeroToday ? ` · ${today.searches.zeroToday} found nothing today` : ""}`,
+      // Owner 2026-11-16: Facebook visitors read bids without searching, so bid opens sit beside searches.
+      note2: bidOpensNote(today.bidOpens),
     },
   ];
   return (
@@ -1777,6 +1780,7 @@ function StatStrip({ today, online }: { today: TodayStats | null; online: number
               <span className="mc-tile-value">{c.value}</span>
               {c.change ? <span className={`live-bigstat-change is-${c.change.dir} block`}>{c.change.label}</span> : null}
               {c.note ? <span className="block truncate text-[11px] text-slate-500" title={c.note}>{c.note}</span> : null}
+              {c.note2 ? <span className="block truncate text-[11px] font-semibold text-sky-300" title={c.note2}>{c.note2}</span> : null}
             </div>
           </div>
         );

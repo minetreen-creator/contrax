@@ -110,3 +110,19 @@ test("the top bar's page name stays small beside the logo", () => {
   expect(css).toContain(".admin-console main .mc-topbar h1 { font-size: 15px;");
   expect(css).toContain(".admin-console .mc-topbar img { height: 30px; }");
 });
+
+// Owner 2026-11-16 ("do all 3"): Facebook visitors read bids without searching.
+test("bid opens are counted beside searches, by the same people rules", async () => {
+  const { bidOpensNote, BID_PAGE_SQL } = await import("./live-console");
+  expect(bidOpensNote({ today: 12, yesterday: 5 })).toBe("12 people opened a bid today (5 yesterday)");
+  expect(bidOpensNote({ today: 1, yesterday: 0 })).toBe("1 person opened a bid today (0 yesterday)");
+  expect(bidOpensNote(undefined)).toBeNull();
+  expect(BID_PAGE_SQL).toBe("path ~ '^/bid/[0-9]+'");
+  const { readFileSync } = require("node:fs") as typeof import("node:fs");
+  const api = readFileSync("src/routes/api/admin/live-console.ts", "utf8");
+  expect(api).toContain("BOOL_OR(${BID_PAGE_SQL}) AS opened_bid");
+  expect(api).toContain("bidOpens: { today: 0, yesterday: 0, yesterdaySoFar: 0 },");
+  // Counted inside the people loop, after the scanner and data-center exclusions.
+  expect(api.indexOf("dataCenterLocation(r.city, r.region))) continue;")).toBeLessThan(api.indexOf("if (r.opened_bid && out.bidOpens)"));
+  expect(readFileSync("src/routes/admin/live.tsx", "utf8")).toContain("note2: bidOpensNote(today.bidOpens),");
+});

@@ -77,6 +77,7 @@ import {
 } from "~/lib/radar-scan-runner";
 import { fetchStrictRadarRows, radarRowPasses } from "~/lib/radar-candidates";
 import { BIDS_FIRST_TABS, getBidsFirst, type BidsFirstData, type BidsFirstTab } from "~/lib/bids-first";
+import { zeroStateOptions } from "~/lib/zero-results";
 import { radarShareUrl } from "~/lib/radar-share";
 import { closingSoonLast, roomToBidFirst } from "~/lib/radar-closing-soon";
 import { ADDRESS_TIP, isKnownTrade, looksLikeAddress, notATradeLine } from "~/lib/trade-input";
@@ -459,6 +460,40 @@ export const getVisitorStateHint = createServerFn({ method: "GET" }).handler(asy
     return "";
   }
 });
+
+/**
+ * On a search that found nothing: the trades that do have open bids in the visitor's state, each
+ * with its real count (the same counts as the Bids-first panel). One tap runs that search. Shows
+ * nothing while loading, when the state has none, or for the trade just searched.
+ */
+function ZeroOpenInState({ state, searched, onPick }: { state: string; searched: string; onPick: (trade: string) => void }) {
+  const [data, setData] = useState<BidsFirstData | null>(null);
+  useEffect(() => {
+    let stop = false;
+    getBidsFirst({ data: { state } }).then((d) => { if (!stop) setData(d); }).catch(() => {});
+    return () => { stop = true; };
+  }, [state]);
+  const open = zeroStateOptions(data, searched);
+  if (!open.length) return null;
+  return (
+    <div className="mt-6 rounded-2xl border border-slate-700 bg-slate-900/60 p-4 text-left">
+      <p className="text-sm font-bold text-white">Open in {STATE_NAMES[state] ?? state} right now</p>
+      <div className="mt-3 grid gap-2">
+        {open.map((o) => (
+          <button
+            key={o.trade}
+            type="button"
+            onClick={() => onPick(o.trade)}
+            className="flex items-center justify-between rounded-xl border border-slate-600 bg-slate-800 px-4 py-3 text-sm font-semibold text-white transition-all hover:border-amber-400 hover:bg-slate-700"
+          >
+            <span>{o.label}</span>
+            <span className="text-amber-400">{o.count} open →</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 // Bids first (owner 2026-11-07): the panel's data lives in ~/lib/bids-first,
 // shared with the Contrax app's "Bids near me" and the pricing page's email sample.
@@ -2250,6 +2285,19 @@ function RadarLanding() {
                   >
                     See {trade.trim().slice(0, 40)} contracts nationwide →
                   </button>
+                )}
+                {/* Owner 2026-11-16 ("what can we do to get more searches?"): nearly half of searches found
+                    nothing and the visitor left. Show what IS open in their state, with real counts. */}
+                {state && (
+                  <ZeroOpenInState
+                    state={state}
+                    searched={trade.trim()}
+                    onPick={(t) => {
+                      trackEvent("radar_zero_open_in_state", `${t}|${state}`);
+                      setTrade(t);
+                      runScan({ trade: t, state, cert: cert ?? DEFAULT_RADAR_CERT, sizePref: sizePref ?? DEFAULT_RADAR_SIZE });
+                    }}
+                  />
                 )}
                 <button
                   type="button"

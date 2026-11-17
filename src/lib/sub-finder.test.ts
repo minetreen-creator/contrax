@@ -238,7 +238,7 @@ describe("homepage map is a data tool, not a second form (owner 2026-11-10)", ()
 });
 
 describe("'From opportunity to execution.' near the top (owner 2026-11-10)", () => {
-  test("the line sits right under the hero, above the $5 strip", () => {
+  test("the line sits right under the hero, above the $9 strip", () => {
     const home = readFileSync(new URL("../routes/index.tsx", import.meta.url), "utf8");
     const line = home.indexOf("<HomeExecutionLine />");
     expect(line).toBeGreaterThan(home.indexOf("<HomeContractFinder"));

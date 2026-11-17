@@ -7,7 +7,7 @@ const checkout = PATH_CHECKS.find((c) => c.method === "POST")!;
 
 describe("judge", () => {
   test("passes on the expected status with the marker text", () => {
-    expect(judge(page, 200, "<button>Start Starter for $5</button>", 120).ok).toBe(true);
+    expect(judge(page, 200, "<button>Start Starter for $9</button>", 120).ok).toBe(true);
     expect(judge(checkout, 401, '{"error":"Sign in to choose a Contrax plan."}', 90).ok).toBe(true);
   });
 

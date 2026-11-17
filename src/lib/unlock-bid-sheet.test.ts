@@ -9,7 +9,7 @@ function memory() {
   return { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v), removeItem: (k: string) => void m.delete(k) };
 }
 
-describe("bid-page $5 confirm step", () => {
+describe("bid-page $9 confirm step", () => {
   test("the bid a checkout started from is remembered for 48 hours, then cleared", () => {
     const s = memory();
     const t = Date.parse("2026-11-08T23:00:00Z");
@@ -26,7 +26,7 @@ describe("bid-page $5 confirm step", () => {
     expect(STARTER_FULL_PRICE).toBe(14);
   });
 
-  test("first-time buyers get the sheet; a used pass is told $19/month, never '$5 one time'", () => {
+  test("first-time buyers get the sheet; a used pass is told $19/month, never '$9 one time'", () => {
     const page = readFileSync(new URL("../routes/bid.$bidId.tsx", import.meta.url), "utf8");
     expect(page).toContain('const pass = (bid?.starter_kind ?? "pass") === "pass";');
     expect(page).toContain("setConfirming(true);");

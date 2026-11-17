@@ -647,7 +647,7 @@ export function outreachEmail(i: OutreachEmailInput): { subject: string; text: s
       `Quick follow-up on the ${i.bidTitle} bid. It's due ${due}, so there's still time if you want to go for it.`,
       ...postingLines,
       "",
-      `If you'd like new ${i.tradeLabel} bids near you every morning, Contrax Starter is $5 for your first 30 days with no automatic renewal: ${link("/pricing", i.kind, i.contactId)}`,
+      `If you'd like new ${i.tradeLabel} bids near you every morning, Contrax Starter is $9 for your first 30 days with no automatic renewal: ${link("/pricing", i.kind, i.contactId)}`,
       "",
       "Good luck on the bid.",
     ];

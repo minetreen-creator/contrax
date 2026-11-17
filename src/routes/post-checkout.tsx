@@ -443,7 +443,7 @@ function PostCheckoutPage() {
               </p>
               {passEndsAt && (
                 <p className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
-                  You paid $5 one time. Your pass runs until{" "}
+                  You paid $9 one time. Your pass runs until{" "}
                   <span className="font-semibold">
                     {new Date(passEndsAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "America/New_York" })}
                   </span>

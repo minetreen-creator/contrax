@@ -23,7 +23,7 @@ test("our side states our own current prices", () => {
   const ours = JSON.stringify(CONTRAX_SIDE);
   expect(ours).toContain("$149 once");
   expect(ours).toContain("$499 a month");
-  expect(ours).toContain("start for $5");
+  expect(ours).toContain("start for $9");
 });
 
 test("the page shows the source and check date, says when the other tool wins, and is in the sitemap", () => {

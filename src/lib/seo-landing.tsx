@@ -638,7 +638,7 @@ export function SeoLanding(props: {
               🔍 See open bids now →
             </a>
             <p className="mt-2 text-xs font-medium text-blue-200/60">
-              No card to search · $5 for 30 days to open every notice · No automatic renewal
+              No card to search · $9 for 30 days to open every notice · No automatic renewal
             </p>
           </div>
         </div>
@@ -1005,7 +1005,7 @@ export function RegionView({ data }: { data: RegionData }) {
           🔍 See open {name} bids →
         </a>
         <p className="mt-2 text-xs text-blue-200/60">
-          No card to search · $5 for 30 days to open every notice · No automatic renewal
+          No card to search · $9 for 30 days to open every notice · No automatic renewal
         </p>
       </div>
     </div>

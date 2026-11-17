@@ -7,7 +7,7 @@ test("the note is personal, names the company, and never says we watched them", 
   const n = warmLeadNote({ email: "brandon.smith@example.org", company: "Chippewa Sustainable Solutions" });
   expect(n.body.startsWith("Hi Brandon,")).toBe(true);
   expect(n.body).toContain("for Chippewa Sustainable Solutions");
-  expect(n.body).toContain("try everything for $5");
+  expect(n.body).toContain("try everything for $9");
   for (const w of ["upgrade page", "noticed you", "saw you", "tracked", "visited"]) expect(n.body.toLowerCase()).not.toContain(w);
   // An address with no clear first name gets a plain greeting, never a guess.
   expect(warmLeadNote({ email: "info@example.org", company: null }).body.startsWith("Hi,\n")).toBe(true);

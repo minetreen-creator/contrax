@@ -6,7 +6,7 @@ import { readFileSync } from "node:fs";
 const page = readFileSync("src/routes/index.tsx", "utf8");
 const at = (s: string) => page.indexOf(s);
 
-test("the homepage is five sections in this order: search, message, AI proof, $5 pass, state map", () => {
+test("the homepage is five sections in this order: search, message, AI proof, $9 pass, state map", () => {
   const order = ["<HomeContractFinder", "<HomeExecutionLine />", "<HomeMaxProof />", "<StarterPassStrip />", "<HomeStateMap"].map(at);
   expect(order.every((i) => i > 0)).toBe(true);
   expect([...order].sort((a, b) => a - b)).toEqual(order);
@@ -30,7 +30,7 @@ test("subs are folded into the message section, and the footer keeps every moved
     expect(page).toContain(`href: ${href}`);
 });
 
-test("the $5 strip still says what the 6 AM email brings", () => {
+test("the $9 strip still says what the 6 AM email brings", () => {
   expect(page).toContain("Auto-Pilot reads each one against your business and leads with the best fits");
 });
 

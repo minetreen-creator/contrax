@@ -52,7 +52,7 @@ describe("daily bid outreach (owner 2026-10-23)", () => {
     expect(m.text).toContain("new janitorial bids near you every morning");
   });
 
-  test("follow-up offers the $5 pass (Bid Scout retired) and threads under the first subject", () => {
+  test("follow-up offers the $9 pass (Bid Scout retired) and threads under the first subject", () => {
     const m = outreachEmail({ ...base, kind: "followup" });
     expect(m.subject).toBe("Re: Open janitorial bid from Botetourt County, Virginia, due Nov 5");
     expect(m.text).not.toContain("Bid Scout");
@@ -211,7 +211,7 @@ describe("outreach review fixes (owner 2026-10-25)", () => {
     unsubscribeUrl: "https://www.contrax.company/api/outreach/unsubscribe?t=x",
     contactId: 7,
   };
-  test("the first email never hands over the official posting and makes one ask: the $5 pass (owner 2026-11-04)", () => {
+  test("the first email never hands over the official posting and makes one ask: the $9 pass (owner 2026-11-04)", () => {
     const m = outreachEmail({ ...base, sourceUrl: "https://www.botetourtva.gov/bids/123" });
     expect(m.text).not.toContain("botetourtva.gov/bids/123");
     expect(m.html).not.toContain("botetourtva.gov/bids/123");
@@ -237,7 +237,7 @@ describe("outreach review fixes (owner 2026-10-25)", () => {
     const m = outreachEmail({ ...base, kind: "followup", sourceUrl: "https://example.gov/b" });
     expect(m.text).not.toContain("example.gov/b");
     expect(m.text).toContain("Details: https://www.contrax.company/bid/123");
-    expect(m.text).toContain("Starter is $5 for your first 30 days");
+    expect(m.text).toContain("Starter is $9 for your first 30 days");
     expect(m.text).not.toContain('reply "yes"');
     expect(m.text).not.toContain("free");
   });

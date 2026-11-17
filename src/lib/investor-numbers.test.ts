@@ -19,7 +19,7 @@ describe("investor numbers", () => {
   test("revenue and weekly sales windows", () => {
     const w = revenueWindows(
       [
-        { created: at(0.1), payment_status: "paid", amount_total: 500 }, // the first $5
+        { created: at(0.1), payment_status: "paid", amount_total: 500 }, // the first $9
         { created: at(3), payment_status: "paid", amount_total: 1900 },
         { created: at(10), payment_status: "paid", amount_total: 500 },
         { created: at(40), payment_status: "paid", amount_total: 1900 }, // older than 30 days
@@ -38,7 +38,7 @@ describe("investor numbers", () => {
     expect(weekGrowthLabel(0, 0)).toBe("flat");
     expect(weekGrowthLabel(3, 2)).toBe("+50%");
     expect(weekGrowthLabel(1, 2)).toBe("-50%");
-    expect(dollars(5)).toBe("$5");
+    expect(dollars(5)).toBe("$9");
     expect(dollars(12.5)).toBe("$12.50");
     expect(dollars(1234)).toBe("$1,234");
   });

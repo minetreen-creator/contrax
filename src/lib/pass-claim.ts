@@ -44,7 +44,7 @@ export function claimCanMovePass(args: {
 /** The owner's push when a pass moves. PURE. */
 export function passMovedAlert(fromEmail: string, toEmail: string): { title: string; body: string; tag: string; url: string } {
   return {
-    title: "$5 pass moved to the account they use",
+    title: "$9 pass moved to the account they use",
     body: `Paid as ${fromEmail}, signed up as ${toEmail}. The pass is now on ${toEmail}.`,
     tag: "pass-moved",
     url: "/admin/signups",

@@ -40,7 +40,7 @@ describe("bid amendment detection (owner 2026-10-22)", () => {
     expect(
       detectAmendments(
         { title: "T", description: "", due_date: null, estimated_value: null },
-        { title: "T", description: "Now has text", due_date: "2026-11-10T21:00:00.000Z", estimated_value: "$5" },
+        { title: "T", description: "Now has text", due_date: "2026-11-10T21:00:00.000Z", estimated_value: "$9" },
       ),
     ).toEqual([]);
     expect(

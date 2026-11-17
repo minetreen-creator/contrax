@@ -119,7 +119,7 @@ function ChecklistPage() {
               onClick={() => trackEvent("checklist_starter", c.slug)}
               className="rounded-xl border border-emerald-500/60 px-4 py-2.5 text-sm font-semibold text-emerald-300 hover:border-emerald-400"
             >
-              Daily bid email · $5 Starter
+              Daily bid email · $9 Starter
             </a>
           </div>
         </div>

@@ -776,7 +776,7 @@ function BidDetailPage() {
         )}
       </div>
       {/* The Contrax app install prompt for phone visitors (owner 2026-11-07), held until the
-          visitor has seen the $5 offer so it never covers the first screen (owner 2026-11-09). */}
+          visitor has seen the $9 offer so it never covers the first screen (owner 2026-11-09). */}
       {bid && <AppInstallBanner where="bid" hold={!checked || (lockShown && !offerSeen)} />}
       {bid && confirming ? <UnlockBidSheet bidId={bid.id} bid={bid} onClose={closeSheet} /> : null}
     </main>

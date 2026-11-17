@@ -38,7 +38,7 @@ export function radarPassPitch(o: {
         : `${o.waiting} more ${o.trade} bid${o.waiting === 1 ? "" : "s"}${where} are waiting.`;
   const buyers = o.facts && o.facts.buyers > 1 ? ` from ${o.facts.buyers} buyers` : "";
   const detail =
-    `$5 opens every official notice, document and buyer contact for these ${o.total} bids${buyers}, ` +
+    `$9 opens every official notice, document and buyer contact for these ${o.total} bids${buyers}, ` +
     "and starting tomorrow at 6 AM, each new one in your trade with Auto-Pilot's call: pursue, partner or pass.";
   return { headline, detail };
 }

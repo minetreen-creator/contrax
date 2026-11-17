@@ -8,7 +8,7 @@ import { PROBE_SESSION_SECONDS } from "./stripe";
 // Stripe's Review sessions. It is now labeled and expires in ~30 minutes.
 describe("path-check probe checkout", () => {
   test("the daily check asks for a labeled probe session", () => {
-    const c = PATH_CHECKS.find((p) => p.name === "Checkout opens ($5 Starter, signed out)")!;
+    const c = PATH_CHECKS.find((p) => p.name === "Checkout opens ($9 Starter, signed out)")!;
     expect(JSON.parse(c.body!)).toEqual({ planTier: "starter", interval: "month", probe: "path-check" });
   });
   test("the session is labeled and short-lived (Stripe's 30-minute minimum)", () => {

@@ -192,7 +192,7 @@ describe("plan gates: the attempt prompt copy", () => {
       body:
         "Proposal drafting and pipeline CSV export come with every paid Contrax plan, starting with Starter.",
       ctaLabel: "See plans →",
-      priceNote: "Starter: $5 for your first 30 days · No automatic renewal",
+      priceNote: "Starter: $9 for your first 30 days · No automatic renewal",
       href: "/pricing",
       checkout: false,
       checkoutPlan: "starter",
@@ -209,7 +209,7 @@ describe("plan gates: the attempt prompt copy", () => {
       // Every price mentioned is the product's real price (no invented figure).
       const prices = new Set(text.match(/\$[\d,]+/g) ?? []);
       // Radar Pro is $79/mo; the drafting/export prompt names the $5 Starter first 30 days.
-      expect([...prices]).toEqual([gate === "radar_pro" ? "$79" : "$5"]);
+      expect([...prices]).toEqual([gate === "radar_pro" ? "$79" : "$9"]);
       expect(text).not.toContain("free forever");
     }
   });

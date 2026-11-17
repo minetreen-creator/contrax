@@ -116,12 +116,12 @@ const PASS_URL = "https://www.contrax.company/pricing?utm_source=email&utm_campa
 
 const PASS_HIGHLIGHTS = [
   "📬 New government bids in your trade and states, emailed every morning at 6 AM",
-  "💵 $5 one time for your first 30 days",
+  "💵 $9 one time for your first 30 days",
   "🔒 Nothing renews. On day 30 the pass simply ends unless you choose to keep going.",
 ];
 
 const PASS_PARAGRAPHS = [
-  "You signed up for Contrax, so here's the easiest way to try Starter: one $5 payment covers your first 30 days.",
+  "You signed up for Contrax, so here's the easiest way to try Starter: one $9 payment covers your first 30 days.",
   "Five days before your 30 days end, we'll email you once to ask whether you want to keep going at $14/month. Do nothing and you're never charged again. Your account simply goes back to Basic, and you keep your login.",
   "🔨 Pick your trade and states right after checkout, and your first bid email arrives the next morning at 6 AM.",
 ];
@@ -135,10 +135,10 @@ export function starterPassEmail(unsubscribeUrl: string): { subject: string; htm
     <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:560px;background:#ffffff;border-radius:12px;overflow:hidden;">
       <tr><td style="background:#102342;padding:24px 32px;color:#ffffff;"><h1 style="margin:0;font-size:22px;">Contrax</h1></td></tr>
       <tr><td style="padding:28px 32px;">
-        <h2 style="margin:0 0 16px;color:#111827;font-size:20px;line-height:1.3;">⚡ Your first 30 days of Contrax Starter: $5</h2>
+        <h2 style="margin:0 0 16px;color:#111827;font-size:20px;line-height:1.3;">⚡ Your first 30 days of Contrax Starter: $9</h2>
         <ul style="margin:0 0 16px;padding-left:20px;color:#111827;font-size:15px;line-height:1.7;font-weight:600;">${PASS_HIGHLIGHTS.map((l) => `<li>${escapeHtml(l)}</li>`).join("")}</ul>
         ${PASS_PARAGRAPHS.map(p).join("\n        ")}
-        <p style="margin:0 0 20px;"><a href="${PASS_URL}" style="display:inline-block;background:#1d4ed8;color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:10px;font-weight:700;font-size:15px;">Start my 30 days for $5 →</a></p>
+        <p style="margin:0 0 20px;"><a href="${PASS_URL}" style="display:inline-block;background:#1d4ed8;color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:10px;font-weight:700;font-size:15px;">Start my 30 days for $9 →</a></p>
         <p style="margin:0;color:#4b5563;font-size:15px;line-height:1.6;">Nathaniel Minetree<br>Owner and CEO, Contrax LLC</p>
       </td></tr>
       <tr><td style="padding:16px 32px 24px;border-top:1px solid #e5e7eb;color:#6b7280;font-size:12px;line-height:1.5;">
@@ -150,10 +150,10 @@ export function starterPassEmail(unsubscribeUrl: string): { subject: string; htm
   </td></tr></table>
 </body></html>`;
   const text = [
-    "Your first 30 days of Contrax Starter: $5",
+    "Your first 30 days of Contrax Starter: $9",
     PASS_HIGHLIGHTS.join("\n"),
     ...PASS_PARAGRAPHS,
-    `Start my 30 days for $5: ${PASS_URL}`,
+    `Start my 30 days for $9: ${PASS_URL}`,
     "Nathaniel Minetree\nOwner and CEO, Contrax LLC",
     `You're getting this one-time offer because you have a Contrax account. Unsubscribe: ${unsubscribeUrl}`,
     TRADEMARK_LINE,

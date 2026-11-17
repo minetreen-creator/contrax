@@ -2076,7 +2076,7 @@ function RadarLanding() {
             </h2>
             <p className="mt-3 text-slate-300">
               {scan.signupRequired
-                ? "You've used your anonymous preview. Create a free account to keep going, or get unlimited Radar searches, every state and trade, and the daily bid email with Starter: $5 for your first 30 days, no automatic renewal."
+                ? "You've used your anonymous preview. Create a free account to keep going, or get unlimited Radar searches, every state and trade, and the daily bid email with Starter: $9 for your first 30 days, no automatic renewal."
                 : "You've used the two Radar searches included with your free Basic account. Choose a paid plan for continued Radar access."}
             </p>
             <a href={scan.signupRequired ? radarSignupHref({ trade, state, cert, sizePref }, { cta: true, free: true }) : "/upgrade"}
@@ -2821,7 +2821,7 @@ export function RadarCard({
           </div>
         )}
         {/* Owner 2026-11-11: 26 Facebook visitors reached their results in two weeks and almost none
-            opened a bid, where the $5 offer is. The title now opens the bid for a visitor without an
+            opened a bid, where the $9 offer is. The title now opens the bid for a visitor without an
             account, and the button below says what a tap gets. */}
         <h3 className="text-base font-bold leading-snug text-white">
           {user ? (
@@ -2998,7 +2998,7 @@ export function RadarCard({
               className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-amber-400 hover:text-amber-300"
             >
               {/* Owner 2026-11-02: the lock names its price. The bid page shows
-                  the job and the $5 button that carries this bid to checkout. */}
+                  the job and the $9 button that carries this bid to checkout. */}
               🔒 Official notice + bid documents: ${STARTER_FIRST_MONTH_PRICE} for 30 days <span aria-hidden="true">→</span>
             </a>
           )}
@@ -4129,7 +4129,7 @@ function BidsFirst({ signedIn }: { signedIn: boolean | null }) {
           onClick={() => trackEvent("radar_bids_first_starter")}
           className="rounded-xl border border-emerald-500/50 px-3 py-2.5 text-center text-xs font-semibold text-emerald-300 hover:border-emerald-400"
         >
-          📧 Daily bid email · $5 Starter
+          📧 Daily bid email · $9 Starter
         </a>
       </div>
     </div>

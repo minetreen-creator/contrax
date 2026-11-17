@@ -66,9 +66,9 @@ export function checkoutFollowupEmail(i: {
     "Hi,",
     "",
     pass
-      ? `You started the $5 Contrax pass but didn't finish. No problem, nothing was charged.`
+      ? `You started the $9 Contrax pass but didn't finish. No problem, nothing was charged.`
       : `You started checkout for ${plan} but didn't finish. No problem, nothing was charged.`,
-    ...(pass ? ["", `The pass emails you ${what} every morning at 6 AM for 30 days. It's $5 once, with no automatic renewal.`] : []),
+    ...(pass ? ["", `The pass emails you ${what} every morning at 6 AM for 30 days. It's $9 once, with no automatic renewal.`] : []),
     "",
     `If you'd like to pick up where you left off: ${link}`,
     "",
@@ -84,5 +84,5 @@ export function checkoutFollowupEmail(i: {
       .map((l) => (l === "" ? "<br>" : l.includes(link) ? `<p style="margin:0">If you'd like to pick up where you left off: <a href="${esc(link)}">${esc(link)}</a></p>` : `<p style="margin:0">${esc(l)}</p>`))
       .join("\n") +
     `\n<p style="margin-top:24px;color:#6b7280;font-size:12px">${esc(footer[0]!)}<br>Don't want emails like this? <a href="${esc(i.unsubscribeUrl)}">Unsubscribe</a></p>`;
-  return { subject: pass ? "Your $5 Contrax pass is one click away" : "Still deciding on Contrax?", text, html };
+  return { subject: pass ? "Your $9 Contrax pass is one click away" : "Still deciding on Contrax?", text, html };
 }

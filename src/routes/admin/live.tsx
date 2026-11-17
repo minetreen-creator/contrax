@@ -527,7 +527,7 @@ function MoneyPanel({ money, trials, now }: { money: MoneyStats; trials: TrialCa
           </div>
           {money.starterPass ? (
             <p className="mt-2 text-xs text-slate-300">
-              <b className="text-amber-300">$5 for 30 days:</b> {money.starterPass.bought} bought · {money.starterPass.activeNow} active now ·{" "}
+              <b className="text-amber-300">$9 for 30 days:</b> {money.starterPass.bought} bought · {money.starterPass.activeNow} active now ·{" "}
               {money.starterPass.continued} continued at $14 · {money.starterPass.ended} ended
             </p>
           ) : null}
@@ -566,7 +566,7 @@ function InvestorPanel({ n }: { n: InvestorNumbers }) {
   const growth = weekGrowthLabel(n.sales7d, n.salesPrev7d);
   const renewal = n.renewal.rate == null ? "No passes ended yet" : Math.round(n.renewal.rate * 100) + "% renew";
   const tiles: { label: string; value: string; note: string }[] = [
-    { label: "Paying customers", value: String(n.payingCustomers), note: "running $5 passes + subscriptions" },
+    { label: "Paying customers", value: String(n.payingCustomers), note: "running $9 passes + subscriptions" },
     { label: "Monthly recurring", value: dollars(n.mrr), note: "active subscriptions x monthly price" },
     { label: "Revenue, 30 days", value: dollars(n.revenue30d), note: "real paid checkouts" },
     { label: "Sales this week", value: String(n.sales7d), note: growth === "new" ? "first sales vs last week" : growth + " vs last week (" + n.salesPrev7d + ")" },
@@ -603,7 +603,7 @@ function AppPanel({ app }: { app: AppStats }) {
     { label: "  Android", value: (w) => w.android },
     { label: "Opened the app page", value: (w) => w.opened },
     { label: "Clicked an app link", value: (w) => w.linkClicks, note: "homepage, bid page or phone banner" },
-    { label: "Tapped $5 for alerts", value: (w) => w.starterClicks },
+    { label: "Tapped $9 for alerts", value: (w) => w.starterClicks },
     { label: "Turned alerts on", value: (w) => w.alertsTurnedOn },
   ];
   return (

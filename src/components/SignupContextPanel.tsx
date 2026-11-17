@@ -165,7 +165,7 @@ export function SignupContextPanel({ source, title, agency, closingLabel, radar,
         <p className="mt-3 text-xs text-amber-600">
           {closingLabel
             ? "Create your free account below for the details. AI Executive Briefs are part of Contrax Professional. Verify the original notice before bidding."
-            : "Create your free account below, then open the full opportunity with Starter for $5 for your first 30 days."}
+            : "Create your free account below, then open the full opportunity with Starter for $9 for your first 30 days."}
         </p>
       </div>
     </div>

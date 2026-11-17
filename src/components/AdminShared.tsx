@@ -101,7 +101,7 @@ export function MrrScoreboard() {
     >
       <span className="text-emerald-600">●</span>
       MRR: {moneyWhole(fin.mrrCents)}{fin.mrrCents > 0 ? " ↑" : ""} · Customers: {fin.customerCount}
-      {fin.passCustomers ? <span className="font-medium opacity-80">({fin.passCustomers} on $5 pass)</span> : null}
+      {fin.passCustomers ? <span className="font-medium opacity-80">({fin.passCustomers} on $9 pass)</span> : null}
     </span>
   );
 }

@@ -14,7 +14,7 @@ let foundingSearchFails = false;
 let legacyProduct = false;
 // Starter "$5 first month" coupon state, driven per test.
 let couponMissing = false;
-let couponAmountOff = 900; // $14 → $5 (owner 2026-11-09)
+let couponAmountOff = 900; // $14 → $9 (owner 2026-11-09)
 const couponsCreated: any[] = [];
 mock.module("stripe", () => ({
   default: class FakeStripe {
@@ -160,14 +160,14 @@ describe("legacy shared Agency product", () => {
   });
 });
 
-describe("Starter $5 first month", () => {
+describe("Starter $9 first month", () => {
   test("monthly Starter gets the one-time coupon and is billed $14 inline on the Starter product", async () => {
     created.length = 0;
     couponsCreated.length = 0;
     couponMissing = true;
     expect((await stripeLib.createCheckoutSession("starter", { userId: 42 })).success).toBe(true);
     expect(couponsCreated).toEqual([
-      { id: "contrax_starter_first_month_5_v2", amount_off: 900, currency: "usd", duration: "once", name: "Starter: $5 first month" },
+      { id: "contrax_starter_first_month_5_v2", amount_off: 900, currency: "usd", duration: "once", name: "Starter: $9 first month" },
     ]);
     const session = created[0];
     expect(session.line_items).toEqual([
@@ -201,8 +201,8 @@ describe("Starter $5 first month", () => {
   });
 });
 
-describe("Starter $5 30-day pass (owner 2026-10-30)", () => {
-  test("a pass is a one-time $5 payment on the Starter product, with no coupon and no subscription", async () => {
+describe("Starter $9 30-day pass (owner 2026-10-30)", () => {
+  test("a pass is a one-time $9 payment on the Starter product, with no coupon and no subscription", async () => {
     created.length = 0;
     expect((await stripeLib.createCheckoutSession("starter", { starterPass: true })).success).toBe(true);
     const s = created[0];

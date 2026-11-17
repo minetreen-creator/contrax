@@ -12,7 +12,7 @@ import { SEO_TRADES } from "~/lib/seo-trades";
 const llms = readFileSync("public/llms.txt", "utf8");
 
 test("llms.txt gives today's offer, not the old plans and trial", () => {
-  expect(llms).toContain("$5 one time for 30 days");
+  expect(llms).toContain("$9 one time for 30 days");
   expect(llms).toContain("$14 a month");
   expect(llms).toContain("There is no trial");
   expect(llms).not.toMatch(/\$19|\$79|\$199|7-day|free trial/i);

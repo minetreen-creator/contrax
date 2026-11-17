@@ -3,18 +3,18 @@ import { readFileSync } from "node:fs";
 import { passFacts, radarPassPitch } from "./radar-pass-pitch";
 
 // Owner 2026-11-09: about 3% of Radar searchers clicked buy; the offer now names their own results.
-describe("Radar $5 offer from the visitor's own search", () => {
+describe("Radar $9 offer from the visitor's own search", () => {
   const m = (days: number | null, agency: string | null) => ({ days_remaining: days, agency });
 
   test("facts: bids closing within 7 days and distinct buyers", () => {
     expect(passFacts([m(2, "City A"), m(7, "city a"), m(8, "County B"), m(null, null), m(-1, "C")])).toEqual({ closingSoon: 2, buyers: 3 });
   });
 
-  test("leads with what closes this week, then what $5 adds", () => {
+  test("leads with what closes this week, then what $9 adds", () => {
     const p = radarPassPitch({ total: 12, waiting: 9, unlocked: false, trade: "janitorial", stateName: "Virginia", facts: { closingSoon: 3, buyers: 7 } });
     expect(p.headline).toBe("3 of your 12 janitorial bids in Virginia close within 7 days.");
     expect(p.detail).toBe(
-      "$5 opens every official notice, document and buyer contact for these 12 bids from 7 buyers, and starting tomorrow at 6 AM, each new one in your trade with Auto-Pilot's call: pursue, partner or pass.",
+      "$9 opens every official notice, document and buyer contact for these 12 bids from 7 buyers, and starting tomorrow at 6 AM, each new one in your trade with Auto-Pilot's call: pursue, partner or pass.",
     );
   });
 

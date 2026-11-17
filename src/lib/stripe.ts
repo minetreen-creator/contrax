@@ -749,6 +749,10 @@ export async function handleStripeWebhook(
   const { handleReportEvent } = await import("~/lib/pipeline-report.server");
   if (await handleReportEvent(event)) return { success: true };
 
+  // Bid Prep, $199 one time (owner 2026-11-17): product "bid_prep"; a paid one emails the owner and the buyer.
+  const { handleBidPrepEvent } = await import("~/lib/bid-prep.server");
+  if (await handleBidPrepEvent(event)) return { success: true };
+
   // Contrax Managed, $499 a month (owner 2026-11-14: "make it a stripe payment"): its own product
   // line, owned by metadata.product === "contrax_managed"; its events never reach the plan tiers.
   const { handleManagedEvent } = await import("~/lib/contrax-managed.server");

@@ -3,6 +3,7 @@ import { displayTitle } from "~/lib/bid-title";
 import { createFileRoute } from "@tanstack/react-router";
 import { dueDayText } from "~/lib/deadline-label";
 import { UnlockBidSheet } from "~/components/UnlockBidSheet";
+import { BidPrepOffer } from "~/components/BidPrepOffer";
 import { rememberCheckoutBid } from "~/lib/checkout-resume";
 import { createServerFn } from "@tanstack/react-start";
 import { WinnerPriceLine } from "~/components/WinnerPriceLine";
@@ -718,6 +719,9 @@ function BidDetailPage() {
 
             {/* Red-flag scanner (owner 2026-11-08). */}
             <RedFlagScanner noticeText={bid.description} bidId={bid.id} />
+
+            {/* Bid Prep (owner 2026-11-17): the $199 done-for-you bid package, on bids with a week or more left. */}
+            <BidPrepOffer bidId={bid.id} dueDate={bid.due_date} />
 
             {areaAwards && <AreaAwardsBox data={areaAwards} stateName={bid.state_name} bidId={bidId} />}
 

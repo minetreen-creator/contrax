@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { SiteHeader } from "~/components/SiteHeader";
 import { MANAGED_FIRST_REPORT } from "~/lib/contrax-managed";
 import { REPORT_CREDIT_NOTE, REPORT_DELIVERY } from "~/lib/pipeline-report";
+import { BID_PREP_DELIVERY, BID_PREP_GUARANTEE } from "~/lib/bid-prep";
 import { trackEvent } from "~/lib/track";
 
 /**
@@ -11,10 +12,10 @@ import { trackEvent } from "~/lib/track";
  * next and when, and gives the one sensible next step for each kind. It shows nothing private:
  * the page reads only ?kind=, so it is safe to open without an order.
  */
-type Kind = "report" | "managed";
+type Kind = "report" | "managed" | "bidprep";
 
 export const Route = createFileRoute("/order-received")({
-  validateSearch: (s: Record<string, unknown>): { kind: Kind } => ({ kind: s.kind === "managed" ? "managed" : "report" }),
+  validateSearch: (s: Record<string, unknown>): { kind: Kind } => ({ kind: s.kind === "managed" ? "managed" : s.kind === "bidprep" ? "bidprep" : "report" }),
   head: () => ({
     meta: [{ title: "Order received | Contrax" }, { name: "robots", content: "noindex, nofollow" }],
   }),
@@ -29,6 +30,15 @@ const STEPS: Record<Kind, { title: string; lead: string; steps: string[] }> = {
       "A confirmation email is on its way now, with what the report will hold.",
       "If we need to pin down your line of work, we will reply to that email first.",
       "Your report arrives as an email from Nathaniel at Contrax.",
+    ],
+  },
+  bidprep: {
+    title: "Payment received. We are preparing your bid.",
+    lead: `Your bid package will reach your inbox within ${BID_PREP_DELIVERY} of your answers. ${BID_PREP_GUARANTEE}`,
+    steps: [
+      "An email is on its way now with five short questions about your company. Reply to it as soon as you can.",
+      "We read the solicitation, fill in the forms and draft the written parts.",
+      "Your package arrives as an email from Nathaniel at Contrax. You set your price, sign and submit.",
     ],
   },
   managed: {

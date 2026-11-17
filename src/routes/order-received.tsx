@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { SiteHeader } from "~/components/SiteHeader";
 import { MANAGED_FIRST_REPORT } from "~/lib/contrax-managed";
 import { REPORT_CREDIT_NOTE, REPORT_DELIVERY } from "~/lib/pipeline-report";
+import { BID_PREP_GUARANTEE } from "~/lib/bid-prep";
+import { BidPrepIntake } from "~/components/BidPrepIntake";
 import { trackEvent } from "~/lib/track";
 
 /**
@@ -9,12 +11,16 @@ import { trackEvent } from "~/lib/track";
  * Contrax Managed (owner 2026-11-14, "changing the pages a visitor moves through"). Before this the
  * buyer landed at the top of /teams with the confirmation far down the page. It says what happens
  * next and when, and gives the one sensible next step for each kind. It shows nothing private:
- * the page reads only ?kind=, so it is safe to open without an order.
+ * the page reads only ?kind= (and, for Bid Prep, the Stripe session id that keys the intake form),
+ * so it is safe to open without an order.
  */
-type Kind = "report" | "managed";
+type Kind = "report" | "managed" | "bidprep";
 
 export const Route = createFileRoute("/order-received")({
-  validateSearch: (s: Record<string, unknown>): { kind: Kind } => ({ kind: s.kind === "managed" ? "managed" : "report" }),
+  validateSearch: (s: Record<string, unknown>): { kind: Kind; session?: string } => ({
+    kind: s.kind === "managed" ? "managed" : s.kind === "bidprep" ? "bidprep" : "report",
+    ...(typeof s.session === "string" && /^cs_[A-Za-z0-9_]{10,200}$/.test(s.session) ? { session: s.session } : {}),
+  }),
   head: () => ({
     meta: [{ title: "Order received | Contrax" }, { name: "robots", content: "noindex, nofollow" }],
   }),
@@ -31,6 +37,15 @@ const STEPS: Record<Kind, { title: string; lead: string; steps: string[] }> = {
       "Your report arrives as an email from Nathaniel at Contrax.",
     ],
   },
+  bidprep: {
+    title: "Payment received. We are preparing your bid.",
+    lead: BID_PREP_GUARANTEE,
+    steps: [
+      "Fill in the short form below about your company. The same questions are in your confirmation email if you would rather reply there.",
+      "We read the solicitation, fill in the forms and draft the written parts.",
+      "Your package arrives as an email from Nathaniel at Contrax. You set your price, sign and submit.",
+    ],
+  },
   managed: {
     title: "You are signed up for Contrax Managed.",
     lead: `Your first report will reach your inbox within ${MANAGED_FIRST_REPORT}.`,
@@ -43,7 +58,7 @@ const STEPS: Record<Kind, { title: string; lead: string; steps: string[] }> = {
 };
 
 function OrderReceived() {
-  const { kind } = Route.useSearch();
+  const { kind, session } = Route.useSearch();
   const c = STEPS[kind];
   return (
     <>
@@ -60,6 +75,7 @@ function OrderReceived() {
             </li>
           ))}
         </ol>
+        {kind === "bidprep" && session ? <BidPrepIntake session={session} /> : null}
         {kind === "report" ? (
           <div className="mt-8 rounded-2xl border-2 border-amber-400 bg-amber-50 p-5">
             <h2 className="text-lg font-bold text-slate-900">Want it every month?</h2>

@@ -3,6 +3,8 @@ import { displayTitle } from "~/lib/bid-title";
 import { createFileRoute } from "@tanstack/react-router";
 import { dueDayText } from "~/lib/deadline-label";
 import { UnlockBidSheet } from "~/components/UnlockBidSheet";
+import { BidPrepOffer } from "~/components/BidPrepOffer";
+import { bidPrepSource } from "~/lib/bid-prep";
 import { rememberCheckoutBid } from "~/lib/checkout-resume";
 import { createServerFn } from "@tanstack/react-start";
 import { WinnerPriceLine } from "~/components/WinnerPriceLine";
@@ -65,6 +67,8 @@ interface BidDetail {
   location: string | null;
   set_aside: string | null;
   due_date: string | null;
+  /** Bid Prep is offered on state and local bids only (src/lib/bid-prep.ts). */
+  prep_ok?: boolean;
   estimated_value: string | null;
   source_url: string | null;
   /** Set while the bid is in its paid head start and this viewer is not paid (src/lib/head-start.ts). */
@@ -236,7 +240,7 @@ const getPublicBid = createServerFn({ method: "GET" })
     try {
       const rows = (await sql()`
         SELECT id, title, agency, description, location, set_aside,
-               due_date, estimated_value, source_url, naics_code, created_at, solicitation_number, category
+               due_date, estimated_value, source_url, naics_code, created_at, solicitation_number, category, source
         FROM bids
         WHERE id = ${id} AND ${sql().unsafe(SAMPLE_EXCLUSION_SQL)}
         LIMIT 1
@@ -260,6 +264,7 @@ const getPublicBid = createServerFn({ method: "GET" })
         location,
         set_aside: r.set_aside ? String(r.set_aside) : null,
         due_date: r.due_date ? new Date(r.due_date).toISOString() : null,
+        prep_ok: bidPrepSource(r.source),
         estimated_value: r.estimated_value ? String(r.estimated_value) : null,
         source_url: null,
         has_link: !!r.source_url,
@@ -291,7 +296,7 @@ const getBid = createServerFn({ method: "GET" })
     try {
       const rows = (await sql()`
         SELECT id, title, agency, description, location, set_aside,
-               due_date, estimated_value, source_url, naics_code, created_at, solicitation_number
+               due_date, estimated_value, source_url, naics_code, created_at, solicitation_number, source
         FROM bids
         WHERE id = ${id} AND ${sql().unsafe(SAMPLE_EXCLUSION_SQL)}
         LIMIT 1
@@ -341,6 +346,7 @@ const getBid = createServerFn({ method: "GET" })
         location: r.location ? String(r.location) : null,
         set_aside: r.set_aside ? String(r.set_aside) : null,
         due_date: r.due_date ? String(r.due_date) : null,
+        prep_ok: bidPrepSource(r.source),
         estimated_value: r.estimated_value ? String(r.estimated_value) : null,
         // Members only (paid plans and active trials); see getPublicBid.
         source_url: paid ? source_url : null,
@@ -718,6 +724,9 @@ function BidDetailPage() {
 
             {/* Red-flag scanner (owner 2026-11-08). */}
             <RedFlagScanner noticeText={bid.description} bidId={bid.id} />
+
+            {/* Bid Prep (owner 2026-11-17): the $199 done-for-you bid package, on bids with a week or more left. */}
+            <BidPrepOffer bidId={bid.id} dueDate={bid.prep_ok ? bid.due_date : null} />
 
             {areaAwards && <AreaAwardsBox data={areaAwards} stateName={bid.state_name} bidId={bidId} />}
 

@@ -71,6 +71,7 @@ import { TX_BEACON_SOURCES } from "./sources/tx-beacon";
 import { REVIZE_SOURCES } from "./sources/revize-bids";
 import { FL_DIRECT_SOURCES } from "./sources/fl-direct";
 import { AR_IONWAVE_SOURCES, FL_IONWAVE_SOURCES, IA_IONWAVE_SOURCES, SC_IONWAVE_SOURCES, TX_IONWAVE_SOURCES } from "./sources/ar-ionwave";
+import { VENDORLINK_SOURCES } from "./sources/fl-vendorlink";
 import { PLANETBIDS_SOURCES } from "./sources/planetbids";
 import { fetchOhFranklinCountyBids } from "./sources/oh-franklin-county";
 import { fetchNjHarrisonBids } from "./sources/nj-harrison";
@@ -639,6 +640,8 @@ export const TAIL_SOURCES: SyncSource[] = [
   ...IA_IONWAVE_SOURCES,
   // Owner 2026-11-14 ("go and add ionwave for Florida"): Cape Coral, Lauderhill, Coconut Creek.
   ...FL_IONWAVE_SOURCES,
+  // VendorLink: Florida school districts and Central Florida cities on one public board (owner 2026-11-16).
+  ...VENDORLINK_SOURCES,
   ...PLANETBIDS_SOURCES,
   { name: "oh_franklin_county", fetchFn: () => fetchOhFranklinCountyBids() },
   { name: "nj_harrison", fetchFn: () => fetchNjHarrisonBids() },

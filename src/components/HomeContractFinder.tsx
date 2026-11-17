@@ -65,7 +65,7 @@ export const HERO_COPY = {
   en: {
     titleCount: (n: string) => `${n} Government Contracts.`,
     titleCountTail: "Find Your Next Opportunity.",
-    eyebrow: "Do it yourself · search by trade and state",
+    eyebrow: "Free search · pick your trade and state",
     titleFallback: "Your next government customer",
     titleFallbackTail: "starts here.",
     sub: "Federal, state, city, county and school bids in all 50 states, matched to your trade.",
@@ -84,7 +84,7 @@ export const HERO_COPY = {
   es: {
     titleCount: (n: string) => `${n} contratos del gobierno.`,
     titleCountTail: "Encuentre su próxima oportunidad.",
-    eyebrow: "Hágalo usted mismo · busque por oficio y estado",
+    eyebrow: "Búsqueda gratis · elija su oficio y estado",
     titleFallback: "Su próximo cliente del gobierno",
     titleFallbackTail: "empieza aquí.",
     sub: "Licitaciones federales, estatales, municipales, de condados y escuelas en los 50 estados y Puerto Rico, según su oficio.",

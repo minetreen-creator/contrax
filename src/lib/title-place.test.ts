@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { locationConflict } from "./location-state";
 import { titlePlace } from "./title-place";
 
 describe("titlePlace", () => {
@@ -30,5 +31,17 @@ describe("titlePlace", () => {
   test("a lower-case or made-up code is not a state", () => {
     expect(titlePlace("Cleaning, as required")).toBeNull();
     expect(titlePlace("Repair Unit, XX")).toBeNull();
+  });
+});
+
+describe("locationConflict state codes", () => {
+  test("ordinary prose after a comma is not a state", () => {
+    expect(locationConflict("Custodial Services for the 88th DPW - KS065", "Provide custodial services, as required, in accordance with the PWS, or equal.", "KS")).toBe(false);
+    expect(locationConflict("REPAIR, OR REPLACE, AS NEEDED", null, "KS")).toBe(false);
+  });
+  test("a capitalised City, ST in another state still conflicts", () => {
+    expect(locationConflict("VIRGINIA BEACH, VA PIER REPAIR", null, "KS")).toBe(true);
+    expect(locationConflict("Janitorial", "Work is at the depot in Tulsa, OK and nowhere else.", "KS")).toBe(true);
+    expect(locationConflict("Janitorial Services Wichita, KS", null, "KS")).toBe(false);
   });
 });

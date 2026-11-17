@@ -1,12 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
 import { setAsidePred } from "~/lib/open-bids";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
-import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
+import { AWARD_EXCLUSION_SQL, SOURCE_CLASSES } from "~/lib/source-class";
 import { isProductBuy } from "~/lib/trade-classification";
 import { cleanBidTitle, fixTitleTypos, isCodeHeavyTitle } from "~/lib/bid-title";
 import { displayAgency, displayLocation } from "~/lib/agency-display";
 import { isAggregatorMirror } from "~/lib/notice-dedupe";
 import { bidIsServiceJob } from "~/lib/outreach";
+import { resolveBidState } from "~/lib/location-state";
 
 // Live sample of REAL open SDVOSB set-asides, NEWEST first (owner 2026-10-03:
 // "closing soonest" showed the same five rows day after day until each aged
@@ -107,8 +108,23 @@ export function isHandsOnWork(title: string): boolean {
  * ("Washington Purchasing Group (BidNet Direct)"), which is used only when a
  * trade has nothing else (owner 2026-10-31). PURE.
  */
+/**
+ * A row whose place contradicts where its source buys (owner 2026-11-16: the homepage showed
+ * "Sector NOLA Water Treatment for HVAC · A New Hampshire public agency · New Orleans, LA", a
+ * federal New Orleans job re-listed under New Hampshire's BidNet group). A source that posts for
+ * one state must not show a job located in another. Sources with no home state, and rows with no
+ * state in their location, are left alone. PURE.
+ */
+export function placeContradictsSource(r: { source?: string | null; location?: string | null }): boolean {
+  const entry = SOURCE_CLASSES[String(r.source ?? "")];
+  // State and local sources only: a federal source buys everywhere.
+  const home = entry && entry.class !== "federal" ? entry.scopeState : undefined;
+  const where = resolveBidState(r.location ?? null, null);
+  return !!home && !!where && where !== home;
+}
+
 export function pickEverydaySample(
-  rows: readonly { naics_code: string | null; title: string | null; agency: string | null; source?: string | null }[],
+  rows: readonly { naics_code: string | null; title: string | null; agency: string | null; source?: string | null; location?: string | null }[],
 ): number[] {
   const picked: number[] = [];
   for (const { naics } of EVERYDAY_SAMPLE_TRADES) {
@@ -119,7 +135,8 @@ export function pickEverydaySample(
         !!title &&
         !isProductListingTitle(title) &&
         !isCodeHeavyTitle(title) &&
-        isHandsOnWork(title)
+        isHandsOnWork(title) &&
+        !placeContradictsSource(r)
       );
     };
     let i = rows.findIndex((r) => fits(r) && !isAggregatorMirror(r));

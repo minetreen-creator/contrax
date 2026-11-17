@@ -9,7 +9,8 @@ export const BRAND_STEPS: readonly { title: string; detail: string; href: string
     title: "Find the opportunity.",
     detail: "Government bids in your trade and state from federal, state and local buyers, in your inbox every morning.",
     href: "/radar",
-    cta: "Search open bids",
+    // Owner 2026-11-16: the homepage already says "Search open bids" above; this step sells the email.
+    cta: "Get these by email",
   },
   {
     title: "Build the team.",

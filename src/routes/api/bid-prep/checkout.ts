@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { sql } from "~/db";
 import { checkIpLimit, checkEmailLimit, rateLimitedResponse } from "~/lib/rate-limit";
 import { isBlockedIp } from "~/lib/request-ip";
-import { BID_PREP_MIN_DAYS, bidPrepOffered, cleanPrepRequest, prepAlert, type BidPrepOrder } from "~/lib/bid-prep";
+import { BID_PREP_MIN_DAYS, bidPrepOffered, bidPrepSource, cleanPrepRequest, prepAlert, type BidPrepOrder } from "~/lib/bid-prep";
 import { createBidPrepCheckout } from "~/lib/bid-prep.server";
 
 /** POST { email, company, bidId } → { url } for the $199 one-time bid package. The bid's own details are read here, never taken from the browser. */
@@ -22,9 +22,10 @@ async function handler({ request }: { request: Request }) {
   const email = await checkEmailLimit(req.email, "bid_prep_checkout_email", 5, 3600);
   if (!email.allowed) return rateLimitedResponse(email);
   try {
-    const rows = (await sql()`SELECT id, title, agency, due_date FROM bids WHERE id = ${req.bidId} LIMIT 1`) as { id: number; title: string | null; agency: string | null; due_date: string | Date | null }[];
+    const rows = (await sql()`SELECT id, title, agency, due_date, source FROM bids WHERE id = ${req.bidId} LIMIT 1`) as { id: number; title: string | null; agency: string | null; due_date: string | Date | null; source: string | null }[];
     const bid = rows[0];
     if (!bid) return Response.json({ error: "That bid is no longer listed." }, { status: 404 });
+    if (!bidPrepSource(bid.source)) return Response.json({ error: "Bid Prep is for state, county, city and school bids. We do not offer it on federal solicitations." }, { status: 409 });
     if (!bidPrepOffered(bid.due_date)) {
       return Response.json({ error: `This bid is due in under ${BID_PREP_MIN_DAYS} days, which is too close for us to prepare it properly.` }, { status: 409 });
     }

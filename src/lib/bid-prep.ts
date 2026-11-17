@@ -11,19 +11,38 @@ export const BID_PREP_PRODUCT = "bid_prep";
 export const BID_PREP_DELIVERY = "2 business days";
 /** A bid closer than this is not offered: there would be no time to prepare it and for the buyer to review, price and submit. */
 export const BID_PREP_MIN_DAYS = 7;
-export const BID_PREP_GUARANTEE = "If we cannot deliver your package before the deadline, you get a full refund.";
+/** The clock starts with the buyer's answers (owner 2026-11-17): a late intake must not become a missed deadline blamed on us. */
+export const BID_PREP_GUARANTEE = `The ${BID_PREP_DELIVERY} start when you send your company details. Send them within one day of paying, and if we do not deliver before the deadline you get a full refund.`;
 
 /** Exactly what the buyer gets. Nothing here is promised that cannot be done from the solicitation and the buyer's answers. */
 export const BID_PREP_INCLUDES = [
   "We read the whole solicitation and every attachment for you",
   "A checklist of every form, certificate and attachment the agency requires, in the order to submit them",
   "The required forms filled in with your company details, ready for you to review and sign",
-  "A draft of the written parts: cover letter, your qualifications and your approach to the work, in the format the agency asks for",
-  "A price sheet laid out the way the solicitation wants it, ready for your numbers",
+  "A cover letter and your company qualifications, written up in the format the agency asks for",
+  "The price sheet laid out the way the solicitation wants it, ready for your numbers",
+  "Everything assembled into one packet in the order the agency wants",
   "Step-by-step submission instructions: where it goes, how, and by when",
 ];
-/** What stays with the buyer, said plainly so nobody expects more than is sold. */
-export const BID_PREP_YOUR_PART = "You set your price, sign and submit. We list anything only you can get, such as bonds, insurance certificates and licenses. We cannot promise you will win.";
+/** What stays with the buyer, said plainly so nobody takes bid preparation for pricing or engineering. */
+export const BID_PREP_YOU_PROVIDE = [
+  "Your prices for labor and materials. We do not price the job, do engineering or write technical proposals",
+  "Any bond, insurance certificate or license the agency asks for. We tell you exactly which ones",
+  "Your signature, and sending the bid in",
+];
+export const BID_PREP_NO_PROMISE = "We cannot promise you will win.";
+export const BID_PREP_YOUR_PART = `${BID_PREP_YOU_PROVIDE.join(". ")}. ${BID_PREP_NO_PROMISE}`;
+
+/**
+ * State, county, city and school bids only (owner 2026-11-17: "keeping it strictly for simpler state,
+ * county, and municipal IFBs/RFQs"). A federal solicitation can run to 150 pages with technical
+ * volumes, which is not administrative preparation and is not what $199 buys. Federal sources are
+ * the SAM.gov feeds, all named sam_*.
+ */
+export function bidPrepSource(source: unknown): boolean {
+  const s = String(source ?? "").toLowerCase();
+  return s !== "" && !s.startsWith("sam");
+}
 
 /** Offered only on an open bid with at least BID_PREP_MIN_DAYS left. */
 export function bidPrepOffered(dueDate: string | Date | null | undefined, now: Date = new Date()): boolean {
@@ -98,8 +117,8 @@ export function prepOwnerNotice(o: BidPrepOrder, sessionId: string): { subject: 
     text: [
       `${o.company} (${o.email}) paid ${BID_PREP_PRICE} for a bid package.`,
       `Bid: ${o.bidTitle}${o.agency ? `\nAgency: ${o.agency}` : ""}\nDue: ${longDay(o.due)}\nPage: ${bidUrl(o.bidId)}`,
-      `Promised: delivered within ${BID_PREP_DELIVERY} and before the deadline. ${BID_PREP_GUARANTEE}`,
-      "The buyer has been emailed the questions below. Their answers come as a reply to that email.",
+      `Promised: ${BID_PREP_GUARANTEE}`,
+      "The buyer is shown a short form right after paying and is emailed the same questions. Their answers arrive as a second email, or as a reply.",
       PREP_QUESTIONS.map((q, i) => `${i + 1}. ${q}`).join("\n"),
       `Stripe session: ${sessionId}`,
     ].join("\n\n"),
@@ -115,19 +134,84 @@ export const PREP_QUESTIONS = [
   "The name and title of the person who will sign the bid",
 ];
 
+/** The intake form's page for one paid order: the Stripe session id is the only key. */
+export const intakeUrl = (sessionId: string) => `https://www.contrax.company/order-received?kind=bidprep&session=${encodeURIComponent(sessionId)}`;
+
+/**
+ * The intake form shown right after payment (owner 2026-11-17: collect the company basics at once,
+ * "so you aren't chasing them over email while the clock ticks down"). UEI and CAGE are public SAM
+ * identifiers and optional; tax ID, bank and card numbers are never asked for.
+ */
+export interface BidPrepIntake {
+  legalName: string;
+  address: string;
+  phone: string;
+  uei: string;
+  cage: string;
+  years: string;
+  employees: string;
+  licenses: string;
+  pastJobs: string;
+  signer: string;
+}
+export const INTAKE_FIELDS: readonly { name: keyof BidPrepIntake; label: string; hint?: string; required: boolean; long?: boolean; max: number }[] = [
+  { name: "legalName", label: "Legal business name", required: true, max: 150 },
+  { name: "address", label: "Business address", required: true, max: 250 },
+  { name: "phone", label: "Phone number", required: true, max: 40 },
+  { name: "signer", label: "Name and title of the person signing the bid", required: true, max: 150 },
+  { name: "years", label: "Years in business", required: true, max: 40 },
+  { name: "employees", label: "Number of employees", required: true, max: 40 },
+  { name: "uei", label: "SAM.gov UEI", hint: "Optional. Federal bids need it; leave blank if you do not have one yet.", required: false, max: 20 },
+  { name: "cage", label: "CAGE code", hint: "Optional.", required: false, max: 10 },
+  { name: "licenses", label: "Licenses and certifications", hint: "Contractor license numbers, small business, minority-owned, woman-owned or veteran-owned certifications.", required: false, long: true, max: 1000 },
+  { name: "pastJobs", label: "Two or three jobs like this one", hint: "For each: the customer, the year, the rough value and one line on what you did.", required: true, long: true, max: 3000 },
+];
+
+const block = (v: unknown, max: number) => (typeof v === "string" ? v.replace(/\r/g, "").replace(/[ \t]+/g, " ").trim().slice(0, max) : "");
+
+/** A usable intake, or null when a required answer is missing. */
+export function cleanIntake(input: unknown): BidPrepIntake | null {
+  if (!input || typeof input !== "object") return null;
+  const o = input as Record<string, unknown>;
+  const out = {} as BidPrepIntake;
+  for (const f of INTAKE_FIELDS) {
+    const v = block(o[f.name], f.max);
+    if (f.required && v.length < 1) return null;
+    out[f.name] = v;
+  }
+  return out;
+}
+
+/** The buyer's answers, sent to the owner under the same order. */
+export function intakeNotice(o: BidPrepOrder, a: BidPrepIntake, sessionId: string): { subject: string; text: string } {
+  return {
+    subject: `Bid prep answers: ${o.company}, due ${longDay(o.due)}`,
+    text: [
+      `${o.company} (${o.email}) sent their company details for:\n${o.bidTitle}\nDue: ${longDay(o.due)}\nPage: ${bidUrl(o.bidId)}`,
+      INTAKE_FIELDS.map((f) => `${f.label}:\n${a[f.name] || "(left blank)"}`).join("\n\n"),
+      `The ${BID_PREP_DELIVERY} to deliver start now.`,
+      `Stripe session: ${sessionId}`,
+    ].join("\n\n"),
+  };
+}
+
 /** What the buyer hears the moment they pay: what is coming, when, and the questions to answer. */
-export function prepBuyerConfirmation(o: BidPrepOrder): { subject: string; text: string } {
+export function prepBuyerConfirmation(o: BidPrepOrder, sessionId?: string): { subject: string; text: string } {
   return {
     subject: `We are preparing your bid: ${o.bidTitle}`.slice(0, 200),
     text: [
       `Thank you. We have your order to prepare a bid package for:\n${o.bidTitle}${o.agency ? `\n${o.agency}` : ""}\nDue ${longDay(o.due)}\n${bidUrl(o.bidId)}`,
-      `Your package will reach this address within ${BID_PREP_DELIVERY} of your reply to the questions below. ${BID_PREP_GUARANTEE}`,
-      "To fill in the forms we need a few things only you know. Please reply to this email with:",
+      BID_PREP_GUARANTEE,
+      sessionId
+        ? `To fill in the forms we need a few things only you know. If you have not sent them yet, the short form is here:\n${intakeUrl(sessionId)}\n\nOr reply to this email with:`
+        : "To fill in the forms we need a few things only you know. Please reply to this email with:",
       PREP_QUESTIONS.map((q, i) => `${i + 1}. ${q}`).join("\n"),
       "Do not send tax ID, bank or card numbers by email. We leave those fields for you to fill in.",
-      "What you will get:",
+      "What we do:",
       BID_PREP_INCLUDES.map((l) => `- ${l}`).join("\n"),
-      BID_PREP_YOUR_PART,
+      "What you provide:",
+      BID_PREP_YOU_PROVIDE.map((l) => `- ${l}`).join("\n"),
+      BID_PREP_NO_PROMISE,
       "Nathaniel Minetree\nContrax",
     ].join("\n\n"),
   };

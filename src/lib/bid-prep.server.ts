@@ -1,7 +1,7 @@
 import type Stripe from "stripe";
 import { Resend } from "resend";
 import { getStripe } from "./stripe";
-import { BID_PREP_DELIVERY, BID_PREP_PRICE_CENTS, BID_PREP_PRODUCT, prepAlert, prepBuyerConfirmation, prepFromMetadata, prepMetadata, prepOwnerNotice, type BidPrepOrder } from "./bid-prep";
+import { intakeNotice, type BidPrepIntake, BID_PREP_DELIVERY, BID_PREP_PRICE_CENTS, BID_PREP_PRODUCT, prepAlert, prepBuyerConfirmation, prepFromMetadata, prepMetadata, prepOwnerNotice, type BidPrepOrder } from "./bid-prep";
 
 const SITE = "https://www.contrax.company";
 
@@ -24,7 +24,7 @@ export async function createBidPrepCheckout(order: BidPrepOrder, stripe: Stripe 
         },
       },
     }],
-    success_url: `${SITE}/order-received?kind=bidprep`,
+    success_url: `${SITE}/order-received?kind=bidprep&session={CHECKOUT_SESSION_ID}`,
     cancel_url: `${SITE}/bid/${order.bidId}?prep=cancelled#bid-prep`,
   });
   if (!session.url) throw new Error("Checkout unavailable");
@@ -72,7 +72,7 @@ export async function handleBidPrepEvent(
     // The buyer's confirmation, with the questions to answer. Never throws: the order already reached the owner.
     try {
       if (process.env.RESEND_API_KEY) {
-        const now = prepBuyerConfirmation(order);
+        const now = prepBuyerConfirmation(order, session.id);
         const r = await new Resend(process.env.RESEND_API_KEY).emails.send(
           { from: "Nathaniel at Contrax <hello@contrax.company>", to: [order.email], replyTo: "contrax.companyllc@gmail.com", subject: now.subject, text: now.text },
           { idempotencyKey: `prep-confirm-${session.id}` },
@@ -84,4 +84,26 @@ export async function handleBidPrepEvent(
     }
   }
   return true;
+}
+
+/**
+ * The intake form's answers, tied to a paid order by its Stripe session id. The session is read
+ * back from Stripe, so answers are accepted only for a real, paid Bid Prep order.
+ */
+export async function sendBidPrepIntake(sessionId: string, answers: BidPrepIntake, stripe: Stripe = getStripe()): Promise<"sent" | "not_paid"> {
+  const session = await stripe.checkout.sessions.retrieve(sessionId);
+  if (!isPaidBidPrepSession(session)) return "not_paid";
+  const order = prepFromMetadata(session.metadata);
+  if (!order) return "not_paid";
+  if (!process.env.RESEND_API_KEY) throw new Error("Email service unavailable");
+  const m = intakeNotice(order, answers, session.id);
+  const result = await new Resend(process.env.RESEND_API_KEY).emails.send({
+    from: "Contrax <hello@contrax.company>",
+    to: ["contrax.companyllc@gmail.com"],
+    replyTo: order.email,
+    subject: m.subject,
+    text: m.text,
+  });
+  if (result.error) throw result.error;
+  return "sent";
 }

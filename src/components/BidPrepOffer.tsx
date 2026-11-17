@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { BID_PREP_DELIVERY, BID_PREP_GUARANTEE, BID_PREP_INCLUDES, BID_PREP_PRICE, BID_PREP_YOUR_PART, bidPrepOffered } from "~/lib/bid-prep";
+import { BID_PREP_DELIVERY, BID_PREP_GUARANTEE, BID_PREP_INCLUDES, BID_PREP_NO_PROMISE, BID_PREP_PRICE, BID_PREP_YOU_PROVIDE, bidPrepOffered } from "~/lib/bid-prep";
 import { trackEvent } from "~/lib/track";
 
 const field = "mt-1 w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-500";
@@ -41,8 +41,8 @@ export function BidPrepOffer({ bidId, dueDate }: { bidId: number; dueDate: strin
       <p className="text-xs font-bold uppercase tracking-wide text-emerald-400">Done for you · {BID_PREP_PRICE} one time</p>
       <h2 className="mt-1 text-lg font-bold text-white">Want to bid on this but hate the paperwork? We prepare it for you.</h2>
       <p className="mt-1.5 text-sm text-slate-300">
-        We read the solicitation, fill in the forms and draft the written parts. You set your price, sign and submit.
-        Delivered by email within {BID_PREP_DELIVERY}.
+        We read the solicitation, build the checklist, fill in the forms and assemble the packet. You set your price, sign and submit.
+        Delivered by email within {BID_PREP_DELIVERY} of your company details.
       </p>
       {!open ? (
         <button
@@ -54,13 +54,19 @@ export function BidPrepOffer({ bidId, dueDate }: { bidId: number; dueDate: strin
         </button>
       ) : (
         <>
-          <p className="mt-4 text-sm font-semibold text-white">What you get:</p>
+          <p className="mt-4 text-sm font-semibold text-white">What we do:</p>
           <ul className="mt-2 space-y-1.5 text-sm text-slate-300">
             {BID_PREP_INCLUDES.map((f) => (
               <li key={f}>✓ {f}</li>
             ))}
           </ul>
-          <p className="mt-3 text-sm text-slate-400">{BID_PREP_YOUR_PART}</p>
+          <p className="mt-4 text-sm font-semibold text-white">What you provide:</p>
+          <ul className="mt-2 space-y-1.5 text-sm text-slate-300">
+            {BID_PREP_YOU_PROVIDE.map((f) => (
+              <li key={f}>• {f}</li>
+            ))}
+          </ul>
+          <p className="mt-3 text-sm text-slate-400">{BID_PREP_NO_PROMISE}</p>
           <p className="mt-3 rounded-lg bg-emerald-950/60 px-3 py-2 text-sm font-semibold text-emerald-200">{BID_PREP_GUARANTEE}</p>
           <form onSubmit={submit} className="mt-4 grid gap-3 sm:grid-cols-2">
             <label className="text-sm font-semibold text-slate-200">
@@ -81,7 +87,7 @@ export function BidPrepOffer({ bidId, dueDate }: { bidId: number; dueDate: strin
               >
                 {busy ? "Opening secure checkout…" : `Continue to payment · ${BID_PREP_PRICE}`}
               </button>
-              <p className="mt-2 text-xs text-slate-400">One-time payment through Stripe. Nothing renews. After you pay we email you five short questions about your company.</p>
+              <p className="mt-2 text-xs text-slate-400">One-time payment through Stripe. Nothing renews. Right after you pay, a short form asks for your company details.</p>
               {error ? <p role="alert" className="mt-2 text-sm font-semibold text-red-300">{error}</p> : null}
             </div>
           </form>

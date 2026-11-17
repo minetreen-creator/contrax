@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { BID_PREP_MIN_DAYS, BID_PREP_PRICE, BID_PREP_PRICE_CENTS, bidPrepOffered, cleanPrepRequest, prepAlert, prepBuyerConfirmation, prepFromMetadata, prepMetadata, prepOwnerNotice, type BidPrepOrder } from "./bid-prep";
+import { BID_PREP_MIN_DAYS, BID_PREP_PRICE, BID_PREP_PRICE_CENTS, bidPrepOffered, cleanPrepRequest, prepAlert, prepBuyerConfirmation, prepFromMetadata, prepMetadata, prepOwnerNotice, bidPrepSource, cleanIntake, intakeNotice, intakeUrl, INTAKE_FIELDS, BID_PREP_YOU_PROVIDE, type BidPrepOrder } from "./bid-prep";
 
 const NOW = new Date("2026-11-17T15:00:00Z");
 const ORDER: BidPrepOrder = { email: "owner@acmeclean.com", company: "Acme Cleaning LLC", bidId: 2301967, bidTitle: "Stow Road Sidewalk Improvements", agency: "City of Hudson", due: "2026-12-08T19:00:00.000Z" };
@@ -40,17 +40,39 @@ describe("bid prep", () => {
     expect(buyer.text).toContain("full refund");
     expect(buyer.text).toContain("Do not send tax ID, bank or card numbers by email");
     expect(buyer.text).toContain("We cannot promise you will win");
+    expect(buyer.text).toContain("We do not price the job, do engineering or write technical proposals");
+    expect(buyer.text).toContain("start when you send your company details");
+    expect(prepBuyerConfirmation(ORDER, "cs_test_abc123456789").text).toContain(intakeUrl("cs_test_abc123456789"));
+  });
+  test("the intake form needs its required answers and never asks for tax or bank numbers", () => {
+    const full = { legalName: "Acme Cleaning LLC", address: "1 Main St, Akron, OH", phone: "330-555-0100", signer: "Pat Doe, Owner", years: "6", employees: "12", uei: "", cage: "", licenses: "", pastJobs: "Hudson schools, 2025, $80k, nightly cleaning" };
+    expect(cleanIntake(full)?.legalName).toBe("Acme Cleaning LLC");
+    expect(cleanIntake({ ...full, pastJobs: "" })).toBeNull();
+    expect(cleanIntake({ ...full, uei: undefined })?.uei).toBe("");
+    expect(INTAKE_FIELDS.some((f) => /tax|ein|ssn|bank|routing|card/i.test(`${f.name} ${f.label}`))).toBe(false);
+    const n = intakeNotice(ORDER, cleanIntake(full)!, "cs_1");
+    expect(n.text).toContain("Hudson schools, 2025");
+    expect(n.text).toContain("(left blank)");
+    expect(BID_PREP_YOU_PROVIDE.join(" ")).toContain("prices for labor and materials");
   });
   test("Mission Control hears about a started and a paid order under different tags", () => {
     expect(prepAlert(ORDER, "cs_1", false).tag).not.toBe(prepAlert(ORDER, "cs_1", true).tag);
     expect(prepAlert(ORDER, "cs_1", true).title).toContain("$199");
   });
   test("the bid page shows the offer, the webhook handles it and checkout reads the bid itself", () => {
-    expect(readFileSync("src/routes/bid.$bidId.tsx", "utf8")).toContain("<BidPrepOffer bidId={bid.id} dueDate={bid.due_date} />");
+    expect(readFileSync("src/routes/bid.$bidId.tsx", "utf8")).toContain("<BidPrepOffer bidId={bid.id} dueDate={bid.prep_ok ? bid.due_date : null} />");
     expect(readFileSync("src/lib/stripe.ts", "utf8")).toContain("handleBidPrepEvent(event)");
     const route = readFileSync("src/routes/api/bid-prep/checkout.ts", "utf8");
     expect(route).toContain("FROM bids WHERE id = ${req.bidId}");
     expect(route).toContain("bidPrepOffered(bid.due_date)");
-    expect(readFileSync("src/lib/bid-prep.server.ts", "utf8")).toContain("session.amount_total === BID_PREP_PRICE_CENTS");
+    expect(route).toContain("bidPrepSource(bid.source)");
+    expect(bidPrepSource("sam_naics_561720")).toBe(false);
+    expect(bidPrepSource("sam_gov")).toBe(false);
+    expect(bidPrepSource("fl_vendorlink")).toBe(true);
+    expect(bidPrepSource(null)).toBe(false);
+    const server = readFileSync("src/lib/bid-prep.server.ts", "utf8");
+    expect(server).toContain("session.amount_total === BID_PREP_PRICE_CENTS");
+    expect(server).toContain("if (!isPaidBidPrepSession(session)) return \"not_paid\";");
+    expect(server).toContain("session={CHECKOUT_SESSION_ID}");
   });
 });

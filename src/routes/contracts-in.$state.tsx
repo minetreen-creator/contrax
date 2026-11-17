@@ -10,6 +10,7 @@ import {
 import { StatePlaceLinks } from "~/lib/local-landing";
 import { PreparedForYou } from "~/components/PreparedForYou";
 import { endingMarket } from "~/lib/ending-pages";
+import { openBidsHrefForState } from "~/lib/open-bids-list";
 
 export const Route = createFileRoute("/contracts-in/$state")({
   loader: ({ params }) => getRegionData({ data: { slug: params.state } }),
@@ -47,6 +48,14 @@ function ContractsInState() {
       }
     >
       <RegionView data={data} />
+      {/* Owner 2026-11-17: a plain list of every open bid in the state, so each bid page is linked from here. */}
+      {openBidsHrefForState(data.name) && (
+        <p className="mt-6 text-center text-sm">
+          <a href={openBidsHrefForState(data.name)!} className="font-semibold text-blue-700 underline hover:text-blue-600">
+            See the full list of open bids in {name} →
+          </a>
+        </p>
+      )}
       {data.name && endingMarket(data.name.toLowerCase().replace(/\s+/g, "-"), "janitorial") && (
         // Owner 2026-11-14: the done-for-you reports, for the 50 states and DC that have ending-contract pages.
         <PreparedForYou stateName={data.name} />

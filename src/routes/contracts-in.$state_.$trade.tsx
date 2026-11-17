@@ -9,6 +9,7 @@ import {
   SeoLanding,
   seoHead,
 } from "~/lib/seo-landing";
+import { LandingSearch } from "~/components/LandingSearch";
 import { radarHrefFor, SEO_TRADE_BY_SLUG } from "~/lib/seo-trades";
 import { FederalTradeFacts } from "~/components/FederalTradeFacts";
 import { ENDING_FIRST_TRADES } from "~/lib/ending-pages";
@@ -93,6 +94,10 @@ function ContractsInStateTrade() {
       )}
       {endingFirst && federalFacts}
       <RegionTradeView data={data} radarHref={radarHref} />
+      {data.code && (
+        // Owner 2026-11-16: a visitor from a post about one trade can search their own in one step.
+        <LandingSearch stateCode={data.code} tradeLabel={data.trade?.label} />
+      )}
       {data.code && data.trade && (
         // Loaded after the page renders, so the page itself stays fast (owner 2026-11-09).
         <OpenToAllBids trade={data.trade.radarTerm} state={data.code} where="state_page" tone="light" />

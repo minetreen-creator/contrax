@@ -57,6 +57,18 @@ export interface ScanQueryFrags {
  */
 export const IN_STATE_SCAN_LIMIT = 2000;
 
+/** Rows the nationwide pass adds beside a state search: a sample of what is open elsewhere. */
+export const NATIONWIDE_SIDE_LIMIT = 100;
+
+/**
+ * Rows a search with NO state may read (owner 2026-11-16: "what can we do to get more searches?";
+ * "construction" with no state found nothing three times in a month while thousands of construction
+ * bids were open). It read the 100 soonest-due rows that mention any of the trade's words anywhere,
+ * and when those were all description-only mentions the strong-match check left nothing. Same cure
+ * as IN_STATE_SCAN_LIMIT; the strong-match and set-aside checks still decide what is shown.
+ */
+export const NO_STATE_SCAN_LIMIT = 2000;
+
 /**
  * How long a state search waits for the NATIONWIDE pass (owner 2026-11-08: Radar
  * searches from Facebook links timed out; completion fell from 19 of 20 on Nov 3
@@ -80,7 +92,7 @@ export async function runKeywordScanQuery(
     ? (sqlFactory as any)
     : (sqlFactory as any)();
   try {
-    const nationwideQuery = (): Promise<any[]> => s`
+    const nationwideQuery = (limit: number = NATIONWIDE_SIDE_LIMIT): Promise<any[]> => s`
       SELECT id, title, agency, description, location, category, due_date,
              estimated_value, naics_code, source_url, source, set_aside
       FROM bids
@@ -89,10 +101,11 @@ export async function runKeywordScanQuery(
         ${frags.certFrag}
         ${frags.tradeFrag}
       ORDER BY due_date ASC NULLS LAST
-      LIMIT 100
+      LIMIT ${limit}
     `;
     const hint = stateHintPatterns(stateCode);
-    if (!hint) return await nationwideQuery();
+    // No state chosen: this pass IS the search, so it reads as deep as a state search does.
+    if (!hint) return await nationwideQuery(NO_STATE_SCAN_LIMIT);
     const budget = opts.nationwideBudgetMs ?? NATIONWIDE_PASS_BUDGET_MS;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const nationwidePass = Promise.race([

@@ -1,0 +1,48 @@
+name: Find Bids
+
+# Owner 2026-11-16: prints open bids in one state whose title matches the given words, for replies
+# to contractors' posts (src/jobs/find-bids.ts). READ-ONLY: it changes nothing and sends nothing.
+
+on:
+  workflow_dispatch:
+    inputs:
+      state:
+        description: "State, two letters"
+        type: string
+        default: "TX"
+      words:
+        description: "Title words, comma separated (excavation, trenching, site prep)"
+        type: string
+        default: "excavation"
+      place:
+        description: "Optional: a city or county to pull to the top"
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  data:
+    name: Find bids
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      STATE: ${{ inputs.state }}
+      WORDS: ${{ inputs.words }}
+      PLACE: ${{ inputs.place }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Find bids
+        run: bun run find-bids

@@ -1,26 +1,30 @@
-/**
- * Branch-only, read-only probe (owner 2026-11-16: "School", Florida school districts). Reads
- * robots.txt and the public front pages of VendorLink as ContraxBot to learn whether its public
- * solicitation list may be read and what it looks like. No login, no forms with credentials.
- */
+/** Branch-only read-only probe, part 2: robots in full and the shape of the public bids page. */
 const UA = "Mozilla/5.0 (compatible; ContraxBot/1.0; +https://www.contrax.company)";
-const get = async (u: string, init: RequestInit = {}) => {
-  try {
-    const r = await fetch(u, { ...init, headers: { "User-Agent": UA, Accept: "text/html,application/json,*/*", ...(init.headers ?? {}) }, redirect: "follow", signal: AbortSignal.timeout(25000) });
-    return { status: r.status, url: r.url, type: r.headers.get("content-type") ?? "", server: r.headers.get("server") ?? "", body: await r.text() };
-  } catch (e) { return { status: 0, url: u, type: "", server: "", body: `ERR ${(e as Error).message}` }; }
-};
+const get = async (u: string) => { const r = await fetch(u, { headers: { "User-Agent": UA }, signal: AbortSignal.timeout(25000) }); return { status: r.status, body: await r.text(), cookie: r.headers.get("set-cookie") ?? "" }; };
+const one = (s: string) => s.replace(/\r?\n/g, " ¶ ").replace(/\s+/g, " ");
 const strip = (h: string) => h.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
 for (const host of ["https://www.myvendorlink.com", "https://vendorlink.ocps.net"]) {
-  const rb = await get(`${host}/robots.txt`);
-  console.log(`ROBOTS ${host} ${rb.status} ${rb.type} :: ${rb.body.slice(0, 600).replace(/\n/g, " | ")}`);
-  const home = await get(`${host}/`);
-  console.log(`HOME ${host} ${home.status} -> ${home.url} server=${home.server} len=${home.body.length} title=${(home.body.match(/<title>([^<]*)/i)?.[1] ?? "").trim()}`);
-  console.log(`TEXT ${strip(home.body).slice(0, 700)}`);
-  const links = [...new Set([...home.body.matchAll(/(?:href|action|src)="([^"#]+)"/gi)].map((m) => m[1]).filter((l) => !/\.(css|png|jpg|gif|ico|woff2?|svg)(\?|$)/i.test(l)))];
-  console.log(`LINKS ${links.slice(0, 80).join("  ")}`);
-  for (const path of ["/external/bids", "/common/search.aspx", "/external/search.aspx", "/common/bidsearch.aspx", "/external/solicitations", "/common/solicitations.aspx", "/common/default.aspx", "/external/default.aspx"]) {
-    const p = await get(`${host}${path}`);
-    console.log(`TRY ${host}${path} ${p.status} -> ${p.url} len=${p.body.length} title=${(p.body.match(/<title>([^<]*)/i)?.[1] ?? "").trim().slice(0, 60)} :: ${strip(p.body).slice(0, 260)}`);
+  console.log(`ROBOTS ${host} :: ${one((await get(`${host}/robots.txt`)).body).slice(0, 1200)}`);
+  const p = await get(`${host}/external/bids`);
+  const h = p.body;
+  console.log(`PAGE ${host} ${p.status} len=${h.length} cookie=${p.cookie ? "yes" : "no"}`);
+  for (const m of h.matchAll(/<select[^>]*(?:name|id)="([^"]+)"[^>]*>([\s\S]*?)<\/select>/gi)) {
+    const opts = [...m[2].matchAll(/<option[^>]*value="([^"]*)"[^>]*>([^<]*)/gi)].map((o) => `${o[1]}=${o[2].trim()}`);
+    console.log(`SELECT ${m[1]} (${opts.length}) :: ${opts.slice(0, 400).join(" ; ").slice(0, 6000)}`);
   }
+  console.log(`INPUTS ${[...h.matchAll(/<input[^>]*name="([^"]+)"[^>]*>/gi)].map((m) => m[1] + (/type="hidden"/i.test(m[0]) ? "(h)" : "")).join(" ; ").slice(0, 1500)}`);
+  console.log(`FORM ${[...h.matchAll(/<form[^>]*>/gi)].map((m) => m[0]).join(" ").slice(0, 400)}`);
+  const scripts = [...h.matchAll(/<script(?![^>]*src)[^>]*>([\s\S]*?)<\/script>/gi)].map((m) => m[1]).join("\n");
+  console.log(`AJAX ${[...new Set([...scripts.matchAll(/(?:url|href)\s*[:=]\s*["']([^"']+)["']/gi)].map((m) => m[1]))].join(" ; ").slice(0, 1200)}`);
+  console.log(`SCRIPTLEN ${scripts.length} :: ${one(scripts).slice(0, 1800)}`);
+  const tables = [...h.matchAll(/<table[\s\S]*?<\/table>/gi)];
+  console.log(`TABLES ${tables.length}`);
+  for (const t of tables.slice(0, 2)) {
+    const rows = [...t[0].matchAll(/<tr[\s\S]*?<\/tr>/gi)];
+    console.log(`TABLE rows=${rows.length}`);
+    for (const r of rows.slice(0, 6)) console.log(`ROW ${one(r[0]).slice(0, 900)}`);
+  }
+  const i = h.search(/Fiscal/i);
+  console.log(`AROUND ${one(h.slice(Math.max(0, i - 200), i + 2600))}`);
+  console.log(`TAIL ${strip(h).slice(-900)}`);
 }

@@ -96,6 +96,9 @@ const getClauseByNumber = createServerFn({ method: "GET" })
   },
 );
 
+/** Search engines are asked not to index a single clause page (see the head below). */
+export const CLAUSE_PAGE_ROBOTS = "noindex, follow";
+
 export const Route = createFileRoute("/clauses/$clauseNumber")({
   loader: ({ params }) =>
     PART_RE.test(params.clauseNumber)
@@ -167,9 +170,12 @@ export const Route = createFileRoute("/clauses/$clauseNumber")({
       meta: [
         { title },
         { name: "description", content: description },
-        // FAR/DFARS text is public domain and these pages are genuinely useful
-        // content — indexable, no noindex (not-found variants are noindexed).
-        { name: "robots", content: d.notFound ? "noindex, nofollow" : "index, follow" },
+        // Owner 2026-11-17 (Search Console, "yes"): a single clause page is the government's own text
+        // word for word. Google kept reading these (still on Nov 12-14, after they left the sitemap
+        // on Nov 9) and kept none, while 31,043 bid pages waited unread. They stay on the site for
+        // readers but are not offered to search engines; links on them are still followed. The
+        // /clauses index and the part pages stay indexable. To undo: CLAUSE_PAGE_ROBOTS below.
+        { name: "robots", content: d.notFound ? "noindex, nofollow" : CLAUSE_PAGE_ROBOTS },
         { property: "og:type", content: "website" },
         { property: "og:url", content: url },
         { property: "og:title", content: title },

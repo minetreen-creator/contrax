@@ -9,7 +9,7 @@ import { HomeStateMap } from "~/components/HomeStateMap";
 
 import { trackEvent } from "~/lib/track";
 import { BRAND_MESSAGE, BRAND_STEPS } from "~/lib/brand-message";
-import { BID_PREP_GUARANTEE, BID_PREP_INCLUDES, BID_PREP_MIN_DAYS, BID_PREP_NO_PROMISE, BID_PREP_PRICE, BID_PREP_YOU_PROVIDE } from "~/lib/bid-prep";
+import { BID_PREP_DELIVERY, BID_PREP_INCLUDES, BID_PREP_MIN_DAYS, BID_PREP_NO_PROMISE, BID_PREP_PRICE, BID_PREP_YOU_PROVIDE } from "~/lib/bid-prep";
 import { STARTER_PASS_ANCHOR, STARTER_PASS_NOTE } from "~/lib/starter-pass";
 import { SiteHeader } from "~/components/SiteHeader";
 import { PUBLIC_OPEN_BIDS_WHERE } from "~/lib/open-count";
@@ -232,7 +232,8 @@ const HOME_LANES = [
   },
   {
     key: "dfy",
-    tag: "Done for you",
+    // Owner 2026-11-17: "Done for you" now names Bid Prep alone; this card is the reports for sales teams.
+    tag: "For sales teams",
     title: "I want it prepared for my team",
     // Owner 2026-11-16: name the scale. Every figure here is in REPORT_INCLUDES (src/lib/pipeline-report.ts).
     detail: "We send a report of the federal contracts ending in your line of work over the next 12 months: the 25 largest with who holds each one, the agency and the value, and the 10 companies holding the most. One report or every month.",
@@ -314,8 +315,13 @@ function HomeBidPrep() {
                 <li key={f}>• {f}</li>
               ))}
             </ul>
-            <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">{BID_PREP_GUARANTEE}</p>
-            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{BID_PREP_NO_PROMISE}</p>
+            <p className="mt-4 text-sm font-bold">When you get it</p>
+            <ul className="mt-2 space-y-1.5 text-sm text-slate-700 dark:text-slate-200">
+              <li>⏱ Delivered within {BID_PREP_DELIVERY} of your company details, and before your deadline</li>
+              <li>📅 Order at least {BID_PREP_MIN_DAYS} days before the bid is due</li>
+              <li>💵 Send your details within a day of paying. If we then miss the deadline, you get a full refund</li>
+            </ul>
+            <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">{BID_PREP_NO_PROMISE}</p>
           </div>
         </div>
         <a

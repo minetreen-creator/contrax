@@ -5,23 +5,53 @@ import { intakeNotice, type BidPrepIntake, BID_PREP_DELIVERY, BID_PREP_PRICE_CEN
 
 const SITE = "https://www.contrax.company";
 
-/** A Stripe Checkout page for one bid package. The price is inline, so nothing is set up in Stripe. */
+/** The catalog product's fixed id, so it is created once and found again. */
+export const BID_PREP_STRIPE_PRODUCT = "contrax_bid_prep";
+
+/**
+ * Bid Prep as a product in the Stripe catalog (owner 2026-11-17: "Bid Prep needs to be on stripe").
+ * Created on first use and reused after, so it shows under Products in the dashboard and every sale
+ * is counted against it. The amount is still set here, never read from Stripe.
+ */
+export async function ensureBidPrepProduct(stripe: Stripe = getStripe()): Promise<void> {
+  try {
+    const found = await stripe.products.retrieve(BID_PREP_STRIPE_PRODUCT);
+    if (!found.active) await stripe.products.update(BID_PREP_STRIPE_PRODUCT, { active: true });
+    return;
+  } catch (e) {
+    if ((e as { code?: string }).code !== "resource_missing") throw e;
+  }
+  try {
+    await stripe.products.create(
+      {
+        id: BID_PREP_STRIPE_PRODUCT,
+        name: "Contrax Bid Prep",
+        description: `We prepare your bid package for one state or local bid: the checklist, the forms filled in, a cover letter and qualifications, the price sheet laid out, and the packet assembled. Delivered by email within ${BID_PREP_DELIVERY} of your company details. One-time payment.`,
+        metadata: { product: BID_PREP_PRODUCT },
+      },
+      { idempotencyKey: BID_PREP_STRIPE_PRODUCT },
+    );
+  } catch (error) {
+    if ((error as { code?: string }).code !== "resource_already_exists") throw error;
+  }
+}
+
+/** A Stripe Checkout page for one bid package. The amount is set here, on the catalog product. */
 export async function createBidPrepCheckout(order: BidPrepOrder, stripe: Stripe = getStripe()): Promise<{ url: string; sessionId: string }> {
   const metadata = prepMetadata(order);
+  await ensureBidPrepProduct(stripe);
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
     customer_email: order.email,
     metadata,
-    payment_intent_data: { metadata },
+    // The bid is named on the payment, so each sale reads on its own in Stripe's Payments list.
+    payment_intent_data: { metadata, description: `Bid Prep: ${order.bidTitle}`.slice(0, 500) },
     line_items: [{
       quantity: 1,
       price_data: {
         currency: "usd",
         unit_amount: BID_PREP_PRICE_CENTS,
-        product_data: {
-          name: "Contrax Bid Prep",
-          description: `We prepare your bid package for: ${order.bidTitle.slice(0, 180)}. Delivered by email within ${BID_PREP_DELIVERY}. One-time payment.`,
-        },
+        product: BID_PREP_STRIPE_PRODUCT,
       },
     }],
     success_url: `${SITE}/order-received?kind=bidprep&session={CHECKOUT_SESSION_ID}`,

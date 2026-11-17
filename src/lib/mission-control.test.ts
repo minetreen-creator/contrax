@@ -30,7 +30,7 @@ describe("Mission Control top strip", () => {
     expect(dayChange(31, 24)).toEqual({ dir: "up", label: "▲ 7 vs this time yesterday" });
     expect(dayChange(3, 5)).toEqual({ dir: "down", label: "▼ 2 vs this time yesterday" });
     expect(dayChange(5, 5)).toEqual({ dir: "flat", label: "same as this time yesterday" });
-    expect(dayChange(5, 0, true).label).toBe("▲ $5 vs this time yesterday");
+    expect(dayChange(5, 0, true).label).toBe("▲ $9 vs this time yesterday");
   });
 });
 

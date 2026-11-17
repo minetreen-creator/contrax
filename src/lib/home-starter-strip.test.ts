@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 
 // Owner 2026-10-31 funnel check: the homepage shows the $5 Starter pass right
 // under the search, and the duplicate town callout is gone.
-describe("homepage $5 Starter strip", () => {
+describe("homepage $9 Starter strip", () => {
   const page = readFileSync("src/routes/index.tsx", "utf8");
   test("sits directly under the contract finder and links to pricing", () => {
     const finder = page.indexOf("<HomeContractFinder");

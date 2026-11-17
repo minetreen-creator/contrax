@@ -21,7 +21,7 @@ describe("Starter at $14", () => {
     expect(STARTER_ANNUAL_PRICE).toBe(140);
     expect(FOUNDING_BUSINESS_RENEWAL_CENTS).toBe(14000);
     // A coupon's amount cannot change in Stripe, so the $5 first month needs a new coupon id.
-    expect(STARTER_FIRST_MONTH_COUPON).toBe("contrax_starter_first_month_5_v2");
+    expect(STARTER_FIRST_MONTH_COUPON).toBe("contrax_starter_first_month_9_v1");
     expect(STARTER_PASS_NOTE).toContain("Starter at $14/month");
   });
 

@@ -11,7 +11,7 @@ describe("no leftover trial buttons", () => {
     }
     const seo = readFileSync("src/lib/seo-landing.tsx", "utf8");
     expect(seo).toContain("🔍 See open bids now →");
-    expect(seo).toContain("No card to search · $5 for 30 days to open every notice · No automatic renewal");
+    expect(seo).toContain("No card to search · $9 for 30 days to open every notice · No automatic renewal");
     expect(seo).not.toContain("No credit card · Cancel anytime");
   });
 });

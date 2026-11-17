@@ -24,7 +24,7 @@ describe("homepage Max proof", () => {
     expect(maxProofBidOpen(Date.parse("2026-12-09T12:00:00Z"))).toBe(false);
   });
 
-  test("it sits on the homepage right after the message, before the $5 strip (owner 2026-11-10 cleanup)", () => {
+  test("it sits on the homepage right after the message, before the $9 strip (owner 2026-11-10 cleanup)", () => {
     const home = readFileSync(new URL("../routes/index.tsx", import.meta.url), "utf8");
     const j = home.indexOf("<HomeMaxProof />");
     expect(j).toBeGreaterThan(home.indexOf("<HomeExecutionLine />"));

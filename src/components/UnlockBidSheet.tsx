@@ -1,3 +1,4 @@
+import { STARTER_PASS_ANCHOR } from "~/lib/starter-pass";
 import { useEffect, useState } from "react";
 import { displayTitle } from "~/lib/bid-title";
 import { redirectToCheckout } from "~/lib/checkout";
@@ -81,6 +82,7 @@ export function UnlockBidSheet({ bidId, bid, onClose }: { bidId: number; bid?: U
 
         <div className="mt-4 rounded-xl bg-amber-50 px-3 py-2.5 text-center">
           <p className="text-base font-extrabold text-slate-900">${STARTER_FIRST_MONTH_PRICE} one time. No automatic renewal.</p>
+          <p className="mt-1 text-sm text-slate-700">{STARTER_PASS_ANCHOR}</p>
           <p className="mt-0.5 text-xs text-slate-600">On day 30 it simply ends. We email you once before; do nothing and you&apos;re never charged again.</p>
         </div>
 

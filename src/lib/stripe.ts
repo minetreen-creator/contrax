@@ -497,7 +497,7 @@ async function ensureStarterFirstMonthCoupon(): Promise<void> {
           amount_off: STARTER_FIRST_MONTH_AMOUNT_OFF,
           currency: "usd",
           duration: "once",
-          name: "Starter: $5 first month",
+          name: "Starter: $9 first month",
         },
         { idempotencyKey: STARTER_FIRST_MONTH_COUPON },
       );
@@ -624,7 +624,7 @@ export async function createCheckoutSession(
     // Starter 30-day pass: one-time $5 on the Starter product, no subscription.
     const starterPass = opts.starterPass === true && planTier === "starter" && interval === "month" && !isVad && !founding;
     if (opts.starterPass === true && !starterPass) {
-      return { success: false, error: "The $5 pass is for monthly Starter only." };
+      return { success: false, error: "The $9 pass is for monthly Starter only." };
     }
     if (starterPass) {
       lineItem = {

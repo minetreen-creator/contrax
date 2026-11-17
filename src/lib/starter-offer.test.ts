@@ -4,7 +4,7 @@ import { checkoutCreatedAccount, guestCheckoutAllowed, postCheckoutAccess, START
 import { welcomeEmailHtml } from "./email";
 import { MONTHLY_PRICE_USD } from "./stripe";
 
-describe("Starter $5 first month", () => {
+describe("Starter $9 first month", () => {
   test("the coupon takes the monthly price down to the advertised first month", () => {
     expect((MONTHLY_PRICE_USD.starter ?? 0) * 100 - STARTER_FIRST_MONTH_AMOUNT_OFF).toBe(STARTER_FIRST_MONTH_PRICE * 100);
   });

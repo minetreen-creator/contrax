@@ -64,7 +64,7 @@ function Upgrade() {
         </a>
         {bid && plan === "starter" && (
           <p className="mx-auto mt-6 max-w-2xl rounded-xl border border-amber-200 bg-amber-50 px-5 py-3 text-center text-sm text-amber-900">
-            Starter opens the official notice for the bid you were looking at, and every other one, for 30 days. $5, no automatic renewal.
+            Starter opens the official notice for the bid you were looking at, and every other one, for 30 days. $9, no automatic renewal.
           </p>
         )}
         <h1 className="mt-8 text-center text-3xl font-bold text-slate-900">
@@ -72,9 +72,9 @@ function Upgrade() {
         </h1>
         <p className="mt-3 text-center text-slate-600">
           {!signedIn && plan === "starter" && checkout !== "cancelled"
-            ? "Starter is $5 for your first 30 days, one time, with no automatic renewal."
+            ? "Starter is $9 for your first 30 days, one time, with no automatic renewal."
             : !signedIn
-            ? "Starter is $5 for your first 30 days, one time, with no automatic renewal. Or create a free account and keep searching."
+            ? "Starter is $9 for your first 30 days, one time, with no automatic renewal. Or create a free account and keep searching."
             : plan && checkout !== "cancelled" ? "Continue with your selected plan, or explore Contrax first." : status?.active
             ? `Your trial ends in ${status.daysLeft} day${status.daysLeft === 1 ? "" : "s"}${
                 endsLabel ? ` (${endsLabel})` : ""
@@ -87,7 +87,7 @@ function Upgrade() {
           </p>
         )}
         {/* Not for a signed-out $5 visitor (owner 2026-11-10): "subscribing starts paid billing" contradicted
-            the one-time $5 card right below it. */}
+            the one-time $9 card right below it. */}
         {plan && checkout !== "cancelled" && signedIn && (
           <div className="mt-5 text-center">
             <p className="text-sm text-slate-600">Subscribing starts paid billing now. You can also continue without subscribing.</p>
@@ -100,7 +100,7 @@ function Upgrade() {
             button to Stripe, which asks for the email; /post-checkout creates the account after payment. */}
         {!signedIn && plan === "starter" && checkout !== "cancelled" && (
           <div className="mx-auto mt-6 max-w-xl rounded-2xl border-2 border-amber-400 bg-white p-6 text-center shadow-sm">
-            <p className="text-lg font-bold text-slate-900">$5 for 30 days. No account needed first.</p>
+            <p className="text-lg font-bold text-slate-900">$9 for 30 days. No account needed first.</p>
             <p className="mt-1 text-sm text-slate-600">Stripe asks for your email, and your Contrax account is set up the moment you pay.</p>
             <button
               type="button"
@@ -112,7 +112,7 @@ function Upgrade() {
               }}
               className="mt-4 w-full rounded-xl bg-amber-400 px-6 py-3 text-base font-bold text-slate-950 hover:bg-amber-300 disabled:opacity-60"
             >
-              {pendingPlan === "starter" ? "Opening secure checkout…" : "Pay $5 and start now →"}
+              {pendingPlan === "starter" ? "Opening secure checkout…" : "Pay $9 and start now →"}
             </button>
             <CheckoutTrust className="mt-2" />
             <p className="mt-3 text-xs text-slate-500">
@@ -124,7 +124,7 @@ function Upgrade() {
           <div className="mx-auto mt-6 max-w-xl rounded-2xl border border-amber-300 bg-amber-50 p-6 text-center">
             <p className="text-sm text-slate-700">
               Not ready to pay? A free account keeps searching on Basic. When you want unlimited Radar searches, every
-              state and trade and the 6 AM email of new bids, Starter is $5 for your first 30 days.
+              state and trade and the 6 AM email of new bids, Starter is $9 for your first 30 days.
             </p>
             <a href={TRIAL_SIGNUP_HREF} className="mt-4 inline-block rounded-xl bg-amber-500 px-6 py-3 font-bold text-slate-950 hover:bg-amber-400">
               Create my free account

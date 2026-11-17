@@ -517,7 +517,7 @@ export function HomeContractFinder({ sample, openTotal = 0, heading = "h1" }: { 
                   ))}
                 </div>
                 {/* Owner 2026-11-02 (design critique): right after "1 of 25" is
-                    the moment of most interest; it names the $5 pass first and
+                    the moment of most interest; it names the $9 pass first and
                     keeps the free account as a quiet second choice. */}
                 {!result.signedIn && result.total > result.matches.length ? (
                   <div className="mt-7 rounded-2xl border border-amber-300/50 bg-amber-400/10 p-6">

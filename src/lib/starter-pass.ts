@@ -12,7 +12,7 @@
 
 export const STARTER_PASS_DAYS = 30;
 /** $5, in cents. */
-export const STARTER_PASS_AMOUNT = 500;
+export const STARTER_PASS_AMOUNT = 900;
 /** The reminder goes out this many days before the pass ends (day 25). */
 export const STARTER_PASS_REMIND_DAYS = 5;
 /** Stripe session/user metadata flag for a pass checkout. */
@@ -25,7 +25,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 /** What the Stripe page shows as the product line. */
 export const STARTER_PASS_PRODUCT_NAME = "Contrax Starter: 30 days of bid emails";
 export const STARTER_PASS_PRODUCT_DESCRIPTION =
-  "New government bids in your trade and states, emailed every morning at 6 AM, for 30 days. One-time $5 payment. Nothing renews: on day 30 the pass ends unless you choose Starter at $14/month.";
+  "New government bids in your trade and states, emailed every morning at 6 AM, for 30 days. One-time $9 payment. Nothing renews: on day 30 the pass ends unless you choose Starter at $14/month.";
 
 /** Shown under Stripe's pay button on every plan checkout (owner item 3). */
 export const CHECKOUT_SUBMIT_MESSAGE =
@@ -38,13 +38,19 @@ export const CHECKOUT_SUBMIT_MESSAGE =
  * at $19/month. There is no trial. "We'll ask before charging $19/month" read as a charge that would
  * come unless they said no, so it is gone.
  */
-export const STARTER_PASS_NOTE = "$5 one time for 30 days. Nothing renews: on day 30 the pass simply ends, unless you choose Starter at $14/month.";
+export const STARTER_PASS_NOTE = "$9 one time for 30 days. Nothing renews: on day 30 the pass simply ends, unless you choose Starter at $14/month.";
+/**
+ * The price next to what the alternatives cost (owner 2026-11-17: "anchor the $9 price against ...
+ * paying thousands for legacy platforms"). Both figures are the entry prices on /compare, each taken
+ * from that company's own page: HigherGov $500 a year, GovTribe $1,900 a year for one seat.
+ */
+export const STARTER_PASS_ANCHOR = "Other bid tools cost $500 to $1,900 a year. This is $9, once, and one job found pays for it many times over.";
 /** What happens on day 30, in full. */
 export const STARTER_DAY30_LINE =
   "On day 30 your pass ends and your account goes back to free Basic. We never charge your card again on our own: five days before, we email you once, and Starter at $14/month starts only if you choose it.";
 /** Under Stripe's pay button on the $5 pass checkout. */
 export const STARTER_PASS_SUBMIT_MESSAGE =
-  "One-time $5. Nothing renews, and you won't be charged again unless you choose to keep going. Pick your trade and states on the next screen; your first bid email arrives the next morning at 6 AM.";
+  "One-time $9. Nothing renews, and you won't be charged again unless you choose to keep going. Pick your trade and states on the next screen; your first bid email arrives the next morning at 6 AM.";
 
 export type StarterCheckoutKind = "pass" | "subscription" | "subscription_full_price";
 
@@ -195,7 +201,7 @@ export function passConfirmationEmail(endsAt: Date): { subject: string; text: st
   const subject = `Your Contrax Starter pass: 30 days, ends ${day}. Nothing renews`;
   const lines = [
     "Thanks for buying the Contrax Starter pass.",
-    `You paid $5 one time. Your pass runs until ${day}.`,
+    `You paid $9 one time. Your pass runs until ${day}.`,
     `Nothing renews. On ${day} your pass simply ends and your account goes back to free Basic. You will not be charged again, and there is nothing to cancel.`,
     "Five days before the end, we'll email you once. If you want to keep the 6 AM bid emails, you can choose Starter at $14/month then. If you do nothing, nothing happens.",
     "Pick your trade and states at https://www.contrax.company/settings and your bid email arrives every morning at 6 AM.",
@@ -204,7 +210,7 @@ export function passConfirmationEmail(endsAt: Date): { subject: string; text: st
   ];
   const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.5;color:#0f172a;max-width:560px">
 <p>Thanks for buying the Contrax Starter pass.</p>
-<p>You paid <b>$5 one time</b>. Your pass runs until <b>${esc(day)}</b>.</p>
+<p>You paid <b>$9 one time</b>. Your pass runs until <b>${esc(day)}</b>.</p>
 <p><b>Nothing renews.</b> On ${esc(day)} your pass simply ends and your account goes back to free Basic. You will not be charged again, and there is nothing to cancel.</p>
 <p>Five days before the end, we'll email you once. If you want to keep the 6 AM bid emails, you can choose Starter at $14/month then. If you do nothing, nothing happens.</p>
 <p><a href="https://www.contrax.company/settings" style="color:#1d4ed8;font-weight:bold">Pick your trade and states</a> and your bid email arrives every morning at 6 AM.</p>
@@ -226,15 +232,15 @@ export function passBoughtOwnerAlert(buyerEmail: string | null, endsAt: Date): {
   const who = buyerEmail?.trim() || "(no email on the checkout)";
   const ends = passEndDateLabel(endsAt);
   return {
-    subject: `💰 New $5 Starter pass: ${who}`,
+    subject: `💰 New $9 Starter pass: ${who}`,
     text: [
-      "Someone just bought the $5 Starter 30-day pass.",
+      "Someone just bought the $9 Starter 30-day pass.",
       `Buyer: ${who}`,
       `Pass ends: ${ends}. They get one reminder 5 days before, asking whether to continue at $14/month.`,
       "Live view: https://www.contrax.company/admin/live",
     ].join("\n\n"),
     push: {
-      title: "💰 New $5 Starter pass",
+      title: "💰 New $9 Starter pass",
       body: `${who} just bought 30 days of Starter (ends ${ends}).`,
       tag: `pass-${who}`.slice(0, 64),
       url: "/admin/live",

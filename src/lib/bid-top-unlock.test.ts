@@ -7,7 +7,7 @@ import { readFileSync } from "node:fs";
 const page = readFileSync(new URL("../routes/bid.$bidId.tsx", import.meta.url), "utf8");
 const banner = readFileSync(new URL("../components/AppInstallBanner.tsx", import.meta.url), "utf8");
 
-test("a locked bid shows the $5 line in the first screen, opening the same confirm step", () => {
+test("a locked bid shows the $9 line in the first screen, opening the same confirm step", () => {
   expect(page).toContain('trackEvent("bid_top_starter_click", locked ? "new" : "members");');
   expect(page).toContain("{pass ? `$${STARTER_FIRST_MONTH_PRICE} for 30 days, one time` : `Starter, $${STARTER_FULL_PRICE}/month`}");
   // One sheet for the page; every $5 button calls the same unlock.
@@ -15,12 +15,12 @@ test("a locked bid shows the $5 line in the first screen, opening the same confi
   expect(page).toContain("<NoticeLock bidId={bid.id} signedIn={signedIn} isNew={locked} pass={pass} onUnlock={unlock} />");
 });
 
-test("the contact link says the $5 pass includes it, and only a used pass is told $19/month", () => {
+test("the contact link says the $9 pass includes it, and only a used pass is told $19/month", () => {
   expect(page).toContain("{pass ? `See who to contact: included in the $${STARTER_FIRST_MONTH_PRICE} pass →` : `See who to contact: Starter, $${STARTER_FULL_PRICE}/month →`}");
   expect(page).not.toContain("See who to contact: Starter, $19/month →");
 });
 
-test("the app banner waits until the visitor has seen the $5 offer", () => {
+test("the app banner waits until the visitor has seen the $9 offer", () => {
   expect(page).toContain('<AppInstallBanner where="bid" hold={!checked || (lockShown && !offerSeen)} />');
   // Owner 2026-11-10: and only for paid members (the hold still applies).
   expect(banner).toContain("if (!due || hold || !paid || shown.current || !platform) return;");

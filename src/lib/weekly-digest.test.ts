@@ -89,11 +89,11 @@ describe("weekly digest — paid head start", () => {
 });
 
 describe("weekly digest — top 5 only (owner 2026-10-08)", () => {
-  test("bids past the top 5 are pointed to the $5 pass, not listed", () => {
+  test("bids past the top 5 are pointed to the $9 pass, not listed", () => {
     expect(WEEKLY_DIGEST_LIST_LIMIT).toBe(5);
     const bid = { bid_id: 1, title: "Snow plowing", agency: "City", source_url: "https://x", location: "Ohio", due_date: null };
     const html = bidDigestHtml([bid], 28, { unsubscribeUrl: weeklyUnsubscribeUrl("t") });
-    expect(html).toContain("+ 27 more new bids with the $5 pass.");
+    expect(html).toContain("+ 27 more new bids with the $9 pass.");
     expect(html).toContain(WEEKLY_PASS_URL);
     expect(bidDigestHtml([bid], 28)).toContain("+ 27 more new bids on Contrax.");
   });
@@ -102,14 +102,14 @@ describe("weekly digest — top 5 only (owner 2026-10-08)", () => {
 describe("weekly digest — email", () => {
   const bid = { bid_id: 1, title: "Snow plowing", agency: "City", source_url: "https://x", location: "Ohio", due_date: null };
 
-  test("the weekly email offers the $5 pass and carries the unsubscribe link (owner 2026-11-04)", () => {
+  test("the weekly email offers the $9 pass and carries the unsubscribe link (owner 2026-11-04)", () => {
     const url = weeklyUnsubscribeUrl("abc123");
     expect(url).toBe("https://www.contrax.company/api/email/weekly-unsubscribe?token=abc123");
     const html = bidDigestHtml([bid], 1, { unsubscribeUrl: url });
     expect(html).toContain("this past week");
-    expect(html).toContain("The $5 pass");
+    expect(html).toContain("The $9 pass");
     expect(html).toContain("for 30 days. No auto-renew.");
-    expect(html).toContain("Get the $5 pass");
+    expect(html).toContain("Get the $9 pass");
     expect(WEEKLY_PASS_URL).toBe("https://www.contrax.company/upgrade?plan=starter&source=weekly_email");
     expect(html).toContain(WEEKLY_PASS_URL);
     expect(html).not.toContain("$14/month");
@@ -129,10 +129,10 @@ describe("founding offer in the free emails (owner 2026-10-03)", () => {
   const bid = { bid_id: 1, title: "Snow plowing", agency: "City", source_url: "https://x", location: "Ohio", due_date: null };
   const unsub = weeklyUnsubscribeUrl("t");
 
-  test("the weekly email offers only the $5 pass, founding spots or not", () => {
+  test("the weekly email offers only the $9 pass, founding spots or not", () => {
     for (const spots of [7, 0, null, undefined]) {
       const html = bidDigestHtml([bid], 1, { unsubscribeUrl: unsub, foundingSpots: spots });
-      expect(html).toContain("Get the $5 pass");
+      expect(html).toContain("Get the $9 pass");
       expect(html).not.toContain("founding");
       expect(html).not.toContain("$14/month");
     }
@@ -140,10 +140,10 @@ describe("founding offer in the free emails (owner 2026-10-03)", () => {
 
   // Owner 2026-11-08: one offer everywhere. The match alert to email-only leads offers the
   // $5 pass whatever the founding count (it used to pitch the founding year or $19/month).
-  test("radar match alert offers the $5 pass, never the founding year or $19/month", () => {
+  test("radar match alert offers the $9 pass, never the founding year or $19/month", () => {
     for (const spots of [1, 0, null]) {
       const html = radarMatchAlertHtml([bid], 0, "https://u", spots);
-      expect(html).toContain("Get the $5 pass");
+      expect(html).toContain("Get the $9 pass");
       expect(html).toContain("upgrade?plan=starter&source=radar_alert");
       expect(html).not.toContain("founding");
       expect(html).not.toContain("$14/month");

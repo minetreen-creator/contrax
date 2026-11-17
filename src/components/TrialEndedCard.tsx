@@ -55,7 +55,7 @@ export function TrialEndedCard() {
           onClick={() => trackEvent("trial_recap_upgrade_click")}
           className="mt-4 inline-block rounded-xl bg-blue-700 px-5 py-3 text-sm font-bold text-white hover:bg-blue-800"
         >
-          Keep my bids coming: Starter, $5 for 30 days →
+          Keep my bids coming: Starter, $9 for 30 days →
         </a>
         <p className="mt-2 text-xs text-slate-600">Nothing renews: on day 30 the pass simply ends unless you choose Starter at $14/month.</p>
       </div>

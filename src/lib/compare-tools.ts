@@ -104,7 +104,7 @@ export const COMPARE_BY_SLUG: Readonly<Record<string, CompareTool>> = Object.fro
 
 /** What Contrax offers beside any of them. The prices are the site's own. */
 export const CONTRAX_SIDE: { label: string; value: string }[] = [
-  { label: "Do it yourself", value: "Search open bids in your trade and state; start for $5" },
+  { label: "Do it yourself", value: "Search open bids in your trade and state; start for $9" },
   { label: "One report, prepared for you", value: `Pipeline Snapshot, ${REPORT_PRICE} once, in your inbox within 1 business day` },
   { label: "Every month, prepared for you", value: "Contrax Managed, $499 a month, month to month" },
   { label: "Who does the work", value: "We do. You read one report" },

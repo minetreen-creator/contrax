@@ -16,7 +16,7 @@ import { trackEvent } from "~/lib/track";
 // unchanged — they already carry the prices.
 const PAGE_TITLE = "Pricing: Government Bid Alerts from $14/Month";
 const META_DESCRIPTION =
-  "Contrax plans for every stage of growth. Start with Starter for $5 for your first 30 days, with no automatic renewal, or keep searching on free Basic.";
+  "Contrax plans for every stage of growth. Start with Starter for $9 for your first 30 days, with no automatic renewal, or keep searching on free Basic.";
 
 export const Route = createFileRoute("/pricing/")({
   component: PricingPage,
@@ -26,7 +26,7 @@ export const Route = createFileRoute("/pricing/")({
       { name: "description", content: META_DESCRIPTION },
       { name: "robots", content: "index, follow" },
       { property: "og:title", content: PAGE_TITLE },
-      { property: "og:description", content: "Contrax plans for every stage of growth. Starter is $5 one time for 30 days, and nothing renews; Professional $79/mo; Basic search free." },
+      { property: "og:description", content: "Contrax plans for every stage of growth. Starter is $9 one time for 30 days, and nothing renews; Professional $79/mo; Basic search free." },
       { property: "og:image", content: "https://www.contrax.company/logo-square.png" },
       { property: "og:image:type", content: "image/png" },
       { property: "og:image:width", content: "1200" },
@@ -104,7 +104,7 @@ const plans = [
 // visitors read (4 items; owner 2026-11-06: one offer, no plan comparisons).
 const FAQS = [
   { q: "What do I get?", a: "Every new government bid in your trade and states, in your inbox at 6 AM Eastern every morning, plus the official notice link and documents for every bid on Contrax. City, county, state and federal bids, matched to what your business does." },
-  { q: "Is there a free trial?", a: "Instead of a free trial, Starter costs $5 for your first 30 days, one time, with no automatic renewal. That is 30 days of the daily bid email and every state and trade. On day 30 the pass simply ends: you're never charged again unless you choose Starter at $14/month." },
+  { q: "Is there a free trial?", a: "Instead of a free trial, Starter costs $9 for your first 30 days, one time, with no automatic renewal. That is 30 days of the daily bid email and every state and trade. On day 30 the pass simply ends: you're never charged again unless you choose Starter at $14/month." },
   { q: "Can I cancel anytime?", a: "Yes. Cancel anytime and your access continues until the end of the billing period. No refunds for partial months." },
   { q: "What payment methods do you accept?", a: "We accept all major credit and debit cards through Stripe." },
 ];
@@ -237,7 +237,7 @@ function PricingPage() {
               Never miss a bid in your trade again
             </h2>
             <p className="mt-4 text-lg text-gray-600">
-              Most businesses start with Starter: every new bid in your trade and states, in your inbox at 6 AM. Your first 30 days are $5, one time, with no automatic renewal.
+              Most businesses start with Starter: every new bid in your trade and states, in your inbox at 6 AM. Your first 30 days are $9, one time, with no automatic renewal.
             </p>
             {near && (
               <p className="mt-5 text-base font-semibold text-slate-900">
@@ -283,7 +283,7 @@ function PricingPage() {
               >
                 {plan.featured && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-blue-600 px-4 py-1 text-xs font-semibold uppercase tracking-wider text-white shadow-md">
-                    {plan.slug === "starter" && interval === "month" ? "$5 for 30 days" : "Recommended"}
+                    {plan.slug === "starter" && interval === "month" ? "$9 for 30 days" : "Recommended"}
                   </div>
                 )}
                 <div className="mb-6">

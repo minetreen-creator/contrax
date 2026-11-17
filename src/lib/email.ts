@@ -630,8 +630,8 @@ export function radarMatchAlertHtml(
             See all my matches →
           </a>
           <p style="margin:16px 0 0;color:#6b7280;font-size:13px;line-height:1.5;">
-            Free match alerts arrive once a week. <strong>The $5 pass</strong> sends every new matching bid at 6 AM Eastern, every morning, with the official notices and documents, for 30 days. No auto-renew.
-            <a href="${RADAR_ALERT_PASS_URL}" style="color:#2563eb;font-weight:600;">Get the $5 pass →</a>
+            Free match alerts arrive once a week. <strong>The $9 pass</strong> sends every new matching bid at 6 AM Eastern, every morning, with the official notices and documents, for 30 days. No auto-renew.
+            <a href="${RADAR_ALERT_PASS_URL}" style="color:#2563eb;font-weight:600;">Get the $9 pass →</a>
           </p>
         </td>
       </tr>
@@ -1110,7 +1110,7 @@ export function bidDigestHtml(
           <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
             ${bidRows}
           </table>
-          ${moreCount > 0 ? `<p style="margin:12px 0 0;color:#374151;font-size:14px;text-align:center;">${weekly ? `<strong>+ ${moreCount} more new ${weekly.matchLabel ? "matching " : ""}bid${moreCount === 1 ? "" : "s"} with the $5 pass.</strong> <a href="${WEEKLY_PASS_URL}" style="color:#2563eb;font-weight:600;text-decoration:none;">See them all →</a>` : `+ ${moreCount} more new bid${moreCount === 1 ? "" : "s"} on Contrax.`}</p>` : ""}
+          ${moreCount > 0 ? `<p style="margin:12px 0 0;color:#374151;font-size:14px;text-align:center;">${weekly ? `<strong>+ ${moreCount} more new ${weekly.matchLabel ? "matching " : ""}bid${moreCount === 1 ? "" : "s"} with the $9 pass.</strong> <a href="${WEEKLY_PASS_URL}" style="color:#2563eb;font-weight:600;text-decoration:none;">See them all →</a>` : `+ ${moreCount} more new bid${moreCount === 1 ? "" : "s"} on Contrax.`}</p>` : ""}
         </td>
       </tr>` : ""}
       ${openToAll.length > 0 ? `<!-- Open to all businesses (owner 2026-11-09) -->
@@ -1150,9 +1150,9 @@ export function bidDigestHtml(
       <tr>
         <td style="padding:0 32px 24px;text-align:center;">
           <p style="margin:0;color:#374151;font-size:14px;line-height:1.6;">
-            ${weekly.headStartCount ? `<strong>+ ${weekly.headStartCount} newer ${weekly.matchLabel ? "matching " : ""}bid${weekly.headStartCount === 1 ? " was" : "s were"} posted in the last ${HEAD_START_DAYS} days.</strong> $5 pass members already have ${weekly.headStartCount === 1 ? "it" : "them"}; free accounts see new bids after a ${HEAD_START_DAYS}-day head start.<br>` : ""}
-            You get this once a week on a free account. <strong>The $5 pass</strong> sends every new bid ${weekly.matchLabel ? `for ${escapeHtml(weekly.matchLabel)} ` : ""}at 6 AM Eastern, every morning, for 30 days. No auto-renew.
-            <a href="${WEEKLY_PASS_URL}" style="color:#2563eb;font-weight:600;text-decoration:none;">Get the $5 pass →</a>
+            ${weekly.headStartCount ? `<strong>+ ${weekly.headStartCount} newer ${weekly.matchLabel ? "matching " : ""}bid${weekly.headStartCount === 1 ? " was" : "s were"} posted in the last ${HEAD_START_DAYS} days.</strong> $9 pass members already have ${weekly.headStartCount === 1 ? "it" : "them"}; free accounts see new bids after a ${HEAD_START_DAYS}-day head start.<br>` : ""}
+            You get this once a week on a free account. <strong>The $9 pass</strong> sends every new bid ${weekly.matchLabel ? `for ${escapeHtml(weekly.matchLabel)} ` : ""}at 6 AM Eastern, every morning, for 30 days. No auto-renew.
+            <a href="${WEEKLY_PASS_URL}" style="color:#2563eb;font-weight:600;text-decoration:none;">Get the $9 pass →</a>
           </p>
         </td>
       </tr>` : ""}

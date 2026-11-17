@@ -13,7 +13,7 @@ import {
 const PROD_URL = "https://www.contrax.company";
 const TITLE = "See Contrax in Action — Request a Live Demo";
 const DESC =
-  "Watch how Contrax helps certified small businesses find, understand, and win government contracts. Request a live demo or start with Starter for $5 for your first 30 days.";
+  "Watch how Contrax helps certified small businesses find, understand, and win government contracts. Request a live demo or start with Starter for $9 for your first 30 days.";
 
 export const Route = createFileRoute("/demo/")({
   component: DemoPage,
@@ -103,7 +103,7 @@ const faqs = [
   },
   {
     q: "Is there a free trial?",
-    a: "Instead of a free trial, Starter is $5 for your first 30 days, one time, with no automatic renewal. Creating an account and searching on free Basic costs nothing.",
+    a: "Instead of a free trial, Starter is $9 for your first 30 days, one time, with no automatic renewal. Creating an account and searching on free Basic costs nothing.",
   },
   {
     q: "What happens after I sign up?",
@@ -228,7 +228,7 @@ function DemoPage() {
                 contrax.companyllc@gmail.com
               </a>
               <p className="mt-4 text-center text-xs text-gray-500">
-                Or start with Starter for $5 for your first 30 days and explore on your own.
+                Or start with Starter for $9 for your first 30 days and explore on your own.
               </p>
             </div>
           </div>
@@ -301,10 +301,10 @@ function DemoPage() {
       <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 py-20">
         <div className="relative mx-auto max-w-3xl px-6 text-center">
           <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-            Start for $5
+            Start for $9
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-lg text-blue-100/80">
-            Starter is $5 for your first 30 days, with no automatic renewal. Set up your profile in
+            Starter is $9 for your first 30 days, with no automatic renewal. Set up your profile in
             minutes and start seeing set-aside opportunities matched to your certifications.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
@@ -312,7 +312,7 @@ function DemoPage() {
               href="/pricing"
               className="inline-flex items-center rounded-xl bg-amber-500 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400 hover:shadow-xl active:scale-[0.98]"
             >
-              Start for $5
+              Start for $9
               <ArrowRight className="ml-2 h-5 w-5" />
             </a>
             <a

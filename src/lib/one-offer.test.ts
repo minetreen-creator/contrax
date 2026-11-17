@@ -28,7 +28,7 @@ describe("one offer", () => {
   });
 });
 
-describe("a signed-in free account sees its own count with the $5 offer", () => {
+describe("a signed-in free account sees its own count with the $9 offer", () => {
   test("Radar returns paidMember and the in-state count, and shows the banner only to free accounts", () => {
     const radar = read("src/routes/radar.tsx");
     expect(radar).toContain("paidMember: subscribed,");
@@ -98,7 +98,7 @@ describe("head start: no promise of a free date (owner 2026-11-01)", () => {
     const lock = read("src/components/HeadStartLock.tsx");
     expect(lock).not.toContain("opens for free accounts on {opens}");
     expect(lock).not.toContain("free on {opens}");
-    expect(lock).toContain("Open it today with Starter, $5 for 30 days");
+    expect(lock).toContain("Open it today with Starter, $9 for 30 days");
     expect(read("src/routes/upgrade.tsx")).not.toContain("free accounts wait");
   });
 });

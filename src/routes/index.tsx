@@ -9,7 +9,7 @@ import { HomeStateMap } from "~/components/HomeStateMap";
 
 import { trackEvent } from "~/lib/track";
 import { BRAND_MESSAGE, BRAND_STEPS } from "~/lib/brand-message";
-import { STARTER_PASS_NOTE } from "~/lib/starter-pass";
+import { STARTER_PASS_ANCHOR, STARTER_PASS_NOTE } from "~/lib/starter-pass";
 import { SiteHeader } from "~/components/SiteHeader";
 import { PUBLIC_OPEN_BIDS_WHERE } from "~/lib/open-count";
 import {
@@ -188,7 +188,7 @@ function Home() {
       <Navbar />
       {/* Homepage cleanup (owner 2026-11-10: "follow your recommendations"): five sections, one path
           down the page. Search → the one message (subs folded into its step 2) → the AI assistant's
-          proof → the $5 pass → the state map. The the
+          proof → the $9 pass → the state map. The the
           Pathway, app, megaprojects and the extra tool links moved to their own pages and the footer. */}
       {/* Owner 2026-11-14 ("equal"): two customers, so the page opens with the choice between them,
           each with the same weight; the bid search follows as the do-it-yourself side's first step. */}
@@ -347,7 +347,7 @@ function HomeExecutionLine({ sample = [] }: { sample?: EverydaySampleBid[] }) {
 // The $5 Starter pass offer (src/lib/starter-pass.ts), one compact strip.
 function StarterPassStrip({ where = "strip" }: { where?: "strip" | "closing" }) {
   return (
-    <section aria-label={where === "closing" ? "Start Contrax Starter for $5" : "Contrax Starter for $5"} className={`mx-auto max-w-[1120px] px-4 sm:px-6 ${where === "closing" ? "mt-12 mb-12" : "mt-8"}`}>
+    <section aria-label={where === "closing" ? "Start Contrax Starter for $9" : "Contrax Starter for $9"} className={`mx-auto max-w-[1120px] px-4 sm:px-6 ${where === "closing" ? "mt-12 mb-12" : "mt-8"}`}>
       <div className="flex flex-col gap-4 rounded-2xl border border-blue-200 bg-blue-50 p-5 sm:flex-row sm:items-center sm:justify-between dark:border-blue-900 dark:bg-blue-950/40">
         <div>
           <p className="text-lg font-bold text-slate-900 dark:text-white">📬 New bids in your trade, in your inbox every morning at 6 AM</p>
@@ -355,13 +355,14 @@ function StarterPassStrip({ where = "strip" }: { where?: "strip" | "closing" }) 
             Auto-Pilot reads each one against your business and leads with the best fits: pursue, partner or pass, and why.
           </p>
           <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">{STARTER_PASS_NOTE}</p>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{STARTER_PASS_ANCHOR}</p>
         </div>
         <a
           href="/pricing?source=home_strip"
           onClick={() => trackEvent("home_starter_pass_click", where)}
           className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-amber-400 px-5 py-3 font-bold text-slate-950 transition hover:bg-amber-300 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber-500"
         >
-          Start for $5 <ArrowRight aria-hidden="true" className="h-4 w-4" />
+          Start for $9 <ArrowRight aria-hidden="true" className="h-4 w-4" />
         </a>
       </div>
     </section>

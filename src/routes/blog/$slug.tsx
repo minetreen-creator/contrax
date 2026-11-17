@@ -138,7 +138,7 @@ function BlogPostPage() {
               href="/pricing"
               className="inline-flex items-center rounded-lg bg-amber-500 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-amber-400"
             >
-              Start for $5
+              Start for $9
             </a>
             <a
               href="/blog"

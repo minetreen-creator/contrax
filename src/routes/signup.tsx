@@ -1425,8 +1425,8 @@ function SignupPage() {
               right under the headline and the trial details follow it. */}
           <p className="mt-4 text-sm text-gray-500">
             {save_bid
-              ? "Your free account keeps 1 saved bid, with no credit card. When you want every bid and the daily bid email, Starter is $5 for your first 30 days, with no automatic renewal."
-              : "Creating your account is free, with no credit card. When you want the daily bid email and every state and trade, Starter is $5 for your first 30 days, with no automatic renewal."}
+              ? "Your free account keeps 1 saved bid, with no credit card. When you want every bid and the daily bid email, Starter is $9 for your first 30 days, with no automatic renewal."
+              : "Creating your account is free, with no credit card. When you want the daily bid email and every state and trade, Starter is $9 for your first 30 days, with no automatic renewal."}
           </p>
 
           {/* Social proof — live tracked-solicitation count (mirrors the homepage counter) */}
@@ -1624,7 +1624,7 @@ function SignupPage() {
                 // Honest CTA: no draft promise until the draft flow (part B) lands.
                 // Owner 2026-11-02 (checkout check): a $5 buyer is not told the
                 // account is "free"; the next step is the Starter checkout.
-                save_bid ? "Create account & save bid →" : purchaseReturn && selectedPlan === "starter" ? "Create my account, then pay $5 →" : purchaseReturn && selectedPlan !== "basic" ? "Create my account →" : "Create my free account →"
+                save_bid ? "Create account & save bid →" : purchaseReturn && selectedPlan === "starter" ? "Create my account, then pay $9 →" : purchaseReturn && selectedPlan !== "basic" ? "Create my account →" : "Create my free account →"
               )}
             </button>
 
@@ -1655,7 +1655,7 @@ function SignupPage() {
           {!save_bid && <div className="mt-6 border-t border-gray-100 pt-5">
             <p className="text-sm font-semibold text-slate-900">Select your plan</p>
             <p className="mt-0.5 text-xs text-gray-500">
-              Creating your account is free, with no credit card. When you want the daily bid email and every state and trade, Starter is $5 for your first 30 days, with no automatic renewal.
+              Creating your account is free, with no credit card. When you want the daily bid email and every state and trade, Starter is $9 for your first 30 days, with no automatic renewal.
             </p>
             <div className="mt-2.5 space-y-2" role="radiogroup" aria-label="Plan">
               {PLAN_OPTIONS.map((opt) => {
@@ -1696,7 +1696,7 @@ function SignupPage() {
                         )}
                       </span>
                       <span className="text-sm font-semibold text-slate-700">
-                        {opt.slug === "starter" ? "$5" : `$${opt.price}`}
+                        {opt.slug === "starter" ? "$9" : `$${opt.price}`}
                         <span className="text-xs font-normal text-gray-500">{opt.slug === "starter" ? " for 30 days" : "/mo"}</span>
                       </span>
                       <span
@@ -1730,7 +1730,7 @@ function SignupPage() {
               {selectedPlan === "basic"
                 ? "Basic — $0/mo, free forever"
                 : selectedPlan === "starter"
-                  ? "Starter — $5 one time for 30 days. Nothing renews: on day 30 it simply ends unless you choose Starter at $14/month. Your account is free to create."
+                  ? "Starter — $9 one time for 30 days. Nothing renews: on day 30 it simply ends unless you choose Starter at $14/month. Your account is free to create."
                   : `${planInfo.name} — $${planInfo.price}/mo. Your account is free to create; you pay only when you choose to.`}
             </p>
           </div>}

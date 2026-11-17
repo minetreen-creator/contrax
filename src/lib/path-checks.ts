@@ -39,7 +39,7 @@ export const PATH_CHECKS: readonly PathCheck[] = [
   // real Stripe payment page for a signed-out visitor. The session is never
   // paid and expires on its own.
   {
-    name: "Checkout opens ($5 Starter, signed out)",
+    name: "Checkout opens ($9 Starter, signed out)",
     path: "/api/stripe/create-checkout-session",
     method: "POST",
     // Labeled and short-lived in Stripe (owner 2026-11-03), so the daily check

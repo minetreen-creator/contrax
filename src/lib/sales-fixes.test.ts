@@ -6,7 +6,7 @@ const read = (p: string) => readFileSync(new URL(p, import.meta.url), "utf8");
 
 // Owner 2026-11-10: "No app downloads and no sales".
 describe("sales fixes", () => {
-  test("the trust line names Stripe, Apple Pay / Google Pay and no auto-renew, under every main $5 button", () => {
+  test("the trust line names Stripe, Apple Pay / Google Pay and no auto-renew, under every main $9 button", () => {
     expect(CHECKOUT_TRUST_TEXT).toContain("Secure checkout by Stripe");
     expect(CHECKOUT_TRUST_TEXT).toContain("Apple Pay or Google Pay");
     expect(CHECKOUT_TRUST_TEXT).toContain("No auto-renew");

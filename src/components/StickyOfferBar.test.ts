@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 const read = (p: string) => readFileSync(new URL(p, import.meta.url), "utf8");
 
 describe("page-worded offer bar", () => {
-  test("links to the $5 Starter checkout, hides for a week, never covers the page's first screen", () => {
+  test("links to the $9 Starter checkout, hides for a week, never covers the page's first screen", () => {
     const src = read("./StickyOfferBar.tsx");
     expect(src).toContain("/upgrade?plan=starter&source=");
     expect(src).toContain("7 * 86_400_000");

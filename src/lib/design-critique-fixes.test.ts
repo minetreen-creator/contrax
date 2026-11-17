@@ -49,7 +49,7 @@ describe("bid page: the job is free to read", () => {
     // Owner 2026-11-10: a BidNet purchasing group is not the buyer (the buyer is members-only on BidNet).
     expect(agencyDisplay("Washington Purchasing Group (BidNet Direct)")).toBe("A Washington public agency (posted on BidNet Direct)");
   });
-  test("the $5 button keeps the bid through signup to the plan page", () => {
+  test("the $9 button keeps the bid through signup to the plan page", () => {
     expect(bidStarterHref(42, true)).toBe("/upgrade?plan=starter&bid=42");
     // Owner 2026-11-10: pay without making an account first; the account is made after payment.
     expect(bidStarterHref(42, false)).toBe("/upgrade?plan=starter&bid=42");
@@ -58,7 +58,7 @@ describe("bid page: the job is free to read", () => {
     // Checkout check 2026-11-02: signup rebuilt the plan return and dropped the bid.
     const signup = read("src/routes/signup.tsx");
     expect(signup).toContain("purchaseReturn.replace(/^\\/upgrade\\?plan=[a-z]+/, `/upgrade?plan=${selectedPlan}`)");
-    expect(signup).toContain('"Create my account, then pay $5 →"');
+    expect(signup).toContain('"Create my account, then pay $9 →"');
     const upgrade = read("src/routes/upgrade.tsx");
     expect(upgrade).toContain('{bid ? "← Back to the bid"');
   });
@@ -71,7 +71,7 @@ describe("bid page: the job is free to read", () => {
 });
 
 describe("pay first, account after (CEO 2026-10-22)", () => {
-  test("the new $5 buttons open Stripe directly instead of signup first", () => {
+  test("the new $9 buttons open Stripe directly instead of signup first", () => {
     for (const f of ["src/routes/bid.$bidId.tsx", "src/routes/radar.tsx", "src/components/HomeContractFinder.tsx"]) {
       expect(read(f)).toContain('void redirectToCheckout("starter");');
     }
@@ -85,7 +85,7 @@ describe("radar results", () => {
     const rows = [{ id: "3d", due: inDays(3) }, { id: "20d", due: inDays(20) }, { id: "none", due: null }, { id: "8d", due: inDays(8) }];
     expect(roomToBidFirst(rows, (r) => r.due, NOW).map((r) => r.id)).toEqual(["20d", "none", "8d", "3d"]);
   });
-  test("anonymous visitors see the free card once, the real total, and the $5 price", () => {
+  test("anonymous visitors see the free card once, the real total, and the $9 price", () => {
     const radar = read("src/routes/radar.tsx");
     expect(radar).toContain("{state !== \"\" && !(isAnonymous && (scan.sections?.local ?? []).length > 0) && (");
     // Owner 2026-11-08: cards count against the search's real total, not the 25-card list.
@@ -102,7 +102,7 @@ describe("radar results", () => {
 
 describe("homepage", () => {
   const page = read("src/routes/index.tsx");
-  test("one path down the page: search, the $5 pass once, the Pathway, then the map", () => {
+  test("one path down the page: search, the $9 pass once, the Pathway, then the map", () => {
     expect(page).not.toContain("<MoneyCounter");
     expect(page).not.toContain("<EndingNearYou");
     expect(page).not.toContain("<FreeToolsStrip");
@@ -113,7 +113,7 @@ describe("homepage", () => {
     expect(page).not.toContain('<StarterPassStrip where="closing" />');
     expect(page.split("<StarterPassStrip").length - 1).toBe(1);
   });
-  test("search results name the $5 pass before the free account", async () => {
+  test("search results name the $9 pass before the free account", async () => {
     const finder = read("src/components/HomeContractFinder.tsx");
     expect(finder).toContain('trackEvent("home_results_pass_click"');
     // Design pass (owner 2026-11-02, "do all but 4"): the trust line sits under

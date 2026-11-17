@@ -13,9 +13,9 @@ import {
 } from "./starter-pass";
 import { needsFirstTrial } from "./trial";
 
-describe("Starter $5 30-day pass (owner 2026-10-30)", () => {
-  test("$5 for 30 days", () => {
-    expect(STARTER_PASS_AMOUNT).toBe(500);
+describe("Starter $9 30-day pass (owner 2026-10-30)", () => {
+  test("$9 for 30 days", () => {
+    expect(STARTER_PASS_AMOUNT).toBe(900);
     expect(STARTER_PASS_DAYS).toBe(30);
     expect(starterPassEndsAt(Date.parse("2026-10-30T12:00:00Z") / 1000).toISOString()).toBe("2026-11-29T12:00:00.000Z");
   });
@@ -61,8 +61,8 @@ describe("Starter $5 30-day pass (owner 2026-10-30)", () => {
 describe("owner alert for a new pass", () => {
   test("names the buyer and the end date in the push and the email", () => {
     const a = passBoughtOwnerAlert("buyer@biz.com", new Date("2026-11-30T15:00:00Z"));
-    expect(a.subject).toBe("💰 New $5 Starter pass: buyer@biz.com");
-    expect(a.push.title).toBe("💰 New $5 Starter pass");
+    expect(a.subject).toBe("💰 New $9 Starter pass: buyer@biz.com");
+    expect(a.push.title).toBe("💰 New $9 Starter pass");
     expect(a.push.body).toContain("buyer@biz.com");
     expect(a.push.body).toContain("November 30");
     expect(a.push.url).toBe("/admin/live");

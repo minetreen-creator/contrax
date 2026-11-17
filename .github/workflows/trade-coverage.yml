@@ -36,4 +36,4 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Trade coverage
-        run: bun run trade-coverage
+        run: bun run scripts/probe-oh-wa.ts

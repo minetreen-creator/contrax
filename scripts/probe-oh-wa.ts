@@ -1,33 +1,20 @@
-/**
- * Branch-only, read-only probe (owner 2026-11-16: "Sure" to Ohio and Washington school boards).
- * Reads robots.txt and public front pages of Public Purchase and Builders Exchange of Washington
- * as ContraxBot. No login, nothing posted.
- */
+/** Branch-only read-only probe, part 2: Public Purchase's agency list for a state and an agency's public open-bid table. */
 const UA = "Mozilla/5.0 (compatible; ContraxBot/1.0; +https://www.contrax.company)";
 const one = (s: string) => s.replace(/\r?\n/g, " ¶ ").replace(/\s+/g, " ");
-const strip = (h: string) => h.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
-const get = async (u: string) => {
-  try { const r = await fetch(u, { headers: { "User-Agent": UA, Accept: "text/html,*/*" }, redirect: "follow", signal: AbortSignal.timeout(25000) }); return { status: r.status, url: r.url, body: await r.text() }; }
-  catch (e) { return { status: 0, url: u, body: `ERR ${(e as Error).message}` }; }
-};
-const show = async (u: string, n = 900) => {
-  const p = await get(u);
-  const links = [...new Set([...p.body.matchAll(/href="([^"#]+)"/gi)].map((m) => m[1]).filter((l) => !/\.(css|png|jpg|gif|ico|svg|js)(\?|$)/i.test(l)))];
-  console.log(`PAGE ${u} ${p.status} -> ${p.url} len=${p.body.length} title=${(p.body.match(/<title>([^<]*)/i)?.[1] ?? "").trim().slice(0, 70)}`);
-  console.log(`TEXT ${strip(p.body).slice(0, n)}`);
-  console.log(`LINKS(${links.length}) ${links.slice(0, 70).join("  ").slice(0, 2600)}`);
-  return p;
-};
-for (const host of ["https://www.publicpurchase.com", "https://www.bxwa.com", "http://www.bxwa.com"]) {
-  const rb = await get(`${host}/robots.txt`);
-  console.log(`ROBOTS ${host} ${rb.status} :: ${one(rb.body).slice(0, 900)}`);
+const strip = (h: string) => h.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
+const get = async (u: string, init: RequestInit = {}) => { try { const r = await fetch(u, { ...init, headers: { "User-Agent": UA, ...(init.headers ?? {}) }, signal: AbortSignal.timeout(25000) }); return { status: r.status, body: await r.text() }; } catch (e) { return { status: 0, body: `ERR ${(e as Error).message}` }; } };
+const B = "https://www.publicpurchase.com";
+const home = await get(`${B}/gems/browse/home`);
+const i = home.body.indexOf("getAgenciesByRegion");
+const scripts = [...home.body.matchAll(/<script[^>]*src="([^"]+)"/gi)].map((m) => m[1]);
+console.log("SCRIPTS", scripts.join("  "));
+const def = home.body.search(/getAgenciesByRegion\s*[:=]\s*function|function\s+getAgenciesByRegion/);
+console.log("INLINE", def, one(home.body.slice(Math.max(0, def - 200), def + 1500)));
+for (const s of scripts.filter((s) => !/jquery|bootstrap|analytics|gtag/i.test(s)).slice(0, 12)) {
+  const js = await get(s.startsWith("http") ? s : `${B}${s}`);
+  const k = js.body.search(/getAgenciesByRegion/);
+  if (k >= 0) console.log("JS", s, one(js.body.slice(Math.max(0, k - 300), k + 1600)));
 }
-await show("https://www.publicpurchase.com/");
-await show("https://www.publicpurchase.com/gems/browse/home");
-const col = await show("https://www.publicpurchase.com/gems/columbus,oh/buyer/public/home", 1800);
-const tables = [...col.body.matchAll(/<table[\s\S]*?<\/table>/gi)];
-console.log(`COLTABLES ${tables.length}`);
-for (const t of tables.slice(0, 6)) { const rows = [...t[0].matchAll(/<tr[\s\S]*?<\/tr>/gi)]; if (rows.length > 1) { console.log(`TBL rows=${rows.length}`); for (const r of rows.slice(0, 4)) console.log(`ROW ${one(r[0]).slice(0, 1200)}`); } }
-await show("https://www.publicpurchase.com/gems/columbus,oh/buyer/public/publicInfo", 1500);
-await show("https://www.bxwa.com/", 900);
-await show("http://www.bxwa.com/bxwa_toc/pub/index.html", 1500);
+for (const u of [`${B}/gems/browse/agencies?region=OH`, `${B}/gems/browse/region?region=OH`, `${B}/gems/browse/getAgenciesByRegion?region=OH`, `${B}/gems/browse/home?region=OH`]) {
+  const p = await get(u); console.log("TRY", u, p.status, p.body.length, strip(p.body).slice(0, 300));
+}

@@ -74,5 +74,8 @@ describe("bid prep", () => {
     expect(server).toContain("session.amount_total === BID_PREP_PRICE_CENTS");
     expect(server).toContain("if (!isPaidBidPrepSession(session)) return \"not_paid\";");
     expect(server).toContain("session={CHECKOUT_SESSION_ID}");
+    expect(server).toContain("product: BID_PREP_STRIPE_PRODUCT,");
+    expect(server).toContain("await ensureBidPrepProduct(stripe);");
+    expect(server).toContain("unit_amount: BID_PREP_PRICE_CENTS,");
   });
 });

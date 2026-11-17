@@ -40,6 +40,11 @@ export const BOT_EXCLUSION_SQL = `
     -- 69.25.91.x and Fremont 155.103.64.x "visitors" on 2023 desktop browsers,
     -- one page each, no searches; ~26 visitor ids that morning).
     OR ip LIKE '69.25.91.%' OR ip LIKE '155.103.64.%'
+    -- Mail security scanner in San Jose (owner 2026-11-17, "Yes"): within minutes of each batch
+    -- of partner emails, 72.153.230.139 and 72.153.231.12 each opened the homepage once, directly,
+    -- under a new visitor id and a different Chrome version every time. A filter checking the link
+    -- in the email, shown in Mission Control as a person. Never blocked: it only stops counting.
+    OR ip LIKE '72.153.230.%' OR ip LIKE '72.153.231.%'
     -- Search-engine crawler IP prefixes: Googlebot + common Bing ranges.
     OR ip LIKE '66.249.%'
     -- Google ad review / page-preview fetchers (headless Chrome on Google addresses;

@@ -363,6 +363,8 @@ function isBotVisitorRow(v: {
   if (any(isAnthropicIp)) return true;
   // One-page site scanner networks (owner 2026-10-30) — mirrors BOT_EXCLUSION_SQL.
   if (any((ip) => ip.startsWith("69.25.91.") || ip.startsWith("155.103.64."))) return true;
+  // The San Jose mail security scanner (bot-exclusion.ts, 2026-11-17).
+  if (any((ip) => ip.startsWith("72.153.230.") || ip.startsWith("72.153.231."))) return true;
   if (any((ip) => ip.startsWith("66.249.") || ip.startsWith("66.102.") || ip.startsWith("74.125.") || ip.startsWith("40.77.") || ip.startsWith("157.55.") || ip.startsWith("207.46."))) return true;
   if (any((ip) => ip.startsWith("66.220.") || ip.startsWith("31.13.") || ip.startsWith("173.252.") || ip.startsWith("104.189.") || ip.startsWith("69.171.") || ip.startsWith("157.240."))) return true;
   if (

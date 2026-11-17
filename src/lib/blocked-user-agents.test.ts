@@ -53,6 +53,7 @@ describe("blocked user agents", () => {
   test("the Houston / Fremont scanner networks are excluded from counts and the Visitors board", () => {
     expect(BOT_EXCLUSION_SQL).toContain("ip LIKE '69.25.91.%'");
     expect(BOT_EXCLUSION_SQL).toContain("ip LIKE '155.103.64.%'");
+    expect(BOT_EXCLUSION_SQL).toContain("ip LIKE '72.153.230.%' OR ip LIKE '72.153.231.%'");
     const src = readFileSync(new URL("../routes/api/admin/journeys.ts", import.meta.url), "utf8");
     expect(src).toContain('ip.startsWith("69.25.91.")');
     expect(src).toContain('ip.startsWith("155.103.64.")');

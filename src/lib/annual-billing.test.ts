@@ -207,7 +207,7 @@ describe("Starter $9 30-day pass (owner 2026-10-30)", () => {
     expect((await stripeLib.createCheckoutSession("starter", { starterPass: true })).success).toBe(true);
     const s = created[0];
     expect(s.mode).toBe("payment");
-    expect(s.line_items[0].price_data.unit_amount).toBe(500);
+    expect(s.line_items[0].price_data.unit_amount).toBe(900);
     expect(s.line_items[0].price_data.recurring).toBeUndefined();
     expect(s.line_items[0].price_data.product_data.name).toBe("Contrax Starter: 30 days of bid emails");
     expect(s.discounts).toBeUndefined();

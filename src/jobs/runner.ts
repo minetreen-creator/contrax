@@ -107,6 +107,7 @@ import { PERISCOPE_TAIL_SOURCES } from "./sources/periscope-states";
 import { fetchPrAsgBids } from "./sources/pr-asg";
 import { fetchFlMiamiDadeBids } from "./sources/fl-miami-dade";
 import { isBidnetRefusal, isBidnetSource, planBidnetSources } from "./bidnet-cadence";
+import { startBidnetPageBudget } from "./sources/bidnet-direct";
 import { fetchGaGprBids } from "./sources/ga-gpr";
 import { fetchWvOasisBids } from "./sources/wv-oasis";
 import { fetchKyVssBids } from "./sources/ky-vss";
@@ -1784,6 +1785,8 @@ export async function runSync(): Promise<SyncResult> {
   // day, at most a dozen per sync; every other tail source runs every sync.
   const bidnetNames = TAIL_SOURCES.map((s) => s.name).filter(isBidnetSource);
   const bidnetThisRun = await planBidnetSources(sql, bidnetNames);
+  // One page budget for all of BidNet this sync (owner alert 2026-11-17: HTTP 202 after ~105 pages).
+  startBidnetPageBudget();
   const tailSources = activeSources(TAIL_SOURCES).filter((s) => !isBidnetSource(s.name) || bidnetThisRun.has(s.name));
   console.log(
     `   BidNet this sync: ${bidnetThisRun.size} of ${bidnetNames.length} groups${bidnetThisRun.size ? ` (${[...bidnetThisRun].join(", ")})` : ""}`,

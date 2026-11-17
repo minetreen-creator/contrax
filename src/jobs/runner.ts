@@ -111,6 +111,7 @@ import { fetchWvOasisBids } from "./sources/wv-oasis";
 import { fetchKyVssBids } from "./sources/ky-vss";
 import { fetchMobileBids } from "./sources/al-mobile";
 import { fetchBostonBids } from "./sources/ma-boston";
+import { fetchNycCrolBids } from "./sources/ny-nyc-crol";
 import { fetchBirminghamBids } from "./sources/al-birmingham";
 import { fetchAlAldotBids } from "./sources/al-aldot";
 import { fetchAkDotpfBids } from "./sources/ak-dotpf";
@@ -451,6 +452,8 @@ export const TAIL_SOURCES: SyncSource[] = [
   // Puerto Rico's central procurement portal, ASG (src/jobs/sources/pr-asg.ts).
   { name: "pr_asg", fetchFn: () => fetchPrAsgBids() },
   { name: "ma_boston", fetchFn: fetchBostonBids },
+  // New York City: solicitations advertised in the City Record, from NYC Open Data (owner 2026-11-16).
+  { name: "ny_nyc_city_record", fetchFn: () => fetchNycCrolBids() },
   { name: "al_mobile", fetchFn: fetchMobileBids },
   // Georgia Procurement Registry: open state and local bidding events.
   { name: "ga_gpr", fetchFn: () => fetchGaGprBids() },

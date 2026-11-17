@@ -31,6 +31,7 @@ export interface LocalAgency {
 
 export const LOCAL_AGENCIES: LocalAgency[] = [
   { source: "ma_boston", slug: "city-of-boston", name: "City of Boston" },
+  { source: "ny_nyc_city_record", slug: "city-of-new-york", name: "City of New York" },
   { source: "va_virginia_beach_oracle", slug: "city-of-virginia-beach", name: "City of Virginia Beach" },
   { source: "ky_louisville_bonfire", slug: "louisville-metro-government", name: "Louisville Metro Government" },
   { source: "al_mobile", slug: "city-of-mobile", name: "City of Mobile" },

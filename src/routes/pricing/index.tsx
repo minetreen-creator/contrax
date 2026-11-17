@@ -237,7 +237,7 @@ function PricingPage() {
               Never miss a bid in your trade again
             </h2>
             <p className="mt-4 text-lg text-gray-600">
-              Most businesses start with Starter: every new bid in your trade and states, in your inbox at 6 AM. Your first 30 days are $5, one time, with no automatic renewal.
+              Most businesses start with Starter: every new bid in your trade and states, in your inbox at 6 AM. Your first 30 days are $9, one time, with no automatic renewal.
             </p>
             {near && (
               <p className="mt-5 text-base font-semibold text-slate-900">

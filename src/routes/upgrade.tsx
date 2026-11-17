@@ -64,7 +64,7 @@ function Upgrade() {
         </a>
         {bid && plan === "starter" && (
           <p className="mx-auto mt-6 max-w-2xl rounded-xl border border-amber-200 bg-amber-50 px-5 py-3 text-center text-sm text-amber-900">
-            Starter opens the official notice for the bid you were looking at, and every other one, for 30 days. $5, no automatic renewal.
+            Starter opens the official notice for the bid you were looking at, and every other one, for 30 days. $9, no automatic renewal.
           </p>
         )}
         <h1 className="mt-8 text-center text-3xl font-bold text-slate-900">

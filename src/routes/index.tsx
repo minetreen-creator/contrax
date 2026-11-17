@@ -9,7 +9,7 @@ import { HomeStateMap } from "~/components/HomeStateMap";
 
 import { trackEvent } from "~/lib/track";
 import { BRAND_MESSAGE, BRAND_STEPS } from "~/lib/brand-message";
-import { STARTER_PASS_NOTE } from "~/lib/starter-pass";
+import { STARTER_PASS_ANCHOR, STARTER_PASS_NOTE } from "~/lib/starter-pass";
 import { SiteHeader } from "~/components/SiteHeader";
 import { PUBLIC_OPEN_BIDS_WHERE } from "~/lib/open-count";
 import {
@@ -355,6 +355,7 @@ function StarterPassStrip({ where = "strip" }: { where?: "strip" | "closing" }) 
             Auto-Pilot reads each one against your business and leads with the best fits: pursue, partner or pass, and why.
           </p>
           <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">{STARTER_PASS_NOTE}</p>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{STARTER_PASS_ANCHOR}</p>
         </div>
         <a
           href="/pricing?source=home_strip"

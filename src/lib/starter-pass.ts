@@ -39,6 +39,12 @@ export const CHECKOUT_SUBMIT_MESSAGE =
  * come unless they said no, so it is gone.
  */
 export const STARTER_PASS_NOTE = "$9 one time for 30 days. Nothing renews: on day 30 the pass simply ends, unless you choose Starter at $14/month.";
+/**
+ * The price next to what the alternatives cost (owner 2026-11-17: "anchor the $9 price against ...
+ * paying thousands for legacy platforms"). Both figures are the entry prices on /compare, each taken
+ * from that company's own page: HigherGov $500 a year, GovTribe $1,900 a year for one seat.
+ */
+export const STARTER_PASS_ANCHOR = "Other bid tools cost $500 to $1,900 a year. This is $9, once, and one job found pays for it many times over.";
 /** What happens on day 30, in full. */
 export const STARTER_DAY30_LINE =
   "On day 30 your pass ends and your account goes back to free Basic. We never charge your card again on our own: five days before, we email you once, and Starter at $14/month starts only if you choose it.";

@@ -36,7 +36,7 @@ export function warmLeadLines(name: string | null, company: string | null): stri
     "",
     "If you've looked at the plans and something held you back, I'd like to hear that too. Price, the wrong bids, something confusing on the site: whatever it was, tell me and I'll fix what I can.",
     "",
-    "One thing that may help: you can try everything for $5. That gets you 30 days of every open bid, and nothing renews.",
+    "One thing that may help: you can try everything for $9. That gets you 30 days of every open bid, and nothing renews.",
     "",
     "Thanks for giving Contrax a look.",
   ];

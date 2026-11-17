@@ -111,7 +111,7 @@ export function federalUpgradeEmail(unsubscribeUrl: string): { subject: string; 
   return { subject: SUBJECT, html, text };
 }
 
-const PASS_SUBJECT = "Try Contrax Starter for 30 days: $5, no automatic renewal";
+const PASS_SUBJECT = "Try Contrax Starter for 30 days: $9, no automatic renewal";
 const PASS_URL = "https://www.contrax.company/pricing?utm_source=email&utm_campaign=starter_pass";
 
 const PASS_HIGHLIGHTS = [

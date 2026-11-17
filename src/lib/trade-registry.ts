@@ -1475,6 +1475,12 @@ const NAICS_CODE_PHRASES: Record<string, string[]> = {
   "423840": ["industrial supplies", "industrial supply", "mro supplies"],
   "541714": ["research and development", "biotechnology research"],
   "541715": ["research and development", "r&d services", "engineering research"],
+  // Owner 2026-11-17: a Virginia visitor searched 518210, 238990 and 811310 and each showed 3
+  // matches. Most state and local bids carry no code, so a code search needs the words those
+  // bids use in their titles. Each phrase names work the code covers; none is a bare common word.
+  "518210": ["cloud hosting", "cloud services", "cloud computing", "web hosting", "website hosting", "colocation", "application hosting", "managed hosting", "data storage", "offsite backup", "disaster recovery as a service"],
+  "238990": ["fencing", "fence installation", "fence repair", "fence replacement", "asphalt paving", "paving", "parking lot paving", "parking lot repair", "parking lot striping", "sealcoat", "sealcoating", "pavement marking", "pavement markings", "striping", "guardrail", "playground installation", "artificial turf", "scaffolding", "sandblasting", "sign installation", "bleacher"],
+  "811310": ["generator maintenance", "generator repair", "forklift repair", "forklift maintenance", "pump repair", "compressor repair", "hydraulic repair", "heavy equipment repair", "crane repair", "crane inspection", "machinery maintenance"],
 };
 
 /** Single words too broad to stand in for a code (they appear across unrelated bids). */

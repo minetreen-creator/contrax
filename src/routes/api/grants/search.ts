@@ -42,7 +42,7 @@ import {
  *
  * SERVER-SIDE ONLY. The browser never talks to Grants.gov and never sees any
  * key: this handler is the only place the upstream search + per-opportunity
- * detail calls happen. The selected CSV snapshot is bundled server-side; no insert into
+ * detail calls happen. The selected CSV snapshot is a static file read server-side; no insert into
  * bids/solicitations/contracts and no result cache; the only trace a search
  * leaves is the isolated grants_* analytics event the PAGE fires.
  *
@@ -294,7 +294,15 @@ async function handler({ request }: { request: Request }): Promise<Response> {
   }
 
   if (dataset === "snapshot") {
-    const snapshot = searchGrantsSnapshot(params);
+    // The snapshot file is a static asset fetched once per server instance (grants-snapshot.server.ts).
+    let snapshot: Awaited<ReturnType<typeof searchGrantsSnapshot>>;
+    try {
+      snapshot = await searchGrantsSnapshot(params, url.origin);
+    } catch (e) {
+      if (countsAgainstAnonymousCredit) await refundAnonymousSearch(request);
+      console.error("[grants] snapshot unavailable:", e instanceof Error ? e.message : e);
+      return json({ ok: false, error: "We couldn't load the grants list just now. Please try again.", retryable: true }, 502);
+    }
     return json(buildPayload({
       status:params.status, authenticated, granted, subscribed:subscription.subscribed,
       ...snapshot, dataset:"snapshot", countExact:true, page:params.page, upgradePromptEnabled,

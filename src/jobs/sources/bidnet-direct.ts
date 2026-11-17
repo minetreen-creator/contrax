@@ -466,7 +466,7 @@ export function createBidNetGroup(cfg: BidNetGroupConfig): BidNetGroup {
     });
     if (resp.status === 202) {
       // Spend the rest of the budget: no later group pages through BidNet this sync.
-      bidnetPageBudget.used = Math.max(bidnetPageBudget.used, bidnetPageBudget.limit);
+      if (Number.isFinite(bidnetPageBudget.limit)) bidnetPageBudget.used = Math.max(bidnetPageBudget.used, bidnetPageBudget.limit);
       throw new BidNetSlowDown(url);
     }
     if (resp.status !== 200) fail(httpFailureDetail(resp.status, url));

@@ -64,6 +64,15 @@ describe("BidNet asks a reader to wait (HTTP 202)", () => {
     expect(isBidnetRefusal(["HTTP 500 for x"])).toBe(false);
   });
 
+  test("outside a sync (no budget started), a wait never stops later reads", async () => {
+    stub(1);
+    await expect(group.fetchBids(NOW)).rejects.toThrow(/HTTP 202/);
+    expect(bidnetPageBudget.used).toBe(0);
+    const asked = stub();
+    await group.fetchBids(NOW);
+    expect(asked).toHaveLength(4);
+  });
+
   test("once the sync's budget is spent, a group reads only its first page", async () => {
     startBidnetPageBudget(2);
     const first = stub();

@@ -2234,7 +2234,6 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   ny_nyscr: "NY",
   mi_sigma: "MI",
   ma_boston: "MA",
-  ny_nyc_city_record: "NY",
   ma_commbuys: "MA",
   nj_njstart: "NJ",
   pr_asg: "PR",

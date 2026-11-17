@@ -198,7 +198,6 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
   mi_sigma: { class: "state", scopeState: "MI", searchScope: "state-portal", recordType: "opportunity" },
   // Periscope S2G state marketplaces (src/jobs/sources/periscope-states.ts).
   ma_boston: { class: "local", city: "Boston", scopeState: "MA", searchScope: "city-open-data", recordType: "opportunity" },
-  ny_nyc_city_record: { class: "local", city: "New York City", scopeState: "NY", searchScope: "city-open-data", recordType: "opportunity" },
   ma_commbuys: { class: "state", scopeState: "MA", searchScope: "state-portal", recordType: "opportunity" },
   nj_njstart: { class: "state", scopeState: "NJ", searchScope: "state-portal", recordType: "opportunity" },
   pr_asg: { class: "state", scopeState: "PR", searchScope: "state-portal", recordType: "opportunity" },

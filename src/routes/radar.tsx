@@ -1,3 +1,4 @@
+import { BID_PREP_PRICE } from "~/lib/bid-prep";
 import { isLearnRadarVisit } from "~/lib/learn-radar";
 import { dueDayText } from "~/lib/deadline-label";
 import { OpenToAllBids } from "~/components/OpenToAllBids";
@@ -2344,6 +2345,17 @@ function RadarLanding() {
                     onUnlocked={() => runScan({ trade: trade.trim(), state, cert: cert!, sizePref: sizePref! }, { unlock: true })}
                   />
                 )}
+                {/* Bid Prep (owner 2026-11-17, "we should push the bid prep offer"): said once, above the results. */}
+                {scan.matches.length > 0 ? (
+                  <a
+                    href="/prep?source=radar"
+                    onClick={() => trackEvent("radar_bid_prep_click", "results")}
+                    className="block rounded-xl border border-emerald-500/60 bg-emerald-950/40 px-4 py-3 text-sm text-emerald-100 hover:border-emerald-400"
+                  >
+                    <span className="font-bold">Hate the paperwork? We prepare the bid for you · {BID_PREP_PRICE} one time.</span>{" "}
+                    Open a state or local bid below and press "Prepare this bid for me" →
+                  </a>
+                ) : null}
                 {scan.matches.slice(0, visibleCount).map((m, i) => (
                   <RadarCard
                     key={m.id}

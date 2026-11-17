@@ -5,6 +5,7 @@ import { dueDayText } from "~/lib/deadline-label";
 import { UnlockBidSheet } from "~/components/UnlockBidSheet";
 import { BidPrepOffer } from "~/components/BidPrepOffer";
 import { bidPrepSource } from "~/lib/bid-prep";
+import { openBidsHrefForState } from "~/lib/open-bids-list";
 import { rememberCheckoutBid } from "~/lib/checkout-resume";
 import { createServerFn } from "@tanstack/react-start";
 import { WinnerPriceLine } from "~/components/WinnerPriceLine";
@@ -742,6 +743,14 @@ function BidDetailPage() {
                 <a href={stateHref} className="font-semibold text-amber-400 hover:text-amber-300">
                   More open government contracts in {bid.state_name} →
                 </a>
+                {openBidsHrefForState(bid.state_name) ? (
+                  <>
+                    {" · "}
+                    <a href={openBidsHrefForState(bid.state_name)!} className="font-semibold text-amber-400 hover:text-amber-300">
+                      Full list of open bids in {bid.state_name}
+                    </a>
+                  </>
+                ) : null}
               </p>
             )}
 

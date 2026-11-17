@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { RESOLVED_AGENCIES, LOCAL_PLACES, agencyHref, placeHref } from "~/lib/local-agencies";
 import { buildLocalSitemapXml } from "~/lib/local-sitemap";
+import { NATIONWIDE_SLUG, OPEN_BIDS_STATES, openBidsHref } from "~/lib/open-bids-list";
 import { MEGA_PROJECTS, megaProjectHref } from "~/lib/mega-projects";
 
 /**
@@ -14,6 +15,9 @@ async function handler() {
     const counts = await openCountsByAgency(RESOLVED_AGENCIES);
     const paths = [
       "/local-bids",
+      // The full list of open bids per state (owner 2026-11-17): the pages that link to every bid page.
+      ...OPEN_BIDS_STATES.map((s) => openBidsHref(s.slug)),
+      openBidsHref(NATIONWIDE_SLUG),
       ...LOCAL_PLACES.filter((p) => p.agencies.some((a) => (counts[a.slug] ?? 0) > 0)).map(placeHref),
       ...RESOLVED_AGENCIES.filter((a) => (counts[a.slug] ?? 0) > 0).map(agencyHref),
       "/mega-projects",

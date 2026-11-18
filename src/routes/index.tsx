@@ -196,6 +196,13 @@ function Home() {
       <HomeChoice />
       {/* Owner 2026-11-16: a real open bid per trade, the notice beside the brief, right under the hero. */}
       {/* Owner 2026-11-16: the trade and state search is the first action under the two cards. */}
+      {/* Owner 2026-11-18: one line for businesses that sell to contractors (see /suppliers). */}
+      <p className="bg-slate-900 px-4 py-2.5 text-center text-sm text-slate-200">
+        Sell to contractors?{" "}
+        <a href="/suppliers" className="font-semibold text-amber-400 underline underline-offset-4 hover:text-amber-300">
+          See the weekly report for suppliers →
+        </a>
+      </p>
       <HomeContractFinder sample={sample} openTotal={contractMap?.totals?.totalOpen ?? 0} heading="h2" />
       <HomeBidPreview />
       <HomeBidPrep />

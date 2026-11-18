@@ -1,3 +1,4 @@
+import { PrivateBidsBlock } from "~/components/PrivateBidsBlock";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   AllRegionLinks,
@@ -48,6 +49,8 @@ function ContractsInState() {
       }
     >
       <RegionView data={data} />
+      {/* Owner 2026-11-18 ("yes"): most Facebook visitors land here, not on the homepage. */}
+      <PrivateBidsBlock variant="page" />
       {/* Owner 2026-11-17: a plain list of every open bid in the state, so each bid page is linked from here. */}
       {openBidsHrefForState(data.name) && (
         <p className="mt-6 text-center text-sm">

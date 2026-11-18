@@ -9,6 +9,11 @@
  * work in the state are listed, because the email says so.
  *
  * [name, website, SUPPLIER_TYPES id, state]
+ *
+ * Written to from the owner's own Gmail on 2026-11-18, so removed from this list and never to be
+ * queued here: Metromont, Tindall, Cregger Company, Holder Electric Supply, Eastern Industrial
+ * Supplies, Gateway Supply, Bennett Equipment & Supply, Outsource, CCS Construction Staffing,
+ * Palmetto Surety, Russell-Massey & Company, Anderson Insurance Associates, C. T. Lowndes & Company.
  */
 export const SUPPLIER_LEADS: readonly (readonly [string, string, string, string])[] = [
   // Building materials and supply
@@ -22,33 +27,20 @@ export const SUPPLIER_LEADS: readonly (readonly [string, string, string, string]
   ["The Building Center", "https://thebuildingcenterinc.com", "materials", "SC"],
   ["Palmetto Brick", "https://palmettobrick.com", "materials", "SC"],
   ["Florence Concrete Products", "https://florenceconcreteproducts.com", "materials", "SC"],
-  ["Metromont", "https://metromont.com", "materials", "SC"],
-  ["Tindall", "https://tindallcorp.com", "materials", "SC"],
-  ["Cregger Company", "https://creggercompany.com", "materials", "SC"],
   ["ProSource Supply", "https://prosourcesupply.com", "materials", "SC"],
-  ["Holder Electric Supply", "https://holderelectric.com", "materials", "SC"],
   ["Atlantic Coast Electric Supply", "https://atlanticcoastelectricsupply.com", "materials", "SC"],
-  ["Eastern Industrial Supplies", "https://easternfirst.com", "materials", "SC"],
-  ["Gateway Supply", "https://gatewaysupply.net", "materials", "SC"],
   ["Th' Lumber Yard", "https://thlumberyard.com", "materials", "SC"],
   ["Shealy Electrical Wholesalers", "https://shealyelectrical.com", "materials", "SC"],
   // Equipment rental and sales
   ["Blanchard Machinery", "https://blanchardmachinery.com", "equipment", "SC"],
-  ["Bennett Equipment & Supply", "https://bennettequipment.com", "equipment", "SC"],
   ["Thompson Rental Services", "https://thompsonrentalservices.com", "equipment", "SC"],
   ["Hills Machinery", "https://hillsmachinery.com", "equipment", "SC"],
   ["Flint Equipment", "https://flintequipco.com", "equipment", "SC"],
   ["Linder Industrial Machinery", "https://linder.com", "equipment", "SC"],
   // Staffing and labor
-  ["Outsource", "https://outsource.net", "staffing", "SC"],
-  ["CCS Construction Staffing", "https://staffccs.com", "staffing", "SC"],
   ["Labor Source of South Carolina", "https://laborsourcesc.com", "staffing", "SC"],
   // Bonding and insurance
-  ["Palmetto Surety", "https://palmettosurety.com", "bonding", "SC"],
   ["Correll Insurance Group", "https://correllinsurance.com", "bonding", "SC"],
-  ["Russell-Massey & Company", "https://russellmassey.com", "bonding", "SC"],
-  ["Anderson Insurance Associates", "https://aiasc.com", "bonding", "SC"],
   ["McCartha, Cobb & Associates", "https://mccarthacobb.com", "bonding", "SC"],
   ["Taylor Agency", "https://tayloragency.com", "bonding", "SC"],
-  ["C. T. Lowndes & Company", "https://ctlowndes.com", "bonding", "SC"],
 ];

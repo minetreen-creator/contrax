@@ -21,6 +21,8 @@ export const BID_PREP_INCLUDES = [
   "The required forms filled in with your company details, ready for you to review and sign",
   "A cover letter and your company qualifications, written up in the format the agency asks for",
   "The price sheet laid out the way the solicitation wants it, ready for your numbers",
+  // Owner 2026-11-18 ("do it"): a check of the arithmetic and completeness, never a suggested price.
+  "A check of your finished price sheet before you sign: every line filled in, the math right, totals matching. Where the agency has published what the work went for last time, we show you that number",
   "Everything assembled into one packet in the order the agency wants",
   "Step-by-step submission instructions: where it goes, how, and by when",
 ];

@@ -61,7 +61,8 @@ export const PRIVATE_BID_REQUESTS: readonly PrivateBidRequest[] = [
       "The monthly pay is not in the notice. The company sends the full scope of work and compensation on request",
     ],
     locations: ["Salt Lake City, UT"],
-    deadline: null,
+    // The company gave the date when asked, 2026-11-18.
+    deadline: "2026-12-01",
     contact: { email: "info@advancedprofessionalcleaning.com", note: "Ask for the full scope of work and the monthly compensation." },
     listedOn: "2026-11-18",
     permission: "Listed with the company's permission, from its own notice.",

@@ -38,6 +38,7 @@ import { applyHeadStart } from "~/lib/head-start";
 import { hasPaidBidAccess } from "~/lib/head-start.server";
 import { agencyDisplay, bidStarterHref, daysLeftLabel, jobSummary, publicJobText, valueLabel, agencyInSentence } from "~/lib/bid-job-summary";
 import { watermarkText } from "~/lib/bid-watermark";
+import { publicAgency, publicTitle, scrubAgencyName } from "~/lib/public-bid";
 import { trackEvent } from "~/lib/track";
 import { redirectToCheckout } from "~/lib/checkout";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
@@ -80,6 +81,8 @@ interface BidDetail {
   contact: BidContact | null;
   /** The viewer has an account (Basic after its trial), so the lock offers a plan, not a trial. */
   signed_in: boolean;
+  /** This viewer has paid access: only then are title, agency, description and bid number the real ones. */
+  paid?: boolean;
   /** The agency's own bid number, shown in the $5 confirm step (owner 2026-11-08). */
   solicitation_number?: string | null;
   /** Which Starter checkout this viewer gets: "pass" ($5 once) or a $19/month subscription. */
@@ -156,6 +159,7 @@ const NO_SIMILAR: SimilarBids = { scope: null, total: 0, bids: [] };
 /** Up to three real open bids in the same state, closest NAICS match first. */
 async function loadSimilar(id: number, state: string | null, naics: string | null): Promise<SimilarBids> {
   if (!state) return NO_SIMILAR;
+  const stateName = STATE_CODE_TO_NAME[state] ?? null;
   const s = sql();
   const open = s`due_date > NOW() + INTERVAL '2 days' AND ${s.unsafe(LOW_CONTENT_SQL)} AND ${s.unsafe(AWARD_EXCLUSION_SQL)}`;
   const pick = (rows: any[]): SimilarBid[] => {
@@ -166,7 +170,8 @@ async function loadSimilar(id: number, state: string | null, naics: string | nul
       const key = title.toLowerCase();
       if (!title || seen.has(key)) continue;
       seen.add(key);
-      out.push({ id: Number(r.id), title, agency: r.agency ? String(r.agency) : null, due_date: r.due_date ? new Date(r.due_date).toISOString() : null });
+      // Owner 2026-11-18 ("no more freebies"): the buyer is described, not named, and the agency's numbers are out of the title.
+      out.push({ id: Number(r.id), title: publicTitle(title, r.agency ? String(r.agency) : null), agency: publicAgency(r.agency ? String(r.agency) : null, stateName), due_date: r.due_date ? new Date(r.due_date).toISOString() : null });
       if (out.length === SIMILAR_BIDS_LIMIT) break;
     }
     return out;
@@ -255,10 +260,13 @@ const getPublicBid = createServerFn({ method: "GET" })
         { source_url: r.source_url ? String(r.source_url) : null, created_at: r.created_at ?? null },
         false,
       );
-      return {
+      const page: PublicBid = {
         id: Number(r.id),
-        title: String(r.title ?? ""),
-        agency,
+        // Owner 2026-11-18 ("we need to make it for all visitors, no more freebies"): the public page
+        // describes the buyer and never names it, and the title carries none of the agency's numbers.
+        // getBid gives a paying member the real ones.
+        title: publicTitle(String(r.title ?? ""), agency, r.solicitation_number ? String(r.solicitation_number) : null),
+        agency: publicAgency(agency, code ? (STATE_CODE_TO_NAME[code] ?? null) : null, r.source ? String(r.source) : null),
         // The free page's data is readable in the browser: the agency's numbers and the "where the
         // documents are" notes are removed here, on the server (owner 2026-11-12).
         description: publicJobText(r.description ? String(r.description) : null, r.solicitation_number ? String(r.solicitation_number) : null),
@@ -281,6 +289,9 @@ const getPublicBid = createServerFn({ method: "GET" })
         posted_at: r.created_at ? new Date(r.created_at).toISOString() : null,
         ...(await loadBidFacts(code ?? null, r.naics_code ? String(r.naics_code) : null, r.category ? String(r.category) : null)),
       };
+      // The buyer's name is taken out of the description too.
+      if (page.description) page.description = scrubAgencyName(page.description, agency);
+      return page;
     } catch (e) {
       console.error("[bid/$id] public load failed:", e);
       return null;
@@ -341,9 +352,11 @@ const getBid = createServerFn({ method: "GET" })
       );
       return {
         id: Number(r.id),
-        title: String(r.title ?? ""),
-        agency: r.agency ? String(r.agency) : null,
-        description: r.description ? String(r.description) : null,
+        // The real title, buyer and description go only to a paying member (owner 2026-11-18).
+        title: paid ? String(r.title ?? "") : "",
+        agency: paid ? (r.agency ? String(r.agency) : null) : null,
+        description: paid ? (r.description ? String(r.description) : null) : null,
+        paid,
         location: r.location ? String(r.location) : null,
         set_aside: r.set_aside ? String(r.set_aside) : null,
         due_date: r.due_date ? String(r.due_date) : null,
@@ -355,7 +368,7 @@ const getBid = createServerFn({ method: "GET" })
         learned,
         contact: paid ? await loadContact(id) : null,
         signed_in: signedIn,
-        solicitation_number: r.solicitation_number ? String(r.solicitation_number).slice(0, 80) : null,
+        solicitation_number: paid ? (r.solicitation_number ? String(r.solicitation_number).slice(0, 80) : null) : null,
         starter_kind: starterKind,
       };
     } catch (e) {
@@ -464,8 +477,12 @@ const getBidAreaAwards = createServerFn({ method: "GET" })
   });
 
 function BidDetailPage() {
-  const bid = Route.useLoaderData();
-  const bidId = bid?.id ?? 0;
+  const pub = Route.useLoaderData();
+  const bidId = pub?.id ?? 0;
+  // A paying member's own fetch brings the real title, buyer, description and bid number; the
+  // public page data never carries them (owner 2026-11-18).
+  const [full, setFull] = useState<{ title: string; agency: string | null; description: string | null; solicitation_number: string | null } | null>(null);
+  const bid = pub && full ? { ...pub, ...full } : pub;
   // The per-user "learned from your loss" banner loads in the browser only.
   const [learned, setLearned] = useState<PriorLossBadge | null>(null);
   // A paying member's own view of the bid unlocks a head-start link the
@@ -492,6 +509,7 @@ function BidDetailPage() {
   useEffect(() => {
     let active = true;
     setLearned(null);
+    setFull(null);
     setUnlockedUrl(null);
     setChecked(false);
     setContact(undefined);
@@ -515,6 +533,7 @@ function BidDetailPage() {
       getBid({ data: { id: bidId } }).then((b) => {
         if (!active) return;
         setLearned(b?.learned ?? null);
+        setFull(b?.paid && b.title ? { title: b.title, agency: b.agency, description: publicJobText(b.description, null), solicitation_number: b.solicitation_number ?? null } : null);
         setUnlockedUrl(b?.source_url ?? null);
         setChecked(true);
         setSignedIn(!!b?.signed_in);
@@ -656,7 +675,7 @@ function BidDetailPage() {
                 <p className="mt-1 text-sm leading-relaxed text-slate-300">
                   {watermarkText(
                     jobSummary(bid.description, bid.title, bid.solicitation_number) ??
-                      `${displayTitle(bid.title) || "This bid"}${bid.agency ? `, for ${agencyInSentence(bid.agency)}` : ""}. The agency's official notice has the full scope of work, the documents and how to submit.`,
+                      `${displayTitle(bid.title) || "This bid"}${bid.agency ? `, for ${(agencyInSentence(bid.agency) ?? "").replace(/^An? /, (m) => m.toLowerCase())}` : ""}. The agency's official notice has the full scope of work, the documents and how to submit.`,
                     bid.wm,
                   )}
                 </p>

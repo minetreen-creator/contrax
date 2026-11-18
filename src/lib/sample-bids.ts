@@ -4,10 +4,16 @@ import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { AWARD_EXCLUSION_SQL, SOURCE_CLASSES } from "~/lib/source-class";
 import { isProductBuy } from "~/lib/trade-classification";
 import { cleanBidTitle, fixTitleTypos, isCodeHeavyTitle } from "~/lib/bid-title";
-import { displayAgency, displayLocation } from "~/lib/agency-display";
+import { displayLocation } from "~/lib/agency-display";
 import { isAggregatorMirror } from "~/lib/notice-dedupe";
 import { bidIsServiceJob } from "~/lib/outreach";
-import { resolveBidState } from "~/lib/location-state";
+import { resolveBidState, STATE_CODE_TO_NAME } from "~/lib/location-state";
+import { publicAgency, publicTitle } from "~/lib/public-bid";
+
+function sampleStateName(r: { location?: unknown; agency?: unknown }): string | null {
+  const code = resolveBidState(r.location ? String(r.location) : null, r.agency ? String(r.agency) : null);
+  return code ? (STATE_CODE_TO_NAME[code] ?? null) : null;
+}
 
 // Live sample of REAL open SDVOSB set-asides, NEWEST first (owner 2026-10-03:
 // "closing soonest" showed the same five rows day after day until each aged
@@ -61,8 +67,9 @@ export const getSdvosbSample = createServerFn({ method: "GET" }).handler(
       });
       return picked.slice(0, 5).map((r) => ({
         id: Number(r.id),
-        title: fixTitleTypos(cleanBidTitle(String(r.title ?? "")).title),
-        agency: displayAgency(r.agency),
+        // Owner 2026-11-18 ("no more freebies"): the buyer is described, not named (src/lib/public-bid.ts).
+        title: publicTitle(fixTitleTypos(cleanBidTitle(String(r.title ?? "")).title), r.agency ? String(r.agency) : null),
+        agency: publicAgency(r.agency ? String(r.agency) : null, sampleStateName(r)),
         location: displayLocation(r.location),
         due_date: r.due_date ? String(r.due_date) : null,
         set_aside: r.set_aside ? String(r.set_aside) : null,
@@ -188,8 +195,9 @@ export const getEverydaySample = createServerFn({ method: "GET" }).handler(
         const r = rows[i];
         return {
           id: Number(r.id),
-          title: fixTitleTypos(cleanBidTitle(String(r.title ?? "")).title),
-          agency: displayAgency(r.agency),
+          // Owner 2026-11-18 ("no more freebies"): the buyer is described, not named (src/lib/public-bid.ts).
+          title: publicTitle(fixTitleTypos(cleanBidTitle(String(r.title ?? "")).title), r.agency ? String(r.agency) : null),
+          agency: publicAgency(r.agency ? String(r.agency) : null, sampleStateName(r), r.source ? String(r.source) : null),
           location: displayLocation(r.location),
           due_date: r.due_date ? String(r.due_date) : null,
           set_aside: r.set_aside ? String(r.set_aside) : null,

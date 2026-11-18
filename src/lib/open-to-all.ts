@@ -5,6 +5,7 @@
  * the same everywhere (owner 2026-11-08, "one count everywhere").
  */
 import { createServerFn } from "@tanstack/react-start";
+import { publicAgency, publicTitle } from "~/lib/public-bid";
 
 export interface OpenToAllBid {
   id: number;
@@ -47,8 +48,10 @@ function toBid(r: any, local: boolean): OpenToAllBid | null {
   if (!Number.isFinite(id) || !title) return null;
   return {
     id,
-    title: title.slice(0, 200),
-    agency: r.agency ? String(r.agency).slice(0, 120) : null,
+    // Owner 2026-11-18 ("no more freebies"): the buyer is described, not named (src/lib/public-bid.ts).
+    // These are federal bids with no set-aside.
+    title: publicTitle(title, r.agency ? String(r.agency) : null).slice(0, 200),
+    agency: publicAgency(r.agency ? String(r.agency) : null, null, "sam"),
     place: r.location ? String(r.location).slice(0, 80) : null,
     due_date: iso(r.due_date),
     local,

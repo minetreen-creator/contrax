@@ -12,7 +12,7 @@ test("a state page lists its newest open bids, one per title, newest first", () 
     { id: 4, title: "Custodial Services", agency: null, due_date: null },
   ];
   expect(pickRegionBids(rows)).toEqual([
-    { id: 3, title: "Roof Replacement at City Hall", agency: "City of Austin", due_date: "2026-12-01T00:00:00.000Z" },
+    { id: 3, title: "Roof Replacement at City Hall", agency: "A city or town", due_date: "2026-12-01T00:00:00.000Z" },
     { id: 4, title: "Custodial Services", agency: null, due_date: null },
   ]);
   const many = Array.from({ length: 60 }, (_, i) => ({ id: i, title: `Distinct bid title number ${i}`, agency: null, due_date: null }));

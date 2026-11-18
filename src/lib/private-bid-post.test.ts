@@ -45,6 +45,7 @@ describe("post your project", () => {
     expect(read("../components/PostProjectForm.tsx")).toContain('fetch("/api/private-bid-post"');
     expect(read("../routes/private-bids.index.tsx")).toContain("POST_PROJECT_PATH");
     expect(read("../routes/index.tsx")).toContain("POST_PROJECT_PATH");
+    expect(read("../routes/index.tsx")).toContain("Post your project free →");
     expect(POST_PROJECT_PATH).toBe("/private-bids/post");
   });
 });

@@ -1,42 +1,37 @@
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { SiteHeader } from "~/components/SiteHeader";
-import { PLAN_COPY } from "~/lib/plan-features";
 import { trackEvent } from "~/lib/track";
+import { STATE_NAMES } from "~/lib/contract-map";
+import {
+  SUPPLIER_INCLUDES,
+  SUPPLIER_NOT_YET,
+  SUPPLIER_PRICE,
+  SUPPLIER_SAMPLE_STATE,
+  SUPPLIER_TYPES,
+  supplierDay,
+  supplierMoney,
+  type SupplierSample,
+} from "~/lib/supplier-report";
 
 /**
- * /suppliers — the Agency plan for material suppliers and equipment rental (owner 2026-11-12: "lift it for
- * suppliers", "$199 it is"). Concrete plants, supply houses and rental yards want the public jobs in their
- * territory before they are bid, so they can quote the contractors chasing them. Same plan and price as
- * /consultants; a workspace here is a territory or a branch. The contractor pages keep their single offer
- * (src/lib/one-product.test.ts), so nothing links here from them.
+ * /suppliers — the weekly report for businesses that sell to contractors (owner 2026-11-18; see
+ * ~/lib/supplier-report). The page shows this week's real South Carolina rows and takes a request
+ * for a free report in the visitor's state. No checkout: each request reaches the owner by email.
  */
 const PROD_URL = "https://www.contrax.company";
-const TITLE = "Public Construction Jobs for Material Suppliers and Equipment Rental | Contrax";
+const TITLE = "Public Construction Jobs Report for Suppliers | Contrax";
 const DESC =
-  "See the government construction, paving, concrete and site jobs bidding in your territory, before the contractors call you for a quote. For concrete plants, supply houses and equipment rental yards.";
+  "A weekly report for businesses that sell to contractors: the public construction jobs opening in your state, federal jobs just awarded and who won them, and contracts about to end.";
 
-/** Words in a bid title that mean materials or equipment on site. */
-const SUPPLIER_JOB_SQL = String.raw`(title ~* '\m(concrete|paving|asphalt|sidewalk|curb|bridge|culvert|road|street|site ?work|excavat\w*|grading|storm ?water|drainage|water ?line|sewer|utility|demolition|renovation|construction|building|roof\w*|hvac|plumbing|electrical)\M')`;
-
-const getCounts = createServerFn({ method: "GET" }).handler(async () => {
-  try {
-    const { sql } = await import("~/db");
-    const { LOW_CONTENT_SQL } = await import("~/lib/low-content");
-    const { AWARD_EXCLUSION_SQL } = await import("~/lib/source-class");
-    const s = sql();
-    const r = (await s`
-      SELECT COUNT(*)::int AS open, COUNT(DISTINCT normalized_state)::int AS states
-      FROM bids WHERE due_date > NOW() AND ${s.unsafe(LOW_CONTENT_SQL)} AND ${s.unsafe(AWARD_EXCLUSION_SQL)}
-        AND ${s.unsafe(SUPPLIER_JOB_SQL)}`) as { open: number; states: number }[];
-    return r[0] ?? null;
-  } catch {
-    return null;
-  }
+const getSample = createServerFn({ method: "GET" }).handler(async (): Promise<SupplierSample | null> => {
+  const { loadSupplierSample } = await import("~/lib/supplier-report.server");
+  return loadSupplierSample(SUPPLIER_SAMPLE_STATE);
 });
 
 export const Route = createFileRoute("/suppliers")({
-  loader: () => getCounts(),
+  loader: () => getSample(),
   head: () => ({
     meta: [
       { title: TITLE },
@@ -46,89 +41,205 @@ export const Route = createFileRoute("/suppliers")({
       { property: "og:url", content: `${PROD_URL}/suppliers` },
       { property: "og:title", content: TITLE },
       { property: "og:description", content: DESC },
-      { property: "og:image", content: `${PROD_URL}/logo-square.png` },
+      { property: "og:image", content: `${PROD_URL}/og/general.png` },
     ],
     links: [{ rel: "canonical", href: `${PROD_URL}/suppliers` }],
   }),
   component: SuppliersPage,
 });
 
-const STEPS: [string, string][] = [
-  ["Set up each territory once", "The states and trades your branch or sales rep covers. Up to 10 territories on one login."],
-  ["See the jobs before the calls", "Each territory lists the open public jobs that use what you sell: paving, concrete, site work, buildings, utilities."],
-  ["Know who is buying and when", "The agency, the due date and the official bid documents, so your rep knows which contractors to call before the bid closes."],
-  ["Plan the next round", "Contracts ending soon show which jobs come back up for bid, and who holds them now."],
-];
+const STATES = Object.entries(STATE_NAMES).sort((a, b) => a[1].localeCompare(b[1]));
+
+function RequestForm({ where }: { where: string }) {
+  const [email, setEmail] = useState("");
+  const [company, setCompany] = useState("");
+  const [type, setType] = useState(SUPPLIER_TYPES[0].id);
+  const [state, setState] = useState(SUPPLIER_SAMPLE_STATE);
+  const [status, setStatus] = useState<"idle" | "sending" | "done">("idle");
+  const [error, setError] = useState("");
+  if (status === "done") {
+    return (
+      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-slate-900">
+        <p className="text-lg font-bold">Got it. Your {STATE_NAMES[state]} report is on its way.</p>
+        <p className="mt-2 text-sm text-slate-700">Nathaniel, the founder, sends it himself to {email}, usually within one business day.</p>
+      </div>
+    );
+  }
+  const field = "mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900";
+  return (
+    <form
+      className="rounded-2xl border border-slate-200 bg-white p-6 text-slate-900 shadow-sm"
+      onSubmit={async (e) => {
+        e.preventDefault();
+        setError("");
+        setStatus("sending");
+        trackEvent("supplier_report_request", where);
+        try {
+          const res = await fetch("/api/supplier-report", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ email, company, type, state }),
+          });
+          const body = (await res.json().catch(() => ({}))) as { error?: string };
+          if (!res.ok) throw new Error(body.error || "Something went wrong. Please try again.");
+          setStatus("done");
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+          setStatus("idle");
+        }
+      }}
+    >
+      <p className="text-lg font-bold">Send me this week's report for my state, free</p>
+      <label className="mt-4 block text-sm font-semibold">
+        Work email
+        <input type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} className={field} />
+      </label>
+      <label className="mt-3 block text-sm font-semibold">
+        Company
+        <input type="text" autoComplete="organization" value={company} onChange={(e) => setCompany(e.target.value)} className={field} />
+      </label>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <label className="block text-sm font-semibold">
+          What you sell
+          <select value={type} onChange={(e) => setType(e.target.value)} className={field}>
+            {SUPPLIER_TYPES.map((t) => (
+              <option key={t.id} value={t.id}>{t.label}</option>
+            ))}
+          </select>
+        </label>
+        <label className="block text-sm font-semibold">
+          State
+          <select value={state} onChange={(e) => setState(e.target.value)} className={field}>
+            {STATES.map(([code, name]) => (
+              <option key={code} value={code}>{name}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+      {error && <p role="alert" className="mt-3 text-sm font-semibold text-red-700">{error}</p>}
+      <button type="submit" disabled={status === "sending"} className="mt-5 w-full rounded-xl bg-amber-500 px-6 py-3 font-bold text-slate-950 hover:bg-amber-400 disabled:opacity-60">
+        {status === "sending" ? "Sending…" : "Send my free report →"}
+      </button>
+      <p className="mt-2 text-xs text-slate-500">One report, free. After that it is {SUPPLIER_PRICE} a month for one state, and only if you ask for it.</p>
+    </form>
+  );
+}
 
 function SuppliersPage() {
-  const counts = Route.useLoaderData();
-  const plan = PLAN_COPY.agency;
-  const features = plan.features.filter((f) => !/^Or \$/.test(f) && f !== "Cancel anytime");
+  const sample = Route.useLoaderData();
   return (
     <>
       <SiteHeader />
       <main className="bg-white">
         <section className="bg-slate-950 px-4 py-14 text-white sm:py-20">
-          <div className="mx-auto max-w-4xl">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-400">For concrete plants, supply houses and equipment rental</p>
-            <h1 className="mt-3 text-3xl font-extrabold leading-tight sm:text-5xl">Know the public jobs in your territory before the contractors call for a quote</h1>
-            <p className="mt-4 max-w-2xl text-base text-slate-300 sm:text-lg">
-              Contrax reads federal, state, county and city bid boards every weekday. Set up each territory once and see the
-              paving, concrete, site and building jobs bidding there, who is buying, and when bids are due.
-            </p>
-            {counts && counts.open > 0 && (
-              <dl className="mt-8 grid max-w-md grid-cols-2 gap-3">
-                {[
-                  ["Open construction-type jobs", counts.open.toLocaleString("en-US")],
-                  ["States and territories", String(counts.states)],
-                ].map(([k, v]) => (
-                  <div key={k} className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">
-                    <dt className="text-xs text-slate-400">{k}</dt>
-                    <dd className="mt-1 text-2xl font-bold">{v}</dd>
-                  </div>
+          <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-start">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-400">For businesses that sell to contractors</p>
+              <h1 className="mt-3 text-3xl font-extrabold leading-tight sm:text-5xl">Know which public jobs are opening in your state before your competitors do</h1>
+              <p className="mt-4 max-w-2xl text-base text-slate-300 sm:text-lg">
+                Every public job that gets built needs materials, equipment, crews, bonds and licenses. Contrax reads the bid boards for
+                you and sends one report a week: what is opening, what was just awarded and to whom, and which contracts are about to end.
+              </p>
+              <ul className="mt-6 space-y-2 text-sm text-slate-200 sm:text-base">
+                {SUPPLIER_INCLUDES.map((line) => (
+                  <li key={line} className="flex gap-2"><span aria-hidden className="text-amber-400">✓</span><span>{line}</span></li>
                 ))}
-              </dl>
-            )}
-            <a
-              href="/upgrade?plan=agency&source=suppliers"
-              onClick={() => trackEvent("suppliers_cta_click", "hero")}
-              className="mt-8 inline-block rounded-xl bg-amber-500 px-6 py-3 font-bold text-slate-950 hover:bg-amber-400"
-            >
-              Start the Agency plan: $199 a month →
-            </a>
-            <p className="mt-2 text-xs text-slate-400">Month to month. Cancel anytime. Or $1,990 a year.</p>
+              </ul>
+              <p className="mt-4 text-xs text-slate-400">{SUPPLIER_NOT_YET}</p>
+            </div>
+            <RequestForm where="hero" />
           </div>
         </section>
 
-        <section className="mx-auto max-w-4xl px-4 py-12">
-          <h2 className="text-xl font-bold text-slate-900">How it works</h2>
-          <ol className="mt-4 grid gap-3 sm:grid-cols-2">
-            {STEPS.map(([t, d], i) => (
-              <li key={t} className="rounded-xl border border-slate-200 p-4">
-                <p className="text-sm font-bold text-slate-900">{i + 1}. {t}</p>
-                <p className="mt-1 text-sm text-slate-700">{d}</p>
-              </li>
-            ))}
-          </ol>
+        <section className="px-4 py-12 sm:py-16">
+          <div className="mx-auto max-w-4xl">
+            <h2 className="text-2xl font-extrabold text-slate-900 sm:text-3xl">Who it is for</h2>
+            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+              {[
+                ["Material and equipment suppliers", "Quote the lumber, trusses, roofing, concrete or rental equipment to the builders bidding the job, while they are still pricing it."],
+                ["Staffing firms", "A contractor who just won a public job needs people. See the awards the week they happen."],
+                ["Bonding and insurance agents", "Public jobs need bid and performance bonds. Reach contractors while the bid is still open."],
+                ["Licensing, training and consulting", "See which trades and counties have the most public work coming, and who is winning it."],
+              ].map(([t, b]) => (
+                <div key={t} className="rounded-xl border border-slate-200 p-5">
+                  <h3 className="font-bold text-slate-900">{t}</h3>
+                  <p className="mt-1 text-sm text-slate-600">{b}</p>
+                </div>
+              ))}
+            </div>
+          </div>
         </section>
 
-        <section className="mx-auto max-w-4xl px-4 pb-12">
-          <h2 className="text-xl font-bold text-slate-900">What the Agency plan includes</h2>
-          <ul className="mt-4 space-y-2 text-sm text-slate-700">
-            {features.map((f) => (
-              <li key={f}>✓ {f}</li>
-            ))}
-          </ul>
-          <p className="mt-4 text-sm text-slate-600">
-            A workspace here is a territory or a branch. Each one belongs to your login; it is not an extra user seat.
-          </p>
-          <a
-            href="/upgrade?plan=agency&source=suppliers"
-            onClick={() => trackEvent("suppliers_cta_click", "features")}
-            className="mt-6 inline-block rounded-xl bg-slate-900 px-6 py-3 text-sm font-bold text-white hover:bg-slate-800"
-          >
-            Start the Agency plan →
-          </a>
+        {sample && (sample.newJobs.length > 0 || sample.awards.length > 0) && (
+          <section className="bg-slate-50 px-4 py-12 sm:py-16">
+            <div className="mx-auto max-w-4xl">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-600">This week's sample, from live data</p>
+              <h2 className="mt-2 text-2xl font-extrabold text-slate-900 sm:text-3xl">{sample.stateName} public construction</h2>
+              <dl className="mt-6 grid grid-cols-3 gap-3">
+                {[
+                  ["Open now", sample.open],
+                  ["New this week", sample.newThisWeek],
+                  ["Closing in 7 days", sample.closingSoon],
+                ].map(([k, v]) => (
+                  <div key={String(k)} className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+                    <dt className="text-xs text-slate-500">{k}</dt>
+                    <dd className="mt-1 text-2xl font-bold text-slate-900">{v}</dd>
+                  </div>
+                ))}
+              </dl>
+
+              {sample.newJobs.length > 0 && (
+                <>
+                  <h3 className="mt-8 text-lg font-bold text-slate-900">New this week</h3>
+                  <ul className="mt-3 divide-y divide-slate-200 rounded-xl border border-slate-200 bg-white">
+                    {sample.newJobs.map((j) => (
+                      <li key={j.id} className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                        <a href={`/bid/${j.id}`} className="font-semibold text-slate-900 underline-offset-4 hover:underline">{j.title}</a>
+                        <span className="shrink-0 text-sm text-slate-600">{j.agency}{j.agency ? " · " : ""}bids due {supplierDay(j.due)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+
+              {sample.awards.length > 0 && (
+                <>
+                  <h3 className="mt-8 text-lg font-bold text-slate-900">Just awarded (federal)</h3>
+                  <ul className="mt-3 divide-y divide-slate-200 rounded-xl border border-slate-200 bg-white">
+                    {sample.awards.map((a, i) => (
+                      <li key={i} className="px-4 py-3">
+                        <p className="font-semibold text-slate-900">{a.company}{a.where ? ` (${a.where})` : ""}: {supplierMoney(a.amount)}</p>
+                        <p className="text-sm text-slate-600">{a.what}{a.what ? " · " : ""}awarded {supplierDay(a.date)}</p>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+
+              {sample.ending.length > 0 && (
+                <>
+                  <h3 className="mt-8 text-lg font-bold text-slate-900">Federal contracts ending soon</h3>
+                  <ul className="mt-3 divide-y divide-slate-200 rounded-xl border border-slate-200 bg-white">
+                    {sample.ending.map((e, i) => (
+                      <li key={i} className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                        <span className="font-semibold text-slate-900">{e.company}: {supplierMoney(e.amount)}</span>
+                        <span className="shrink-0 text-sm text-slate-600">{e.agency}{e.agency ? " · " : ""}ends {supplierDay(e.end)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+              <p className="mt-4 text-xs text-slate-500">Taken from public bid boards and federal award records. {SUPPLIER_NOT_YET}</p>
+            </div>
+          </section>
+        )}
+
+        <section className="px-4 py-12 sm:py-16">
+          <div className="mx-auto max-w-xl">
+            <h2 className="text-center text-2xl font-extrabold text-slate-900 sm:text-3xl">See your own state</h2>
+            <p className="mt-2 text-center text-slate-600">Tell us where you sell and what you sell. The first report is free.</p>
+            <div className="mt-6"><RequestForm where="bottom" /></div>
+          </div>
         </section>
       </main>
     </>

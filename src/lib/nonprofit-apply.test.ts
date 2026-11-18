@@ -629,7 +629,6 @@ describe("copy module rules (build plan §6)", () => {
       "./nonprofit-copy.ts",
       "../routes/nonprofit/apply.tsx",
       "../routes/nonprofit/status.tsx",
-      "../routes/grants.tsx",
     ];
     const hits = files.filter((path) =>
       readFileSync(new URL(path, import.meta.url), "utf8").includes(
@@ -660,11 +659,7 @@ describe("copy module rules (build plan §6)", () => {
       "../routes/api/nonprofit/apply.ts",
       "../routes/api/nonprofit/status.ts",
     ];
-    const grantsPage = readFileSync(new URL("../routes/grants.tsx", import.meta.url), "utf8");
-    const grantsBanner = grantsPage.slice(
-      grantsPage.indexOf("Nonprofit Free door"),
-      grantsPage.indexOf("checkoutDone &&"),
-    );
+    // The /grants page and its nonprofit banner were removed on 2026-11-18 (owner: "delete grants").
     const emailSource = readFileSync(new URL("./email.ts", import.meta.url), "utf8");
     const emailHelpers = emailSource.indexOf("// ── Helpers");
     expect(emailHelpers).toBeGreaterThan(0);
@@ -673,7 +668,6 @@ describe("copy module rules (build plan §6)", () => {
       emailHelpers,
     );
     // A renamed marker would silently widen or empty a slice, disabling the check.
-    expect(grantsBanner.length).toBeGreaterThan(200);
     expect(applicantEmails.length).toBeGreaterThan(200);
 
     const strings = [
@@ -682,7 +676,6 @@ describe("copy module rules (build plan §6)", () => {
       ...codeSurfaces.map((path) =>
         stripComments(readFileSync(new URL(path, import.meta.url), "utf8")),
       ),
-      grantsBanner,
       applicantEmails,
     ];
     for (const text of strings) {

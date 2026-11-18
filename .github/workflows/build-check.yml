@@ -109,20 +109,6 @@ jobs:
       # delegates to the policy module instead of re-inlining a `/` rule.
       - name: Homepage cache policy tests (unit, deterministic, zero network)
         run: bun test src/lib/ssr-cache-policy.test.ts
-      # HOMEPAGE GRANTS PLUS FAIL-SAFE (owner directive rev 327, 2026-09-23).
-      # DETERMINISTIC and network-free by construction: every input is a literal,
-      # the tier table is rendered to static markup in-process (react-dom/server),
-      # and there is no DATABASE_URL, no clock, no fetch and no Stripe symbol. It
-      # pins the directive's three paths — normal (flag on ⇒ the launched
-      # "Get Grants Plus →" → /grants row, byte-for-byte, and zero "Coming soon"),
-      # fallback (flag off/absent ⇒ the row's CTA is plain non-interactive text
-      # with NO href/button/payment link), and fail-closed (absent/garbage/throwing
-      # env ⇒ disabled; the loader reads the flag once, server-side, and the other
-      # two tier rows are never gated). Listed EXPLICITLY because a new
-      # deterministic suite that no workflow names runs nowhere (the reason
-      # runner.dedupe.test.ts went unrun for weeks).
-      - name: Homepage grants fail-safe tests (unit, deterministic, zero network)
-        run: bun test tests/homepage-grants-failsafe.test.tsx
       # Nonprofit Free (owner green-lit 2026-09-21, six-point spec). The phase-1 unit
       # suite is DETERMINISTIC and network-free by construction: every IRS byte it reads is
       # a verbatim fixture committed to src/lib/fixtures/irs/, and the store is injected —
@@ -237,7 +223,7 @@ jobs:
       - name: Vercel cron → daily emails dispatch tests (unit, deterministic, zero network)
         run: bun test src/lib/cron-dispatch.test.ts src/lib/ci-db-lock.test.ts
       - name: USAspending federal trade data tests (unit, deterministic, zero network)
-        run: bun test src/lib/federal-trade-data.test.ts src/lib/outreach-holder.test.ts src/lib/bid-preview.test.ts src/lib/trade-coverage.test.ts src/jobs/sources/sam-place.test.ts src/lib/nyc-city-record.test.ts src/jobs/sources/fl-vendorlink.test.ts src/lib/zero-results.test.ts src/lib/find-bids.test.ts src/lib/home-polish.test.ts src/jobs/sources/bidnet-slow-down.test.ts src/lib/naics-phrases.test.ts src/lib/title-place.test.ts src/lib/bid-prep.test.ts src/lib/grants-snapshot.test.ts src/lib/outreach-auto-send.test.ts src/lib/open-bids-list.test.ts src/lib/clauses-noindex.test.ts src/lib/facebook-preview.test.ts src/lib/supplier-report.test.ts src/lib/private-bids.test.ts src/lib/suppliers-page.test.ts
+        run: bun test src/lib/federal-trade-data.test.ts src/lib/outreach-holder.test.ts src/lib/bid-preview.test.ts src/lib/trade-coverage.test.ts src/jobs/sources/sam-place.test.ts src/lib/nyc-city-record.test.ts src/jobs/sources/fl-vendorlink.test.ts src/lib/zero-results.test.ts src/lib/find-bids.test.ts src/lib/home-polish.test.ts src/jobs/sources/bidnet-slow-down.test.ts src/lib/naics-phrases.test.ts src/lib/title-place.test.ts src/lib/bid-prep.test.ts src/lib/outreach-auto-send.test.ts src/lib/open-bids-list.test.ts src/lib/clauses-noindex.test.ts src/lib/facebook-preview.test.ts src/lib/supplier-report.test.ts src/lib/private-bids.test.ts src/lib/suppliers-page.test.ts
       - name: Source provenance class map tests (unit, deterministic, zero network)
         run: bun test src/lib/source-class.test.ts src/lib/location-foreign-pop.test.ts src/lib/place-of-performance.test.ts
       # D14 CORPUS-LABEL ALARM — the post-PR-1 metrics layer (owner-locked order

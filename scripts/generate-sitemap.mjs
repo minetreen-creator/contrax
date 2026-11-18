@@ -74,8 +74,6 @@ const PRODUCT_PATHS = [
   ["/radar", "daily", "0.9"],
   ["/app", "weekly", "0.8"],
   ["/bid-fit-review", "monthly", "0.8"],
-  ["/grants", "daily", "0.8"],
-  ["/state-grants", "weekly", "0.7"],
   ["/trades", "weekly", "0.7"],
   ["/subcontracts", "daily", "0.7"],
   ["/forecasts", "weekly", "0.6"],

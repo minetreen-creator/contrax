@@ -4,8 +4,6 @@ import { readFileSync } from "node:fs";
 // SEO audit 2026-11-14. Six pages in the sitemap had no canonical and inherited
 // the homepage's og:url from the root layout.
 const PAGES: [string, string][] = [
-  ["src/routes/grants.tsx", "/grants"],
-  ["src/routes/state-grants.tsx", "/state-grants"],
   ["src/routes/forecasts.tsx", "/forecasts"],
   ["src/routes/subcontracts.tsx", "/subcontracts"],
   ["src/routes/example-brief.tsx", "/example-brief"],

@@ -100,3 +100,20 @@ describe("readable rows (owner 2026-11-18)", () => {
     expect(supply.test("Bolin Road Reconstruction")).toBe(false);
   });
 });
+
+describe("contact line and design-services requests", () => {
+  test("an honorific is not shown as a job title", async () => {
+    const { contactLine } = await import("./supplier-report");
+    expect(contactLine("Micheal Heath", "Mr.")).toBe("Micheal Heath");
+    expect(contactLine("Rafael Cabello", "President")).toBe("Rafael Cabello, President");
+    expect(contactLine("Christina Mcalhaney", null)).toBe("Christina Mcalhaney");
+    expect(contactLine("", "President")).toBeNull();
+  });
+  test("requests for design or consulting services are not counted as construction jobs", async () => {
+    const { SUPPLIER_SUPPLY_PATTERN } = await import("./supplier-report");
+    const re = new RegExp(SUPPLIER_SUPPLY_PATTERN.replace(/\\m|\\M/g, "\\b"), "i");
+    expect(re.test("Request for Qualifications for Engineering, Landscape Architecture and/or Consulting Services")).toBe(true);
+    expect(re.test("Design Build Construction for HC-130J Flight Simulator Facility")).toBe(false);
+    expect(re.test("Sunset Park Partial Roof Replacement")).toBe(false);
+  });
+});

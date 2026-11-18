@@ -52,6 +52,9 @@ describe("supplier report (owner 2026-11-18)", () => {
     expect(SUPPLIER_USES).toHaveLength(3);
     expect(SUPPLIER_USES.map((u) => u.use).join(" ")).not.toMatch(/bidding contractors|bidders list|phone/i);
     expect(SUPPLIER_CONTACT_NOTE).toContain("does not include phone numbers or email addresses");
+    // The address and contact come from a separate lookup, so a missing table never hides an award.
+    expect(readFileSync(new URL("./supplier-report.server.ts", import.meta.url), "utf8")).toContain("FROM sam_contacts WHERE uei = ANY(${ueis})`.catch(() => [])");
+    expect(page).toContain("Contact on file: {a.contact}");
     expect(SUPPLIER_MULTI_STATE).toContain("up to 10 territories");
     expect(readFileSync(new URL("./plan-features.ts", import.meta.url), "utf8")).toContain("Up to 10 client workspaces");
     expect(page).toContain("{SUPPLIER_CONTACT_NOTE}");

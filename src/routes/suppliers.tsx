@@ -154,6 +154,8 @@ function SuppliersPage() {
                       <li key={i} className="px-4 py-3">
                         <p className="font-semibold text-slate-900">{a.company}{a.where ? ` (${a.where})` : ""}: {supplierMoney(a.amount)}</p>
                         <p className="text-sm text-slate-600">{a.what}{a.what ? " · " : ""}awarded {supplierDay(a.date)}</p>
+                  {a.address && <p className="text-sm text-slate-600">{a.address}</p>}
+                  {a.contact && <p className="text-sm text-slate-600">Contact on file: {a.contact}</p>}
                   <p className="text-sm">
                     {a.site && (
                       <>

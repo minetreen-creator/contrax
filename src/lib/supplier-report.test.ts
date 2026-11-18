@@ -48,6 +48,9 @@ describe("supplier report (owner 2026-11-18)", () => {
     expect(SUPPLIER_SUBHEAD).toContain("who just won federal work");
     expect(SUPPLIER_SUBHEAD).not.toMatch(/about to bid|phone|contact/i);
     expect(home + page).not.toMatch(/555-01\d\d/);
+    // Each federal winner links to its public award record instead (real, public, on USAspending.gov).
+    expect(home).toContain("<a href={a.url} target=\"_blank\" rel=\"noopener noreferrer\"");
+    expect(page).toContain("View the federal award record →");
     // The contractor sections are one click away, unchanged, on /contractors.
     expect(home).toContain("export function ContractorSections(");
     const contractors = readFileSync(new URL("../routes/contractors.tsx", import.meta.url), "utf8");

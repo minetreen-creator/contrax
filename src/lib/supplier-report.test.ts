@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { SUPPLIER_AWARD_MIN, SUPPLIER_SUBHEAD, SUPPLIER_NOT_YET, SUPPLIER_PRICE, SUPPLIER_SAMPLE_STATES, cleanSupplierRequest, supplierDay, supplierMoney, supplierNotice } from "./supplier-report";
+import { SUPPLIER_AWARD_MIN, SUPPLIER_CONTACT_NOTE, SUPPLIER_MULTI_STATE, SUPPLIER_USES, SUPPLIER_SUBHEAD, SUPPLIER_NOT_YET, SUPPLIER_PRICE, SUPPLIER_SAMPLE_STATES, cleanSupplierRequest, supplierDay, supplierMoney, supplierNotice } from "./supplier-report";
 
 describe("supplier report (owner 2026-11-18)", () => {
   test("a request needs a real email and a real state; the business type falls back", () => {
@@ -48,6 +48,14 @@ describe("supplier report (owner 2026-11-18)", () => {
     expect(SUPPLIER_SUBHEAD).toContain("who just won federal work");
     expect(SUPPLIER_SUBHEAD).not.toMatch(/about to bid|phone|contact/i);
     expect(home + page).not.toMatch(/555-01\d\d/);
+    // Review 2026-11-18: how to use it, what a row contains, tailoring and several states, all true of what ships.
+    expect(SUPPLIER_USES).toHaveLength(3);
+    expect(SUPPLIER_USES.map((u) => u.use).join(" ")).not.toMatch(/bidding contractors|bidders list|phone/i);
+    expect(SUPPLIER_CONTACT_NOTE).toContain("does not include phone numbers or email addresses");
+    expect(SUPPLIER_MULTI_STATE).toContain("up to 10 territories");
+    expect(readFileSync(new URL("./plan-features.ts", import.meta.url), "utf8")).toContain("Up to 10 client workspaces");
+    expect(page).toContain("{SUPPLIER_CONTACT_NOTE}");
+    expect(home).toContain("{SUPPLIER_CONTACT_NOTE}");
     // Each federal winner links to its public award record instead (real, public, on USAspending.gov).
     expect(home).toContain("<a href={a.url} target=\"_blank\" rel=\"noopener noreferrer\"");
     expect(page).toContain("View the federal award record →");

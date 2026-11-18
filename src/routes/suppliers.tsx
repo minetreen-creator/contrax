@@ -9,7 +9,10 @@ import {
   SUPPLIER_NOT_YET,
   SUPPLIER_PLAN_BILLED_AS,
   SUPPLIER_PLAN_NAME,
+  SUPPLIER_CONTACT_NOTE,
+  SUPPLIER_MULTI_STATE,
   SUPPLIER_SAMPLE_STATES,
+  SUPPLIER_USES,
   SUPPLIER_SUBHEAD,
   supplierDay,
   supplierMoney,
@@ -74,6 +77,21 @@ function SuppliersPage() {
               <p className="mt-4 text-xs text-slate-400">{SUPPLIER_NOT_YET}</p>
             </div>
             <RequestForm where="hero" />
+          </div>
+        </section>
+
+        <section className="px-4 pt-12 sm:pt-16">
+          <div className="mx-auto max-w-4xl">
+            <h2 className="text-2xl font-extrabold text-slate-900 sm:text-3xl">How a sales rep uses it</h2>
+            <ol className="mt-6 grid gap-4 sm:grid-cols-3">
+              {SUPPLIER_USES.map((u) => (
+                <li key={u.part} className="rounded-xl border border-slate-200 p-5">
+                  <h3 className="font-bold text-slate-900">{u.part}</h3>
+                  <p className="mt-1 text-sm text-slate-600">{u.use}</p>
+                </li>
+              ))}
+            </ol>
+            <p className="mt-4 text-sm text-slate-600">{SUPPLIER_CONTACT_NOTE}</p>
           </div>
         </section>
 
@@ -179,6 +197,7 @@ function SuppliersPage() {
               Start the {SUPPLIER_PLAN_NAME}: $199 a month →
             </a>
             <p className="mt-2 text-xs text-slate-500">Month to month. Cancel anytime. Or $1,990 a year. {SUPPLIER_PLAN_BILLED_AS}</p>
+            <p className="mt-1 text-xs text-slate-500">{SUPPLIER_MULTI_STATE}</p>
           </div>
         </section>
 

@@ -1,4 +1,4 @@
-import { SUPPLIER_HOME_ROW_STATES, SUPPLIER_INCLUDES, SUPPLIER_NOT_YET, SUPPLIER_SUBHEAD, SUPPLIER_SAMPLE_STATES, supplierDay, supplierMoney, type SupplierSample } from "~/lib/supplier-report";
+import { SUPPLIER_CONTACT_NOTE, SUPPLIER_HOME_ROW_STATES, SUPPLIER_INCLUDES, SUPPLIER_NOT_YET, SUPPLIER_SUBHEAD, SUPPLIER_SAMPLE_STATES, supplierDay, supplierMoney, type SupplierSample } from "~/lib/supplier-report";
 import { SupplierRequestForm } from "~/components/SupplierRequestForm";
 import { createFileRoute } from "@tanstack/react-router";
 import { HomeMaxProof } from "~/components/HomeMaxProof";
@@ -420,7 +420,7 @@ function HomeSupplierHero({ samples }: { samples: SupplierSample[] }) {
           <p className="mt-4 text-sm text-slate-300">
             <a href="/suppliers" className="font-semibold text-amber-400 underline underline-offset-4 hover:text-amber-300">See this week's full sample for all five states →</a>
           </p>
-          <p className="mt-2 text-xs text-slate-400">{SUPPLIER_NOT_YET}</p>
+          <p className="mt-2 text-xs text-slate-400">{SUPPLIER_NOT_YET} {SUPPLIER_CONTACT_NOTE}</p>
         </div>
         <SupplierRequestForm where="home_hero" />
       </div>
@@ -579,6 +579,7 @@ const FOOTER_GROUPS = [
       // Owner 2026-11-18: suppliers lead the site; contractors have their own page.
       { href: "/suppliers", label: "For suppliers" },
       { href: "/contractors", label: "For contractors" },
+      { href: "/private-bids", label: "Private bid requests" },
       { href: "/radar", label: "Search bids" },
       { href: "/local-bids", label: "City & County Bids" },
       { href: "/pricing", label: "Pricing" },

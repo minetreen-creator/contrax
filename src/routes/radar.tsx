@@ -1,3 +1,4 @@
+import { publicAgency, publicTitle } from "~/lib/public-bid";
 import { BID_PREP_PRICE } from "~/lib/bid-prep";
 import { isLearnRadarVisit } from "~/lib/learn-radar";
 import { dueDayText } from "~/lib/deadline-label";
@@ -944,6 +945,12 @@ export const runRadarScan = createServerFn({ method: "POST" })
             // official notice link is for members (paid plans and active
             // trials); free accounts and visitors open the bid's Contrax page.
             card.source_url = null;
+            // Owner 2026-11-18 ("we need to make it for all visitors, no more freebies"): without
+            // paid access the buyer is described, not named, and the agency's own numbers are out
+            // of the title (src/lib/public-bid.ts). Sorting and state buckets were settled above.
+            const cardState = resolveBidState(card.location, card.agency);
+            card.title = publicTitle(card.title, card.agency);
+            card.agency = publicAgency(card.agency, cardState ? (STATE_CODE_TO_NAME[cardState] ?? null) : null);
           }
         }
       }

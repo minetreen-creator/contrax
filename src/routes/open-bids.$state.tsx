@@ -1,3 +1,4 @@
+import { publicAgency, publicTitle } from "~/lib/public-bid";
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { SiteHeader } from "~/components/SiteHeader";
@@ -41,7 +42,8 @@ const getOpenBids = createServerFn({ method: "GET" })
         place,
         total: rows[0]?.total ?? 0,
         page: data.page,
-        bids: rows.map((r) => ({ id: Number(r.id), title: String(r.title ?? ""), agency: r.agency ? String(r.agency) : null, due_date: r.due_date ? new Date(r.due_date).toISOString() : null })),
+        // Owner 2026-11-18 ("no more freebies"): the buyer is described, not named (src/lib/public-bid.ts).
+        bids: rows.map((r) => ({ id: Number(r.id), title: publicTitle(String(r.title ?? ""), r.agency ? String(r.agency) : null), agency: publicAgency(r.agency ? String(r.agency) : null, place.code ? place.name : null), due_date: r.due_date ? new Date(r.due_date).toISOString() : null })),
       };
     } catch (e) {
       console.error("[open-bids] list failed:", (e as Error).message);

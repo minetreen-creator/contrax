@@ -12,6 +12,7 @@
  * /signup?plan=professional and fires `start_trial` (same event names as the
  * verified live homepage hero). No "unlimited" claims anywhere.
  */
+import { publicAgency, publicTitle, scrubAgencyName } from "~/lib/public-bid";
 import { agencyCardLabel, jobSummary, publicJobText, valueLabel } from "~/lib/bid-job-summary";
 import { displayTitle } from "~/lib/bid-title";
 import { createServerFn } from "@tanstack/react-start";
@@ -45,7 +46,7 @@ import { trackEvent } from "~/lib/track";
 import { CheckoutTrust } from "~/components/CheckoutTrust";
 import { redirectToCheckout } from "~/lib/checkout";
 import { STARTER_FIRST_MONTH_PRICE } from "~/lib/starter-offer";
-import { resolveBidState } from "~/lib/location-state";
+import { resolveBidState, STATE_CODE_TO_NAME } from "~/lib/location-state";
 import { RELATED_SEO_TRADES, SEO_TRADES, SEO_TRADE_BY_SLUG } from "~/lib/seo-trades";
 import { SiteHeader } from "~/components/SiteHeader";
 import { StickyOfferBar } from "~/components/StickyOfferBar";
@@ -132,14 +133,22 @@ export interface SeoBid {
   head_start_until: string | null;
 }
 
+/** The state a row is in, by name, for the buyer's description. Null when it cannot be told. */
+function seoBidStateName(r: any): string | null {
+  const code = resolveBidState(r.location ? String(r.location) : null, r.agency ? String(r.agency) : null);
+  return code ? (STATE_CODE_TO_NAME[code] ?? null) : null;
+}
+
 export function mapSeoBid(r: any): SeoBid {
   // Public pages never carry the official notice link (owner 2026-10-29: "no
   // more living off the free tier"); each card links to /bid/{id}, where
   // members and trials get it.
-  return applyHeadStart({
+  const out = applyHeadStart({
     id: Number(r.id),
-    title: String(r.title ?? ""),
-    agency: r.agency ? String(r.agency) : null,
+    // Owner 2026-11-18 ("no more freebies"): the buyer is described, not named, and the agency's
+    // own numbers are out of the title (src/lib/public-bid.ts). Members see the real ones on the bid page.
+    title: publicTitle(String(r.title ?? ""), r.agency ? String(r.agency) : null, r.solicitation_number ? String(r.solicitation_number) : null),
+    agency: publicAgency(r.agency ? String(r.agency) : null, seoBidStateName(r), r.source ? String(r.source) : null),
     // Public pages: no agency numbers, no "where the documents are" notes (src/lib/bid-job-summary.ts).
     description: publicJobText(r.description ? String(r.description) : null, r.solicitation_number ? String(r.solicitation_number) : null),
     due_date: r.due_date ? String(r.due_date) : null,
@@ -151,6 +160,9 @@ export function mapSeoBid(r: any): SeoBid {
     source: r.source ? String(r.source) : null,
     created_at: r.created_at ?? null,
   }, false);
+  // The buyer's name is taken out of the description too.
+  if (out.description && r.agency) out.description = scrubAgencyName(out.description, String(r.agency));
+  return out;
 }
 
 /** "sb" = every set-aside row (mirrors /trades + /radar); else cert's patterns. */
@@ -268,7 +280,7 @@ export interface RegionBid {
 export const REGION_RECENT_BIDS = 25;
 
 /** Newest first, one row per title, at most REGION_RECENT_BIDS. PURE. */
-export function pickRegionBids(rows: { id: unknown; title: unknown; agency: unknown; due_date: unknown }[]): RegionBid[] {
+export function pickRegionBids(rows: { id: unknown; title: unknown; agency: unknown; due_date: unknown }[], stateName: string | null = null): RegionBid[] {
   const seen = new Set<string>();
   const out: RegionBid[] = [];
   for (const r of rows) {
@@ -276,7 +288,7 @@ export function pickRegionBids(rows: { id: unknown; title: unknown; agency: unkn
     const key = title.toLowerCase();
     if (!title || seen.has(key)) continue;
     seen.add(key);
-    out.push({ id: Number(r.id), title, agency: r.agency ? String(r.agency) : null, due_date: r.due_date ? new Date(r.due_date as string).toISOString() : null });
+    out.push({ id: Number(r.id), title: publicTitle(title, r.agency ? String(r.agency) : null), agency: publicAgency(r.agency ? String(r.agency) : null, stateName), due_date: r.due_date ? new Date(r.due_date as string).toISOString() : null });
     if (out.length === REGION_RECENT_BIDS) break;
   }
   return out;
@@ -301,7 +313,7 @@ export const getRegionData = createServerFn({ method: "GET" })
             AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
             AND title !~ '^[0-9]{2}--' AND length(title) >= 15
           ORDER BY created_at DESC LIMIT 60`;
-        recent = pickRegionBids(rows as any[]);
+        recent = pickRegionBids(rows as any[], STATE_CODE_TO_NAME[code] ?? null);
       } catch (e) {
         console.error("[seo-landing] region recent bids failed (list left out):", e);
       }

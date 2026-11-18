@@ -117,3 +117,13 @@ describe("contact line and design-services requests", () => {
     expect(re.test("Sunset Park Partial Roof Replacement")).toBe(false);
   });
 });
+
+describe("acronyms and Mc names in capitalised records", () => {
+  test("program acronyms stay in capitals and Mc surnames get their second capital", async () => {
+    const { tidyCaps } = await import("./supplier-report");
+    expect(tidyCaps("GAOA BUCK HALL RECREATION PHASE 1 RENOVATION")).toBe("GAOA Buck Hall Recreation Phase 1 Renovation");
+    expect(tidyCaps("EHRM DATA CENTER UPGRADES - CHARLESTON, SC")).toBe("EHRM Data Center Upgrades - Charleston, SC");
+    expect(tidyCaps("CHRISTINA MCALHANEY")).toBe("Christina McAlhaney");
+    expect(tidyCaps("BRANTLEY CONSTRUCTION SERVICES, LLC")).toBe("Brantley Construction Services, LLC");
+  });
+});

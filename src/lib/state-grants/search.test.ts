@@ -110,9 +110,7 @@ describe("the status vocabulary (no forecast, anywhere)", () => {
       "search.server.ts",
       "coverage.server.ts",
       "store.server.ts",
-      "../../routes/state-grants.tsx",
-      "../../routes/api/state-grants/search.ts",
-      "../../routes/api/state-grants/coverage.ts",
+      // The page and its two API routes were removed on 2026-11-18 (owner: "delete grants").
     ];
     for (const file of files) {
       const source = readFileSync(new URL(file, import.meta.url), "utf8");

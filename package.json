@@ -53,7 +53,6 @@
     "test": "bun test",
     "format": "prettier --write .",
     "backfill-naics": "bun run src/jobs/backfill-naics.ts",
-    "sync:state": "bun run src/jobs/state-grants-sync.ts",
     "sync-subcontracts": "bun run src/jobs/subcontract-sync.ts",
     "sync-gsa-primes": "bun run src/jobs/gsa-primes-sync.ts",
     "sync-award-leads": "bun run src/jobs/award-leads-sync.ts",

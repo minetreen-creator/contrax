@@ -31,7 +31,6 @@ const SIGNUP_PAGE = read("../routes/signup.tsx");
 const SIGNUP_API = read("../routes/api/signup.ts");
 const ADMIN_SIGNUPS = read("../routes/admin/signups.tsx");
 const ADMIN_METRICS_API = read("../routes/api/admin/metrics.ts");
-const GRANTS_PAGE = read("../routes/grants.tsx");
 const APPLY_PAGE = read("../routes/nonprofit/apply.tsx");
 const STATUS_PAGE = read("../routes/nonprofit/status.tsx");
 const MIGRATION = read("../../db/migrations/053_signup_source.sql");
@@ -91,14 +90,6 @@ describe("the source family allowlist", () => {
 });
 
 describe("the door links carry the marker", () => {
-  test("/grants nonprofit CTA carries ?source=nonprofit_apply into the apply page", () => {
-    // The door link is the ONE place the marker is introduced on the grants surface.
-    expect(GRANTS_PAGE).toContain(
-      "href={`/nonprofit/apply?next=%2Fgrants&source=${SIGNUP_SOURCE_NONPROFIT_APPLY}`}",
-    );
-    expect(GRANTS_PAGE).toContain("~/lib/signup-source");
-  });
-
   test("the nonprofit apply page's signed-out signup CTA carries it into /signup", () => {
     expect(APPLY_PAGE).toContain(
       "href={`/signup?next=${encodeURIComponent(APPLY_PATH)}&source=${SIGNUP_SOURCE_NONPROFIT_APPLY}`}",

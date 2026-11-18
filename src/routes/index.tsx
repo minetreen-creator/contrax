@@ -1,5 +1,6 @@
-import { SUPPLIER_CONTACT_NOTE, SUPPLIER_HOME_ROW_STATES, SUPPLIER_INCLUDES, SUPPLIER_NOT_YET, SUPPLIER_SUBHEAD, SUPPLIER_SAMPLE_STATES, supplierDay, supplierMoney, type SupplierSample } from "~/lib/supplier-report";
+import { SUPPLIER_FINE_PRINT_SHORT, SUPPLIER_HOME_ROW_STATES, SUPPLIER_INCLUDES, SUPPLIER_SUBHEAD, SUPPLIER_SAMPLE_STATES, supplierDay, supplierMoney, type SupplierSample } from "~/lib/supplier-report";
 import { SupplierRequestForm } from "~/components/SupplierRequestForm";
+import { publishedPrivateBids } from "~/lib/private-bids";
 import { createFileRoute } from "@tanstack/react-router";
 import { HomeMaxProof } from "~/components/HomeMaxProof";
 import { createServerFn } from "@tanstack/react-start";
@@ -209,6 +210,7 @@ function Home() {
       {supplierSamples.slice(0, SUPPLIER_HOME_ROW_STATES).map((one) => (
         <HomeSupplierRows key={one.state} sample={one} />
       ))}
+      <HomePrivateBids />
       <section aria-labelledby="home-contractors-title" className="bg-[#07162e] px-4 pb-2 pt-8 text-white sm:px-8 sm:pt-10">
         <div className="mx-auto max-w-7xl">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-400">For contractors</p>
@@ -293,6 +295,38 @@ export function ContractorSections({
       <StarterPassStrip />
       <HomeStateMap contractMap={contractMap} />
     </>
+  );
+}
+
+/**
+ * Businesses taking bids (owner 2026-11-18, "do all 5"): the two owners asked that day both said yes
+ * to a free listing at once, and one drew a contractor's inquiry within hours. Shows only published
+ * requests (~/lib/private-bids); nothing renders when there are none.
+ */
+function HomePrivateBids() {
+  const requests = publishedPrivateBids();
+  if (requests.length === 0) return null;
+  return (
+    <section aria-labelledby="home-private-bids-title" className="bg-amber-50 px-4 py-8 text-slate-900 sm:px-8 sm:py-10">
+      <div className="mx-auto max-w-7xl">
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-700">Private bid requests</p>
+        <h2 id="home-private-bids-title" className="mt-1 text-2xl font-extrabold">Businesses taking bids right now</h2>
+        <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+          {requests.slice(0, 4).map((r) => (
+            <li key={r.slug} className="flex flex-col rounded-xl border border-amber-200 bg-white p-4">
+              <p className="text-xs font-bold uppercase tracking-wide text-amber-700">{r.trade}</p>
+              <a href={`/private-bids/${r.slug}`} className="mt-1 font-bold text-slate-900 underline-offset-4 hover:underline">{r.title}</a>
+              <p className="mt-1 text-sm text-slate-600">{r.buyer} · {r.locations.length === 1 ? r.locations[0] : `${r.locations.length} locations in ${r.states.join(" and ")}`}</p>
+              <a href={`/private-bids/${r.slug}`} className="mt-3 inline-block self-start rounded-lg bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800">View details and how to bid →</a>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-4 text-sm text-slate-700">
+          Need work done at your business?{" "}
+          <a href="/private-bids" className="font-semibold text-blue-700 underline underline-offset-4 hover:text-blue-900">List your project free →</a>
+        </p>
+      </div>
+    </section>
   );
 }
 
@@ -430,7 +464,10 @@ function HomeSupplierHero({ samples }: { samples: SupplierSample[] }) {
           <p className="mt-4 text-sm text-slate-300">
             <a href="/suppliers" className="font-semibold text-amber-400 underline underline-offset-4 hover:text-amber-300">See this week's full sample for all five states →</a>
           </p>
-          <p className="mt-2 text-xs text-slate-400">{SUPPLIER_NOT_YET} {SUPPLIER_CONTACT_NOTE}</p>
+          <p className="mt-2 text-xs text-slate-400">
+            {SUPPLIER_FINE_PRINT_SHORT}{" "}
+            <a href="/suppliers" className="underline underline-offset-2 hover:text-slate-200">What is in the report</a>
+          </p>
         </div>
         <SupplierRequestForm where="home_hero" />
       </div>

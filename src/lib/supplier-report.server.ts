@@ -1,6 +1,6 @@
 import { STATE_NAMES } from "./contract-map";
 import { usaspendingUrl } from "./award-leads";
-import { SUPPLIER_AWARD_MIN, SUPPLIER_TITLE_PATTERN, type SupplierSample } from "./supplier-report";
+import { SUPPLIER_AWARD_MIN, SUPPLIER_SUPPLY_PATTERN, SUPPLIER_TITLE_PATTERN, clip, tidyCaps, type SupplierSample } from "./supplier-report";
 
 const okUrl = (v: unknown): string | null => (/^https?:\/\/[^\s"'<>]+$/i.test(String(v ?? "")) ? String(v) : null);
 
@@ -22,17 +22,18 @@ export async function loadSupplierSample(state: string): Promise<SupplierSample 
     const { sql } = await import("~/db");
     const s = sql();
     const P = SUPPLIER_TITLE_PATTERN;
+    const X = SUPPLIER_SUPPLY_PATTERN;
     const counts = (await s`
       SELECT count(*)::int AS open,
              count(*) FILTER (WHERE created_at > NOW() - INTERVAL '7 days')::int AS new_week,
              count(*) FILTER (WHERE due_date < NOW() + INTERVAL '7 days')::int AS closing
       FROM bids
       WHERE normalized_state = ${state} AND due_date > NOW() AND source NOT LIKE 'sam%' AND source NOT LIKE '%bidnet%'
-        AND title ~* ${P}`) as { open: number; new_week: number; closing: number }[];
+        AND title ~* ${P} AND title !~* ${X}`) as { open: number; new_week: number; closing: number }[];
     const jobs = (await s`
       SELECT id, title, agency, due_date FROM bids
       WHERE normalized_state = ${state} AND due_date > NOW() + INTERVAL '5 days' AND source NOT LIKE 'sam%' AND source NOT LIKE '%bidnet%'
-        AND created_at > NOW() - INTERVAL '7 days' AND title ~* ${P} AND title !~* 'addendum|cancel'
+        AND created_at > NOW() - INTERVAL '7 days' AND title ~* ${P} AND title !~* 'addendum|cancel' AND title !~* ${X}
       ORDER BY created_at DESC LIMIT 8`) as { id: number; title: string; agency: string | null; due_date: string }[];
     const awards = (await s`
       SELECT a.award_key, a.recipient_uei, a.recipient_name, a.recipient_city, a.recipient_state, a.amount, a.awarded_on, a.description, r.url AS site
@@ -58,18 +59,18 @@ export async function loadSupplierSample(state: string): Promise<SupplierSample 
       open: counts[0]?.open ?? 0,
       newThisWeek: counts[0]?.new_week ?? 0,
       closingSoon: counts[0]?.closing ?? 0,
-      newJobs: jobs.map((j) => ({ id: j.id, title: String(j.title).replace(/\s+/g, " ").trim().slice(0, 110), agency: j.agency ?? "", due: iso(j.due_date) })),
+      newJobs: jobs.map((j) => ({ id: j.id, title: clip(tidyCaps(String(j.title)), 110), agency: tidyCaps(j.agency ?? ""), due: iso(j.due_date) })),
       awards: awards.map((a) => ({
-        company: a.recipient_name,
-        where: [a.recipient_city, a.recipient_state].filter(Boolean).join(", "),
+        company: tidyCaps(a.recipient_name),
+        where: [a.recipient_city ? tidyCaps(a.recipient_city) : null, a.recipient_state].filter(Boolean).join(", "),
         amount: Number(a.amount),
         date: iso(a.awarded_on),
-        what: String(a.description ?? "").replace(/\s+/g, " ").trim().slice(0, 90),
+        what: clip(tidyCaps(String(a.description ?? "")), 90),
         url: usaspendingUrl(a.award_key),
         ...awardContact(a.site, a.recipient_uei ? contactByUei.get(a.recipient_uei) : undefined),
       })),
       ending: ending
-        .map((e) => ({ company: e.recipient_name, amount: Number(e.amount), end: iso(e.end_date), agency: e.agency ?? "" }))
+        .map((e) => ({ company: tidyCaps(e.recipient_name), amount: Number(e.amount), end: iso(e.end_date), agency: e.agency ?? "" }))
         .sort((a, b) => b.amount - a.amount)
         .slice(0, 5),
     };

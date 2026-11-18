@@ -58,7 +58,10 @@ describe("supplier report (owner 2026-11-18)", () => {
     expect(SUPPLIER_MULTI_STATE).toContain("up to 10 territories");
     expect(readFileSync(new URL("./plan-features.ts", import.meta.url), "utf8")).toContain("Up to 10 client workspaces");
     expect(page).toContain("{SUPPLIER_CONTACT_NOTE}");
-    expect(home).toContain("{SUPPLIER_CONTACT_NOTE}");
+    // The homepage carries one short line of fine print; the full wording is on /suppliers.
+    expect(home).toContain("{SUPPLIER_FINE_PRINT_SHORT}");
+    expect(home).not.toContain("{SUPPLIER_CONTACT_NOTE}");
+    expect(home).toContain("<HomePrivateBids />");
     // Each federal winner links to its public award record instead (real, public, on USAspending.gov).
     expect(home).toContain("<a href={a.url} target=\"_blank\" rel=\"noopener noreferrer\"");
     expect(page).toContain("Federal award record →");
@@ -72,5 +75,28 @@ describe("supplier report (owner 2026-11-18)", () => {
     expect(readFileSync(new URL("../routes/prep.tsx", import.meta.url), "utf8")).toContain("/contractors?utm_source=");
     expect(home).toContain('<SupplierRequestForm where="home_hero" />');
     expect(home.match(/<h1/g)?.length).toBe(1);
+  });
+});
+
+describe("readable rows (owner 2026-11-18)", () => {
+  test("capitals from government records become title case; acronyms, numbers and mixed case are left alone", async () => {
+    const { tidyCaps, clip, SUPPLIER_SUPPLY_PATTERN } = await import("./supplier-report");
+    expect(tidyCaps("BRANTLEY CONSTRUCTION SERVICES, LLC")).toBe("Brantley Construction Services, LLC");
+    expect(tidyCaps("CITY OF RALEIGH")).toBe("City of Raleigh");
+    expect(tidyCaps("EHRM DATA CENTER UPGRADES - CHARLESTON, SC EO 14398")).toBe("Ehrm Data Center Upgrades - Charleston, SC EO 14398");
+    expect(tidyCaps("DESIGN BUILD CONSTRUCTION FOR HC-130J FLIGHT SIMULATOR FACILITY AT U.S. COAST GUARD BASE")).toBe("Design Build Construction for HC-130J Flight Simulator Facility at U.S. Coast Guard Base");
+    expect(tidyCaps("SDC TIDEWATER JV, LLC")).toBe("SDC Tidewater JV, LLC");
+    expect(tidyCaps("VDOT HVAC UPGRADE PHASE III")).toBe("VDOT HVAC Upgrade Phase III");
+    expect(tidyCaps("ACME BUILDERS INC.")).toBe("Acme Builders Inc.");
+    expect(tidyCaps("USCG BASE ELIZABETH CITY, NC")).toBe("USCG Base Elizabeth City, NC");
+    expect(tidyCaps("Town of Sullivan's Island")).toBe("Town of Sullivan's Island");
+    expect(clip("Design Build Construction for HC-130J Flight Simulator Facility at U.S. Coast Guard Base Elizabeth City", 90)).toBe("Design Build Construction for HC-130J Flight Simulator Facility at U.S. Coast Guard Base…");
+    expect(clip("short", 90)).toBe("short");
+    // Goods are not construction work.
+    const supply = new RegExp(SUPPLIER_SUPPLY_PATTERN.replace(/\\m|\\M/g, "\\b"), "i");
+    expect(supply.test("District 6 Deicer for Bridges")).toBe(true);
+    expect(supply.test("IFB 161313 Delivered Aggregate")).toBe(true);
+    expect(supply.test("Triad Park Roof Replacement")).toBe(false);
+    expect(supply.test("Bolin Road Reconstruction")).toBe(false);
   });
 });

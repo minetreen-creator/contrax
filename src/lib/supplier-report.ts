@@ -65,6 +65,56 @@ export const SUPPLIER_TAILOR_NOTE = "Tell us what you sell and your report leads
 /** True of the Agency plan (PLAN_COPY.agency: up to 10 workspaces, each with its own states and trades). */
 export const SUPPLIER_MULTI_STATE = "Cover more than one state? The plan includes up to 10 territories, each with its own states and trades, at the same price.";
 
+/** The one line of fine print the homepage shows; /suppliers carries the full wording. */
+export const SUPPLIER_FINE_PRINT_SHORT = "Federal winners come with the company's website, address and named contact where public. No phone numbers or emails.";
+
+/**
+ * Titles that are a purchase of goods, not work on a site (owner 2026-11-18: "District 6 Deicer for
+ * Bridges" led the construction sample because its title says "bridge"). Postgres ~* and JS.
+ */
+export const SUPPLIER_SUPPLY_PATTERN = "de-?icer|supplies|purchase of|furnish and deliver|aggregate|road salt|rock salt|\\mparts\\M|\\mfuel\\M";
+
+const CAPS_KEEP = new Set([
+  "LLC", "LLP", "LP", "PC", "PLLC", "JV", "II", "III", "IV", "USA", "US", "DBA", "HQ",
+  "HVAC", "AHU", "AHUS", "MEP", "TPO", "ADA", "CIPP", "IAW", "EO", "RFP", "RFQ", "IFB",
+  "DOT", "VDOT", "NCDOT", "SCDOT", "GDOT", "FDOT", "USCG", "USACE", "NPS", "GSA", "FAA", "FEMA", "USDA", "NASA", "DOD", "DHS",
+  "VA", "NC", "SC", "GA", "FL", "AL", "TN", "KY", "MD", "DC", "TX", "OH", "PA", "NY", "NJ",
+]);
+const CAPS_FIXED: Record<string, string> = { INC: "Inc", CORP: "Corp", CO: "Co", LTD: "Ltd" };
+const CAPS_SMALL = new Set(["a", "an", "and", "at", "by", "for", "in", "of", "on", "or", "the", "to", "with"]);
+
+/**
+ * Government records arrive in capitals ("BRANTLEY CONSTRUCTION SERVICES, LLC"). Text with no
+ * lowercase letter is put in title case; known acronyms and anything with a digit or a period
+ * (HC-130J, U.S., B1786) are left alone. Text that already has lowercase is returned unchanged. PURE.
+ */
+export function tidyCaps(raw: string): string {
+  const text = String(raw ?? "").replace(/\s+/g, " ").trim();
+  if (!text || /[a-z]/.test(text)) return text;
+  return text
+    .split(" ")
+    .map((word, i) => {
+      const bare = word.replace(/[^A-Za-z]/g, "");
+      if (!bare || /[0-9]/.test(word) || /\.[A-Za-z]/.test(word) || CAPS_KEEP.has(bare)) return word;
+      if (CAPS_FIXED[bare]) return word.replace(bare, CAPS_FIXED[bare]);
+      // A short word with no vowel is an abbreviation we do not know (SDC, BLDG): leave it in capitals.
+      if (bare.length <= 4 && !/[AEIOUY]/.test(bare)) return word;
+      const lower = word.toLowerCase();
+      if (i > 0 && CAPS_SMALL.has(lower)) return lower;
+      return lower.replace(/(^|[-/(&])([a-z])/g, (_m, pre: string, ch: string) => pre + ch.toUpperCase());
+    })
+    .join(" ");
+}
+
+/** Cut at a word boundary and end with an ellipsis, so nothing stops mid-word. PURE. */
+export function clip(raw: string, max: number): string {
+  const text = String(raw ?? "").replace(/\s+/g, " ").trim();
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max);
+  const at = cut.lastIndexOf(" ");
+  return `${(at > max * 0.6 ? cut.slice(0, at) : cut).replace(/[\s,;:(-]+$/, "")}…`;
+}
+
 export const SUPPLIER_NOT_YET = "Winners of state, county and school jobs are not in the report yet. Federal winners are.";
 
 /** Titles that read as construction or building-trade work (Postgres ~* and JS). */

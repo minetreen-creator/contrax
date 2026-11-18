@@ -15,6 +15,10 @@ import { STATE_NAMES } from "./contract-map";
 /** The Agency plan's price (owner 2026-11-12: "$199 it is"). The paid step after the free report. */
 export const SUPPLIER_PRICE = "$199";
 export const SUPPLIER_SAMPLE_STATE = "SC";
+/** States shown in the live sample (owner 2026-11-18: "lets add NC too"). The first is the form's default. */
+export const SUPPLIER_SAMPLE_STATES: readonly string[] = ["SC", "NC"];
+/** Federal awards below this are left out of the sample: a $25,030 job is real but tells a supplier little. */
+export const SUPPLIER_AWARD_MIN = 100_000;
 
 export const SUPPLIER_TYPES: readonly { id: string; label: string }[] = [
   { id: "materials", label: "Building materials or supply" },

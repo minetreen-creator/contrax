@@ -7,7 +7,7 @@ import { PLAN_COPY } from "~/lib/plan-features";
 import {
   SUPPLIER_INCLUDES,
   SUPPLIER_NOT_YET,
-  SUPPLIER_SAMPLE_STATE,
+  SUPPLIER_SAMPLE_STATES,
   supplierDay,
   supplierMoney,
   type SupplierSample,
@@ -25,9 +25,9 @@ const TITLE = "Public Construction Jobs Report for Suppliers | Contrax";
 const DESC =
   "A weekly report for businesses that sell to contractors: the public construction jobs opening in your state, federal jobs just awarded and who won them, and contracts about to end.";
 
-const getSample = createServerFn({ method: "GET" }).handler(async (): Promise<SupplierSample | null> => {
-  const { loadSupplierSample } = await import("~/lib/supplier-report.server");
-  return loadSupplierSample(SUPPLIER_SAMPLE_STATE);
+const getSample = createServerFn({ method: "GET" }).handler(async (): Promise<SupplierSample[]> => {
+  const { loadSupplierSamples } = await import("~/lib/supplier-report.server");
+  return loadSupplierSamples(SUPPLIER_SAMPLE_STATES);
 });
 
 export const Route = createFileRoute("/suppliers")({
@@ -49,7 +49,7 @@ export const Route = createFileRoute("/suppliers")({
 });
 
 function SuppliersPage() {
-  const sample = Route.useLoaderData();
+  const samples = Route.useLoaderData();
   const features = PLAN_COPY.agency.features.filter((f) => !/^Or \$/.test(f) && f !== "Cancel anytime");
   return (
     <>
@@ -94,8 +94,8 @@ function SuppliersPage() {
           </div>
         </section>
 
-        {sample && (sample.newJobs.length > 0 || sample.awards.length > 0) && (
-          <section className="bg-slate-50 px-4 py-12 sm:py-16">
+        {samples.filter((sample) => sample.newJobs.length > 0 || sample.awards.length > 0).map((sample) => (
+          <section key={sample.state} className="bg-slate-50 px-4 py-12 sm:py-16">
             <div className="mx-auto max-w-4xl">
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-600">This week's sample, from live data</p>
               <h2 className="mt-2 text-2xl font-extrabold text-slate-900 sm:text-3xl">{sample.stateName} public construction</h2>
@@ -156,7 +156,7 @@ function SuppliersPage() {
               <p className="mt-4 text-xs text-slate-500">Taken from public bid boards and federal award records. {SUPPLIER_NOT_YET}</p>
             </div>
           </section>
-        )}
+        ))}
 
         <section className="px-4 pt-12 sm:pt-16">
           <div className="mx-auto max-w-4xl rounded-2xl border border-slate-200 p-6 sm:p-8">

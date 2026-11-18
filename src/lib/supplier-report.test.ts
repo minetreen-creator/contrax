@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { SUPPLIER_NOT_YET, SUPPLIER_PRICE, cleanSupplierRequest, supplierDay, supplierMoney, supplierNotice } from "./supplier-report";
+import { SUPPLIER_AWARD_MIN, SUPPLIER_NOT_YET, SUPPLIER_PRICE, SUPPLIER_SAMPLE_STATES, cleanSupplierRequest, supplierDay, supplierMoney, supplierNotice } from "./supplier-report";
 
 describe("supplier report (owner 2026-11-18)", () => {
   test("a request needs a real email and a real state; the business type falls back", () => {
@@ -38,7 +38,11 @@ describe("supplier report (owner 2026-11-18)", () => {
     const home = readFileSync(new URL("../routes/index.tsx", import.meta.url), "utf8");
     expect(home).toContain('href="/suppliers"');
     // Owner 2026-11-18: the homepage opens with the supplier report and its request form.
-    expect(home).toContain("<HomeSupplierHero sample={supplierSample} />\n      <HomeSupplierRows sample={supplierSample} />");
+    expect(home).toContain("<HomeSupplierHero samples={supplierSamples} />");
+    expect(home).toContain("<HomeSupplierRows key={one.state} sample={one} />");
+    // Owner 2026-11-18 ("lets add NC too"): South Carolina and North Carolina, small awards left out.
+    expect([...SUPPLIER_SAMPLE_STATES]).toEqual(["SC", "NC"]);
+    expect(SUPPLIER_AWARD_MIN).toBe(100_000);
     // The contractor sections are one click away, unchanged, on /contractors.
     expect(home).toContain("export function ContractorSections(");
     const contractors = readFileSync(new URL("../routes/contractors.tsx", import.meta.url), "utf8");

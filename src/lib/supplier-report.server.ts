@@ -1,5 +1,5 @@
 import { STATE_NAMES } from "./contract-map";
-import { SUPPLIER_TITLE_PATTERN, type SupplierSample } from "./supplier-report";
+import { SUPPLIER_AWARD_MIN, SUPPLIER_TITLE_PATTERN, type SupplierSample } from "./supplier-report";
 
 /** The live sample shown on /suppliers: real rows only; null when the database cannot be read. */
 export async function loadSupplierSample(state: string): Promise<SupplierSample | null> {
@@ -21,7 +21,7 @@ export async function loadSupplierSample(state: string): Promise<SupplierSample 
       ORDER BY created_at DESC LIMIT 8`) as { id: number; title: string; agency: string | null; due_date: string }[];
     const awards = (await s`
       SELECT recipient_name, recipient_city, recipient_state, amount, awarded_on, description FROM award_leads
-      WHERE pop_state = ${state} AND naics_code LIKE '23%' AND awarded_on IS NOT NULL
+      WHERE pop_state = ${state} AND naics_code LIKE '23%' AND awarded_on IS NOT NULL AND amount >= ${SUPPLIER_AWARD_MIN}
       ORDER BY awarded_on DESC LIMIT 5`.catch(() => [])) as { recipient_name: string; recipient_city: string | null; recipient_state: string | null; amount: number | string; awarded_on: string; description: string | null }[];
     const ending = (await s`
       SELECT DISTINCT ON (award_key) recipient_name, amount, end_date, agency FROM recompete_contracts
@@ -50,4 +50,10 @@ export async function loadSupplierSample(state: string): Promise<SupplierSample 
   } catch {
     return null;
   }
+}
+
+/** One sample per state, in the order given; a state that cannot be read or has nothing open is left out. */
+export async function loadSupplierSamples(states: readonly string[]): Promise<SupplierSample[]> {
+  const all = await Promise.all(states.map((st) => loadSupplierSample(st)));
+  return all.filter((x): x is SupplierSample => x !== null && x.open > 0);
 }

@@ -4,7 +4,7 @@ import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { AWARD_EXCLUSION_SQL, SOURCE_CLASSES } from "~/lib/source-class";
 import { isProductBuy } from "~/lib/trade-classification";
 import { cleanBidTitle, fixTitleTypos, isCodeHeavyTitle } from "~/lib/bid-title";
-import { displayAgency, displayLocation } from "~/lib/agency-display";
+import { displayLocation } from "~/lib/agency-display";
 import { isAggregatorMirror } from "~/lib/notice-dedupe";
 import { bidIsServiceJob } from "~/lib/outreach";
 import { resolveBidState, STATE_CODE_TO_NAME } from "~/lib/location-state";

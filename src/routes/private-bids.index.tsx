@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { SiteHeader } from "~/components/SiteHeader";
 import { STATE_NAMES } from "~/lib/contract-map";
+import { POST_PROJECT_PATH } from "~/lib/private-bid-post";
 import { PRIVATE_BIDS_DISCLAIMER, publishedPrivateBids } from "~/lib/private-bids";
 
 /** /private-bids — private businesses taking bids, listed with their permission (see ~/lib/private-bids). */
@@ -47,7 +48,7 @@ function PrivateBidsPage() {
           )}
           <p className="mt-8 text-sm text-slate-700">
             Taking bids for work at your business?{" "}
-            <a href="mailto:contrax.companyllc@gmail.com?subject=List%20my%20bid%20request" className="font-semibold text-blue-700 underline underline-offset-4">Email us and we will list it for free</a>.
+            <a href={POST_PROJECT_PATH} className="font-semibold text-blue-700 underline underline-offset-4">Post your project free →</a>
           </p>
           <p className="mt-4 text-xs text-slate-500">{PRIVATE_BIDS_DISCLAIMER.replace("this request", "these requests")}</p>
         </div>

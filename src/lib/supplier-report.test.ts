@@ -33,6 +33,8 @@ describe("supplier report (owner 2026-11-18)", () => {
     expect(page).toContain("{SUPPLIER_NOT_YET}");
     expect(page).not.toContain("redirectToCheckout");
     expect(page).toContain('fetch("/api/supplier-report"');
-    expect(readFileSync(new URL("../routes/index.tsx", import.meta.url), "utf8")).toContain('href="/suppliers"');
+    const home = readFileSync(new URL("../routes/index.tsx", import.meta.url), "utf8");
+    expect(home).toContain('href="/suppliers"');
+    expect(home).toContain("<HomeSuppliers />");
   });
 });

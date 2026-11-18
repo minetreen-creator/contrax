@@ -89,7 +89,7 @@ describe("top-match spot check fixes (owner 2026-11-01)", () => {
   test("the free preview shows the searcher's own state first", () => {
     const radar = read("src/routes/radar.tsx");
     expect(radar).toContain("const previewPool = state && local.length ? [...byRoom(local), ...byRoom(nationwide)] : byRoom(matches);");
-    expect(radar).toContain("previewPool.slice(0, FREE_ANONYMOUS_RADAR_RESULTS)");
+    expect(radar).toContain("previewPool.slice(0, previewLimit)");
   });
 });
 

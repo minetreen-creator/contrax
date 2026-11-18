@@ -47,6 +47,29 @@ export const SHOW_FREE_INCUMBENT = true;
 // before the $5 ask.
 export const FREE_ANONYMOUS_RADAR_RESULTS: number = 3;
 
+/**
+ * Owner 2026-11-18 ("yes"): visitors who arrived from Facebook see 10 bids, not
+ * 3. That morning 10 phone visitors came from a South Carolina contractors
+ * group, each ran one search, saw 3 of 150 and a locked card, and all 10 left
+ * without opening a bid or reaching signup. Everyone else keeps the 3.
+ */
+export const FACEBOOK_ANONYMOUS_RADAR_RESULTS: number = 10;
+
+/** Did this page view come from Facebook (its referrer, or a utm_source=facebook link)? PURE. */
+export function isFacebookArrival(referrer: string | null | undefined, path: string | null | undefined): boolean {
+  if (/^https?:\/\/([a-z0-9-]+\.)*(facebook\.com|fb\.com|fb\.me)(\/|$|\?)/i.test(String(referrer ?? "").trim())) return true;
+  return /[?&]utm_source=(facebook|fb)(&|$)/i.test(String(path ?? ""));
+}
+
+/** Postgres form of isFacebookArrival for page_views (columns referrer, path). */
+export const FACEBOOK_ARRIVAL_SQL =
+  `(referrer ~* '^https?://([a-z0-9-]+\\.)*(facebook\\.com|fb\\.com|fb\\.me)(/|$|\\?)' OR path ~* '[?&]utm_source=(facebook|fb)(&|$)')`;
+
+/** How many bids a signed-out visitor sees before the locked card. PURE. */
+export function anonymousPreviewLimit(fromFacebook: boolean): number {
+  return fromFacebook ? Math.max(FACEBOOK_ANONYMOUS_RADAR_RESULTS, FREE_ANONYMOUS_RADAR_RESULTS) : FREE_ANONYMOUS_RADAR_RESULTS;
+}
+
 /** Anonymous Radar searches per browser per day before signup (owner
  * 2026-11-03 "yes": was 1 ever; a Charlotte, NC visitor searched, checked
  * pricing, came back to search again and was sent to signup instead of bids). */

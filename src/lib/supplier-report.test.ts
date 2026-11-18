@@ -40,8 +40,9 @@ describe("supplier report (owner 2026-11-18)", () => {
     // Owner 2026-11-18: the homepage opens with the supplier report and its request form.
     expect(home).toContain("<HomeSupplierHero samples={supplierSamples} />");
     expect(home).toContain("<HomeSupplierRows key={one.state} sample={one} />");
-    // Owner 2026-11-18 ("lets add NC too"): South Carolina and North Carolina, small awards left out.
-    expect([...SUPPLIER_SAMPLE_STATES]).toEqual(["SC", "NC"]);
+    // Owner 2026-11-18 ("lets add NC too", "might as well add VA, FL and GA"); small awards left out.
+    expect([...SUPPLIER_SAMPLE_STATES]).toEqual(["SC", "NC", "VA", "GA", "FL"]);
+    expect(home).toContain("supplierSamples.slice(0, SUPPLIER_HOME_ROW_STATES).map(");
     expect(SUPPLIER_AWARD_MIN).toBe(100_000);
     // The pitch names only what the report holds: no bidder lists, no contact details, federal winners only.
     expect(SUPPLIER_SUBHEAD).toContain("who just won federal work");

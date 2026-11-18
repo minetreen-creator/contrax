@@ -1,4 +1,4 @@
-import { SUPPLIER_INCLUDES, SUPPLIER_NOT_YET, SUPPLIER_SUBHEAD, SUPPLIER_SAMPLE_STATES, supplierDay, supplierMoney, type SupplierSample } from "~/lib/supplier-report";
+import { SUPPLIER_HOME_ROW_STATES, SUPPLIER_INCLUDES, SUPPLIER_NOT_YET, SUPPLIER_SUBHEAD, SUPPLIER_SAMPLE_STATES, supplierDay, supplierMoney, type SupplierSample } from "~/lib/supplier-report";
 import { SupplierRequestForm } from "~/components/SupplierRequestForm";
 import { createFileRoute } from "@tanstack/react-router";
 import { HomeMaxProof } from "~/components/HomeMaxProof";
@@ -206,7 +206,7 @@ function Home() {
           rows and the form; contractors get one block with the search, and everything else that was
           here lives on /contractors (ContractorSections below), one click away. */}
       <HomeSupplierHero samples={supplierSamples} />
-      {supplierSamples.map((one) => (
+      {supplierSamples.slice(0, SUPPLIER_HOME_ROW_STATES).map((one) => (
         <HomeSupplierRows key={one.state} sample={one} />
       ))}
       <section aria-labelledby="home-contractors-title" className="bg-[#07162e] px-4 pb-2 pt-8 text-white sm:px-8 sm:pt-10">
@@ -417,7 +417,7 @@ function HomeSupplierHero({ samples }: { samples: SupplierSample[] }) {
             </table>
           )}
           <p className="mt-4 text-sm text-slate-300">
-            <a href="/suppliers" className="font-semibold text-amber-400 underline underline-offset-4 hover:text-amber-300">See this week's full sample →</a>
+            <a href="/suppliers" className="font-semibold text-amber-400 underline underline-offset-4 hover:text-amber-300">See this week's full sample for all five states →</a>
           </p>
           <p className="mt-2 text-xs text-slate-400">{SUPPLIER_NOT_YET}</p>
         </div>

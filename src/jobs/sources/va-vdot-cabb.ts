@@ -99,9 +99,13 @@ export function cabbTotal(html: string): number | null {
   return m ? Number(m[1]) : null;
 }
 
-/** The postback target of the pager's "Next" link, or null on the last page. PURE. */
+/**
+ * The postback target of the pager's "Next" link, or null on the last page. PURE.
+ * The page writes the link's quotes either plainly or as `&#39;` (seen from
+ * 2026-11-17, when the sync read page 1 only and refused partial coverage).
+ */
 export function cabbNextTarget(html: string): string | null {
-  return /__doPostBack\('([^']+)',''\)">Next</.exec(html)?.[1] ?? null;
+  return /__doPostBack\((?:'|&#39;)([^'&]+)(?:'|&#39;),(?:''|&#39;&#39;)\)">Next</.exec(html)?.[1] ?? null;
 }
 
 const STATE_NAMES = new Set([

@@ -1,3 +1,4 @@
+import { SUPPLIER_INCLUDES, SUPPLIER_PRICE } from "~/lib/supplier-report";
 import { createFileRoute } from "@tanstack/react-router";
 import { HomeMaxProof } from "~/components/HomeMaxProof";
 import { createServerFn } from "@tanstack/react-start";
@@ -206,6 +207,8 @@ function Home() {
       <HomeContractFinder sample={sample} openTotal={contractMap?.totals?.totalOpen ?? 0} heading="h2" />
       <HomeBidPreview />
       <HomeBidPrep />
+      {/* Owner 2026-11-18 ("shouldnt we put that on the homepage too?"): the supplier report, as its own section. */}
+      <HomeSuppliers />
       <HomeExecutionLine sample={sample} />
       {/* Before/after proof (owner 2026-11-08): a real bid's notice next to Max's real answer. */}
       {maxProofCurrent !== false ? <HomeMaxProof /> : null}
@@ -302,6 +305,29 @@ function HomeChoice() {
  * service is bought on a bid's own page, so this says what it is and sends the visitor to pick a bid.
  * Every line comes from src/lib/bid-prep.ts, the same words the bid page and the checkout use.
  */
+function HomeSuppliers() {
+  return (
+    <section id="suppliers" aria-labelledby="home-suppliers-title" className="mx-auto max-w-[1120px] scroll-mt-20 px-4 pt-10 sm:px-6">
+      <div className="rounded-2xl border-2 border-amber-500 bg-amber-50 p-5 sm:p-7 dark:bg-amber-950/30">
+        <p className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">For businesses that sell to contractors</p>
+        <h2 id="home-suppliers-title" className="mt-1 text-2xl font-bold leading-tight sm:text-3xl">Know which public jobs are opening in your state, every week</h2>
+        <p className="mt-2 text-sm font-semibold text-slate-800 dark:text-slate-100">
+          Suppliers, equipment rental, staffing firms, bonding and insurance agents: one report a week tells you who to call.
+        </p>
+        <ul className="mt-4 grid gap-1.5 text-sm text-slate-700 sm:grid-cols-2 dark:text-slate-200">
+          {SUPPLIER_INCLUDES.map((f) => (
+            <li key={f}>✓ {f}</li>
+          ))}
+        </ul>
+        <a href="/suppliers" className="mt-5 inline-block rounded-xl bg-amber-500 px-6 py-3 font-bold text-slate-950 hover:bg-amber-400">
+          See this week's sample and get a free report →
+        </a>
+        <p className="mt-2 text-xs text-slate-600 dark:text-slate-300">The first report is free. After that it is {SUPPLIER_PRICE} a month for one state.</p>
+      </div>
+    </section>
+  );
+}
+
 function HomeBidPrep() {
   return (
     <section id="bid-prep" aria-labelledby="home-bid-prep-title" className="mx-auto max-w-[1120px] scroll-mt-20 px-4 pt-10 sm:px-6">

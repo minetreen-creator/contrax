@@ -87,6 +87,8 @@ export function SiteHeader({ user: userProp }: { user?: HeaderUser }) {
           {/* Owner 2026-11-09: the top bar is Find work (bid search) vs Win work (the Contrax
               Pathway tools in one dropdown). Win work is hidden on phones so the row still fits;
               phones reach the same tools from the homepage Pathway section and the footer. */}
+          {/* Owner 2026-11-18: suppliers first. Hidden on phones, where the row is full and the homepage opens with it. */}
+          <a href="/suppliers" className={`${link} hidden sm:inline`}>For suppliers</a>
           <a href="/radar" className={link}>Find work</a>
           <WinWorkMenu linkClass={link} />
           {/* Admins get an extra link; drop Pricing on phones so the row still fits. */}

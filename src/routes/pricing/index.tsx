@@ -231,8 +231,20 @@ function PricingPage() {
       {/* Hero */}
       <section className="pricing-section py-16 sm:py-20">
         <div className="mx-auto max-w-7xl px-6">
+          {/* Owner 2026-11-18: the supplier report is listed first; contractor plans follow. */}
+          <div className="mx-auto mb-12 max-w-3xl rounded-2xl border-2 border-amber-500 bg-amber-50 p-6 text-left sm:p-8">
+            <p className="text-xs font-bold uppercase tracking-widest text-amber-700">For businesses that sell to contractors</p>
+            <p className="mt-2 text-2xl font-bold text-slate-900">The weekly supplier report: first one free, then $199 a month</p>
+            <p className="mt-2 text-sm text-slate-700">
+              The public construction jobs opening in your state, federal awards and who won them, and contracts about to end. The paid step is the Agency plan, month to month.
+            </p>
+            <a href="/suppliers" className="mt-4 inline-block rounded-xl bg-amber-500 px-5 py-2.5 text-sm font-bold text-slate-950 hover:bg-amber-400">
+              See this week's sample and get a free report →
+            </a>
+          </div>
           <div className="mx-auto max-w-2xl text-center">
-            <h1 className="text-sm font-semibold uppercase tracking-widest text-amber-600">Pricing</h1>
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-500">For contractors</p>
+            <h1 className="mt-1 text-sm font-semibold uppercase tracking-widest text-amber-600">Pricing</h1>
             <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
               Never miss a bid in your trade again
             </h2>

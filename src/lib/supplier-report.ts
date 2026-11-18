@@ -72,7 +72,17 @@ export const SUPPLIER_FINE_PRINT_SHORT = "Federal winners come with the company'
  * Titles that are a purchase of goods, not work on a site (owner 2026-11-18: "District 6 Deicer for
  * Bridges" led the construction sample because its title says "bridge"). Postgres ~* and JS.
  */
-export const SUPPLIER_SUPPLY_PATTERN = "de-?icer|supplies|purchase of|furnish and deliver|aggregate|road salt|rock salt|\\mparts\\M|\\mfuel\\M";
+export const SUPPLIER_SUPPLY_PATTERN = "de-?icer|supplies|purchase of|furnish and deliver|aggregate|road salt|rock salt|\\mparts\\M|\\mfuel\\M|request for qualifications|statement of qualifications|engineering services|consulting services|architectural services|design services";
+
+const HONORIFIC = /^(mr|mrs|ms|miss|mx|dr|sir|madam|n\/?a|none)\.?$/i;
+
+/** "Name, Title" for a SAM contact; a title that is only an honorific ("Mr.") or a blank filler is left off. */
+export function contactLine(name: string | null | undefined, title: string | null | undefined): string | null {
+  const n = (name ?? "").trim();
+  if (!n) return null;
+  const t = (title ?? "").trim();
+  return t && !HONORIFIC.test(t) ? `${n}, ${t}` : n;
+}
 
 const CAPS_KEEP = new Set([
   "LLC", "LLP", "LP", "PC", "PLLC", "JV", "II", "III", "IV", "USA", "US", "DBA", "HQ",

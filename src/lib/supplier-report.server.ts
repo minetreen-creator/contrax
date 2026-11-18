@@ -1,6 +1,6 @@
 import { STATE_NAMES } from "./contract-map";
 import { usaspendingUrl } from "./award-leads";
-import { SUPPLIER_AWARD_MIN, SUPPLIER_SUPPLY_PATTERN, SUPPLIER_TITLE_PATTERN, clip, tidyCaps, type SupplierSample } from "./supplier-report";
+import { SUPPLIER_AWARD_MIN, SUPPLIER_SUPPLY_PATTERN, SUPPLIER_TITLE_PATTERN, clip, contactLine, tidyCaps, type SupplierSample } from "./supplier-report";
 
 const okUrl = (v: unknown): string | null => (/^https?:\/\/[^\s"'<>]+$/i.test(String(v ?? "")) ? String(v) : null);
 
@@ -12,7 +12,7 @@ function awardContact(
   if (!c) return { site: okUrl(site), address: null, contact: null };
   const cityLine = [c.city, [c.state, c.zip].filter(Boolean).join(" ")].filter(Boolean).join(", ");
   const address = c.street ? [c.street, cityLine].filter(Boolean).join(", ") : null;
-  const contact = c.contact ? [c.contact, c.contact_title].filter(Boolean).join(", ") : null;
+  const contact = contactLine(c.contact, c.contact_title);
   return { site: okUrl(c.url) ?? okUrl(site), address, contact };
 }
 

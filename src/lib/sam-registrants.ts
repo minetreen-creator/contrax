@@ -117,6 +117,49 @@ export function parseSamLine(line: string): SamRegistrant | null {
   };
 }
 
+/**
+ * The public business address and government-business contact of one registered company (owner
+ * 2026-11-18: the supplier report should say who to call). Kept only for companies that already
+ * appear in our federal award records, large or small. Columns are from GSA's "SAM Entity
+ * Management Public V2 Extract Layout": 16-17 physical address lines, 18 city, 19 state, 20 ZIP,
+ * 47 and 49 the government business contact's first and last name, 50 their title. The public
+ * file carries no phone number or email for a contact, and none is read.
+ */
+export interface SamContact {
+  uei: string;
+  name: string;
+  street: string | null;
+  city: string | null;
+  state: string | null;
+  zip: string | null;
+  url: string | null;
+  contact: string | null;
+  contactTitle: string | null;
+}
+
+/** One line of the public extract → the company's public address and contact, or null when it is left out (same terms as parseSamLine, any size). PURE. */
+export function parseSamContact(line: string): SamContact | null {
+  const p = line.split("|");
+  if (p.length < 122) return null;
+  const g = (i: number) => (p[i - 1] ?? "").trim();
+  if (!g(1) || g(6) !== "A" || g(7) !== "Z2" || g(22) !== "USA") return null;
+  if (g(119).toUpperCase() === "NPDY") return null; // the business chose no public display
+  if (/D&B/i.test(g(122)) || g(24).toUpperCase() === "Y") return null; // D&B data: left out (terms)
+  const street = [g(16), g(17)].filter(Boolean).map(niceName).join(", ");
+  const contact = [g(47), g(49)].filter(Boolean).map(niceName).join(" ");
+  return {
+    uei: g(1),
+    name: niceName(g(13) || g(12)),
+    street: street || null,
+    city: g(18) ? niceName(g(18)) : null,
+    state: g(19) || null,
+    zip: g(20).slice(0, 5) || null,
+    url: cleanUrl(g(27)),
+    contact: contact || null,
+    contactTitle: g(50) ? niceName(g(50)) : null,
+  };
+}
+
 export const SAM_SOURCE_NOTE = "From SAM.gov public registration data. Business types are as each business reported them in SAM.gov; 8(a) and HUBZone are SBA certifications.";
 
 /**

@@ -2,6 +2,20 @@ import { STATE_NAMES } from "./contract-map";
 import { usaspendingUrl } from "./award-leads";
 import { SUPPLIER_AWARD_MIN, SUPPLIER_TITLE_PATTERN, type SupplierSample } from "./supplier-report";
 
+const okUrl = (v: unknown): string | null => (/^https?:\/\/[^\s"'<>]+$/i.test(String(v ?? "")) ? String(v) : null);
+
+/** Website, one-line address and "Name, Title" for a winner, from whichever public SAM record we hold. */
+function awardContact(
+  site: string | null,
+  c?: { street: string | null; city: string | null; state: string | null; zip: string | null; url: string | null; contact: string | null; contact_title: string | null },
+): { site: string | null; address: string | null; contact: string | null } {
+  if (!c) return { site: okUrl(site), address: null, contact: null };
+  const cityLine = [c.city, [c.state, c.zip].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+  const address = c.street ? [c.street, cityLine].filter(Boolean).join(", ") : null;
+  const contact = c.contact ? [c.contact, c.contact_title].filter(Boolean).join(", ") : null;
+  return { site: okUrl(c.url) ?? okUrl(site), address, contact };
+}
+
 /** The live sample shown on /suppliers: real rows only; null when the database cannot be read. */
 export async function loadSupplierSample(state: string): Promise<SupplierSample | null> {
   try {
@@ -21,10 +35,18 @@ export async function loadSupplierSample(state: string): Promise<SupplierSample 
         AND created_at > NOW() - INTERVAL '7 days' AND title ~* ${P} AND title !~* 'addendum|cancel'
       ORDER BY created_at DESC LIMIT 8`) as { id: number; title: string; agency: string | null; due_date: string }[];
     const awards = (await s`
-      SELECT a.award_key, a.recipient_name, a.recipient_city, a.recipient_state, a.amount, a.awarded_on, a.description, r.url AS site
+      SELECT a.award_key, a.recipient_uei, a.recipient_name, a.recipient_city, a.recipient_state, a.amount, a.awarded_on, a.description, r.url AS site
       FROM award_leads a LEFT JOIN sam_registrants r ON r.uei = a.recipient_uei
       WHERE a.pop_state = ${state} AND a.naics_code LIKE '23%' AND a.awarded_on IS NOT NULL AND a.amount >= ${SUPPLIER_AWARD_MIN}
-      ORDER BY a.awarded_on DESC LIMIT 5`.catch(() => [])) as { site: string | null; award_key: string; recipient_name: string; recipient_city: string | null; recipient_state: string | null; amount: number | string; awarded_on: string; description: string | null }[];
+      ORDER BY a.awarded_on DESC LIMIT 5`.catch(() => [])) as { site: string | null; award_key: string; recipient_uei: string | null; recipient_name: string; recipient_city: string | null; recipient_state: string | null; amount: number | string; awarded_on: string; description: string | null }[];
+    // Public address and contact, kept in their own table so a missing table or row never hides an award.
+    const ueis = awards.map((x) => x.recipient_uei).filter((u): u is string => Boolean(u));
+    const contactRows = ueis.length
+      ? ((await s`SELECT uei, street, city, state, zip, url, contact, contact_title FROM sam_contacts WHERE uei = ANY(${ueis})`.catch(() => [])) as {
+          uei: string; street: string | null; city: string | null; state: string | null; zip: string | null; url: string | null; contact: string | null; contact_title: string | null;
+        }[])
+      : [];
+    const contactByUei = new Map(contactRows.map((c) => [c.uei, c]));
     const ending = (await s`
       SELECT DISTINCT ON (award_key) recipient_name, amount, end_date, agency FROM recompete_contracts
       WHERE pop_state = ${state} AND naics_code LIKE '23%' AND end_date BETWEEN NOW() AND NOW() + INTERVAL '6 months'
@@ -44,7 +66,7 @@ export async function loadSupplierSample(state: string): Promise<SupplierSample 
         date: iso(a.awarded_on),
         what: String(a.description ?? "").replace(/\s+/g, " ").trim().slice(0, 90),
         url: usaspendingUrl(a.award_key),
-        site: /^https?:\/\/[^\s"'<>]+$/i.test(String(a.site ?? "")) ? String(a.site) : null,
+        ...awardContact(a.site, a.recipient_uei ? contactByUei.get(a.recipient_uei) : undefined),
       })),
       ending: ending
         .map((e) => ({ company: e.recipient_name, amount: Number(e.amount), end: iso(e.end_date), agency: e.agency ?? "" }))

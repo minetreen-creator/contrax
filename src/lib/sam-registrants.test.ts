@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { cleanUrl, niceName, parseSamLine, SAM_TRADE_NAICS } from "./sam-registrants";
+import { cleanUrl, niceName, parseSamContact, parseSamLine, SAM_TRADE_NAICS } from "./sam-registrants";
 
 // A made-up record laid out like the SAM.gov Public V2 extract (142 pipe-separated columns, 1-based).
 function line(over: Record<number, string>): string {
@@ -93,5 +93,26 @@ describe("subs for primes: claim, onboarding checkbox, join page (owner 2026-11-
     expect(join).toContain("searchRegistrants");
     expect(join).toContain("This is mine: claim it");
     expect(readFileSync(new URL("../../scripts/generate-sitemap.mjs", import.meta.url), "utf8")).toContain('["/sub-finder/join", "weekly", "0.6"]');
+  });
+});
+
+describe("public address and contact for companies in our award records (owner 2026-11-18)", () => {
+  const big = { 12: "BRANTLEY CONSTRUCTION SERVICES LLC", 16: "8300 DORCHESTER RD", 17: "STE 100", 18: "NORTH CHARLESTON", 19: "SC", 20: "294185501", 35: "236220N", 47: "JANE", 49: "DOE", 50: "VICE PRESIDENT" };
+  test("columns follow GSA's Public V2 layout; a large company is kept (no size or trade filter)", () => {
+    expect(parseSamLine(line(big))).toBeNull(); // not small in any trade, so Sub Finder leaves it out
+    expect(parseSamContact(line(big))).toEqual({
+      uei: "ABCDEFGH1234", name: "Brantley Construction Services LLC", street: "8300 Dorchester Rd, Ste 100", city: "North Charleston", state: "SC", zip: "29418",
+      url: "https://www.acmemech.com", contact: "Jane Doe", contactTitle: "Vice President",
+    });
+  });
+  test("the same terms apply: inactive, grants-only, foreign, no public display and D&B records are left out", () => {
+    for (const over of [{ 6: "E" }, { 7: "Z1" }, { 22: "CAN" }, { 119: "NPDY" }, { 122: "D&B" }, { 24: "Y" }]) expect(parseSamContact(line({ ...big, ...over }))).toBeNull();
+    expect(parseSamContact("too|short")).toBeNull();
+  });
+  test("missing pieces stay empty, and no phone or email column is ever read", () => {
+    expect(parseSamContact(line({ 16: "", 17: "", 47: "", 49: "", 50: "" }))).toMatchObject({ street: null, contact: null, contactTitle: null });
+    const src = readFileSync(new URL("./sam-registrants.ts", import.meta.url), "utf8");
+    const fn = src.slice(src.indexOf("export function parseSamContact"), src.indexOf("export const SAM_SOURCE_NOTE"));
+    expect(fn.match(/g\((\d+)\)/g)?.map((m) => Number(m.slice(2, -1))).sort((a, b) => a - b)).toEqual([1, 1, 6, 7, 12, 13, 16, 17, 18, 18, 19, 20, 22, 24, 27, 47, 49, 50, 50, 119, 122]);
   });
 });

@@ -59,7 +59,7 @@ export const SUPPLIER_USES: readonly { part: string; use: string }[] = [
 ];
 /** What a row contains, said plainly so nobody expects a phone list. */
 export const SUPPLIER_CONTACT_NOTE =
-  "Each company is listed by name, city and state. Federal winners link to the public award record and, where the company lists one in its SAM.gov registration, to its own website. The report does not include phone numbers or email addresses.";
+  "Federal winners are listed with the award record and, from the company's public SAM.gov registration where it has one, its website, business address and named contact. The report does not include phone numbers or email addresses, which SAM.gov does not publish.";
 /** The free report is built by hand for the request, so it can be led with what fits the requester. */
 export const SUPPLIER_TAILOR_NOTE = "Tell us what you sell and your report leads with the jobs most likely to need it.";
 /** True of the Agency plan (PLAN_COPY.agency: up to 10 workspaces, each with its own states and trades). */
@@ -120,7 +120,8 @@ export interface SupplierSample {
   newJobs: { id: number; title: string; agency: string; due: string }[];
   /** `url` is the award's public record on USAspending.gov . */
   /** `site` is the company's own website from its public SAM.gov registration, when it lists one. */
-  awards: { company: string; where: string; amount: number; date: string; what: string; url: string; site: string | null }[];
+  /** `address` and `contact` come from the company's public SAM.gov registration, when it is on file. */
+  awards: { company: string; where: string; amount: number; date: string; what: string; url: string; site: string | null; address: string | null; contact: string | null }[];
   ending: { company: string; amount: number; end: string; agency: string }[];
 }
 

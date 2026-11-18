@@ -1,6 +1,6 @@
 /** Storage and lookups for SAM.gov registered small businesses (src/lib/sam-registrants.ts). */
 import { sql } from "~/db";
-import type { SamRegistrant } from "~/lib/sam-registrants";
+import type { SamContact, SamRegistrant } from "~/lib/sam-registrants";
 
 export async function ensureSamRegistrantsTable(): Promise<void> {
   await sql()`
@@ -192,4 +192,59 @@ export async function claimRegistrant(userId: number, email: string, uei: string
     `;
   }
   return { ok: true, emailMatch: emailMatchesSite(email, r.url) };
+}
+
+/** Public address and contact for companies in our federal award records (see SamContact). */
+export async function ensureSamContactsTable(): Promise<void> {
+  await sql()`
+    CREATE TABLE IF NOT EXISTS sam_contacts (
+      uei TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      street TEXT,
+      city TEXT,
+      state TEXT,
+      zip TEXT,
+      url TEXT,
+      contact TEXT,
+      contact_title TEXT,
+      extract_date DATE NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )`;
+}
+
+/** The companies worth keeping a contact for: recent federal winners and holders of contracts ending soon. */
+export async function wantedContactUeis(): Promise<Set<string>> {
+  const out = new Set<string>();
+  for (const q of [
+    sql()`SELECT DISTINCT recipient_uei AS uei FROM award_leads WHERE recipient_uei IS NOT NULL`,
+    sql()`SELECT DISTINCT recipient_uei AS uei FROM recompete_contracts WHERE recipient_uei IS NOT NULL`,
+  ]) {
+    try {
+      for (const r of (await q) as { uei: string }[]) if (r.uei) out.add(r.uei);
+    } catch {
+      // a table that does not exist yet contributes nothing
+    }
+  }
+  return out;
+}
+
+export async function upsertSamContacts(rows: SamContact[], extractDate: string): Promise<void> {
+  rows = [...new Map(rows.map((r) => [r.uei, r])).values()];
+  if (!rows.length) return;
+  await sql()`
+    INSERT INTO sam_contacts (uei, name, street, city, state, zip, url, contact, contact_title, extract_date, updated_at)
+    SELECT x.uei, x.name, x.street, x.city, x.state, x.zip, x.url, x.contact, x."contactTitle", ${extractDate}::date, NOW()
+    FROM jsonb_to_recordset(${JSON.stringify(rows)}::jsonb)
+      AS x(uei TEXT, name TEXT, street TEXT, city TEXT, state TEXT, zip TEXT, url TEXT, contact TEXT, "contactTitle" TEXT)
+    ON CONFLICT (uei) DO UPDATE SET
+      name = EXCLUDED.name, street = EXCLUDED.street, city = EXCLUDED.city, state = EXCLUDED.state, zip = EXCLUDED.zip,
+      url = EXCLUDED.url, contact = EXCLUDED.contact, contact_title = EXCLUDED.contact_title,
+      extract_date = EXCLUDED.extract_date, updated_at = NOW()
+  `;
+}
+
+/** Drop contacts for companies no longer in the latest extract (expired or opted out of public display). */
+export async function pruneSamContacts(extractDate: string): Promise<number> {
+  const rows = (await sql()`DELETE FROM sam_contacts WHERE extract_date < ${extractDate}::date RETURNING uei`) as unknown[];
+  return rows.length;
 }

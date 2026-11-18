@@ -21,6 +21,7 @@ describe("private bid requests (owner 2026-11-18)", () => {
     // The owner confirmed the address on 2026-11-18, so the first request is published.
     expect(publishedPrivateBids().map((r) => r.slug)).toContain("kasselmann-hood-cleaning-ky-in");
     expect(publishedPrivateBids().map((r) => r.slug)).toContain("advanced-pro-cleaning-salt-lake-city-warehouse");
+    expect(privateBidBySlug("advanced-pro-cleaning-salt-lake-city-warehouse")?.deadline).toBe("2026-12-01");
     // A subcontract with no published pay says so instead of leaving it out.
     expect(privateBidBySlug("advanced-pro-cleaning-salt-lake-city-warehouse")?.scope.join(" ")).toContain("monthly pay is not in the notice");
   });

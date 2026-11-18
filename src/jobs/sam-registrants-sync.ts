@@ -8,8 +8,17 @@
 import { createReadStream } from "node:fs";
 import { basename } from "node:path";
 import { createInterface } from "node:readline";
-import { parseSamLine, type SamRegistrant } from "~/lib/sam-registrants";
-import { ensureSamRegistrantsTable, pruneSamRegistrants, samRegistrantCount, upsertSamRegistrants } from "~/lib/sam-registrants.server";
+import { parseSamContact, parseSamLine, type SamContact, type SamRegistrant } from "~/lib/sam-registrants";
+import {
+  ensureSamContactsTable,
+  ensureSamRegistrantsTable,
+  pruneSamContacts,
+  pruneSamRegistrants,
+  samRegistrantCount,
+  upsertSamContacts,
+  upsertSamRegistrants,
+  wantedContactUeis,
+} from "~/lib/sam-registrants.server";
 
 const BATCH = 1000;
 
@@ -21,6 +30,11 @@ async function main() {
   const extractDate = `${m[1].slice(0, 4)}-${m[1].slice(4, 6)}-${m[1].slice(6, 8)}`;
   await ensureSamRegistrantsTable();
   const before = await samRegistrantCount();
+  // Owner 2026-11-18: also keep the public address and contact of companies in our federal award
+  // records (any size), for the supplier report. A small set, chosen before the file is read.
+  await ensureSamContactsTable();
+  const wanted = await wantedContactUeis();
+  const contacts = new Map<string, SamContact>();
 
   let lines = 0;
   let kept = 0;
@@ -31,6 +45,11 @@ async function main() {
   const rl = createInterface({ input: createReadStream(file, { encoding: "utf8" }), crlfDelay: Infinity });
   for await (const line of rl) {
     lines++;
+    const bar = line.indexOf("|");
+    if (bar > 0 && wanted.has(line.slice(0, bar)) && !contacts.has(line.slice(0, bar))) {
+      const c = parseSamContact(line);
+      if (c) contacts.set(c.uei, c);
+    }
     const r = parseSamLine(line);
     if (!r || seen.has(r.uei)) continue;
     seen.add(r.uei);
@@ -44,6 +63,9 @@ async function main() {
   }
   await upsertSamRegistrants([...batch.values()], extractDate);
   console.log(`SAM extract ${extractDate}: ${lines} lines read, ${kept} small businesses kept`);
+  const contactRows = [...contacts.values()];
+  for (let i = 0; i < contactRows.length; i += BATCH) await upsertSamContacts(contactRows.slice(i, i + BATCH), extractDate);
+  console.log(`award-record companies: ${wanted.size} wanted, ${contactRows.length} found with a public registration, ${contactRows.filter((c) => c.contact).length} with a named contact`);
   console.log("by trade:", [...byTrade.entries()].sort((a, b) => b[1] - a[1]).map(([t, n]) => `${t} ${n}`).join(", "));
 
   // Prune only after a plausible load, so a cut-off download never empties the list.
@@ -52,6 +74,7 @@ async function main() {
     process.exitCode = 1;
     return;
   }
+  if (contactRows.length > 0) console.log(`dropped ${await pruneSamContacts(extractDate)} contacts no longer in the extract`);
   const dropped = await pruneSamRegistrants(extractDate);
   console.log(`dropped ${dropped} no longer in the extract; ${await samRegistrantCount()} stored`);
 }

@@ -45,7 +45,10 @@ export const SHOW_FREE_INCUMBENT = true;
 // Owner 2026-11-03 ("yes"): back to 3. Today 17 searchers each saw 1 bid and none
 // reached pricing, signup or checkout; three real bids show the list is real
 // before the $5 ask.
-export const FREE_ANONYMOUS_RADAR_RESULTS: number = 3;
+// Owner 2026-11-18 ("I'm a business", "do it now"): down to 1. A day of Facebook visitors and a
+// three-state contractor took every free bid they were shown and none paid. One real bid proves
+// the list is real; the count of the rest is shown and the rest is paid.
+export const FREE_ANONYMOUS_RADAR_RESULTS: number = 1;
 
 /**
  * Owner 2026-11-18 ("yes"): visitors who arrived from Facebook see 10 bids, not
@@ -53,7 +56,9 @@ export const FREE_ANONYMOUS_RADAR_RESULTS: number = 3;
  * group, each ran one search, saw 3 of 150 and a locked card, and all 10 left
  * without opening a bid or reaching signup. Everyone else keeps the 3.
  */
-export const FACEBOOK_ANONYMOUS_RADAR_RESULTS: number = 10;
+// Later the same day: no larger preview for Facebook visitors either (see above). The lookup stays
+// so the number can be raised again without new code.
+export const FACEBOOK_ANONYMOUS_RADAR_RESULTS: number = 1;
 
 /** Did this page view come from Facebook (its referrer, or a utm_source=facebook link)? PURE. */
 export function isFacebookArrival(referrer: string | null | undefined, path: string | null | undefined): boolean {

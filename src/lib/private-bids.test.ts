@@ -20,6 +20,9 @@ describe("private bid requests (owner 2026-11-18)", () => {
     expect(privateBidBySlug("kasselmann-hood-cleaning-ky-in")?.locations).toHaveLength(8);
     // The owner confirmed the address on 2026-11-18, so the first request is published.
     expect(publishedPrivateBids().map((r) => r.slug)).toContain("kasselmann-hood-cleaning-ky-in");
+    expect(publishedPrivateBids().map((r) => r.slug)).toContain("advanced-pro-cleaning-salt-lake-city-warehouse");
+    // A subcontract with no published pay says so instead of leaving it out.
+    expect(privateBidBySlug("advanced-pro-cleaning-salt-lake-city-warehouse")?.scope.join(" ")).toContain("monthly pay is not in the notice");
   });
   test("the page shows a contact only when there is one, and is not indexed before that", () => {
     const page = readFileSync(new URL("../routes/private-bids.$slug.tsx", import.meta.url), "utf8");

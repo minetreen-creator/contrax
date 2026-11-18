@@ -2,12 +2,12 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { FACEBOOK_ANONYMOUS_RADAR_RESULTS, FREE_ANONYMOUS_RADAR_RESULTS, anonymousPreviewLimit, isFacebookArrival } from "./radar-config";
 
-describe("signed-out visitors see 1 bid before the locked card, Facebook or not (owner 2026-11-18, twice)", () => {
-  test("everyone gets the same single free bid", () => {
-    expect(FREE_ANONYMOUS_RADAR_RESULTS).toBe(1);
-    expect(FACEBOOK_ANONYMOUS_RADAR_RESULTS).toBe(1);
-    expect(anonymousPreviewLimit(false)).toBe(1);
-    expect(anonymousPreviewLimit(true)).toBe(1);
+describe("signed-out visitors see 3 bids before the locked card, Facebook or not (owner 2026-11-18, twice)", () => {
+  test("everyone gets the same three free bids", () => {
+    expect(FREE_ANONYMOUS_RADAR_RESULTS).toBe(3);
+    expect(FACEBOOK_ANONYMOUS_RADAR_RESULTS).toBe(3);
+    expect(anonymousPreviewLimit(false)).toBe(3);
+    expect(anonymousPreviewLimit(true)).toBe(3);
   });
   test("recognises Facebook referrers and tagged links, and nothing else", () => {
     expect(isFacebookArrival("https://facebook.com/", "/contracts-in/south-carolina/construction")).toBe(true);

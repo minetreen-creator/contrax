@@ -323,6 +323,7 @@ function HomeSupplierRows({ sample }: { sample: SupplierSample }) {
                 <li key={i} className="px-4 py-3">
                   <p className="font-semibold text-slate-900">{a.company}{a.where ? ` (${a.where})` : ""}: {supplierMoney(a.amount)}</p>
                   <p className="text-sm text-slate-600">{a.what}{a.what ? " · " : ""}awarded {supplierDay(a.date)}</p>
+                  <a href={a.url} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-blue-700 underline underline-offset-4 hover:text-blue-900">View the federal award record →</a>
                 </li>
               ))}
             </ul>

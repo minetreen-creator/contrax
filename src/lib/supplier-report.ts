@@ -101,7 +101,8 @@ export interface SupplierSample {
   newThisWeek: number;
   closingSoon: number;
   newJobs: { id: number; title: string; agency: string; due: string }[];
-  awards: { company: string; where: string; amount: number; date: string; what: string }[];
+  /** `url` is the award's public record on USAspending.gov . */
+  awards: { company: string; where: string; amount: number; date: string; what: string; url: string }[];
   ending: { company: string; amount: number; end: string; agency: string }[];
 }
 

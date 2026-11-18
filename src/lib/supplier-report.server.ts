@@ -1,4 +1,5 @@
 import { STATE_NAMES } from "./contract-map";
+import { usaspendingUrl } from "./award-leads";
 import { SUPPLIER_AWARD_MIN, SUPPLIER_TITLE_PATTERN, type SupplierSample } from "./supplier-report";
 
 /** The live sample shown on /suppliers: real rows only; null when the database cannot be read. */
@@ -20,9 +21,9 @@ export async function loadSupplierSample(state: string): Promise<SupplierSample 
         AND created_at > NOW() - INTERVAL '7 days' AND title ~* ${P} AND title !~* 'addendum|cancel'
       ORDER BY created_at DESC LIMIT 8`) as { id: number; title: string; agency: string | null; due_date: string }[];
     const awards = (await s`
-      SELECT recipient_name, recipient_city, recipient_state, amount, awarded_on, description FROM award_leads
+      SELECT award_key, recipient_name, recipient_city, recipient_state, amount, awarded_on, description FROM award_leads
       WHERE pop_state = ${state} AND naics_code LIKE '23%' AND awarded_on IS NOT NULL AND amount >= ${SUPPLIER_AWARD_MIN}
-      ORDER BY awarded_on DESC LIMIT 5`.catch(() => [])) as { recipient_name: string; recipient_city: string | null; recipient_state: string | null; amount: number | string; awarded_on: string; description: string | null }[];
+      ORDER BY awarded_on DESC LIMIT 5`.catch(() => [])) as { award_key: string; recipient_name: string; recipient_city: string | null; recipient_state: string | null; amount: number | string; awarded_on: string; description: string | null }[];
     const ending = (await s`
       SELECT DISTINCT ON (award_key) recipient_name, amount, end_date, agency FROM recompete_contracts
       WHERE pop_state = ${state} AND naics_code LIKE '23%' AND end_date BETWEEN NOW() AND NOW() + INTERVAL '6 months'
@@ -41,6 +42,7 @@ export async function loadSupplierSample(state: string): Promise<SupplierSample 
         amount: Number(a.amount),
         date: iso(a.awarded_on),
         what: String(a.description ?? "").replace(/\s+/g, " ").trim().slice(0, 90),
+        url: usaspendingUrl(a.award_key),
       })),
       ending: ending
         .map((e) => ({ company: e.recipient_name, amount: Number(e.amount), end: iso(e.end_date), agency: e.agency ?? "" }))

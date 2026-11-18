@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { SiteHeader } from "~/components/SiteHeader";
 import { trackEvent } from "~/lib/track";
+import { PLAN_COPY } from "~/lib/plan-features";
 import { STATE_NAMES } from "~/lib/contract-map";
 import {
   SUPPLIER_INCLUDES,
@@ -18,7 +19,9 @@ import {
 /**
  * /suppliers — the weekly report for businesses that sell to contractors (owner 2026-11-18; see
  * ~/lib/supplier-report). The page shows this week's real South Carolina rows and takes a request
- * for a free report in the visitor's state. No checkout: each request reaches the owner by email.
+ * for a free report in the visitor's state; each request reaches the owner by email. The paid step is
+ * the Agency plan at $199 a month (owner 2026-11-12: "lift it for suppliers", "$199 it is"), the offer
+ * this page carried before 2026-11-18, kept here as the second button.
  */
 const PROD_URL = "https://www.contrax.company";
 const TITLE = "Public Construction Jobs Report for Suppliers | Contrax";
@@ -120,13 +123,14 @@ function RequestForm({ where }: { where: string }) {
       <button type="submit" disabled={status === "sending"} className="mt-5 w-full rounded-xl bg-amber-500 px-6 py-3 font-bold text-slate-950 hover:bg-amber-400 disabled:opacity-60">
         {status === "sending" ? "Sending…" : "Send my free report →"}
       </button>
-      <p className="mt-2 text-xs text-slate-500">One report, free. After that it is {SUPPLIER_PRICE} a month for one state, and only if you ask for it.</p>
+      <p className="mt-2 text-xs text-slate-500">One report, free. To keep getting it, the Agency plan is {SUPPLIER_PRICE} a month, month to month, and only if you choose it.</p>
     </form>
   );
 }
 
 function SuppliersPage() {
   const sample = Route.useLoaderData();
+  const features = PLAN_COPY.agency.features.filter((f) => !/^Or \$/.test(f) && f !== "Cancel anytime");
   return (
     <>
       <SiteHeader />
@@ -233,6 +237,27 @@ function SuppliersPage() {
             </div>
           </section>
         )}
+
+        <section className="px-4 pt-12 sm:pt-16">
+          <div className="mx-auto max-w-4xl rounded-2xl border border-slate-200 p-6 sm:p-8">
+            <h2 className="text-2xl font-extrabold text-slate-900">Ready now? The Agency plan</h2>
+            <p className="mt-2 text-sm text-slate-600">Set up each territory once and see the public jobs bidding there every weekday, without waiting for the weekly report.</p>
+            <ul className="mt-4 grid gap-2 text-sm text-slate-700 sm:grid-cols-2">
+              {features.map((f) => (
+                <li key={f}>✓ {f}</li>
+              ))}
+            </ul>
+            <p className="mt-4 text-sm text-slate-600">A workspace here is a territory or a branch. Each one belongs to your login; it is not an extra user seat.</p>
+            <a
+              href="/upgrade?plan=agency&source=suppliers"
+              onClick={() => trackEvent("suppliers_cta_click", "agency")}
+              className="mt-5 inline-block rounded-xl bg-slate-900 px-6 py-3 text-sm font-bold text-white hover:bg-slate-800"
+            >
+              Start the Agency plan: $199 a month →
+            </a>
+            <p className="mt-2 text-xs text-slate-500">Month to month. Cancel anytime. Or $1,990 a year.</p>
+          </div>
+        </section>
 
         <section className="px-4 py-12 sm:py-16">
           <div className="mx-auto max-w-xl">

@@ -322,10 +322,14 @@ function HomePrivateBids() {
             </li>
           ))}
         </ul>
-        <p className="mt-4 text-sm text-slate-700">
-          Need work done at your business?{" "}
-          <a href={POST_PROJECT_PATH} className="font-semibold text-blue-700 underline underline-offset-4 hover:text-blue-900">List your project free →</a>
-        </p>
+        <div className="mt-5 flex flex-col gap-4 rounded-2xl bg-slate-900 p-6 text-white sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-400">For business owners</p>
+            <h3 className="mt-1 text-xl font-extrabold">Need work done at your business?</h3>
+            <p className="mt-1 text-sm text-slate-300">Post the job free. We review it and list it here, and contractors send their bids straight to you. No fee, no account.</p>
+          </div>
+          <a href={POST_PROJECT_PATH} className="shrink-0 self-start rounded-xl bg-amber-500 px-6 py-3 text-center font-bold text-slate-950 hover:bg-amber-400 sm:self-center">Post your project free →</a>
+        </div>
       </div>
     </section>
   );

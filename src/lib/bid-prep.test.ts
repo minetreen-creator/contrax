@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { BID_PREP_MIN_DAYS, BID_PREP_PRICE, BID_PREP_PRICE_CENTS, bidPrepOffered, cleanPrepRequest, prepAlert, prepBuyerConfirmation, prepFromMetadata, prepMetadata, prepOwnerNotice, bidPrepSource, cleanIntake, intakeNotice, intakeUrl, INTAKE_FIELDS, BID_PREP_YOU_PROVIDE, type BidPrepOrder } from "./bid-prep";
+import { BID_PREP_MIN_DAYS, BID_PREP_PRICE, BID_PREP_PRICE_CENTS, bidPrepOffered, cleanPrepRequest, prepAlert, prepBuyerConfirmation, prepFromMetadata, prepMetadata, prepOwnerNotice, bidPrepSource, cleanIntake, intakeNotice, intakeUrl, INTAKE_FIELDS, BID_PREP_YOU_PROVIDE, BID_PREP_INCLUDES, type BidPrepOrder } from "./bid-prep";
 
 const NOW = new Date("2026-11-17T15:00:00Z");
 const ORDER: BidPrepOrder = { email: "owner@acmeclean.com", company: "Acme Cleaning LLC", bidId: 2301967, bidTitle: "Stow Road Sidewalk Improvements", agency: "City of Hudson", due: "2026-12-08T19:00:00.000Z" };
@@ -68,6 +68,9 @@ describe("bid prep", () => {
     const home = readFileSync("src/routes/index.tsx", "utf8");
     expect(home).toContain("<HomeBidPrep />");
     expect(home).toContain("{BID_PREP_INCLUDES.map(");
+    // Owner 2026-11-18: the price-sheet check is arithmetic and completeness; the price stays the buyer's.
+    expect(BID_PREP_INCLUDES.some((l) => l.startsWith("A check of your finished price sheet"))).toBe(true);
+    expect(BID_PREP_YOU_PROVIDE[0]).toContain("We do not price the job");
     const route = readFileSync("src/routes/api/bid-prep/checkout.ts", "utf8");
     expect(route).toContain("FROM bids WHERE id = ${req.bidId}");
     expect(route).toContain("bidPrepOffered(bid.due_date)");

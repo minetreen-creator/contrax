@@ -4,6 +4,7 @@ import { REPORT_DELIVERY, REPORT_PRICE } from "~/lib/pipeline-report";
 import { PARTNER_CLIENT_PROMISE, PARTNER_MARKETS, PARTNER_PRICE, PARTNER_RETAIL, PARTNER_SLA, PARTNER_VOLUME_AT, PARTNER_VOLUME_PRICE, partnerMarket, partnerSlug } from "~/lib/reseller";
 import { TRADEMARK_LINE } from "~/lib/trademark";
 import { WARM_SUBJECT, warmLeadLines } from "~/lib/warm-leads";
+import { supplierPitchBody, unpackSupplierPitch } from "~/lib/supplier-outreach";
 /**
  * Daily bid outreach (owner 2026-10-23: "I need something that brings in leads
  * and traffic"). Each weekday morning a job finds fresh open bids, looks up
@@ -248,7 +249,7 @@ export function outreachRoomToday(sentToday: number, cap: number = DAILY_OUTREAC
 }
 
 /** "pack" (owner 2026-11-14): a construction first email that offers a free Bid Pack, not the $5 pass. */
-export type OutreachKind = "first" | "followup" | "prime" | "leads" | "pack" | "buyer" | "teams" | "warm" | "partner" | "holder";
+export type OutreachKind = "first" | "followup" | "prime" | "leads" | "pack" | "buyer" | "teams" | "warm" | "partner" | "holder" | "supplier";
 
 /**
  * Holder emails (owner 2026-11-16: "we need to reach agencies" = bigger contractors, "go with the
@@ -475,6 +476,11 @@ export function outreachEmail(i: OutreachEmailInput): { subject: string; text: s
       "",
       "Good luck with the contract.",
     ];
+  } else if (i.kind === "supplier") {
+    // Owner 2026-11-18 ("do that"): businesses that sell to contractors. bidTitle = the subject,
+    // buyer = packSupplierPitch(...) with this week's real rows, place = the state's name.
+    subject = i.bidTitle.slice(0, 140);
+    body = supplierPitchBody(i.business, (i.place ?? "").trim() || "your state", unpackSupplierPitch(i.buyer), link("/suppliers", i.kind, i.contactId));
   } else if (i.kind === "partner") {
     // Owner 2026-11-15 ("Yes go", then three tweaks): firms that already serve government
     // contractors can give their clients the monthly report under their own name. The email leads

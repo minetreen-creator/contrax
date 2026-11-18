@@ -1,0 +1,53 @@
+name: Supplier Outreach
+
+# Owner 2026-11-18 ("do that"): the supplier email for businesses that sell to contractors
+# (src/jobs/supplier-outreach.ts). SENDS NOTHING: it queues drafts that wait on /admin/outreach.
+# Run by hand; without apply it only prints the business names.
+
+on:
+  workflow_dispatch:
+    inputs:
+      wanted:
+        description: "How many drafts to queue (1 to 40)"
+        type: string
+        default: "25"
+      state:
+        description: "Two-letter state"
+        type: string
+        default: "SC"
+      apply:
+        description: "Queue the drafts (leave off for a dry run)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: outreach-prepare
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  suppliers:
+    name: Queue supplier emails
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      WANTED: ${{ inputs.wanted }}
+      STATE: ${{ inputs.state }}
+      APPLY: ${{ inputs.apply && 'true' || 'false' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Supplier outreach
+        run: bun run supplier-outreach

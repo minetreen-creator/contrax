@@ -1,4 +1,4 @@
-import { SUPPLIER_INCLUDES, SUPPLIER_NOT_YET, SUPPLIER_SAMPLE_STATES, supplierDay, supplierMoney, type SupplierSample } from "~/lib/supplier-report";
+import { SUPPLIER_INCLUDES, SUPPLIER_NOT_YET, SUPPLIER_SUBHEAD, SUPPLIER_SAMPLE_STATES, supplierDay, supplierMoney, type SupplierSample } from "~/lib/supplier-report";
 import { SupplierRequestForm } from "~/components/SupplierRequestForm";
 import { createFileRoute } from "@tanstack/react-router";
 import { HomeMaxProof } from "~/components/HomeMaxProof";
@@ -387,7 +387,7 @@ function HomeSupplierHero({ samples }: { samples: SupplierSample[] }) {
             Know which public jobs are opening in your state before your competitors do
           </h1>
           <p className="mt-4 max-w-2xl text-base text-slate-300 sm:text-lg">
-            Suppliers, equipment rental, staffing firms, bonding and insurance agents: one report a week tells you who to call.
+            {SUPPLIER_SUBHEAD}
           </p>
           <ul className="mt-5 space-y-2 text-sm text-slate-200 sm:text-base">
             {SUPPLIER_INCLUDES.map((f) => (

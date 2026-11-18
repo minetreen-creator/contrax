@@ -236,7 +236,7 @@ function PricingPage() {
             <p className="text-xs font-bold uppercase tracking-widest text-amber-700">For businesses that sell to contractors</p>
             <p className="mt-2 text-2xl font-bold text-slate-900">The weekly supplier report: first one free, then $199 a month</p>
             <p className="mt-2 text-sm text-slate-700">
-              The public construction jobs opening in your state, federal awards and who won them, and contracts about to end. The paid step is the Agency plan, month to month.
+              The public construction jobs opening in your state, federal awards and who won them, and contracts about to end. The paid step is the Territory plan, month to month (billed as the Contrax Agency plan).
             </p>
             <a href="/suppliers" className="mt-4 inline-block rounded-xl bg-amber-500 px-5 py-2.5 text-sm font-bold text-slate-950 hover:bg-amber-400">
               See this week's sample and get a free report →

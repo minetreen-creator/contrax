@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { trackEvent } from "~/lib/track";
 import { STATE_NAMES } from "~/lib/contract-map";
-import { SUPPLIER_PRICE, SUPPLIER_SAMPLE_STATE, SUPPLIER_TYPES } from "~/lib/supplier-report";
+import { SUPPLIER_PLAN_NAME, SUPPLIER_PRICE, SUPPLIER_SAMPLE_STATE, SUPPLIER_TYPES } from "~/lib/supplier-report";
 
 /** The free supplier report request (see ~/lib/supplier-report). Used on /suppliers and at the top of the homepage. */
 const STATES = Object.entries(STATE_NAMES).sort((a, b) => a[1].localeCompare(b[1]));
@@ -76,7 +76,7 @@ export function SupplierRequestForm({ where }: { where: string }) {
       <button type="submit" disabled={status === "sending"} className="mt-5 w-full rounded-xl bg-amber-500 px-6 py-3 font-bold text-slate-950 hover:bg-amber-400 disabled:opacity-60">
         {status === "sending" ? "Sending…" : "Send my free report →"}
       </button>
-      <p className="mt-2 text-xs text-slate-500">One report, free. To keep getting it, the Agency plan is {SUPPLIER_PRICE} a month, month to month, and only if you choose it.</p>
+      <p className="mt-2 text-xs text-slate-500">One report, free. To keep getting it, the {SUPPLIER_PLAN_NAME} is {SUPPLIER_PRICE} a month, month to month, and only if you choose it.</p>
     </form>
   );
 }

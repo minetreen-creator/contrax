@@ -1,3 +1,4 @@
+import { POST_PROJECT_PATH } from "~/lib/private-bid-post";
 import { SUPPLIER_FINE_PRINT_SHORT, SUPPLIER_HOME_ROW_STATES, SUPPLIER_INCLUDES, SUPPLIER_SUBHEAD, SUPPLIER_SAMPLE_STATES, supplierDay, supplierMoney, type SupplierSample } from "~/lib/supplier-report";
 import { SupplierRequestForm } from "~/components/SupplierRequestForm";
 import { publishedPrivateBids } from "~/lib/private-bids";
@@ -323,7 +324,7 @@ function HomePrivateBids() {
         </ul>
         <p className="mt-4 text-sm text-slate-700">
           Need work done at your business?{" "}
-          <a href="/private-bids" className="font-semibold text-blue-700 underline underline-offset-4 hover:text-blue-900">List your project free →</a>
+          <a href={POST_PROJECT_PATH} className="font-semibold text-blue-700 underline underline-offset-4 hover:text-blue-900">List your project free →</a>
         </p>
       </div>
     </section>

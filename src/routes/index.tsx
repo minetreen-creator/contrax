@@ -212,7 +212,7 @@ function Home() {
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-400">For contractors</p>
           <h2 id="home-contractors-title" className="mt-2 text-2xl font-extrabold leading-tight sm:text-3xl">Looking for government work to bid on?</h2>
           <p className="mt-2 text-sm text-slate-300">
-            Search open bids by trade and state below.{" "}
+            Pick your trade and state below.{" "}
             <a href="/contractors" className="font-semibold text-amber-400 underline underline-offset-4 hover:text-amber-300">
               Bid Prep, the $9 pass and everything else for contractors →
             </a>

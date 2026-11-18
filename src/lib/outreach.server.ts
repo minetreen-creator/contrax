@@ -306,6 +306,21 @@ export async function queuePartner(p: { email: string; business: string; website
 }
 
 /**
+ * Queue a supplier draft (owner 2026-11-18). `packed` is packSupplierPitch(...): the real rows the
+ * email quotes. The draft goes stale after 10 days, because the rows do. False when the address is
+ * already known or on Do not contact.
+ */
+export async function queueSupplier(p: { email: string; business: string; website: string | null; subject: string; packed: string; typeLabel: string; place: string }): Promise<boolean> {
+  if (!(await isNewAddress(p.email))) return false;
+  const rows = (await sql()`
+    INSERT INTO outreach_contacts (email, kind, business, website, bid_id, bid_title, buyer, due_date, trade_label, place)
+    VALUES (${p.email.trim().toLowerCase()}, 'supplier', ${p.business}, ${p.website}, 0, ${p.subject}, ${p.packed},
+            CURRENT_DATE + 10, ${p.typeLabel}, ${p.place})
+    ON CONFLICT DO NOTHING RETURNING id`) as unknown[];
+  return rows.length > 0;
+}
+
+/**
  * Queue a holder draft (owner 2026-11-16). `endDate` is the day the company's own contract ends,
  * kept in due_date: the email states it, and the draft stays on the send list until then.
  */
@@ -521,7 +536,7 @@ export async function trimDraftsToCap(cap: number = DAILY_OUTREACH_CAP): Promise
     WITH ranked AS (
       SELECT id, ROW_NUMBER() OVER (ORDER BY
         (due_date < CURRENT_DATE + 2) ASC,
-        CASE kind WHEN 'first' THEN 0 WHEN 'pack' THEN 0 WHEN 'buyer' THEN 1 WHEN 'teams' THEN 1 WHEN 'holder' THEN 1 WHEN 'leads' THEN 1 WHEN 'prime' THEN 2 ELSE 3 END,
+        CASE kind WHEN 'first' THEN 0 WHEN 'pack' THEN 0 WHEN 'buyer' THEN 1 WHEN 'teams' THEN 1 WHEN 'holder' THEN 1 WHEN 'supplier' THEN 1 WHEN 'leads' THEN 1 WHEN 'prime' THEN 2 ELSE 3 END,
         due_date ASC, id ASC) AS rn
       FROM outreach_contacts WHERE status = 'draft'
     )
@@ -594,7 +609,7 @@ export async function sendDrafts(ids: number[]): Promise<{ sent: number; failed:
     }
     const row = normalize(claimed[0]!);
     // Prime and Award Leads rows have no bid behind bid_id: no posting lookup.
-    const posting = row.kind === "prime" || row.kind === "leads" || row.kind === "teams" || row.kind === "warm" || row.kind === "partner" || row.kind === "holder" ? null : (await postingUrls([row.bid_id])).get(row.bid_id) ?? null;
+    const posting = row.kind === "prime" || row.kind === "leads" || row.kind === "teams" || row.kind === "warm" || row.kind === "partner" || row.kind === "holder" || row.kind === "supplier" ? null : (await postingUrls([row.bid_id])).get(row.bid_id) ?? null;
     const mail = renderContact(row, postal!, posting);
     const unsub = unsubscribeUrl(row.email);
     try {

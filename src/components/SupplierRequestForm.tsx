@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { trackEvent } from "~/lib/track";
 import { STATE_NAMES } from "~/lib/contract-map";
-import { SUPPLIER_MULTI_STATE, SUPPLIER_PLAN_NAME, SUPPLIER_PRICE, SUPPLIER_SAMPLE_STATE, SUPPLIER_TAILOR_NOTE, SUPPLIER_TYPES } from "~/lib/supplier-report";
+import { SUPPLIER_FORWARD_NOTE, SUPPLIER_MULTI_STATE, SUPPLIER_PLAN_NAME, SUPPLIER_PRICE, SUPPLIER_SAMPLE_STATE, SUPPLIER_TAILOR_NOTE, SUPPLIER_TYPES } from "~/lib/supplier-report";
 
 /** The free supplier report request (see ~/lib/supplier-report). Used on /suppliers and at the top of the homepage. */
 const STATES = Object.entries(STATE_NAMES).sort((a, b) => a[1].localeCompare(b[1]));
@@ -73,12 +73,14 @@ export function SupplierRequestForm({ where }: { where: string }) {
           </select>
         </label>
       </div>
+      <p aria-live="polite" className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-slate-800">{SUPPLIER_TYPES.find((t) => t.id === type)?.why}</p>
       {error && <p role="alert" className="mt-3 text-sm font-semibold text-red-700">{error}</p>}
       <button type="submit" disabled={status === "sending"} className="mt-5 w-full rounded-xl bg-amber-500 px-6 py-3 font-bold text-slate-950 hover:bg-amber-400 disabled:opacity-60">
         {status === "sending" ? "Sending…" : "Send my free report →"}
       </button>
       <p className="mt-2 text-xs text-slate-500">One report, free. To keep getting it, the {SUPPLIER_PLAN_NAME} is {SUPPLIER_PRICE} a month, month to month, and only if you choose it.</p>
       <p className="mt-1 text-xs text-slate-500">{SUPPLIER_MULTI_STATE}</p>
+      <p className="mt-1 text-xs text-slate-500">{SUPPLIER_FORWARD_NOTE}</p>
     </form>
   );
 }

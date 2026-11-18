@@ -127,3 +127,20 @@ describe("acronyms and Mc names in capitalised records", () => {
     expect(tidyCaps("BRANTLEY CONSTRUCTION SERVICES, LLC")).toBe("Brantley Construction Services, LLC");
   });
 });
+
+describe("role lines, closing note and forward note", () => {
+  test("every business type has its own line, shown under the dropdown", async () => {
+    const { SUPPLIER_TYPES } = await import("./supplier-report");
+    for (const t of SUPPLIER_TYPES) expect(t.why.length).toBeGreaterThan(40);
+    expect(new Set(SUPPLIER_TYPES.map((t) => t.why)).size).toBe(SUPPLIER_TYPES.length);
+    const form = readFileSync(new URL("../components/SupplierRequestForm.tsx", import.meta.url), "utf8");
+    expect(form).toContain("?.why");
+    expect(form).toContain("SUPPLIER_FORWARD_NOTE");
+  });
+  test("the homepage says what closing in 7 days means for a supplier, and nothing promises a document we do not send", async () => {
+    const { SUPPLIER_CLOSING_NOTE, SUPPLIER_FORWARD_NOTE } = await import("./supplier-report");
+    expect(readFileSync(new URL("../routes/index.tsx", import.meta.url), "utf8")).toContain("{SUPPLIER_CLOSING_NOTE}");
+    expect(SUPPLIER_CLOSING_NOTE).toContain("before bid day");
+    expect(SUPPLIER_FORWARD_NOTE).not.toMatch(/ROI/i);
+  });
+});

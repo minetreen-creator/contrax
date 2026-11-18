@@ -7,7 +7,10 @@ import { PLAN_COPY } from "~/lib/plan-features";
 import {
   SUPPLIER_INCLUDES,
   SUPPLIER_NOT_YET,
-  SUPPLIER_SAMPLE_STATE,
+  SUPPLIER_PLAN_BILLED_AS,
+  SUPPLIER_PLAN_NAME,
+  SUPPLIER_SAMPLE_STATES,
+  SUPPLIER_SUBHEAD,
   supplierDay,
   supplierMoney,
   type SupplierSample,
@@ -25,9 +28,9 @@ const TITLE = "Public Construction Jobs Report for Suppliers | Contrax";
 const DESC =
   "A weekly report for businesses that sell to contractors: the public construction jobs opening in your state, federal jobs just awarded and who won them, and contracts about to end.";
 
-const getSample = createServerFn({ method: "GET" }).handler(async (): Promise<SupplierSample | null> => {
-  const { loadSupplierSample } = await import("~/lib/supplier-report.server");
-  return loadSupplierSample(SUPPLIER_SAMPLE_STATE);
+const getSample = createServerFn({ method: "GET" }).handler(async (): Promise<SupplierSample[]> => {
+  const { loadSupplierSamples } = await import("~/lib/supplier-report.server");
+  return loadSupplierSamples(SUPPLIER_SAMPLE_STATES);
 });
 
 export const Route = createFileRoute("/suppliers")({
@@ -49,7 +52,7 @@ export const Route = createFileRoute("/suppliers")({
 });
 
 function SuppliersPage() {
-  const sample = Route.useLoaderData();
+  const samples = Route.useLoaderData();
   const features = PLAN_COPY.agency.features.filter((f) => !/^Or \$/.test(f) && f !== "Cancel anytime");
   return (
     <>
@@ -61,8 +64,7 @@ function SuppliersPage() {
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-400">For businesses that sell to contractors</p>
               <h1 className="mt-3 text-3xl font-extrabold leading-tight sm:text-5xl">Know which public jobs are opening in your state before your competitors do</h1>
               <p className="mt-4 max-w-2xl text-base text-slate-300 sm:text-lg">
-                Every public job that gets built needs materials, equipment, crews, bonds and licenses. Contrax reads the bid boards for
-                you and sends one report a week: what is opening, what was just awarded and to whom, and which contracts are about to end.
+                {SUPPLIER_SUBHEAD} Contrax reads the bid boards for you and sends one report a week.
               </p>
               <ul className="mt-6 space-y-2 text-sm text-slate-200 sm:text-base">
                 {SUPPLIER_INCLUDES.map((line) => (
@@ -94,8 +96,8 @@ function SuppliersPage() {
           </div>
         </section>
 
-        {sample && (sample.newJobs.length > 0 || sample.awards.length > 0) && (
-          <section className="bg-slate-50 px-4 py-12 sm:py-16">
+        {samples.filter((sample) => sample.newJobs.length > 0 || sample.awards.length > 0).map((sample) => (
+          <section key={sample.state} className="bg-slate-50 px-4 py-12 sm:py-16">
             <div className="mx-auto max-w-4xl">
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-600">This week's sample, from live data</p>
               <h2 className="mt-2 text-2xl font-extrabold text-slate-900 sm:text-3xl">{sample.stateName} public construction</h2>
@@ -156,11 +158,11 @@ function SuppliersPage() {
               <p className="mt-4 text-xs text-slate-500">Taken from public bid boards and federal award records. {SUPPLIER_NOT_YET}</p>
             </div>
           </section>
-        )}
+        ))}
 
         <section className="px-4 pt-12 sm:pt-16">
           <div className="mx-auto max-w-4xl rounded-2xl border border-slate-200 p-6 sm:p-8">
-            <h2 className="text-2xl font-extrabold text-slate-900">Ready now? The Agency plan</h2>
+            <h2 className="text-2xl font-extrabold text-slate-900">Ready now? The {SUPPLIER_PLAN_NAME}</h2>
             <p className="mt-2 text-sm text-slate-600">Set up each territory once and see the public jobs bidding there every weekday, without waiting for the weekly report.</p>
             <ul className="mt-4 grid gap-2 text-sm text-slate-700 sm:grid-cols-2">
               {features.map((f) => (
@@ -173,9 +175,9 @@ function SuppliersPage() {
               onClick={() => trackEvent("suppliers_cta_click", "agency")}
               className="mt-5 inline-block rounded-xl bg-slate-900 px-6 py-3 text-sm font-bold text-white hover:bg-slate-800"
             >
-              Start the Agency plan: $199 a month →
+              Start the {SUPPLIER_PLAN_NAME}: $199 a month →
             </a>
-            <p className="mt-2 text-xs text-slate-500">Month to month. Cancel anytime. Or $1,990 a year.</p>
+            <p className="mt-2 text-xs text-slate-500">Month to month. Cancel anytime. Or $1,990 a year. {SUPPLIER_PLAN_BILLED_AS}</p>
           </div>
         </section>
 

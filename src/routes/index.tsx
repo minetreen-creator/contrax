@@ -1,4 +1,4 @@
-import { SUPPLIER_INCLUDES, SUPPLIER_NOT_YET, SUPPLIER_SAMPLE_STATE, supplierDay, supplierMoney, type SupplierSample } from "~/lib/supplier-report";
+import { SUPPLIER_HOME_ROW_STATES, SUPPLIER_INCLUDES, SUPPLIER_NOT_YET, SUPPLIER_SUBHEAD, SUPPLIER_SAMPLE_STATES, supplierDay, supplierMoney, type SupplierSample } from "~/lib/supplier-report";
 import { SupplierRequestForm } from "~/components/SupplierRequestForm";
 import { createFileRoute } from "@tanstack/react-router";
 import { HomeMaxProof } from "~/components/HomeMaxProof";
@@ -121,9 +121,9 @@ export const getLandingData = createServerFn({ method: "GET" }).handler(async ()
   return { businessName, bidStats, contractMap, maxProofCurrent };
 });
 
-const getSupplierSample = createServerFn({ method: "GET" }).handler(async (): Promise<SupplierSample | null> => {
-  const { loadSupplierSample } = await import("~/lib/supplier-report.server");
-  return loadSupplierSample(SUPPLIER_SAMPLE_STATE);
+const getSupplierSamples = createServerFn({ method: "GET" }).handler(async (): Promise<SupplierSample[]> => {
+  const { loadSupplierSamples } = await import("~/lib/supplier-report.server");
+  return loadSupplierSamples(SUPPLIER_SAMPLE_STATES);
 });
 
 // ── Route ─────────────────────────────────────────────────────────────────────
@@ -136,8 +136,8 @@ const PAGE_DESCRIPTION =
 
 export const Route = createFileRoute("/")({
   loader: async () => {
-    const [landing, sample, supplierSample] = await Promise.all([getLandingData(), getEverydaySample(), getSupplierSample()]);
-    return { ...landing, sample, supplierSample };
+    const [landing, sample, supplierSamples] = await Promise.all([getLandingData(), getEverydaySample(), getSupplierSamples()]);
+    return { ...landing, sample, supplierSamples };
   },
   component: Home,
   head: () => ({
@@ -175,7 +175,7 @@ export const Route = createFileRoute("/")({
 function Home() {
 
   const { contractMap } = Route.useLoaderData();
-  const { sample, supplierSample } = Route.useLoaderData();
+  const { sample, supplierSamples } = Route.useLoaderData();
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -205,8 +205,10 @@ function Home() {
       {/* Owner 2026-11-18 ("do all"): the homepage is about one customer. Suppliers get the hero, real
           rows and the form; contractors get one block with the search, and everything else that was
           here lives on /contractors (ContractorSections below), one click away. */}
-      <HomeSupplierHero sample={supplierSample} />
-      <HomeSupplierRows sample={supplierSample} />
+      <HomeSupplierHero samples={supplierSamples} />
+      {supplierSamples.slice(0, SUPPLIER_HOME_ROW_STATES).map((one) => (
+        <HomeSupplierRows key={one.state} sample={one} />
+      ))}
       <section aria-labelledby="home-contractors-title" className="bg-[#07162e] px-4 pb-2 pt-8 text-white sm:px-8 sm:pt-10">
         <div className="mx-auto max-w-7xl">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-400">For contractors</p>
@@ -295,14 +297,14 @@ export function ContractorSections({
 }
 
 /** Real rows under the supplier hero: this week's new jobs and the latest federal awards. Nothing when there are none. */
-function HomeSupplierRows({ sample }: { sample: SupplierSample | null }) {
-  if (!sample || (sample.newJobs.length === 0 && sample.awards.length === 0)) return null;
+function HomeSupplierRows({ sample }: { sample: SupplierSample }) {
+  if (sample.newJobs.length === 0 && sample.awards.length === 0) return null;
   return (
-    <section aria-labelledby="home-supplier-rows-title" className="bg-white px-4 py-8 text-slate-900 sm:px-8 sm:py-10">
+    <section aria-label={`${sample.stateName} this week`} className="bg-white px-4 py-6 text-slate-900 sm:px-8 sm:py-8">
       <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-2">
         {sample.newJobs.length > 0 && (
           <div>
-            <h2 id="home-supplier-rows-title" className="text-lg font-bold">New in {sample.stateName} this week</h2>
+            <h2 className="text-lg font-bold">New in {sample.stateName} this week</h2>
             <ul className="mt-3 divide-y divide-slate-200 rounded-xl border border-slate-200">
               {sample.newJobs.slice(0, 4).map((j) => (
                 <li key={j.id} className="px-4 py-3">
@@ -375,7 +377,7 @@ function HomeChoice({ heading = "h2" }: { heading?: "h1" | "h2" }) {
  * service is bought on a bid's own page, so this says what it is and sends the visitor to pick a bid.
  * Every line comes from src/lib/bid-prep.ts, the same words the bid page and the checkout use.
  */
-function HomeSupplierHero({ sample }: { sample: SupplierSample | null }) {
+function HomeSupplierHero({ samples }: { samples: SupplierSample[] }) {
   return (
     <section id="suppliers" aria-labelledby="home-suppliers-title" className="bg-slate-950 px-4 py-10 text-white sm:px-8 sm:py-16">
       <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-start">
@@ -385,29 +387,37 @@ function HomeSupplierHero({ sample }: { sample: SupplierSample | null }) {
             Know which public jobs are opening in your state before your competitors do
           </h1>
           <p className="mt-4 max-w-2xl text-base text-slate-300 sm:text-lg">
-            Suppliers, equipment rental, staffing firms, bonding and insurance agents: one report a week tells you who to call.
+            {SUPPLIER_SUBHEAD}
           </p>
           <ul className="mt-5 space-y-2 text-sm text-slate-200 sm:text-base">
             {SUPPLIER_INCLUDES.map((f) => (
               <li key={f} className="flex gap-2"><span aria-hidden className="text-amber-400">✓</span><span>{f}</span></li>
             ))}
           </ul>
-          {sample && sample.open > 0 && (
-            <dl className="mt-6 grid max-w-lg grid-cols-3 gap-3">
-              {[
-                [`Open in ${sample.stateName}`, sample.open],
-                ["New this week", sample.newThisWeek],
-                ["Closing in 7 days", sample.closingSoon],
-              ].map(([k, v]) => (
-                <div key={String(k)} className="rounded-xl border border-white/10 bg-white/5 px-3 py-3">
-                  <dt className="text-xs text-slate-400">{k}</dt>
-                  <dd className="mt-1 text-2xl font-bold">{v}</dd>
-                </div>
-              ))}
-            </dl>
+          {samples.length > 0 && (
+            <table className="mt-6 w-full max-w-lg text-left text-sm">
+              <thead>
+                <tr className="text-xs text-slate-400">
+                  <th scope="col" className="pb-2 font-normal">Public construction jobs</th>
+                  <th scope="col" className="pb-2 font-normal">Open now</th>
+                  <th scope="col" className="pb-2 font-normal">New this week</th>
+                  <th scope="col" className="pb-2 font-normal">Closing in 7 days</th>
+                </tr>
+              </thead>
+              <tbody>
+                {samples.map((one) => (
+                  <tr key={one.state} className="border-t border-white/10">
+                    <th scope="row" className="py-2 font-semibold">{one.stateName}</th>
+                    <td className="py-2 text-xl font-bold">{one.open}</td>
+                    <td className="py-2 text-xl font-bold">{one.newThisWeek}</td>
+                    <td className="py-2 text-xl font-bold">{one.closingSoon}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
           <p className="mt-4 text-sm text-slate-300">
-            <a href="/suppliers" className="font-semibold text-amber-400 underline underline-offset-4 hover:text-amber-300">See this week's full sample →</a>
+            <a href="/suppliers" className="font-semibold text-amber-400 underline underline-offset-4 hover:text-amber-300">See this week's full sample for all five states →</a>
           </p>
           <p className="mt-2 text-xs text-slate-400">{SUPPLIER_NOT_YET}</p>
         </div>

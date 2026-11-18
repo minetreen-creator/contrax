@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { SUPPLIER_NOT_YET, SUPPLIER_PRICE, cleanSupplierRequest, supplierDay, supplierMoney, supplierNotice } from "./supplier-report";
+import { SUPPLIER_AWARD_MIN, SUPPLIER_SUBHEAD, SUPPLIER_NOT_YET, SUPPLIER_PRICE, SUPPLIER_SAMPLE_STATES, cleanSupplierRequest, supplierDay, supplierMoney, supplierNotice } from "./supplier-report";
 
 describe("supplier report (owner 2026-11-18)", () => {
   test("a request needs a real email and a real state; the business type falls back", () => {
@@ -38,7 +38,16 @@ describe("supplier report (owner 2026-11-18)", () => {
     const home = readFileSync(new URL("../routes/index.tsx", import.meta.url), "utf8");
     expect(home).toContain('href="/suppliers"');
     // Owner 2026-11-18: the homepage opens with the supplier report and its request form.
-    expect(home).toContain("<HomeSupplierHero sample={supplierSample} />\n      <HomeSupplierRows sample={supplierSample} />");
+    expect(home).toContain("<HomeSupplierHero samples={supplierSamples} />");
+    expect(home).toContain("<HomeSupplierRows key={one.state} sample={one} />");
+    // Owner 2026-11-18 ("lets add NC too", "might as well add VA, FL and GA"); small awards left out.
+    expect([...SUPPLIER_SAMPLE_STATES]).toEqual(["SC", "NC", "VA", "GA", "FL"]);
+    expect(home).toContain("supplierSamples.slice(0, SUPPLIER_HOME_ROW_STATES).map(");
+    expect(SUPPLIER_AWARD_MIN).toBe(100_000);
+    // The pitch names only what the report holds: no bidder lists, no contact details, federal winners only.
+    expect(SUPPLIER_SUBHEAD).toContain("who just won federal work");
+    expect(SUPPLIER_SUBHEAD).not.toMatch(/about to bid|phone|contact/i);
+    expect(home + page).not.toMatch(/555-01\d\d/);
     // The contractor sections are one click away, unchanged, on /contractors.
     expect(home).toContain("export function ContractorSections(");
     const contractors = readFileSync(new URL("../routes/contractors.tsx", import.meta.url), "utf8");

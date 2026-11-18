@@ -10,7 +10,9 @@ test("the suppliers page sells the existing Agency plan at $199", () => {
   expect(page).toContain('createFileRoute("/suppliers")');
   expect(page).toContain("PLAN_COPY.agency");
   expect(page).toContain('href="/upgrade?plan=agency&source=suppliers"');
-  expect(page).toContain("Start the Agency plan: $199 a month");
+  // Owner 2026-11-18: suppliers see it as the Territory plan; it is still the Agency plan at checkout.
+  expect(page).toContain("Start the {SUPPLIER_PLAN_NAME}: $199 a month");
+  expect(page).toContain("{SUPPLIER_PLAN_BILLED_AS}");
   expect(page).toContain("it is not an extra user seat.");
 });
 

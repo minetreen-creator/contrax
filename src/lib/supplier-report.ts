@@ -14,7 +14,23 @@ import { STATE_NAMES } from "./contract-map";
 
 /** The Agency plan's price (owner 2026-11-12: "$199 it is"). The paid step after the free report. */
 export const SUPPLIER_PRICE = "$199";
+/**
+ * What suppliers are told the paid plan is called (owner 2026-11-18, review: "Agency plan" reads as
+ * a plan for government or marketing agencies). It is the existing Agency plan, and the checkout
+ * and receipt still say Agency, so the page says so once.
+ */
+export const SUPPLIER_PLAN_NAME = "Territory plan";
+export const SUPPLIER_PLAN_BILLED_AS = "Billed as the Contrax Agency plan.";
+/** The one-line pitch. It names only what the report holds: jobs opening, and federal winners. */
+export const SUPPLIER_SUBHEAD =
+  "Suppliers, equipment rental, staffing and bonding agents: a weekly list of the public jobs opening in your territory, and the contractors who just won federal work there.";
 export const SUPPLIER_SAMPLE_STATE = "SC";
+/** States shown in the live sample (owner 2026-11-18: "lets add NC too", then "might as well add VA, FL and GA"). The first is the form's default. */
+export const SUPPLIER_SAMPLE_STATES: readonly string[] = ["SC", "NC", "VA", "GA", "FL"];
+/** The homepage lists every state's counts but real rows for only this many, so it stays short; /suppliers shows them all. */
+export const SUPPLIER_HOME_ROW_STATES = 2;
+/** Federal awards below this are left out of the sample: a $25,030 job is real but tells a supplier little. */
+export const SUPPLIER_AWARD_MIN = 100_000;
 
 export const SUPPLIER_TYPES: readonly { id: string; label: string }[] = [
   { id: "materials", label: "Building materials or supply" },

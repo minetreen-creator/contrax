@@ -83,7 +83,7 @@ describe("readable rows (owner 2026-11-18)", () => {
     const { tidyCaps, clip, SUPPLIER_SUPPLY_PATTERN } = await import("./supplier-report");
     expect(tidyCaps("BRANTLEY CONSTRUCTION SERVICES, LLC")).toBe("Brantley Construction Services, LLC");
     expect(tidyCaps("CITY OF RALEIGH")).toBe("City of Raleigh");
-    expect(tidyCaps("EHRM DATA CENTER UPGRADES - CHARLESTON, SC EO 14398")).toBe("Ehrm Data Center Upgrades - Charleston, SC EO 14398");
+    expect(tidyCaps("EHRM DATA CENTER UPGRADES - CHARLESTON, SC EO 14398")).toBe("EHRM Data Center Upgrades - Charleston, SC EO 14398");
     expect(tidyCaps("DESIGN BUILD CONSTRUCTION FOR HC-130J FLIGHT SIMULATOR FACILITY AT U.S. COAST GUARD BASE")).toBe("Design Build Construction for HC-130J Flight Simulator Facility at U.S. Coast Guard Base");
     expect(tidyCaps("SDC TIDEWATER JV, LLC")).toBe("SDC Tidewater JV, LLC");
     expect(tidyCaps("VDOT HVAC UPGRADE PHASE III")).toBe("VDOT HVAC Upgrade Phase III");
@@ -115,5 +115,15 @@ describe("contact line and design-services requests", () => {
     expect(re.test("Request for Qualifications for Engineering, Landscape Architecture and/or Consulting Services")).toBe(true);
     expect(re.test("Design Build Construction for HC-130J Flight Simulator Facility")).toBe(false);
     expect(re.test("Sunset Park Partial Roof Replacement")).toBe(false);
+  });
+});
+
+describe("acronyms and Mc names in capitalised records", () => {
+  test("program acronyms stay in capitals and Mc surnames get their second capital", async () => {
+    const { tidyCaps } = await import("./supplier-report");
+    expect(tidyCaps("GAOA BUCK HALL RECREATION PHASE 1 RENOVATION")).toBe("GAOA Buck Hall Recreation Phase 1 Renovation");
+    expect(tidyCaps("EHRM DATA CENTER UPGRADES - CHARLESTON, SC")).toBe("EHRM Data Center Upgrades - Charleston, SC");
+    expect(tidyCaps("CHRISTINA MCALHANEY")).toBe("Christina McAlhaney");
+    expect(tidyCaps("BRANTLEY CONSTRUCTION SERVICES, LLC")).toBe("Brantley Construction Services, LLC");
   });
 });

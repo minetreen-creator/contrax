@@ -89,6 +89,8 @@ const CAPS_KEEP = new Set([
   "HVAC", "AHU", "AHUS", "MEP", "TPO", "ADA", "CIPP", "IAW", "EO", "RFP", "RFQ", "IFB",
   "DOT", "VDOT", "NCDOT", "SCDOT", "GDOT", "FDOT", "USCG", "USACE", "NPS", "GSA", "FAA", "FEMA", "USDA", "NASA", "DOD", "DHS",
   "VA", "NC", "SC", "GA", "FL", "AL", "TN", "KY", "MD", "DC", "TX", "OH", "PA", "NY", "NJ",
+  // Federal programs and offices that show up in award descriptions.
+  "GAOA", "EHRM", "VAMC", "VHA", "IDIQ", "MATOC", "SATOC", "BPA", "FY", "USMC", "USAF", "NAVFAC", "AFB", "MCAS", "NAS", "JBSA", "NOAA", "USFS", "BLM", "EPA", "ATC", "UPS", "LED", "CCTV", "ADAL", "FRP", "RTU", "AC",
 ]);
 const CAPS_FIXED: Record<string, string> = { INC: "Inc", CORP: "Corp", CO: "Co", LTD: "Ltd" };
 const CAPS_SMALL = new Set(["a", "an", "and", "at", "by", "for", "in", "of", "on", "or", "the", "to", "with"]);
@@ -111,7 +113,10 @@ export function tidyCaps(raw: string): string {
       if (bare.length <= 4 && !/[AEIOUY]/.test(bare)) return word;
       const lower = word.toLowerCase();
       if (i > 0 && CAPS_SMALL.has(lower)) return lower;
-      return lower.replace(/(^|[-/(&])([a-z])/g, (_m, pre: string, ch: string) => pre + ch.toUpperCase());
+      return lower
+        .replace(/(^|[-/(&])([a-z])/g, (_m, pre: string, ch: string) => pre + ch.toUpperCase())
+        // Surnames and places such as McAlhaney, McDonald, McClellanville.
+        .replace(/\bMc([a-z])(?=[a-z]{2})/g, (_m, ch: string) => `Mc${ch.toUpperCase()}`);
     })
     .join(" ");
 }

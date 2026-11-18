@@ -58,7 +58,8 @@ test("the homepage opens with one headline and two equal lanes, and the search i
   expect(finder).toContain("const Title = heading;");
   expect(finder.match(/<h1/g)).toBeNull();
   // Search engines and assistants are told about both customers.
-  expect(home).toContain("Win government work two ways");
+  // Owner 2026-11-18: suppliers first, contractors second.
+  expect(home).toContain("Contractors can search open government bids by trade and state.");
 });
 
 // Owner 2026-11-14: three tweaks to the homepage.

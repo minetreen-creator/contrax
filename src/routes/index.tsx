@@ -1,4 +1,5 @@
-import { SUPPLIER_INCLUDES, SUPPLIER_PRICE } from "~/lib/supplier-report";
+import { SUPPLIER_INCLUDES, SUPPLIER_NOT_YET, SUPPLIER_SAMPLE_STATE, type SupplierSample } from "~/lib/supplier-report";
+import { SupplierRequestForm } from "~/components/SupplierRequestForm";
 import { createFileRoute } from "@tanstack/react-router";
 import { HomeMaxProof } from "~/components/HomeMaxProof";
 import { createServerFn } from "@tanstack/react-start";
@@ -120,16 +121,23 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
   return { businessName, bidStats, contractMap, maxProofCurrent };
 });
 
+const getSupplierSample = createServerFn({ method: "GET" }).handler(async (): Promise<SupplierSample | null> => {
+  const { loadSupplierSample } = await import("~/lib/supplier-report.server");
+  return loadSupplierSample(SUPPLIER_SAMPLE_STATE);
+});
+
 // ── Route ─────────────────────────────────────────────────────────────────────
 
-const PAGE_TITLE = "Contrax | Your next government customer starts here";
+// Owner 2026-11-18 ("yes"): the site leads with the report for businesses that sell to contractors;
+// a month of contractor traffic searched and did not pay. Contractors keep their search, lower down.
+const PAGE_TITLE = "Contrax | The public construction jobs opening in your state, every week";
 const PAGE_DESCRIPTION =
-  "Win government work two ways: search open bids in your trade and state yourself, or have a report of ending contracts and matching bids prepared for your team.";
+  "For suppliers, equipment rental, staffing and bonding firms: a weekly report of the public construction jobs opening in your state, federal awards and who won them. Contractors can search open government bids by trade and state.";
 
 export const Route = createFileRoute("/")({
   loader: async () => {
-    const [landing, sample] = await Promise.all([getLandingData(), getEverydaySample()]);
-    return { ...landing, sample };
+    const [landing, sample, supplierSample] = await Promise.all([getLandingData(), getEverydaySample(), getSupplierSample()]);
+    return { ...landing, sample, supplierSample };
   },
   component: Home,
   head: () => ({
@@ -167,7 +175,7 @@ export const Route = createFileRoute("/")({
 function Home() {
 
   const { contractMap, maxProofCurrent } = Route.useLoaderData();
-  const { sample } = Route.useLoaderData();
+  const { sample, supplierSample } = Route.useLoaderData();
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -175,7 +183,7 @@ function Home() {
     name: "Contrax",
     legalName: "Contrax LLC",
     description:
-      "Contrax helps businesses win government work two ways. Contractors and small businesses search open bids from cities, counties, school districts, state and federal agencies, matched to their trade and state. Companies with a sales team get a prepared report of the federal contracts ending in their line of work, who holds them and the open bids that fit.",
+      "Contrax sends businesses that sell to contractors a weekly report of the public construction jobs opening in their state. It also helps businesses win government work two ways. Contractors and small businesses search open bids from cities, counties, school districts, state and federal agencies, matched to their trade and state. Companies with a sales team get a prepared report of the federal contracts ending in their line of work, who holds them and the open bids that fit.",
     url: "https://www.contrax.company",
     logo: "https://www.contrax.company/logo-square.png",
     email: "contrax.companyllc@gmail.com",
@@ -194,21 +202,13 @@ function Home() {
           Pathway, app, megaprojects and the extra tool links moved to their own pages and the footer. */}
       {/* Owner 2026-11-14 ("equal"): two customers, so the page opens with the choice between them,
           each with the same weight; the bid search follows as the do-it-yourself side's first step. */}
+      <HomeSupplierHero sample={supplierSample} />
       <HomeChoice />
       {/* Owner 2026-11-16: a real open bid per trade, the notice beside the brief, right under the hero. */}
       {/* Owner 2026-11-16: the trade and state search is the first action under the two cards. */}
-      {/* Owner 2026-11-18: one line for businesses that sell to contractors (see /suppliers). */}
-      <p className="bg-slate-900 px-4 py-2.5 text-center text-sm text-slate-200">
-        Sell to contractors?{" "}
-        <a href="/suppliers" className="font-semibold text-amber-400 underline underline-offset-4 hover:text-amber-300">
-          See the weekly report for suppliers →
-        </a>
-      </p>
       <HomeContractFinder sample={sample} openTotal={contractMap?.totals?.totalOpen ?? 0} heading="h2" />
       <HomeBidPreview />
       <HomeBidPrep />
-      {/* Owner 2026-11-18 ("shouldnt we put that on the homepage too?"): the supplier report, as its own section. */}
-      <HomeSuppliers />
       <HomeExecutionLine sample={sample} />
       {/* Before/after proof (owner 2026-11-08): a real bid's notice next to Max's real answer. */}
       {maxProofCurrent !== false ? <HomeMaxProof /> : null}
@@ -267,9 +267,10 @@ function HomeChoice() {
   return (
     <section aria-labelledby="home-choice-title" className="bg-[#07162e] px-4 pb-2 pt-8 text-white sm:px-8 sm:pt-12">
       <div className="mx-auto max-w-7xl">
-        <h1 id="home-choice-title" className="max-w-4xl text-[1.75rem] font-extrabold leading-[1.12] tracking-tight [text-wrap:balance] sm:text-5xl">
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-400">For contractors</p>
+        <h2 id="home-choice-title" className="mt-2 max-w-4xl text-[1.5rem] font-extrabold leading-[1.12] tracking-tight [text-wrap:balance] sm:text-4xl">
           {HOME_HEADLINE}
-        </h1>
+        </h2>
         <ul className="mt-6 grid gap-3 sm:mt-8 sm:grid-cols-2">
           {HOME_LANES.map((lane) => (
             <li key={lane.key}>
@@ -305,24 +306,43 @@ function HomeChoice() {
  * service is bought on a bid's own page, so this says what it is and sends the visitor to pick a bid.
  * Every line comes from src/lib/bid-prep.ts, the same words the bid page and the checkout use.
  */
-function HomeSuppliers() {
+function HomeSupplierHero({ sample }: { sample: SupplierSample | null }) {
   return (
-    <section id="suppliers" aria-labelledby="home-suppliers-title" className="mx-auto max-w-[1120px] scroll-mt-20 px-4 pt-10 sm:px-6">
-      <div className="rounded-2xl border-2 border-amber-500 bg-amber-50 p-5 sm:p-7 dark:bg-amber-950/30">
-        <p className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">For businesses that sell to contractors</p>
-        <h2 id="home-suppliers-title" className="mt-1 text-2xl font-bold leading-tight sm:text-3xl">Know which public jobs are opening in your state, every week</h2>
-        <p className="mt-2 text-sm font-semibold text-slate-800 dark:text-slate-100">
-          Suppliers, equipment rental, staffing firms, bonding and insurance agents: one report a week tells you who to call.
-        </p>
-        <ul className="mt-4 grid gap-1.5 text-sm text-slate-700 sm:grid-cols-2 dark:text-slate-200">
-          {SUPPLIER_INCLUDES.map((f) => (
-            <li key={f}>✓ {f}</li>
-          ))}
-        </ul>
-        <a href="/suppliers" className="mt-5 inline-block rounded-xl bg-amber-500 px-6 py-3 font-bold text-slate-950 hover:bg-amber-400">
-          See this week's sample and get a free report →
-        </a>
-        <p className="mt-2 text-xs text-slate-600 dark:text-slate-300">The first report is free. After that it is {SUPPLIER_PRICE} a month for one state.</p>
+    <section id="suppliers" aria-labelledby="home-suppliers-title" className="bg-slate-950 px-4 py-10 text-white sm:px-8 sm:py-16">
+      <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-start">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-400">For businesses that sell to contractors</p>
+          <h1 id="home-suppliers-title" className="mt-3 text-[1.75rem] font-extrabold leading-[1.12] tracking-tight [text-wrap:balance] sm:text-5xl">
+            Know which public jobs are opening in your state before your competitors do
+          </h1>
+          <p className="mt-4 max-w-2xl text-base text-slate-300 sm:text-lg">
+            Suppliers, equipment rental, staffing firms, bonding and insurance agents: one report a week tells you who to call.
+          </p>
+          <ul className="mt-5 space-y-2 text-sm text-slate-200 sm:text-base">
+            {SUPPLIER_INCLUDES.map((f) => (
+              <li key={f} className="flex gap-2"><span aria-hidden className="text-amber-400">✓</span><span>{f}</span></li>
+            ))}
+          </ul>
+          {sample && sample.open > 0 && (
+            <dl className="mt-6 grid max-w-lg grid-cols-3 gap-3">
+              {[
+                [`Open in ${sample.stateName}`, sample.open],
+                ["New this week", sample.newThisWeek],
+                ["Closing in 7 days", sample.closingSoon],
+              ].map(([k, v]) => (
+                <div key={String(k)} className="rounded-xl border border-white/10 bg-white/5 px-3 py-3">
+                  <dt className="text-xs text-slate-400">{k}</dt>
+                  <dd className="mt-1 text-2xl font-bold">{v}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+          <p className="mt-4 text-sm text-slate-300">
+            <a href="/suppliers" className="font-semibold text-amber-400 underline underline-offset-4 hover:text-amber-300">See this week's full sample →</a>
+          </p>
+          <p className="mt-2 text-xs text-slate-400">{SUPPLIER_NOT_YET}</p>
+        </div>
+        <SupplierRequestForm where="home_hero" />
       </div>
     </section>
   );

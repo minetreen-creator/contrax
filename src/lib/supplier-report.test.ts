@@ -34,9 +34,12 @@ describe("supplier report (owner 2026-11-18)", () => {
     // The paid step is the existing Agency plan at $199 (owner 2026-11-12), the same price the form names.
     expect(SUPPLIER_PRICE).toBe("$199");
     expect(page).toContain('href="/upgrade?plan=agency&source=suppliers"');
-    expect(page).toContain('fetch("/api/supplier-report"');
+    expect(readFileSync(new URL("../components/SupplierRequestForm.tsx", import.meta.url), "utf8")).toContain('fetch("/api/supplier-report"');
     const home = readFileSync(new URL("../routes/index.tsx", import.meta.url), "utf8");
     expect(home).toContain('href="/suppliers"');
-    expect(home).toContain("<HomeSuppliers />");
+    // Owner 2026-11-18: the homepage opens with the supplier report and its request form.
+    expect(home).toContain("<HomeSupplierHero sample={supplierSample} />\n      <HomeChoice />");
+    expect(home).toContain('<SupplierRequestForm where="home_hero" />');
+    expect(home.match(/<h1/g)?.length).toBe(1);
   });
 });

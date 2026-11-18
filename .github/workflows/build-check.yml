@@ -237,7 +237,7 @@ jobs:
       - name: Vercel cron → daily emails dispatch tests (unit, deterministic, zero network)
         run: bun test src/lib/cron-dispatch.test.ts src/lib/ci-db-lock.test.ts
       - name: USAspending federal trade data tests (unit, deterministic, zero network)
-        run: bun test src/lib/federal-trade-data.test.ts src/lib/outreach-holder.test.ts src/lib/bid-preview.test.ts src/lib/trade-coverage.test.ts src/jobs/sources/sam-place.test.ts src/lib/nyc-city-record.test.ts src/jobs/sources/fl-vendorlink.test.ts src/lib/zero-results.test.ts src/lib/find-bids.test.ts src/lib/home-polish.test.ts src/jobs/sources/bidnet-slow-down.test.ts src/lib/naics-phrases.test.ts src/lib/title-place.test.ts src/lib/bid-prep.test.ts src/lib/grants-snapshot.test.ts src/lib/outreach-auto-send.test.ts src/lib/open-bids-list.test.ts src/lib/clauses-noindex.test.ts
+        run: bun test src/lib/federal-trade-data.test.ts src/lib/outreach-holder.test.ts src/lib/bid-preview.test.ts src/lib/trade-coverage.test.ts src/jobs/sources/sam-place.test.ts src/lib/nyc-city-record.test.ts src/jobs/sources/fl-vendorlink.test.ts src/lib/zero-results.test.ts src/lib/find-bids.test.ts src/lib/home-polish.test.ts src/jobs/sources/bidnet-slow-down.test.ts src/lib/naics-phrases.test.ts src/lib/title-place.test.ts src/lib/bid-prep.test.ts src/lib/grants-snapshot.test.ts src/lib/outreach-auto-send.test.ts src/lib/open-bids-list.test.ts src/lib/clauses-noindex.test.ts src/lib/facebook-preview.test.ts
       - name: Source provenance class map tests (unit, deterministic, zero network)
         run: bun test src/lib/source-class.test.ts src/lib/location-foreign-pop.test.ts src/lib/place-of-performance.test.ts
       # D14 CORPUS-LABEL ALARM — the post-PR-1 metrics layer (owner-locked order

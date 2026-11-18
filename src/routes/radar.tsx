@@ -32,7 +32,7 @@ import {
   buildRadarFirstRunHref,
   isFirstRunSearch,
 } from "~/lib/funnel-ux";
-import { SHOW_FREE_INCUMBENT, FREE_ANONYMOUS_RADAR_RESULTS, FREE_RADAR_PREVIEW_SCANS, RADAR_MATCH_CAP } from "~/lib/radar-config";
+import { SHOW_FREE_INCUMBENT, FREE_ANONYMOUS_RADAR_RESULTS, FREE_RADAR_PREVIEW_SCANS, RADAR_MATCH_CAP, FACEBOOK_ARRIVAL_SQL, anonymousPreviewLimit } from "~/lib/radar-config";
 import type { FPDSIntel } from "~/lib/fpds";
 import {
   loadRadarIntel,
@@ -612,6 +612,19 @@ export const runRadarScan = createServerFn({ method: "POST" })
       const gate = await evaluateRadarSearchGate(budget.keys, neonRadarSearchStore, budget.limit);
       if (!gate.allowed) return blockedResult();
     }
+    // Owner 2026-11-18: a visitor who came in from Facebook in the last day sees
+    // 10 bids before the locked card (see radar-config). Fail-open to the usual 3.
+    let previewLimit = FREE_ANONYMOUS_RADAR_RESULTS;
+    if (!subscribed && scanVisitorId) {
+      try {
+        const { sql: fbSql } = await import("~/db");
+        const q = fbSql();
+        const fb = (await q`SELECT 1 FROM page_views WHERE visitor_id = ${scanVisitorId} AND created_at > NOW() - INTERVAL '1 day' AND ${q.unsafe(FACEBOOK_ARRIVAL_SQL)} LIMIT 1`) as unknown[];
+        previewLimit = anonymousPreviewLimit(fb.length > 0);
+      } catch {
+        previewLimit = FREE_ANONYMOUS_RADAR_RESULTS;
+      }
+    }
 
     const isNaics = /^\d{6}$/.test(trade);
     // Trade-query normalization (owner 2026-09-06/07): expand AFTER the isNaics
@@ -786,11 +799,11 @@ export const runRadarScan = createServerFn({ method: "POST" })
     // restore). Matching/ranking/eligibility are untouched — this only signs
     // the ALREADY-COMPUTED result. Fail-open: never break the scan.
     try {
-      if (scanVisitorId && matches.length > FREE_ANONYMOUS_RADAR_RESULTS) {
+      if (scanVisitorId && matches.length > previewLimit) {
         const { getCurrentUser: scanUser } = await import("~/lib/auth");
         if (!(await scanUser())) {
           const { signRadarHandoff, RADAR_HANDOFF_COOKIE, RADAR_HANDOFF_MAX_AGE_S } = await import("~/lib/radar-handoff.server");
-          const lockedIds = matches.slice(FREE_ANONYMOUS_RADAR_RESULTS).map((m) => m.id);
+          const lockedIds = matches.slice(previewLimit).map((m) => m.id);
           const { setCookie } = await import("@tanstack/react-start/server");
           // Fail-closed: getRadarHandoffSecret THROWS when RADAR_HANDOFF_SECRET
           // is not configured — never mint an unsigned/forgable cookie. The
@@ -944,7 +957,7 @@ export const runRadarScan = createServerFn({ method: "POST" })
     // week or more left leads, so the one free bid is one they could still win.
     const byRoom = (rows: RadarMatch[]) => roomToBidFirst(rows, (m) => m.due_date);
     const previewPool = state && local.length ? [...byRoom(local), ...byRoom(nationwide)] : byRoom(matches);
-    const visibleMatches = subscribed || emailUnlocked ? matches : previewPool.slice(0, FREE_ANONYMOUS_RADAR_RESULTS);
+    const visibleMatches = subscribed || emailUnlocked ? matches : previewPool.slice(0, previewLimit);
     const visibleIds = new Set(visibleMatches.map((match) => match.id));
     // Claim only after results are assembled. Conditional writes close the
     // concurrent pre-check race before any matches are returned.
@@ -980,6 +993,7 @@ export const runRadarScan = createServerFn({ method: "POST" })
       // Owner 2026-11-08: and not the 25-card cap either.
       totalMatched: strongTotal,
       emailUnlocked,
+      previewLimit,
       certLabel: CERT_LABEL[certId],
       sections: {
         local: local.filter((match) => visibleIds.has(match.id)),
@@ -1285,7 +1299,7 @@ export interface RadarSections {
 type ScanState =
   | { status: "idle" }
   | { status: "loading" }
-  | { status: "done"; matches: RadarMatch[]; certLabel: string; sections: RadarSections; intelTicket: string | null; freeSearchKept?: boolean; totalMatched?: number; emailUnlocked?: boolean; paidMember?: boolean; localMatched?: number; passFacts?: PassFacts }
+  | { status: "done"; matches: RadarMatch[]; certLabel: string; sections: RadarSections; intelTicket: string | null; freeSearchKept?: boolean; totalMatched?: number; emailUnlocked?: boolean; paidMember?: boolean; localMatched?: number; passFacts?: PassFacts; previewLimit?: number }
   | { status: "paid_required"; limit?: number; signupRequired?: boolean }
   | { status: "error" };
 /** Resolved payload of a successful runRadarScan call (handler return shape).
@@ -1294,6 +1308,7 @@ type ScanState =
  *  it. null = no ticket (missing server config) ⇒ the cards show an honest
  *  "unavailable", never a fabricated "no previous winner". */
 type ScanResult = {
+  previewLimit?: number;
   paidRequired?: boolean;
   signupRequired?: boolean;
   matches: RadarMatch[];
@@ -1460,12 +1475,13 @@ function RadarLanding() {
   const localMatches = localKnown ? Math.min(scan.localMatched ?? 0, totalMatches) : totalMatches;
   const nationwideMatches = Math.max(totalMatches - localMatches, 0);
   const emailUnlocked = scan.status === "done" && scan.emailUnlocked === true;
-  const visibleCount = emailUnlocked ? scan.matches.length : Math.min(totalMatches, FREE_ANONYMOUS_RADAR_RESULTS);
+  const freeCap = scan.status === "done" && typeof scan.previewLimit === "number" ? scan.previewLimit : FREE_ANONYMOUS_RADAR_RESULTS;
+  const visibleCount = emailUnlocked ? scan.matches.length : Math.min(totalMatches, freeCap);
   /**
    * What an email unlock shows: the rest of the cards, up to the list cap
    * (RADAR_MATCH_CAP). ONLY non-zero when genuine matches exceed the free cap.
    */
-  const locked = emailUnlocked ? 0 : Math.max(Math.min(totalMatches, RADAR_MATCH_CAP) - FREE_ANONYMOUS_RADAR_RESULTS, 0);
+  const locked = emailUnlocked ? 0 : Math.max(Math.min(totalMatches, RADAR_MATCH_CAP) - freeCap, 0);
   /** Every real match not on screen (can exceed `locked` when the search found more than the list holds). */
   const waiting = emailUnlocked ? 0 : Math.max(totalMatches - visibleCount, 0);
 
@@ -1726,6 +1742,7 @@ function RadarLanding() {
         freeSearchKept: res.freeSearchKept === true,
         totalMatched: res.totalMatched,
         emailUnlocked: res.emailUnlocked === true,
+        previewLimit: typeof res.previewLimit === "number" ? res.previewLimit : undefined,
         paidMember: res.paidMember,
         localMatched: res.localMatched,
       });
@@ -2147,7 +2164,7 @@ function RadarLanding() {
                 {isAnonymous && (
                   <p className="mt-1 text-xs font-semibold text-amber-300">
                     {locked > 0
-                      ? `${state && localKnown ? `${localMatches} open bids in ${STATE_NAMES[state] ?? state}${nationwideMatches ? ` (+${nationwideMatches} nationwide)` : ""}` : `${totalMatches} open bids found`}. ${FREE_ANONYMOUS_RADAR_RESULTS === 1 ? "Your best one is" : `Your best ${FREE_ANONYMOUS_RADAR_RESULTS} are`} free below.`
+                      ? `${state && localKnown ? `${localMatches} open bids in ${STATE_NAMES[state] ?? state}${nationwideMatches ? ` (+${nationwideMatches} nationwide)` : ""}` : `${totalMatches} open bids found`}. ${freeCap === 1 ? "Your best one is" : `Your best ${Math.min(freeCap, totalMatches)} are`} free below.`
                       : `Without an account: ${FREE_RADAR_PREVIEW_SCANS === 1 ? "1 search" : `${FREE_RADAR_PREVIEW_SCANS} searches a day`}, ${FREE_ANONYMOUS_RADAR_RESULTS === 1 ? "your top match" : `up to ${FREE_ANONYMOUS_RADAR_RESULTS} matches`}.`}
                   </p>
                 )}
@@ -2244,9 +2261,9 @@ function RadarLanding() {
             {scan.matches.length > 0 && (
               <p className="mt-3 text-xs font-medium text-slate-500">
                 {isAnonymous
-                  ? Math.min(scan.matches.length, FREE_ANONYMOUS_RADAR_RESULTS) === 1
+                  ? Math.min(scan.matches.length, freeCap) === 1
                     ? "Here's your best match"
-                    : `Here are your best ${Math.min(scan.matches.length, FREE_ANONYMOUS_RADAR_RESULTS)} matches`
+                    : `Here are your best ${Math.min(scan.matches.length, freeCap)} matches`
                   : state !== ""
                     ? `${(scan.sections?.local ?? []).length} local · ${(scan.sections?.nationwide ?? []).length} nationwide opportunities`
                     : `${scan.matches.length} ${scan.matches.length === 1 ? "match" : "matches"} found for you`}

@@ -58,7 +58,10 @@ describe("supplier report (owner 2026-11-18)", () => {
     expect(home).toContain("{SUPPLIER_CONTACT_NOTE}");
     // Each federal winner links to its public award record instead (real, public, on USAspending.gov).
     expect(home).toContain("<a href={a.url} target=\"_blank\" rel=\"noopener noreferrer\"");
-    expect(page).toContain("View the federal award record →");
+    expect(page).toContain("Federal award record →");
+    // 2026-11-18: and to the company's own website when its public SAM.gov registration lists one (about 6 in 10).
+    expect(page).toContain("{a.site && (");
+    expect(readFileSync(new URL("./supplier-report.server.ts", import.meta.url), "utf8")).toContain("LEFT JOIN sam_registrants r ON r.uei = a.recipient_uei");
     // The contractor sections are one click away, unchanged, on /contractors.
     expect(home).toContain("export function ContractorSections(");
     const contractors = readFileSync(new URL("../routes/contractors.tsx", import.meta.url), "utf8");

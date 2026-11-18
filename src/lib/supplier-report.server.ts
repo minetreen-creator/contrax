@@ -21,9 +21,10 @@ export async function loadSupplierSample(state: string): Promise<SupplierSample 
         AND created_at > NOW() - INTERVAL '7 days' AND title ~* ${P} AND title !~* 'addendum|cancel'
       ORDER BY created_at DESC LIMIT 8`) as { id: number; title: string; agency: string | null; due_date: string }[];
     const awards = (await s`
-      SELECT award_key, recipient_name, recipient_city, recipient_state, amount, awarded_on, description FROM award_leads
-      WHERE pop_state = ${state} AND naics_code LIKE '23%' AND awarded_on IS NOT NULL AND amount >= ${SUPPLIER_AWARD_MIN}
-      ORDER BY awarded_on DESC LIMIT 5`.catch(() => [])) as { award_key: string; recipient_name: string; recipient_city: string | null; recipient_state: string | null; amount: number | string; awarded_on: string; description: string | null }[];
+      SELECT a.award_key, a.recipient_name, a.recipient_city, a.recipient_state, a.amount, a.awarded_on, a.description, r.url AS site
+      FROM award_leads a LEFT JOIN sam_registrants r ON r.uei = a.recipient_uei
+      WHERE a.pop_state = ${state} AND a.naics_code LIKE '23%' AND a.awarded_on IS NOT NULL AND a.amount >= ${SUPPLIER_AWARD_MIN}
+      ORDER BY a.awarded_on DESC LIMIT 5`.catch(() => [])) as { site: string | null; award_key: string; recipient_name: string; recipient_city: string | null; recipient_state: string | null; amount: number | string; awarded_on: string; description: string | null }[];
     const ending = (await s`
       SELECT DISTINCT ON (award_key) recipient_name, amount, end_date, agency FROM recompete_contracts
       WHERE pop_state = ${state} AND naics_code LIKE '23%' AND end_date BETWEEN NOW() AND NOW() + INTERVAL '6 months'
@@ -43,6 +44,7 @@ export async function loadSupplierSample(state: string): Promise<SupplierSample 
         date: iso(a.awarded_on),
         what: String(a.description ?? "").replace(/\s+/g, " ").trim().slice(0, 90),
         url: usaspendingUrl(a.award_key),
+        site: /^https?:\/\/[^\s"'<>]+$/i.test(String(a.site ?? "")) ? String(a.site) : null,
       })),
       ending: ending
         .map((e) => ({ company: e.recipient_name, amount: Number(e.amount), end: iso(e.end_date), agency: e.agency ?? "" }))

@@ -21,6 +21,15 @@ const page1 = pageN(1);
 const NOW = Date.parse("2026-11-04T04:00:00Z");
 
 describe("VDOT CABB (owner 2026-11-04: more construction bids in VA)", () => {
+  test("the Next link is found when the page writes its quotes as &#39; (2026-11-17 outage)", () => {
+    const encoded =
+      `<a href="javascript:__doPostBack(&#39;_ctl0$_ctl0$body$body$projectlistControl$projectsDatapager$datapager$_ctl1$_ctl4&#39;,&#39;&#39;)">5</a>&nbsp;` +
+      `<a class="aspNetDisabled">Previous</a>&nbsp;` +
+      `<a href="javascript:__doPostBack(&#39;_ctl0$_ctl0$body$body$projectlistControl$projectsDatapager$datapager$_ctl2$_ctl2&#39;,&#39;&#39;)">Next</a>`;
+    expect(cabbNextTarget(encoded)).toBe("_ctl0$_ctl0$body$body$projectlistControl$projectsDatapager$datapager$_ctl2$_ctl2");
+    expect(cabbNextTarget(`<a class="aspNetDisabled">Next</a>`)).toBeNull();
+  });
+
   test("page 1 lists 20 of 54 advertised projects and links to the next page", () => {
     const rows = readCabbRows(page1);
     expect(rows).toHaveLength(20);

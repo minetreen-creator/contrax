@@ -1,3 +1,4 @@
+import { PrivateBidsBlock } from "~/components/PrivateBidsBlock";
 import { createFileRoute } from "@tanstack/react-router";
 import { OpenToAllBids } from "~/components/OpenToAllBids";
 import {
@@ -94,6 +95,8 @@ function ContractsInStateTrade() {
       )}
       {endingFirst && federalFacts}
       <RegionTradeView data={data} radarHref={radarHref} />
+      {/* Owner 2026-11-18 ("yes"): most Facebook visitors land here, not on the homepage. */}
+      <PrivateBidsBlock variant="page" />
       {data.code && (
         // Owner 2026-11-16: a visitor from a post about one trade can search their own in one step.
         <LandingSearch stateCode={data.code} tradeLabel={data.trade?.label} />

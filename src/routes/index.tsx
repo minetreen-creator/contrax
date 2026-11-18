@@ -1,7 +1,6 @@
-import { POST_PROJECT_PATH } from "~/lib/private-bid-post";
 import { SUPPLIER_CLOSING_NOTE, SUPPLIER_FINE_PRINT_SHORT, SUPPLIER_HOME_ROW_STATES, SUPPLIER_INCLUDES, SUPPLIER_SUBHEAD, SUPPLIER_SAMPLE_STATES, supplierDay, supplierMoney, type SupplierSample } from "~/lib/supplier-report";
 import { SupplierRequestForm } from "~/components/SupplierRequestForm";
-import { publishedPrivateBids } from "~/lib/private-bids";
+import { PrivateBidsBlock } from "~/components/PrivateBidsBlock";
 import { createFileRoute } from "@tanstack/react-router";
 import { HomeMaxProof } from "~/components/HomeMaxProof";
 import { createServerFn } from "@tanstack/react-start";
@@ -305,34 +304,7 @@ export function ContractorSections({
  * requests (~/lib/private-bids); nothing renders when there are none.
  */
 function HomePrivateBids() {
-  const requests = publishedPrivateBids();
-  if (requests.length === 0) return null;
-  return (
-    <section aria-labelledby="home-private-bids-title" className="bg-amber-50 px-4 py-8 text-slate-900 sm:px-8 sm:py-10">
-      <div className="mx-auto max-w-7xl">
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-700">Private bid requests</p>
-        <h2 id="home-private-bids-title" className="mt-1 text-2xl font-extrabold">Businesses taking bids right now</h2>
-        <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-          {requests.slice(0, 4).map((r) => (
-            <li key={r.slug} className="flex flex-col rounded-xl border border-amber-200 bg-white p-4">
-              <p className="text-xs font-bold uppercase tracking-wide text-amber-700">{r.trade}</p>
-              <a href={`/private-bids/${r.slug}`} className="mt-1 font-bold text-slate-900 underline-offset-4 hover:underline">{r.title}</a>
-              <p className="mt-1 text-sm text-slate-600">{r.buyer} · {r.locations.length === 1 ? r.locations[0] : `${r.locations.length} locations in ${r.states.join(" and ")}`}</p>
-              <a href={`/private-bids/${r.slug}`} className="mt-3 inline-block self-start rounded-lg bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800">View details and how to bid →</a>
-            </li>
-          ))}
-        </ul>
-        <div className="mt-5 flex flex-col gap-4 rounded-2xl bg-slate-900 p-6 text-white sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-400">For business owners</p>
-            <h3 className="mt-1 text-xl font-extrabold">Need work done at your business?</h3>
-            <p className="mt-1 text-sm text-slate-300">Post the job free. We review it and list it here, and contractors send their bids straight to you. No fee, no account.</p>
-          </div>
-          <a href={POST_PROJECT_PATH} className="shrink-0 self-start rounded-xl bg-amber-500 px-6 py-3 text-center font-bold text-slate-950 hover:bg-amber-400 sm:self-center">Post your project free →</a>
-        </div>
-      </div>
-    </section>
-  );
+  return <PrivateBidsBlock variant="home" />;
 }
 
 /** Real rows under the supplier hero: this week's new jobs and the latest federal awards. Nothing when there are none. */

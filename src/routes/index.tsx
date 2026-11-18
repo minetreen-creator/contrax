@@ -1,5 +1,5 @@
 import { POST_PROJECT_PATH } from "~/lib/private-bid-post";
-import { SUPPLIER_FINE_PRINT_SHORT, SUPPLIER_HOME_ROW_STATES, SUPPLIER_INCLUDES, SUPPLIER_SUBHEAD, SUPPLIER_SAMPLE_STATES, supplierDay, supplierMoney, type SupplierSample } from "~/lib/supplier-report";
+import { SUPPLIER_CLOSING_NOTE, SUPPLIER_FINE_PRINT_SHORT, SUPPLIER_HOME_ROW_STATES, SUPPLIER_INCLUDES, SUPPLIER_SUBHEAD, SUPPLIER_SAMPLE_STATES, supplierDay, supplierMoney, type SupplierSample } from "~/lib/supplier-report";
 import { SupplierRequestForm } from "~/components/SupplierRequestForm";
 import { publishedPrivateBids } from "~/lib/private-bids";
 import { createFileRoute } from "@tanstack/react-router";
@@ -466,6 +466,7 @@ function HomeSupplierHero({ samples }: { samples: SupplierSample[] }) {
               </tbody>
             </table>
           )}
+          <p className="mt-3 max-w-lg text-sm text-slate-300">{SUPPLIER_CLOSING_NOTE}</p>
           <p className="mt-4 text-sm text-slate-300">
             <a href="/suppliers" className="font-semibold text-amber-400 underline underline-offset-4 hover:text-amber-300">See this week's full sample for all five states →</a>
           </p>

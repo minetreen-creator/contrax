@@ -32,14 +32,19 @@ export const SUPPLIER_HOME_ROW_STATES = 2;
 /** Federal awards below this are left out of the sample: a $25,030 job is real but tells a supplier little. */
 export const SUPPLIER_AWARD_MIN = 100_000;
 
-export const SUPPLIER_TYPES: readonly { id: string; label: string }[] = [
-  { id: "materials", label: "Building materials or supply" },
-  { id: "equipment", label: "Equipment rental or sales" },
-  { id: "staffing", label: "Staffing or labor" },
-  { id: "bonding", label: "Bonding or insurance" },
-  { id: "licensing", label: "Licensing, training or consulting" },
-  { id: "other", label: "Something else" },
+export const SUPPLIER_TYPES: readonly { id: string; label: string; why: string }[] = [
+  { id: "materials", label: "Building materials or supply", why: "Your report leads with the jobs that need materials priced before bid day: roofing, paving, concrete and building work." },
+  { id: "equipment", label: "Equipment rental or sales", why: "Your report leads with site work, paving, demolition and utility jobs, where contractors rent or buy equipment." },
+  { id: "staffing", label: "Staffing or labor", why: "Your report leads with the largest jobs and the companies that just won federal work, the ones most likely to need crews." },
+  { id: "bonding", label: "Bonding or insurance", why: "Your report leads with who just won federal work and what closes soon. Public jobs commonly require bid and performance bonds." },
+  { id: "licensing", label: "Licensing, training or consulting", why: "Your report leads with companies from other states winning work in yours, and with new jobs by trade." },
+  { id: "other", label: "Something else", why: "You get all four sections. Tell us what you sell when the report arrives and we will point out the jobs that fit." },
 ];
+
+/** Under the counts table: what "closing in 7 days" means to someone who sells to the bidders. */
+export const SUPPLIER_CLOSING_NOTE = "Closing in 7 days means contractors are pricing those jobs now. Get your quote to them before bid day.";
+/** The report is sent as an ordinary email by the owner, so it can be forwarded as it is. */
+export const SUPPLIER_FORWARD_NOTE = "Need a manager's sign-off? The report arrives as a plain email you can forward.";
 
 export const SUPPLIER_INCLUDES: readonly string[] = [
   "New public construction jobs in your state, sorted by trade",

@@ -18,6 +18,8 @@ describe("private bid requests (owner 2026-11-18)", () => {
     expect(publishedPrivateBids().every((r) => r.contact !== null)).toBe(true);
     expect(privateBidBySlug("nope")).toBeNull();
     expect(privateBidBySlug("kasselmann-hood-cleaning-ky-in")?.locations).toHaveLength(8);
+    // The owner confirmed the address on 2026-11-18, so the first request is published.
+    expect(publishedPrivateBids().map((r) => r.slug)).toContain("kasselmann-hood-cleaning-ky-in");
   });
   test("the page shows a contact only when there is one, and is not indexed before that", () => {
     const page = readFileSync(new URL("../routes/private-bids.$slug.tsx", import.meta.url), "utf8");

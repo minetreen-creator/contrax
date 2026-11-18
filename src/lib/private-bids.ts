@@ -39,7 +39,8 @@ export const PRIVATE_BID_REQUESTS: readonly PrivateBidRequest[] = [
     ],
     locations: ["Buckner, KY", "LaGrange, KY", "Eminence, KY", "Pendleton, KY", "Madison, IN", "Hanover, IN", "Clarksville, IN", "Veterans Parkway, IN"],
     deadline: null,
-    contact: null,
+    // Confirmed by the owner on 2026-11-18: this address takes bids and questions (it is also on her notice).
+    contact: { email: "ninet@salibamcd.com", note: "Use the same address for questions about the job." },
     listedOn: "2026-11-18",
     permission: "Listed with the owner's permission, from the owner's own notice.",
   },

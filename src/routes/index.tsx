@@ -579,6 +579,7 @@ const FOOTER_GROUPS = [
       // Owner 2026-11-18: suppliers lead the site; contractors have their own page.
       { href: "/suppliers", label: "For suppliers" },
       { href: "/contractors", label: "For contractors" },
+      { href: "/private-bids", label: "Private bid requests" },
       { href: "/radar", label: "Search bids" },
       { href: "/local-bids", label: "City & County Bids" },
       { href: "/pricing", label: "Pricing" },

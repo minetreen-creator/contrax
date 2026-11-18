@@ -6,7 +6,7 @@
  * owner's verification wording WHEN the mirror has a posting date, and the pending
  * counters' promise — never the EIN, never a reason class, never anyone else's data.
  */
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
   NONPROFIT_APPEAL_EMAIL,
@@ -21,6 +21,12 @@ const TITLE = "Your Nonprofit Free status — Contrax";
 const DESC = "Your Nonprofit Free application state and what it unlocks.";
 
 export const Route = createFileRoute("/nonprofit/status")({
+  // Owner 2026-11-18 ("remove them too"): the program gave nonprofits free grant search, and the
+  // grants pages are gone, so this page is switched off. Visitors land on the homepage. The page
+  // code, the application records and the admin review tools are left in place.
+  beforeLoad: () => {
+    throw redirect({ href: "/", statusCode: 302 });
+  },
   component: NonprofitStatusPage,
   head: () => ({
     meta: [

@@ -8,7 +8,7 @@
  * /api/nonprofit/apply, and renders per-field validation errors from the API without
  * inventing any wording of its own — every string comes from src/lib/nonprofit-copy.ts.
  */
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import {
   NONPROFIT_APPLY_AUTHORIZATION_LABEL,
@@ -34,6 +34,12 @@ const DESC = NONPROFIT_APPLY_INTRO;
 const APPLY_PATH = "/nonprofit/apply";
 
 export const Route = createFileRoute("/nonprofit/apply")({
+  // Owner 2026-11-18 ("remove them too"): the program gave nonprofits free grant search, and the
+  // grants pages are gone, so this page is switched off. Visitors land on the homepage. The page
+  // code, the application records and the admin review tools are left in place.
+  beforeLoad: () => {
+    throw redirect({ href: "/", statusCode: 302 });
+  },
   component: NonprofitApplyPage,
   head: () => ({
     meta: [

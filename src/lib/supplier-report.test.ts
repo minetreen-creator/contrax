@@ -38,7 +38,12 @@ describe("supplier report (owner 2026-11-18)", () => {
     const home = readFileSync(new URL("../routes/index.tsx", import.meta.url), "utf8");
     expect(home).toContain('href="/suppliers"');
     // Owner 2026-11-18: the homepage opens with the supplier report and its request form.
-    expect(home).toContain("<HomeSupplierHero sample={supplierSample} />\n      <HomeChoice />");
+    expect(home).toContain("<HomeSupplierHero sample={supplierSample} />\n      <HomeSupplierRows sample={supplierSample} />");
+    // The contractor sections are one click away, unchanged, on /contractors.
+    expect(home).toContain("export function ContractorSections(");
+    const contractors = readFileSync(new URL("../routes/contractors.tsx", import.meta.url), "utf8");
+    expect(contractors).toContain("<ContractorSections sample={sample} contractMap={contractMap} maxProofCurrent={maxProofCurrent} />");
+    expect(readFileSync(new URL("../routes/prep.tsx", import.meta.url), "utf8")).toContain("/contractors?utm_source=");
     expect(home).toContain('<SupplierRequestForm where="home_hero" />');
     expect(home.match(/<h1/g)?.length).toBe(1);
   });

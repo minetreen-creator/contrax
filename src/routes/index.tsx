@@ -1,4 +1,4 @@
-import { SUPPLIER_INCLUDES, SUPPLIER_NOT_YET, SUPPLIER_SAMPLE_STATE, type SupplierSample } from "~/lib/supplier-report";
+import { SUPPLIER_INCLUDES, SUPPLIER_NOT_YET, SUPPLIER_SAMPLE_STATE, supplierDay, supplierMoney, type SupplierSample } from "~/lib/supplier-report";
 import { SupplierRequestForm } from "~/components/SupplierRequestForm";
 import { createFileRoute } from "@tanstack/react-router";
 import { HomeMaxProof } from "~/components/HomeMaxProof";
@@ -93,7 +93,7 @@ const getBidStats = async (): Promise<{ activeCount: number; agencyCount: number
 // NO SESSION READ (owner 2026-10-02): the navbar resolves the viewer in the
 // browser (SiteHeader without a `user` prop), so this render is identical for
 // every visitor and can be served from the edge cache.
-const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
+export const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
   const [businessName, bidStats, contractMap] = await Promise.all([
     (async () => {
       try {
@@ -174,7 +174,7 @@ export const Route = createFileRoute("/")({
 
 function Home() {
 
-  const { contractMap, maxProofCurrent } = Route.useLoaderData();
+  const { contractMap } = Route.useLoaderData();
   const { sample, supplierSample } = Route.useLoaderData();
 
   const jsonLd = {
@@ -202,20 +202,24 @@ function Home() {
           Pathway, app, megaprojects and the extra tool links moved to their own pages and the footer. */}
       {/* Owner 2026-11-14 ("equal"): two customers, so the page opens with the choice between them,
           each with the same weight; the bid search follows as the do-it-yourself side's first step. */}
+      {/* Owner 2026-11-18 ("do all"): the homepage is about one customer. Suppliers get the hero, real
+          rows and the form; contractors get one block with the search, and everything else that was
+          here lives on /contractors (ContractorSections below), one click away. */}
       <HomeSupplierHero sample={supplierSample} />
-      <HomeChoice />
-      {/* Owner 2026-11-16: a real open bid per trade, the notice beside the brief, right under the hero. */}
-      {/* Owner 2026-11-16: the trade and state search is the first action under the two cards. */}
+      <HomeSupplierRows sample={supplierSample} />
+      <section aria-labelledby="home-contractors-title" className="bg-[#07162e] px-4 pb-2 pt-8 text-white sm:px-8 sm:pt-10">
+        <div className="mx-auto max-w-7xl">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-400">For contractors</p>
+          <h2 id="home-contractors-title" className="mt-2 text-2xl font-extrabold leading-tight sm:text-3xl">Looking for government work to bid on?</h2>
+          <p className="mt-2 text-sm text-slate-300">
+            Pick your trade and state below.{" "}
+            <a href="/contractors" className="font-semibold text-amber-400 underline underline-offset-4 hover:text-amber-300">
+              Bid Prep, the $9 pass and everything else for contractors →
+            </a>
+          </p>
+        </div>
+      </section>
       <HomeContractFinder sample={sample} openTotal={contractMap?.totals?.totalOpen ?? 0} heading="h2" />
-      <HomeBidPreview />
-      <HomeBidPrep />
-      <HomeExecutionLine sample={sample} />
-      {/* Before/after proof (owner 2026-11-08): a real bid's notice next to Max's real answer. */}
-      {maxProofCurrent !== false ? <HomeMaxProof /> : null}
-      {/* The $5 Starter pass (src/lib/starter-pass.ts): the only offer on the page. */}
-      <StarterPassStrip />
-      {/* "Spin the map" (owner 2026-10-29: "Do 3"): tap a state, then a trade. */}
-      <HomeStateMap contractMap={contractMap} />
       <Footer />
     </div>
   );
@@ -263,14 +267,79 @@ const HOME_LANES = [
   },
 ];
 
-function HomeChoice() {
+/**
+ * Everything the homepage showed contractors before 2026-11-18, in the same order. Rendered by
+ * /contractors (src/routes/contractors.tsx); the homepage keeps only the search.
+ */
+export function ContractorSections({
+  sample,
+  contractMap,
+  maxProofCurrent,
+}: {
+  sample: EverydaySampleBid[];
+  contractMap: Parameters<typeof HomeStateMap>[0]["contractMap"];
+  maxProofCurrent: boolean;
+}) {
+  return (
+    <>
+      <HomeChoice heading="h1" />
+      <HomeContractFinder sample={sample} openTotal={contractMap?.totals?.totalOpen ?? 0} heading="h2" />
+      <HomeBidPreview />
+      <HomeBidPrep />
+      <HomeExecutionLine sample={sample} />
+      {maxProofCurrent !== false ? <HomeMaxProof /> : null}
+      <StarterPassStrip />
+      <HomeStateMap contractMap={contractMap} />
+    </>
+  );
+}
+
+/** Real rows under the supplier hero: this week's new jobs and the latest federal awards. Nothing when there are none. */
+function HomeSupplierRows({ sample }: { sample: SupplierSample | null }) {
+  if (!sample || (sample.newJobs.length === 0 && sample.awards.length === 0)) return null;
+  return (
+    <section aria-labelledby="home-supplier-rows-title" className="bg-white px-4 py-8 text-slate-900 sm:px-8 sm:py-10">
+      <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-2">
+        {sample.newJobs.length > 0 && (
+          <div>
+            <h2 id="home-supplier-rows-title" className="text-lg font-bold">New in {sample.stateName} this week</h2>
+            <ul className="mt-3 divide-y divide-slate-200 rounded-xl border border-slate-200">
+              {sample.newJobs.slice(0, 4).map((j) => (
+                <li key={j.id} className="px-4 py-3">
+                  <a href={`/bid/${j.id}`} className="font-semibold text-slate-900 underline-offset-4 hover:underline">{j.title}</a>
+                  <p className="text-sm text-slate-600">{j.agency}{j.agency ? " · " : ""}bids due {supplierDay(j.due)}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {sample.awards.length > 0 && (
+          <div>
+            <h2 className="text-lg font-bold">Just awarded in {sample.stateName} (federal)</h2>
+            <ul className="mt-3 divide-y divide-slate-200 rounded-xl border border-slate-200">
+              {sample.awards.slice(0, 3).map((a, i) => (
+                <li key={i} className="px-4 py-3">
+                  <p className="font-semibold text-slate-900">{a.company}{a.where ? ` (${a.where})` : ""}: {supplierMoney(a.amount)}</p>
+                  <p className="text-sm text-slate-600">{a.what}{a.what ? " · " : ""}awarded {supplierDay(a.date)}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function HomeChoice({ heading = "h2" }: { heading?: "h1" | "h2" }) {
+  const Title = heading;
   return (
     <section aria-labelledby="home-choice-title" className="bg-[#07162e] px-4 pb-2 pt-8 text-white sm:px-8 sm:pt-12">
       <div className="mx-auto max-w-7xl">
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-400">For contractors</p>
-        <h2 id="home-choice-title" className="mt-2 max-w-4xl text-[1.5rem] font-extrabold leading-[1.12] tracking-tight [text-wrap:balance] sm:text-4xl">
+        <Title id="home-choice-title" className="mt-2 max-w-4xl text-[1.5rem] font-extrabold leading-[1.12] tracking-tight [text-wrap:balance] sm:text-4xl">
           {HOME_HEADLINE}
-        </h2>
+        </Title>
         <ul className="mt-6 grid gap-3 sm:mt-8 sm:grid-cols-2">
           {HOME_LANES.map((lane) => (
             <li key={lane.key}>
@@ -496,6 +565,9 @@ const FOOTER_GROUPS = [
       // Owner 2026-11-03 ("do 2 and 3"): only the search and the $5 pass are
       // offered until there are paying customers; the other products stay
       // reachable by their own links.
+      // Owner 2026-11-18: suppliers lead the site; contractors have their own page.
+      { href: "/suppliers", label: "For suppliers" },
+      { href: "/contractors", label: "For contractors" },
       { href: "/radar", label: "Search bids" },
       { href: "/local-bids", label: "City & County Bids" },
       { href: "/pricing", label: "Pricing" },
@@ -555,7 +627,7 @@ const FOOTER_COMPARE_LINKS = [
   { href: "/compare", label: "All comparisons" },
 ];
 
-function Footer() {
+export function Footer() {
   const linkClass = "inline-block rounded-sm py-1 leading-6 hover:text-[#0f1f38] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current dark:hover:text-white";
   return (
     <footer className="pt-14 pb-9 text-sm text-[#56647a] dark:text-[#9fb0c8]">

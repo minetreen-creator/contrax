@@ -107,6 +107,7 @@ const PRODUCT_PATHS = [
   ["/resellers", "monthly", "0.6"],
   // Agency plan for material suppliers and equipment rental (owner 2026-11-12).
   ["/suppliers", "weekly", "0.7"],
+  ["/contractors", "weekly", "0.7"],
   ["/roadmap", "monthly", "0.5"],
   ["/pathway", "monthly", "0.7"],
   ["/co-op-contracts", "daily", "0.6"],

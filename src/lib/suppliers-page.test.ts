@@ -17,6 +17,7 @@ test("the suppliers page sells the existing Agency plan at $199", () => {
 test("search engines and AI assistants can find it; contractor footers stay one offer", () => {
   expect(read("scripts/generate-sitemap.mjs")).toContain('["/suppliers", "weekly", "0.7"]');
   expect(read("public/llms.txt")).toContain("https://www.contrax.company/suppliers");
-  expect(read("src/routes/index.tsx")).not.toContain('href: "/suppliers"');
+  // Owner 2026-11-18: suppliers now lead the site, so the homepage footer links to the page.
+  expect(read("src/routes/index.tsx")).toContain('{ href: "/suppliers", label: "For suppliers" }');
   expect(read("src/lib/seo-landing.tsx")).not.toContain('href="/suppliers"');
 });

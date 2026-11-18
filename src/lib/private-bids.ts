@@ -44,6 +44,28 @@ export const PRIVATE_BID_REQUESTS: readonly PrivateBidRequest[] = [
     listedOn: "2026-11-18",
     permission: "Listed with the owner's permission, from the owner's own notice.",
   },
+  {
+    // The company answered "Yes and thank you!" to the offer to list it, 2026-11-18.
+    slug: "advanced-pro-cleaning-salt-lake-city-warehouse",
+    title: "Janitorial partner for a warehouse contract in Salt Lake City",
+    buyer: "Advanced Pro Cleaning, LLC",
+    trade: "Commercial janitorial (subcontract)",
+    states: ["UT"],
+    scope: [
+      "An established, insured, locally based janitorial company with commercial and warehouse experience",
+      "Commercial warehouse, Monday to Friday, starting 3:30 PM",
+      "About 2 hours per visit for one cleaner, on a recurring monthly contract",
+      "2 restrooms, 1 cafeteria, 1 general manager's office, 2 medium conference rooms, 2 loading docks (daily dust mopping), public hallways and common areas",
+      "Paid twice a month or once at month end, your choice",
+      "Selection: a first interview on Zoom, then an in-person walkthrough at the facility",
+      "The monthly pay is not in the notice. The company sends the full scope of work and compensation on request",
+    ],
+    locations: ["Salt Lake City, UT"],
+    deadline: null,
+    contact: { email: "info@advancedprofessionalcleaning.com", note: "Ask for the full scope of work and the monthly compensation." },
+    listedOn: "2026-11-18",
+    permission: "Listed with the company's permission, from its own notice.",
+  },
 ];
 
 export const privateBidPublished = (r: PrivateBidRequest): boolean => r.contact !== null;

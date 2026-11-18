@@ -48,6 +48,23 @@ export const SUPPLIER_INCLUDES: readonly string[] = [
   "Federal contracts in your state that end soon, with the company that holds them",
 ];
 
+/**
+ * How a sales rep uses each part (owner 2026-11-18, review). Each line promises only what the
+ * report holds: it names jobs and federal winners, not who is bidding and not anyone's phone.
+ */
+export const SUPPLIER_USES: readonly { part: string; use: string }[] = [
+  { part: "Jobs opening and closing soon", use: "Contractors are pricing these right now. Get your material or rental quote to the ones you know before they submit." },
+  { part: "Just awarded", use: "Call the winner while they are mobilizing and choosing their vendors." },
+  { part: "Contracts ending soon", use: "The work will be bid again. Reach the company that holds it before the new bid is posted." },
+];
+/** What a row contains, said plainly so nobody expects a phone list. */
+export const SUPPLIER_CONTACT_NOTE =
+  "Each company is listed by name, city and state, and each federal winner links to its public award record. The report does not include phone numbers or email addresses.";
+/** The free report is built by hand for the request, so it can be led with what fits the requester. */
+export const SUPPLIER_TAILOR_NOTE = "Tell us what you sell and your report leads with the jobs most likely to need it.";
+/** True of the Agency plan (PLAN_COPY.agency: up to 10 workspaces, each with its own states and trades). */
+export const SUPPLIER_MULTI_STATE = "Cover more than one state? The plan includes up to 10 territories, each with its own states and trades, at the same price.";
+
 export const SUPPLIER_NOT_YET = "Winners of state, county and school jobs are not in the report yet. Federal winners are.";
 
 /** Titles that read as construction or building-trade work (Postgres ~* and JS). */

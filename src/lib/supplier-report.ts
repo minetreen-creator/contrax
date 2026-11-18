@@ -12,7 +12,8 @@
  */
 import { STATE_NAMES } from "./contract-map";
 
-export const SUPPLIER_PRICE = "$149";
+/** The Agency plan's price (owner 2026-11-12: "$199 it is"). The paid step after the free report. */
+export const SUPPLIER_PRICE = "$199";
 export const SUPPLIER_SAMPLE_STATE = "SC";
 
 export const SUPPLIER_TYPES: readonly { id: string; label: string }[] = [

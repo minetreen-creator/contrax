@@ -27,11 +27,13 @@ describe("supplier report (owner 2026-11-18)", () => {
     expect(supplierDay("2026-12-18T00:00:00.000Z")).toBe("Dec 18");
     expect(supplierDay("nonsense")).toBe("");
   });
-  test("the page never promises local award winners, has no checkout, and the homepage links to it", () => {
+  test("the page never promises local award winners, sells the Agency plan as the paid step, and the homepage links to it", () => {
     const page = readFileSync(new URL("../routes/suppliers.tsx", import.meta.url), "utf8");
     expect(SUPPLIER_NOT_YET).toContain("not in the report yet");
     expect(page).toContain("{SUPPLIER_NOT_YET}");
-    expect(page).not.toContain("redirectToCheckout");
+    // The paid step is the existing Agency plan at $199 (owner 2026-11-12), the same price the form names.
+    expect(SUPPLIER_PRICE).toBe("$199");
+    expect(page).toContain('href="/upgrade?plan=agency&source=suppliers"');
     expect(page).toContain('fetch("/api/supplier-report"');
     const home = readFileSync(new URL("../routes/index.tsx", import.meta.url), "utf8");
     expect(home).toContain('href="/suppliers"');

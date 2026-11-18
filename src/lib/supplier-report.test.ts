@@ -83,7 +83,7 @@ describe("readable rows (owner 2026-11-18)", () => {
     const { tidyCaps, clip, SUPPLIER_SUPPLY_PATTERN } = await import("./supplier-report");
     expect(tidyCaps("BRANTLEY CONSTRUCTION SERVICES, LLC")).toBe("Brantley Construction Services, LLC");
     expect(tidyCaps("CITY OF RALEIGH")).toBe("City of Raleigh");
-    expect(tidyCaps("EHRM DATA CENTER UPGRADES - CHARLESTON, SC EO 14398")).toBe("Ehrm Data Center Upgrades - Charleston, SC EO 14398");
+    expect(tidyCaps("EHRM DATA CENTER UPGRADES - CHARLESTON, SC EO 14398")).toBe("EHRM Data Center Upgrades - Charleston, SC EO 14398");
     expect(tidyCaps("DESIGN BUILD CONSTRUCTION FOR HC-130J FLIGHT SIMULATOR FACILITY AT U.S. COAST GUARD BASE")).toBe("Design Build Construction for HC-130J Flight Simulator Facility at U.S. Coast Guard Base");
     expect(tidyCaps("SDC TIDEWATER JV, LLC")).toBe("SDC Tidewater JV, LLC");
     expect(tidyCaps("VDOT HVAC UPGRADE PHASE III")).toBe("VDOT HVAC Upgrade Phase III");

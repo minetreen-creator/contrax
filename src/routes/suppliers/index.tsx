@@ -12,9 +12,10 @@ import { DIRECTORY_MIN_LISTINGS_TO_SELL, SUPPLIER_CERTS, certLabel, type Supplie
  * DIRECTORY_MIN_LISTINGS_TO_SELL listings, so no one pays for an empty list.
  */
 const PROD_URL = "https://www.contrax.company";
-const TITLE = "Small Business Subcontractor Directory | SDVOSB, WOSB, HUBZone, 8(a) | Contrax";
+// /suppliers shows the supplier report page (src/routes/suppliers.tsx); this child route's head must not override it.
+const TITLE = "Public Construction Jobs Report for Suppliers | Contrax";
 const DESC =
-  "Prime contractors: find certified small businesses by NAICS, state and certification to meet your subcontracting goals. Small businesses: list your company free.";
+  "A weekly report for businesses that sell to contractors: the public construction jobs opening in your state, federal jobs just awarded and who won them, and contracts about to end.";
 
 const getDirectory = createServerFn({ method: "GET" }).handler(async () => {
   try {

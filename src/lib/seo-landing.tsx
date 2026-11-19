@@ -12,6 +12,7 @@
  * /signup?plan=professional and fires `start_trial` (same event names as the
  * verified live homepage hero). No "unlimited" claims anywhere.
  */
+import { biddableFirst } from "~/lib/biddable-first";
 import { publicAgency, publicTitle, scrubAgencyName } from "~/lib/public-bid";
 import { agencyCardLabel, jobSummary, publicJobText, valueLabel } from "~/lib/bid-job-summary";
 import { displayTitle } from "~/lib/bid-title";
@@ -459,7 +460,8 @@ export const getRegionTradeData = createServerFn({ method: "GET" })
       stateSlug: data.state,
       trade: valid ? { slug: trade!.slug, label: trade!.label, radarTerm: trade!.radarTerm } : null,
       count: bids.length,
-      bids: bids.slice(0, 25),
+      // Bids with a week or more left lead the list (src/lib/biddable-first.ts).
+      bids: biddableFirst(bids).slice(0, 25),
       nationwideCount: nationwide.length,
       nationwide: nationwide.slice(0, 10),
       generatedAt: new Date().toISOString(),

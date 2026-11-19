@@ -32,7 +32,6 @@ describe("what a bid shows without a pass (owner 2026-11-18: no more freebies)",
     expect(publicTitle("ITB No. 26-3026-11JL - Westwood Sewer Improvements Phase 1")).toBe("Westwood Sewer Improvements Phase 1");
     expect(publicTitle("RFQ 704022: Construction of the Dulles West Boulevard")).toBe("Construction of the Dulles West Boulevard");
     expect(publicTitle("Construction of the Dulles West Boulevard, RFQ 704022")).toBe("Construction of the Dulles West Boulevard");
-    expect(publicTitle("Tara Elementary School HVAC and Roof Replacement, Project No. 2027-01")).toBe("Tara Elementary School HVAC and Roof Replacement");
     expect(publicTitle("Concrete Work and Pavilion Construction at Animal Shelter (IFB 2027-005)")).toBe("Concrete Work and Pavilion Construction at Animal Shelter");
     expect(publicTitle("LU214-27-009 Moton Museum Pavilion Interior Renovation")).toBe("Moton Museum Pavilion Interior Renovation");
     // A year or fiscal year is part of the job's name.
@@ -42,6 +41,10 @@ describe("what a bid shows without a pass (owner 2026-11-18: no more freebies)",
   });
   test("the buyer's name comes out of the title and the description", () => {
     expect(publicTitle("City of Bristol, Virginia is seeking qualified contractors to provide for bridge construction services", "City of Bristol")).toBe("The agency is seeking qualified contractors to provide for bridge construction services");
+    // Seen on the live homepage 2026-11-18: "The agency Parks Janitorial Services".
+    expect(publicTitle("City of Corona Parks Janitorial Services", "City of Corona")).toBe("Parks Janitorial Services");
+    expect(publicTitle("Pemberton Elementary School HVAC Network Controls")).toBe("Elementary School HVAC Network Controls");
+    expect(publicTitle("Tara Elementary School HVAC and Roof Replacement, Project No. 2027-01")).toBe("Elementary School HVAC and Roof Replacement");
     expect(scrubAgencyName("Roof work for the Rock Hill School District 3 at two schools.", "Rock Hill School District 3")).toBe("Roof work for the agency at two schools.");
   });
   test("the bid page masks on the server and only a paying member gets the real name back", () => {

@@ -26,7 +26,7 @@ export const Route = createFileRoute("/pricing/")({
       { name: "description", content: META_DESCRIPTION },
       { name: "robots", content: "index, follow" },
       { property: "og:title", content: PAGE_TITLE },
-      { property: "og:description", content: "Contrax plans for every stage of growth. Starter is $9 one time for 30 days, and nothing renews; Professional $79/mo; Basic search free." },
+      { property: "og:description", content: "Contrax plans for every stage of growth. Starter is $9 one time for 30 days, and nothing renews. Basic search is free." },
       { property: "og:image", content: "https://www.contrax.company/logo-square.png" },
       { property: "og:image:type", content: "image/png" },
       { property: "og:image:width", content: "1200" },

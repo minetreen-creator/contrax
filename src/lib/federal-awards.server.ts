@@ -34,7 +34,8 @@ export async function queryFederalAwards(q: { like: string | null; state: string
         WHERE agency IS NOT NULL AND agency <> '' GROUP BY agency ORDER BY total DESC LIMIT 8`,
     s`WITH a AS (${base}) SELECT recipient_name AS name, COUNT(*)::int AS contracts, SUM(amount)::float AS total FROM a
         GROUP BY recipient_name ORDER BY total DESC LIMIT 8`,
-    s`WITH a AS (${base}) SELECT * FROM a ORDER BY start_date DESC NULLS LAST, amount DESC LIMIT ${q.listLimit}`,
+    // Newest first, but never a start date in the future (2026-11-19: the list led with 2027 dates).
+    s`WITH a AS (${base}) SELECT * FROM a WHERE start_date IS NULL OR start_date <= CURRENT_DATE ORDER BY start_date DESC NULLS LAST, amount DESC LIMIT ${q.listLimit}`,
   ]);
   const st = (stats as { n: number; total: number; med: number | null; p25: number | null; p75: number | null }[])[0];
   const day = (v: unknown) => (v ? new Date(v as string).toISOString().slice(0, 10) : null);

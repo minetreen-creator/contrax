@@ -1,5 +1,5 @@
 import { POST_PROJECT_PATH } from "~/lib/private-bid-post";
-import { publishedPrivateBids } from "~/lib/private-bids";
+import { privateBidsForPlace, publishedPrivateBids } from "~/lib/private-bids";
 
 /**
  * Businesses taking bids, and the card for owners to post a project (owner 2026-11-18). On the
@@ -7,15 +7,16 @@ import { publishedPrivateBids } from "~/lib/private-bids";
  * homepage, on the state pages too ("page"). Shows only published requests; nothing renders when
  * there are none.
  */
-export function PrivateBidsBlock({ variant = "home" }: { variant?: "home" | "page" }) {
-  const requests = publishedPrivateBids();
-  if (requests.length === 0) return null;
+export function PrivateBidsBlock({ variant = "home", stateCode = null }: { variant?: "home" | "page"; stateCode?: string | null }) {
+  const requests = privateBidsForPlace(publishedPrivateBids(), variant, stateCode);
+  // The homepage shows nothing when there are no requests; a state page still shows the card to post one.
+  if (requests.length === 0 && variant === "home") return null;
   return (
     <section aria-labelledby="private-bids-block-title" className={variant === "home" ? "bg-amber-50 px-4 py-8 text-slate-900 sm:px-8 sm:py-10" : "mx-auto mt-8 max-w-3xl rounded-2xl bg-amber-50 px-4 py-6 text-left text-slate-900 sm:px-6"}>
       <div className={variant === "home" ? "mx-auto max-w-7xl" : ""}>
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-700">Private bid requests</p>
-        <h2 id="private-bids-block-title" className="mt-1 text-2xl font-extrabold">Businesses taking bids right now</h2>
-        <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+        <h2 id="private-bids-block-title" className="mt-1 text-2xl font-extrabold">{requests.length ? "Businesses taking bids right now" : "Private businesses can take bids here too"}</h2>
+        <ul className={requests.length ? "mt-4 grid gap-3 sm:grid-cols-2" : "hidden"}>
           {requests.slice(0, 4).map((r) => (
             <li key={r.slug} className="flex flex-col rounded-xl border border-amber-200 bg-white p-4">
               <p className="text-xs font-bold uppercase tracking-wide text-amber-700">{r.trade}</p>

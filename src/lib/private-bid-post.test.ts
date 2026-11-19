@@ -48,8 +48,8 @@ describe("post your project", () => {
     expect(read("../components/PrivateBidsBlock.tsx")).toContain("Post your project free →");
     expect(read("../routes/index.tsx")).toContain("<PrivateBidsBlock");
     // The state pages are where Facebook visitors land.
-    expect(read("../routes/contracts-in.$state.tsx")).toContain('<PrivateBidsBlock variant="page" />');
-    expect(read("../routes/contracts-in.$state_.$trade.tsx")).toContain('<PrivateBidsBlock variant="page" />');
+    expect(read("../routes/contracts-in.$state.tsx")).toContain('<PrivateBidsBlock variant="page" stateCode={data.code} />');
+    expect(read("../routes/contracts-in.$state_.$trade.tsx")).toContain('<PrivateBidsBlock variant="page" stateCode={data.code} />');
     expect(POST_PROJECT_PATH).toBe("/private-bids/post");
   });
 });

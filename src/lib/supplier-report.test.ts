@@ -106,7 +106,7 @@ describe("contact line and design-services requests", () => {
     const { contactLine } = await import("./supplier-report");
     expect(contactLine("Micheal Heath", "Mr.")).toBe("Micheal Heath");
     expect(contactLine("Rafael Cabello", "President")).toBe("Rafael Cabello, President");
-    expect(contactLine("Christina Mcalhaney", null)).toBe("Christina Mcalhaney");
+    expect(contactLine("Christina Mcalhaney", null)).toBe("Christina McAlhaney");
     expect(contactLine("", "President")).toBeNull();
   });
   test("requests for design or consulting services are not counted as construction jobs", async () => {

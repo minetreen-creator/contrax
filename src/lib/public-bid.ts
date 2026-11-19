@@ -71,6 +71,18 @@ export function scrubAgencyName(text: string, agency: string | null | undefined)
   return out.replace(/^the agency\b/, "The agency").replace(/\s{2,}/g, " ").trim();
 }
 
+/**
+ * The buyer's name taken out of a title. In a title the name is dropped, not replaced ("City of
+ * Corona Parks Janitorial Services" reads "Parks Janitorial Services"); only a title that is a
+ * sentence about the buyer keeps a subject ("The agency is seeking…").
+ */
+function dropAgencyFromTitle(title: string, agency: string | null | undefined): string {
+  const marked = scrubAgencyName(title, agency);
+  if (marked === title) return title;
+  const rest = marked.replace(/\bthe agency\b,?\s*/gi, "").replace(/\s{2,}/g, " ").trim();
+  return /^(is|are|seeks|seeking|requests|invites|will|has|needs)\b/i.test(rest) ? `The agency ${rest}` : rest;
+}
+
 /** A title without the agency's own numbers or name: "IFB-26-27-020 Street Resurfacing" → "Street Resurfacing". */
 export function publicTitle(title: string | null | undefined, agency?: string | null, ids?: string | null): string {
   const original = String(title ?? "").replace(/\s+/g, " ").trim();
@@ -87,7 +99,9 @@ export function publicTitle(title: string | null | undefined, agency?: string | 
     afterKeyword = KEYWORD.test(tokens[i]!.replace(/[,:;]+$/, ""));
     i++;
   }
-  t = scrubAgencyName(tokens.slice(i).join(" "), agency).replace(/^[\s,:;–-]+/, "").replace(/[\s,:;(–-]+$/, "").trim();
+  t = dropAgencyFromTitle(tokens.slice(i).join(" "), agency).replace(/^[\s,:;–-]+/, "").replace(/[\s,:;(–-]+$/, "").trim();
+  // A named school identifies the buyer as surely as the district's name does.
+  t = t.replace(/\b(?:[A-Z][\w.'’-]*\s+){1,3}(Elementary|Middle|High|Primary|Intermediate|Junior High) School\b/g, "$1 School");
   if (t.length < 8) return original.length >= 8 && !/\d{3,}/.test(original) ? original : "Public bid";
   return t.charAt(0).toUpperCase() + t.slice(1);
 }

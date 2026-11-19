@@ -83,7 +83,8 @@ const HONORIFIC = /^(mr|mrs|ms|miss|mx|dr|sir|madam|n\/?a|none)\.?$/i;
 
 /** "Name, Title" for a SAM contact; a title that is only an honorific ("Mr.") or a blank filler is left off. */
 export function contactLine(name: string | null | undefined, title: string | null | undefined): string | null {
-  const n = (name ?? "").trim();
+  // SAM stores some names already in mixed case ("Mcalhaney"), which tidyCaps leaves alone.
+  const n = (name ?? "").trim().replace(/\bMc([a-z])(?=[a-z]{2})/g, (_m, ch: string) => `Mc${ch.toUpperCase()}`);
   if (!n) return null;
   const t = (title ?? "").trim();
   return t && !HONORIFIC.test(t) ? `${n}, ${t}` : n;
@@ -95,7 +96,7 @@ const CAPS_KEEP = new Set([
   "DOT", "VDOT", "NCDOT", "SCDOT", "GDOT", "FDOT", "USCG", "USACE", "NPS", "GSA", "FAA", "FEMA", "USDA", "NASA", "DOD", "DHS",
   "VA", "NC", "SC", "GA", "FL", "AL", "TN", "KY", "MD", "DC", "TX", "OH", "PA", "NY", "NJ",
   // Federal programs and offices that show up in award descriptions.
-  "GAOA", "EHRM", "VAMC", "VHA", "IDIQ", "MATOC", "SATOC", "BPA", "FY", "USMC", "USAF", "NAVFAC", "AFB", "MCAS", "NAS", "JBSA", "NOAA", "USFS", "BLM", "EPA", "ATC", "UPS", "LED", "CCTV", "ADAL", "FRP", "RTU", "AC",
+  "GAOA", "EHRM", "LSCI", "FCI", "USP", "VAMC", "VHA", "IDIQ", "MATOC", "SATOC", "BPA", "FY", "USMC", "USAF", "NAVFAC", "AFB", "MCAS", "NAS", "JBSA", "NOAA", "USFS", "BLM", "EPA", "ATC", "UPS", "LED", "CCTV", "ADAL", "FRP", "RTU", "AC",
 ]);
 const CAPS_FIXED: Record<string, string> = { INC: "Inc", CORP: "Corp", CO: "Co", LTD: "Ltd" };
 const CAPS_SMALL = new Set(["a", "an", "and", "at", "by", "for", "in", "of", "on", "or", "the", "to", "with"]);

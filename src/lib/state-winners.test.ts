@@ -84,6 +84,7 @@ describe("state winners list", () => {
 
   test("the offer is on the federal construction page and the supplier page points to it", () => {
     expect(read("../routes/federal-construction-by-state.tsx")).toContain("<WinnersListOffer");
+    expect(read("../routes/index.tsx")).toContain('<WinnersListOffer source="/" place="home" />');
     expect(read("../routes/suppliers.tsx")).toContain("/federal-construction-by-state#list");
     expect(read("../components/SupplierRequestForm.tsx")).toContain("WINNERS_SUPPLIER_LINE");
   });

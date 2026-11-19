@@ -7,7 +7,7 @@ import { trackEvent } from "~/lib/track";
  * The $29 state winners list (owner 2026-11-19). One choice (the state) and one button that goes
  * straight to Stripe; no account and no form beyond that.
  */
-export function WinnersListOffer({ source }: { source: string }) {
+export function WinnersListOffer({ source, place = "ranking" }: { source: string; place?: "ranking" | "home" }) {
   const states = federalConstructionStates().slice().sort((a, b) => a.name.localeCompare(b.name));
   const [state, setState] = useState("");
   const [busy, setBusy] = useState(false);
@@ -31,12 +31,14 @@ export function WinnersListOffer({ source }: { source: string }) {
   }
 
   return (
-    <section id="list" aria-labelledby="winners-list-title" className="mt-10 rounded-2xl border-2 border-amber-400 bg-white p-6 shadow-sm">
+    <section id="list" aria-labelledby="winners-list-title" className={`${place === "home" ? "" : "mt-10 "}rounded-2xl border-2 border-amber-400 bg-white p-6 text-slate-900 shadow-sm`}>
       <p className="text-xs font-bold uppercase tracking-widest text-amber-600">For suppliers, subcontractors and sales teams</p>
       <h2 id="winners-list-title" className="mt-1 text-xl font-bold">Get the full list of who won in your state: {WINNERS_PRICE}</h2>
       <p className="mt-2 text-sm text-slate-700">
-        The table above is the summary. The list is every contract behind it: the company that won, where it is based and how much the job is
-        worth. These are the companies buying materials, renting equipment and hiring subs for federal work in your state right now.
+        {place === "home"
+          ? "The winners above are a sample. The list is every one: the company that won, where it is based and how much the job is worth."
+          : "The table above is the summary. The list is every contract behind it: the company that won, where it is based and how much the job is worth."}{" "}
+        These are the companies buying materials, renting equipment and hiring subs for federal work in your state right now.
       </p>
       <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-slate-700">
         {WINNERS_INCLUDES.map((line) => (

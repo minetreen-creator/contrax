@@ -41,7 +41,7 @@ describe("supplier report (owner 2026-11-18)", () => {
     expect(home).toContain("<HomeSupplierHero samples={supplierSamples} />");
     expect(home).toContain("<HomeSupplierRows key={one.state} sample={one} />");
     // Owner 2026-11-18 ("lets add NC too", "might as well add VA, FL and GA"); small awards left out.
-    expect([...SUPPLIER_SAMPLE_STATES]).toEqual(["SC", "NC", "VA", "GA", "FL", "TX", "PA", "OH"]);
+    expect([...SUPPLIER_SAMPLE_STATES]).toEqual(["SC", "NC", "VA", "GA", "FL", "TX", "PA", "OH", "NY"]);
     expect(home).toContain("supplierSamples.slice(0, SUPPLIER_HOME_ROW_STATES).map(");
     expect(SUPPLIER_AWARD_MIN).toBe(100_000);
     // The pitch names only what the report holds: no bidder lists, no contact details, federal winners only.
@@ -169,7 +169,7 @@ describe("third round of review notes (2026-11-18)", () => {
 
 test("the page states the number of sample states from the list itself", async () => {
   const { SUPPLIER_ANY_STATE_NOTE, SUPPLIER_SAMPLE_COUNT_WORD } = await import("./supplier-report");
-  expect(SUPPLIER_SAMPLE_COUNT_WORD).toBe("eight");
-  expect(SUPPLIER_ANY_STATE_NOTE).toBe("The sample shows eight states. The report covers any state: pick yours in the form.");
+  expect(SUPPLIER_SAMPLE_COUNT_WORD).toBe("nine");
+  expect(SUPPLIER_ANY_STATE_NOTE).toBe("The sample shows nine states. The report covers any state: pick yours in the form.");
   expect(readFileSync(new URL("../routes/index.tsx", import.meta.url), "utf8")).toContain("for all {SUPPLIER_SAMPLE_COUNT_WORD} states");
 });

@@ -9,6 +9,7 @@ import {
   federalConstructionTotals,
 } from "~/lib/federal-construction";
 import { seoHead } from "~/lib/seo-landing";
+import { WinnersListOffer } from "~/components/WinnersListOffer";
 
 // /federal-construction-by-state — where federal construction dollars go (owner 2026-11-19).
 export const Route = createFileRoute("/federal-construction-by-state")({
@@ -83,6 +84,8 @@ function FederalConstructionByState() {
         </div>
         <p className="mt-2 text-xs text-slate-500">Each state name opens the construction bids open in that state now.</p>
 
+        <WinnersListOffer source="/federal-construction-by-state" />
+
         <h2 className="mt-10 text-xl font-bold">Read this before quoting a number</h2>
         <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-slate-700">
           <li>
@@ -115,11 +118,11 @@ function FederalConstructionByState() {
           Subcontracts are not included.
         </p>
         <p className="mt-3 text-sm text-slate-700">
-          Reporters and researchers: write to{" "}
+          Reporters checking a figure for a story: write to{" "}
           <a href="mailto:contrax.companyllc@gmail.com" className="text-blue-700 hover:text-blue-800">
             contrax.companyllc@gmail.com
           </a>{" "}
-          for the contract-level list for any state, with award numbers you can check against the federal record.
+          and we will send the contracts behind it.
         </p>
 
         <div className="mt-10 rounded-2xl bg-slate-900 p-6 text-white">

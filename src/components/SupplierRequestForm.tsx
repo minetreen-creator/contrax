@@ -1,3 +1,4 @@
+import { WINNERS_SUPPLIER_LINE } from "~/lib/state-winners";
 import { useState } from "react";
 import { trackEvent } from "~/lib/track";
 import { STATE_NAMES } from "~/lib/contract-map";
@@ -84,6 +85,10 @@ export function SupplierRequestForm({ where }: { where: string }) {
       <p className="mt-2 text-center text-xs font-semibold text-slate-600">{SUPPLIER_AUDIENCE}</p>
       <p className="mt-2 text-xs text-slate-500">One report, free. To keep getting it, the {SUPPLIER_PLAN_NAME} is {SUPPLIER_PRICE} a month, month to month, and only if you choose it.</p>
       <p className="mt-1 text-xs text-slate-500">{SUPPLIER_MULTI_STATE}</p>
+      <p className="mt-1 text-xs text-slate-600">
+        {WINNERS_SUPPLIER_LINE}{" "}
+        <a href="/federal-construction-by-state#list" className="font-semibold text-blue-700 hover:text-blue-800">Get the list →</a>
+      </p>
       <p className="mt-1 text-xs text-slate-500">{SUPPLIER_FORWARD_NOTE}</p>
     </form>
   );

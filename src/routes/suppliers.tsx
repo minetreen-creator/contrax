@@ -1,3 +1,4 @@
+import { WINNERS_SUPPLIER_LINE } from "~/lib/state-winners";
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { SiteHeader } from "~/components/SiteHeader";
@@ -211,6 +212,10 @@ function SuppliersPage() {
             </a>
             <p className="mt-2 text-xs text-slate-500">Month to month. Cancel anytime. Or $1,990 a year. {SUPPLIER_PLAN_BILLED_AS}</p>
             <p className="mt-1 text-xs text-slate-500">{SUPPLIER_MULTI_STATE}</p>
+            <p className="mt-1 text-xs text-slate-600">
+              {WINNERS_SUPPLIER_LINE}{" "}
+              <a href="/federal-construction-by-state#list" className="font-semibold text-blue-700 hover:text-blue-800">Get the list →</a>
+            </p>
           </div>
         </section>
 

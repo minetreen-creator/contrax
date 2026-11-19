@@ -749,6 +749,11 @@ export async function handleStripeWebhook(
   const { handleReportEvent } = await import("~/lib/pipeline-report.server");
   if (await handleReportEvent(event)) return { success: true };
 
+  // State winners list, $29 one time (owner 2026-11-19): product "state_winners_list"; a paid one
+  // emails the owner and the buyer's download link. Its events never reach the plan flow.
+  const { handleWinnersEvent } = await import("~/lib/state-winners.server");
+  if (await handleWinnersEvent(event)) return { success: true };
+
   // Bid Prep, $199 one time (owner 2026-11-17): product "bid_prep"; a paid one emails the owner and the buyer.
   const { handleBidPrepEvent } = await import("~/lib/bid-prep.server");
   if (await handleBidPrepEvent(event)) return { success: true };

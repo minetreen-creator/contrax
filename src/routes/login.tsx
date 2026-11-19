@@ -262,6 +262,10 @@ function LoginPage({ linkedInAuthUrl, googleAuthUrl }: { linkedInAuthUrl: string
                   Forgot password?
                 </a>
               </p>
+              {/* Owner 2026-11-19: a buyer who paid first has an account but never chose a password. */}
+              <p className="mt-1.5 text-sm text-slate-600">
+                Paid without making an account? Your account uses the email you paid with. Tap &quot;Forgot password?&quot; to set one.
+              </p>
             </div>
 
             {/* Error */}

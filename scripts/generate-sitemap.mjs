@@ -122,6 +122,7 @@ const PRODUCT_PATHS = [
   // Bid checklists (owner 2026-11-08); slugs match src/lib/bid-checklists.ts (a test checks).
   ["/competitor-xray", "monthly", "0.6"],
   ["/checklists", "monthly", "0.6"],
+  ["/federal-construction-by-state", "monthly", "0.7"],
   ["/checklists/municipal-landscaping-ifb", "monthly", "0.6"],
   ["/checklists/commercial-janitorial-bid-prep", "monthly", "0.6"],
   ["/checklists/public-works-construction-bid", "monthly", "0.6"],

@@ -405,6 +405,10 @@ export const ROBOTS_PAUSED_SOURCES: ReadonlySet<string> = new Set<string>([
   "tx_uh_jaggaer",
   "tx_utsa_jaggaer",
   "va_vt_jaggaer",
+  // Town of Huntersville, NC (2026-11-19): www.huntersville.org answered HTTP 403 two syncs in a row, so
+  // it is a block we respect (owner rule: "403 = stop"). The reader stays; remove this line if the town
+  // allows it again.
+  "nc_huntersville",
 ]);
 
 /** The registry without the paused sources: what a sync actually reads. PURE. */

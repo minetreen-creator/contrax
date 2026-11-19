@@ -75,7 +75,8 @@ export const SUPPLIER_TAILOR_NOTE = "Tell us what you sell and your report leads
 export const SUPPLIER_MULTI_STATE = "Cover more than one state? The plan includes up to 10 territories, each with its own states and trades, at the same price.";
 
 /** The one line of fine print the homepage shows; /suppliers carries the full wording. */
-export const SUPPLIER_FINE_PRINT_SHORT = "Federal winners come with the company's website, address and named contact where public. No phone numbers or emails.";
+// Owner's review 2026-11-18: lead with what the rep can do with it; the limit stays, said plainly, second.
+export const SUPPLIER_FINE_PRINT_SHORT = "Federal winners come with the company's website, office address and named contact where public: enough to look them up and add them to your CRM. Phone numbers and emails are not included.";
 
 /**
  * Titles that are a purchase of goods, not work on a site (owner 2026-11-18: "District 6 Deicer for

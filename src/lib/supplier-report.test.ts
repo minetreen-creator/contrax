@@ -155,3 +155,14 @@ describe("second round of review notes (2026-11-18)", () => {
     expect(page).toContain('id="get-report"');
   });
 });
+
+describe("third round of review notes (2026-11-18)", () => {
+  test("no state is pre-picked, and the fine print leads with the use and still states the limit", async () => {
+    const form = readFileSync(new URL("../components/SupplierRequestForm.tsx", import.meta.url), "utf8");
+    expect(form).toContain('useState("")');
+    expect(form).toContain('<option value="">Choose your state</option>');
+    const { SUPPLIER_FINE_PRINT_SHORT, cleanSupplierRequest } = await import("./supplier-report");
+    expect(SUPPLIER_FINE_PRINT_SHORT).toContain("Phone numbers and emails are not included.");
+    expect(cleanSupplierRequest({ email: "a@b.co", state: "", type: "materials" }).ok).toBe(false);
+  });
+});

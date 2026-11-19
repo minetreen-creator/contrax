@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { biddableFirst } from "./biddable-first";
+import { privateBidsForPlace } from "./private-bids";
 
 const now = new Date("2026-11-19T15:00:00Z");
 const row = (id: number, due: string | null) => ({ id, due_date: due });
@@ -41,5 +42,13 @@ describe("biddableFirst", () => {
   test("the Terms describe the one-time pass", () => {
     const src = readFileSync(new URL("../routes/terms/index.tsx", import.meta.url), "utf8");
     expect(src).toContain("does not renew");
+  });
+
+  test("a state page shows only private requests located in that state", () => {
+    const reqs = [{ slug: "a", states: ["KY", "IN"] }, { slug: "b", states: ["UT"] }];
+    expect(privateBidsForPlace(reqs, "home", null).length).toBe(2);
+    expect(privateBidsForPlace(reqs, "page", "SC")).toEqual([]);
+    expect(privateBidsForPlace(reqs, "page", "ky").map((r) => r.slug)).toEqual(["a"]);
+    expect(privateBidsForPlace(reqs, "page", null)).toEqual([]);
   });
 });

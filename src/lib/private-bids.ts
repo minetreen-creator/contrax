@@ -74,3 +74,14 @@ export const publishedPrivateBids = (): PrivateBidRequest[] => PRIVATE_BID_REQUE
 export const privateBidBySlug = (slug: string): PrivateBidRequest | null => PRIVATE_BID_REQUESTS.find((r) => r.slug === slug) ?? null;
 export const PRIVATE_BIDS_DISCLAIMER =
   "Contrax lists this request for free and does not verify the business, take a fee or handle bids. You deal with the owner directly.";
+
+/**
+ * Which requests a page shows (owner 2026-11-19: a Kentucky hood-cleaning job and a Utah
+ * janitorial job were showing on the South Carolina construction page). The homepage shows
+ * all of them; a state page shows only requests with a location in that state.
+ */
+export function privateBidsForPlace<T extends { states: string[] }>(requests: T[], variant: "home" | "page", stateCode: string | null | undefined): T[] {
+  if (variant === "home") return requests;
+  const code = String(stateCode ?? "").toUpperCase();
+  return code ? requests.filter((r) => r.states.includes(code)) : [];
+}

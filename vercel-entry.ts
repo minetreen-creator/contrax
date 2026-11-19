@@ -8,6 +8,7 @@
 //
 // Bundled (with its deps + the SSR handler's dynamic ./assets chunks) into
 // .vercel/output/functions/render.func/index.mjs by build-vercel.sh.
+import { encodedHashTarget } from "./src/lib/encoded-hash";
 import type { IncomingHttpHeaders, IncomingMessage, ServerResponse } from "node:http";
 import { COURSE_TITLE, COURSE_MINUTES, LESSONS } from "./src/lib/course-construction";
 import { INTERMEDIATE_COURSE } from "./src/lib/course-intermediate";
@@ -824,6 +825,19 @@ export default async function vercelHandler(
       res.setHeader("cache-control", "no-store");
       res.end(GEO_BLOCK_MESSAGE);
       return;
+    }
+
+    // A link whose "#section" arrived as "%23section" (email programs and scanners do this) is sent
+    // to the real page instead of an error (src/lib/encoded-hash.ts).
+    if (req.method === "GET" || req.method === "HEAD") {
+      const fixed = encodedHashTarget(url.pathname, url.search);
+      if (fixed) {
+        res.statusCode = 302;
+        res.setHeader("location", fixed);
+        res.setHeader("cache-control", "no-store");
+        res.end();
+        return;
+      }
     }
 
     // Stripe webhook — needs raw body, handle before SSR

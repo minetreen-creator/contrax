@@ -583,6 +583,12 @@ export async function postingUrls(bidIds: number[]): Promise<Map<number, string>
  * a postal address. Each row is claimed (draft → sending) before it is sent,
  * so a double click cannot send twice.
  */
+const RATE_RETRIES = 3;
+/** Resend's per-second refusal ("Too many requests…"), which is worth waiting out. PURE. */
+export function isRateLimitError(message: string | null | undefined): boolean {
+  return /too many requests|rate limit/i.test(String(message ?? ""));
+}
+
 export async function sendDrafts(ids: number[]): Promise<{ sent: number; failed: number; skipped: number }> {
   await ensureOutreach();
   const postal = await getPostalAddress();
@@ -613,16 +619,32 @@ export async function sendDrafts(ids: number[]): Promise<{ sent: number; failed:
     const mail = renderContact(row, postal!, posting);
     const unsub = unsubscribeUrl(row.email);
     try {
-      const { data, error } = await resend.emails.send({
-        from: OUTREACH_FROM,
-        to: row.email,
-        replyTo: OUTREACH_REPLY_TO,
-        subject: mail.subject,
-        text: mail.text,
-        html: mail.html,
-        headers: { "List-Unsubscribe": `<${unsub}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" },
-      });
-      if (error) throw new Error(error.message);
+      // Owner 2026-11-19: 94 outreach emails in four days were marked failed with Resend's "Too many
+      // requests. You can only make 10 requests per second." The account's other mail shares that
+      // limit, so a refused send waits and tries again instead of being lost.
+      let data: { id?: string } | null = null;
+      for (let attempt = 0; ; attempt++) {
+        const res = await resend.emails.send({
+          from: OUTREACH_FROM,
+          to: row.email,
+          replyTo: OUTREACH_REPLY_TO,
+          subject: mail.subject,
+          text: mail.text,
+          html: mail.html,
+          headers: { "List-Unsubscribe": `<${unsub}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" },
+        });
+        if (!res.error) {
+          data = res.data;
+          break;
+        }
+        if (attempt < RATE_RETRIES && isRateLimitError(res.error.message)) {
+          await new Promise((r) => setTimeout(r, 1200 * (attempt + 1)));
+          continue;
+        }
+        throw new Error(res.error.message);
+      }
+      // A short pause keeps this loop well under the per-second limit on its own.
+      await new Promise((r) => setTimeout(r, 250));
       await sql()`UPDATE outreach_contacts SET status = 'sent', sent_at = NOW(), resend_id = ${data?.id ?? null}, error = NULL WHERE id = ${id}`;
       sent++;
     } catch (e) {

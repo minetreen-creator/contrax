@@ -47,3 +47,10 @@ describe("supplier email", () => {
     expect(read("./outreach.ts")).toContain('i.kind === "supplier"');
   });
 });
+
+test("a send refused for the per-second limit is retried, not marked failed", () => {
+  const src = read("./outreach.server.ts");
+  expect(src).toContain("isRateLimitError(res.error.message)");
+  expect(src).toContain("attempt < RATE_RETRIES");
+  expect(/too many requests|rate limit/i.test("Too many requests. You can only make 10 requests per second.")).toBe(true);
+});

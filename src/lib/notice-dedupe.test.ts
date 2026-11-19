@@ -29,7 +29,7 @@
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
-import { collapseDuplicateNotices, noticeDedupeKey, type NoticeKeyRow } from "~/lib/notice-dedupe";
+import { collapseAggregatorMirrors, collapseDuplicateNotices, noticeDedupeKey, type NoticeKeyRow } from "~/lib/notice-dedupe";
 import { collapseScanRows } from "~/lib/radar-scan-query";
 
 interface FixtureRow extends NoticeKeyRow {
@@ -237,5 +237,25 @@ describe("FIX ① — the key is genuinely two-dimensional", () => {
     const b: NoticeKeyRow = { ...a, solicitation_number: "S2" };
     expect(noticeDedupeKey(a)).not.toBe(noticeDedupeKey(b));
     expect(collapseDuplicateNotices([a, b]).rows.length).toBe(2);
+  });
+});
+
+describe("aggregator mirrors with a notice label on the agency title", () => {
+  test("an agency title that leads with ITB matches the aggregator's bare title", () => {
+    const rows = [
+      { id: 1, title: "ITB - Re-Bid Athletic Field Improvements at Rockwood, Rolling Hills, Northwest Community and Gateway Parks", agency: "City of Fort Worth", source: "tx_fort_worth_bonfire", due_date: "2026-11-19T20:00:00.000Z" },
+      { id: 2, title: "Re-Bid Athletic Field Improvements at Rockwood, Rolling Hills, Northwest Community and Gateway Parks", agency: "City of Fort Worth", source: "tx_bidnet", due_date: "2026-11-20T04:59:00.000Z" },
+    ];
+    const out = collapseAggregatorMirrors(rows);
+    expect(out.collapsed).toBe(1);
+    expect(out.rows.map((r) => r.id)).toEqual([1]);
+  });
+
+  test("different jobs that both start with RFP are not merged", () => {
+    const rows = [
+      { id: 1, title: "RFP - Janitorial Services for City Hall", agency: "City A", source: "tx_city", due_date: "2026-12-01" },
+      { id: 2, title: "RFP - Landscaping Services for City Parks", agency: "City A", source: "tx_bidnet", due_date: "2026-12-01" },
+    ];
+    expect(collapseAggregatorMirrors(rows).collapsed).toBe(0);
   });
 });

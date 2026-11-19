@@ -155,8 +155,15 @@ export function isAggregatorMirror(row: MirrorRow): boolean {
   return /\bbidnet\b/i.test(String(row.agency ?? "")) || /bidnet/i.test(String(row.source ?? ""));
 }
 
+/**
+ * An agency often leads its own title with the kind of notice ("ITB - Re-Bid Athletic Field
+ * Improvements…") while the aggregator lists the bare title (2026-11-19: a Fort Worth bid showed
+ * twice on the Texas construction page). The leading label is not part of the job's name.
+ */
+const NOTICE_LABEL_PREFIX = /^(itb|ifb|rfp|rfq|rfb|rfi|rfqu|invitation to bid|invitation for bids?|request for proposals?|request for quotes?)\s+/;
+
 function mirrorTitleKey(title: string | null | undefined): string {
-  return String(title ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  return String(title ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().replace(NOTICE_LABEL_PREFIX, "");
 }
 
 function sameTitle(a: string, b: string): boolean {

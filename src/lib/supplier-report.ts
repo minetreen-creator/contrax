@@ -26,7 +26,12 @@ export const SUPPLIER_SUBHEAD =
   "Suppliers, equipment rental, staffing and bonding agents: a weekly list of the public jobs opening in your territory, and the contractors who just won federal work there.";
 export const SUPPLIER_SAMPLE_STATE = "SC";
 /** States shown in the live sample (owner 2026-11-18: "lets add NC too", then "might as well add VA, FL and GA"). The first is the form's default. */
-export const SUPPLIER_SAMPLE_STATES: readonly string[] = ["SC", "NC", "VA", "GA", "FL"];
+// Owner 2026-11-19 ("we need to add more states"): Texas, Pennsylvania and Ohio added, the three
+// largest of the states checked that morning (169, 70 and 56 open construction jobs).
+export const SUPPLIER_SAMPLE_STATES: readonly string[] = ["SC", "NC", "VA", "GA", "FL", "TX", "PA", "OH"];
+const NUMBER_WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"];
+/** "eight": how many states the sample shows, in words, so the page never says the wrong number. */
+export const SUPPLIER_SAMPLE_COUNT_WORD = NUMBER_WORDS[SUPPLIER_SAMPLE_STATES.length] ?? String(SUPPLIER_SAMPLE_STATES.length);
 /** The homepage lists every state's counts but real rows for only this many, so it stays short; /suppliers shows them all. */
 export const SUPPLIER_HOME_ROW_STATES = 2;
 /** Federal awards below this are left out of the sample: a $25,030 job is real but tells a supplier little. */
@@ -43,8 +48,8 @@ export const SUPPLIER_TYPES: readonly { id: string; label: string; why: string }
 
 /** Under the counts table: what "closing in 7 days" means to someone who sells to the bidders. */
 export const SUPPLIER_CLOSING_NOTE = "Closing in 7 days means contractors are pricing those jobs now. Get your quote to them before bid day.";
-/** Under the five-state table: the sample is five states, the report is any state. */
-export const SUPPLIER_ANY_STATE_NOTE = "The sample shows five Southeast states. The report covers any state: pick yours in the form.";
+/** Under the table: the sample is a handful of states, the report is any state. */
+export const SUPPLIER_ANY_STATE_NOTE = `The sample shows ${SUPPLIER_SAMPLE_COUNT_WORD} states. The report covers any state: pick yours in the form.`;
 /** Beside the send button: who the report is written for. */
 export const SUPPLIER_AUDIENCE = "Written for outside sales reps, estimators and branch managers.";
 /** The report is sent as an ordinary email by the owner, so it can be forwarded as it is. */

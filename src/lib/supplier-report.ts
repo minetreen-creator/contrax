@@ -43,6 +43,10 @@ export const SUPPLIER_TYPES: readonly { id: string; label: string; why: string }
 
 /** Under the counts table: what "closing in 7 days" means to someone who sells to the bidders. */
 export const SUPPLIER_CLOSING_NOTE = "Closing in 7 days means contractors are pricing those jobs now. Get your quote to them before bid day.";
+/** Under the five-state table: the sample is five states, the report is any state. */
+export const SUPPLIER_ANY_STATE_NOTE = "The sample shows five Southeast states. The report covers any state: pick yours in the form.";
+/** Beside the send button: who the report is written for. */
+export const SUPPLIER_AUDIENCE = "Written for outside sales reps, estimators and branch managers.";
 /** The report is sent as an ordinary email by the owner, so it can be forwarded as it is. */
 export const SUPPLIER_FORWARD_NOTE = "Need a manager's sign-off? The report arrives as a plain email you can forward.";
 

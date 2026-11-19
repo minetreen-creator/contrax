@@ -144,3 +144,14 @@ describe("role lines, closing note and forward note", () => {
     expect(SUPPLIER_FORWARD_NOTE).not.toMatch(/ROI/i);
   });
 });
+
+describe("second round of review notes (2026-11-18)", () => {
+  test("the table says the report covers any state, the form says who it is for, and each sample has a button to the form", () => {
+    const read = (p: string) => readFileSync(new URL(p, import.meta.url), "utf8");
+    expect(read("../routes/index.tsx")).toContain("{SUPPLIER_ANY_STATE_NOTE}");
+    expect(read("../components/SupplierRequestForm.tsx")).toContain("{SUPPLIER_AUDIENCE}");
+    const page = read("../routes/suppliers.tsx");
+    expect(page).toContain('href="#get-report"');
+    expect(page).toContain('id="get-report"');
+  });
+});

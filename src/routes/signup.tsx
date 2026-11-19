@@ -1605,6 +1605,19 @@ function SignupPage() {
                 {error}
               </div>
             )}
+            {/* Owner 2026-11-19: a buyer paid under one email, landed here without a password, was told
+                "an account with this email already exists", and made a second account with another
+                email, which had no pass. Say what that account is and how to get into it. */}
+            {/already exists/i.test(error) && (
+              <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-slate-800">
+                <p className="font-semibold">You already have a Contrax account with this email.</p>
+                <p className="mt-1">
+                  If you just paid, your pass is on that account, so please don&apos;t make a second one with a different email. We emailed you a
+                  link to set your password.
+                </p>
+                <a href="/forgot-password" className="mt-2 inline-block font-semibold text-blue-700 underline">Send me a new link to set my password →</a>
+              </div>
+            )}
 
             {/* Submit */}
             <button

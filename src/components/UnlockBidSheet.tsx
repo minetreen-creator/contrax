@@ -1,3 +1,4 @@
+import { flushTracking } from "~/lib/track-queue";
 import { STARTER_PASS_ANCHOR } from "~/lib/starter-pass";
 import { useEffect, useState } from "react";
 import { displayTitle } from "~/lib/bid-title";
@@ -48,6 +49,9 @@ export function UnlockBidSheet({ bidId, bid, onClose }: { bidId: number; bid?: U
     if (opening) return;
     setOpening(true);
     trackEvent("bid_lock_sheet_continue", String(bidId));
+    // Sent at once: the browser leaves for Stripe a moment later, and on iPhones the queued event
+    // was lost (seen 2026-11-18: a buyer's "shown" and checkout were recorded, the tap between was not).
+    flushTracking();
     rememberCheckoutBid(bidId);
     redirectToCheckout("starter").finally(() => setOpening(false));
   };

@@ -27,8 +27,9 @@ export const SUPPLIER_SUBHEAD =
 export const SUPPLIER_SAMPLE_STATE = "SC";
 /** States shown in the live sample (owner 2026-11-18: "lets add NC too", then "might as well add VA, FL and GA"). The first is the form's default. */
 // Owner 2026-11-19 ("we need to add more states"): Texas, Pennsylvania and Ohio added, the three
-// largest of the states checked that morning (169, 70 and 56 open construction jobs).
-export const SUPPLIER_SAMPLE_STATES: readonly string[] = ["SC", "NC", "VA", "GA", "FL", "TX", "PA", "OH"];
+// largest of the states checked that morning (169, 70 and 56 open construction jobs). New York added
+// the same morning on the owner's word ("add NY too").
+export const SUPPLIER_SAMPLE_STATES: readonly string[] = ["SC", "NC", "VA", "GA", "FL", "TX", "PA", "OH", "NY"];
 const NUMBER_WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"];
 /** "eight": how many states the sample shows, in words, so the page never says the wrong number. */
 export const SUPPLIER_SAMPLE_COUNT_WORD = NUMBER_WORDS[SUPPLIER_SAMPLE_STATES.length] ?? String(SUPPLIER_SAMPLE_STATES.length);

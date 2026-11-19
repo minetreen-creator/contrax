@@ -185,6 +185,9 @@ function SuppliersPage() {
                 </>
               )}
               <p className="mt-4 text-xs text-slate-500">Taken from public bid boards and federal award records. {SUPPLIER_NOT_YET}</p>
+              <p className="mt-4">
+                <a href="#get-report" className="inline-block rounded-xl bg-amber-500 px-5 py-2.5 text-sm font-bold text-slate-950 hover:bg-amber-400">Get this for my state, free →</a>
+              </p>
             </div>
           </section>
         ))}
@@ -211,7 +214,7 @@ function SuppliersPage() {
           </div>
         </section>
 
-        <section className="px-4 py-12 sm:py-16">
+        <section id="get-report" className="scroll-mt-20 px-4 py-12 sm:py-16">
           <div className="mx-auto max-w-xl">
             <h2 className="text-center text-2xl font-extrabold text-slate-900 sm:text-3xl">See your own state</h2>
             <p className="mt-2 text-center text-slate-600">Tell us where you sell and what you sell. The first report is free.</p>

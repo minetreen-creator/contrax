@@ -15,6 +15,9 @@ export const WINNERS_PRODUCT = "state_winners_list";
 export const WINNERS_START = "2024-10-01";
 export const WINNERS_MIN_AMOUNT = 100_000;
 export const WINNERS_PATH = "/winners-list";
+export const WINNERS_OFFER_HREF = "/federal-construction-by-state#list";
+/** The one-state, one-payment step below the monthly supplier plan. */
+export const WINNERS_SUPPLIER_LINE = `Only want the names? Every company that won federal construction work in your state since October 2024, in one file, is ${WINNERS_PRICE} one time.`;
 
 /** Exactly what the buyer gets. Every line is a column the file really has. */
 export const WINNERS_INCLUDES = [

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { trackEvent } from "~/lib/track";
 import { STATE_NAMES } from "~/lib/contract-map";
-import { SUPPLIER_AUDIENCE, SUPPLIER_FORWARD_NOTE, SUPPLIER_MULTI_STATE, SUPPLIER_PLAN_NAME, SUPPLIER_PRICE, SUPPLIER_SAMPLE_STATE, SUPPLIER_TAILOR_NOTE, SUPPLIER_TYPES } from "~/lib/supplier-report";
+import { SUPPLIER_AUDIENCE, SUPPLIER_FORWARD_NOTE, SUPPLIER_MULTI_STATE, SUPPLIER_PLAN_NAME, SUPPLIER_PRICE, SUPPLIER_TAILOR_NOTE, SUPPLIER_TYPES } from "~/lib/supplier-report";
 
 /** The free supplier report request (see ~/lib/supplier-report). Used on /suppliers and at the top of the homepage. */
 const STATES = Object.entries(STATE_NAMES).sort((a, b) => a[1].localeCompare(b[1]));
@@ -10,7 +10,9 @@ export function SupplierRequestForm({ where }: { where: string }) {
   const [email, setEmail] = useState("");
   const [company, setCompany] = useState("");
   const [type, setType] = useState(SUPPLIER_TYPES[0].id);
-  const [state, setState] = useState(SUPPLIER_SAMPLE_STATE);
+  // No state is chosen for the visitor (owner's review 2026-11-18): a pre-picked South Carolina told
+  // someone in Pennsylvania the report was for the Southeast only.
+  const [state, setState] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "done">("idle");
   const [error, setError] = useState("");
   if (status === "done") {
@@ -66,7 +68,8 @@ export function SupplierRequestForm({ where }: { where: string }) {
         </label>
         <label className="block text-sm font-semibold">
           State
-          <select value={state} onChange={(e) => setState(e.target.value)} className={field}>
+          <select required value={state} onChange={(e) => setState(e.target.value)} className={field}>
+            <option value="">Choose your state</option>
             {STATES.map(([code, name]) => (
               <option key={code} value={code}>{name}</option>
             ))}

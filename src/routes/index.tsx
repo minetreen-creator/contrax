@@ -1,6 +1,7 @@
 import { SUPPLIER_ANY_STATE_NOTE, SUPPLIER_SAMPLE_COUNT_WORD, SUPPLIER_CLOSING_NOTE, SUPPLIER_FINE_PRINT_SHORT, SUPPLIER_HOME_ROW_STATES, SUPPLIER_INCLUDES, SUPPLIER_SUBHEAD, SUPPLIER_SAMPLE_STATES, supplierDay, supplierMoney, type SupplierSample } from "~/lib/supplier-report";
 import { SupplierRequestForm } from "~/components/SupplierRequestForm";
 import { PrivateBidsBlock } from "~/components/PrivateBidsBlock";
+import { WinnersListOffer } from "~/components/WinnersListOffer";
 import { createFileRoute } from "@tanstack/react-router";
 import { HomeMaxProof } from "~/components/HomeMaxProof";
 import { createServerFn } from "@tanstack/react-start";
@@ -210,6 +211,12 @@ function Home() {
       {supplierSamples.slice(0, SUPPLIER_HOME_ROW_STATES).map((one) => (
         <HomeSupplierRows key={one.state} sample={one} />
       ))}
+      {/* Owner 2026-11-19 ("put this on the homepage"): the $29 state winners list, right under the sample winners. */}
+      <section className="bg-[#f5f7fa] px-4 py-8 sm:px-8">
+        <div className="mx-auto max-w-3xl">
+          <WinnersListOffer source="/" place="home" />
+        </div>
+      </section>
       <HomePrivateBids />
       <section aria-labelledby="home-contractors-title" className="bg-[#07162e] px-4 pb-2 pt-8 text-white sm:px-8 sm:pt-10">
         <div className="mx-auto max-w-7xl">

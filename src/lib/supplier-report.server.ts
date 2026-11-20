@@ -35,11 +35,14 @@ export async function loadSupplierSample(state: string): Promise<SupplierSample 
       WHERE normalized_state = ${state} AND due_date > NOW() + INTERVAL '5 days' AND source NOT LIKE 'sam%' AND source NOT LIKE '%bidnet%'
         AND created_at > NOW() - INTERVAL '7 days' AND title ~* ${P} AND title !~* 'addendum|cancel' AND title !~* ${X}
       ORDER BY created_at DESC LIMIT 8`) as { id: number; title: string; agency: string | null; due_date: string }[];
+    // The largest of the 20 most recent, so a $101,000 job never leads the list (Texas, 2026-11-20).
     const awards = (await s`
-      SELECT a.award_key, a.recipient_uei, a.recipient_name, a.recipient_city, a.recipient_state, a.amount, a.awarded_on, a.description, r.url AS site
-      FROM award_leads a LEFT JOIN sam_registrants r ON r.uei = a.recipient_uei
-      WHERE a.pop_state = ${state} AND a.naics_code LIKE '23%' AND a.awarded_on IS NOT NULL AND a.amount >= ${SUPPLIER_AWARD_MIN}
-      ORDER BY a.awarded_on DESC LIMIT 5`.catch(() => [])) as { site: string | null; award_key: string; recipient_uei: string | null; recipient_name: string; recipient_city: string | null; recipient_state: string | null; amount: number | string; awarded_on: string; description: string | null }[];
+      SELECT * FROM (
+        SELECT a.award_key, a.recipient_uei, a.recipient_name, a.recipient_city, a.recipient_state, a.amount, a.awarded_on, a.description, r.url AS site
+        FROM award_leads a LEFT JOIN sam_registrants r ON r.uei = a.recipient_uei
+        WHERE a.pop_state = ${state} AND a.naics_code LIKE '23%' AND a.awarded_on IS NOT NULL AND a.amount >= ${SUPPLIER_AWARD_MIN}
+        ORDER BY a.awarded_on DESC LIMIT 20
+      ) recent ORDER BY amount DESC LIMIT 5`.catch(() => [])) as { site: string | null; award_key: string; recipient_uei: string | null; recipient_name: string; recipient_city: string | null; recipient_state: string | null; amount: number | string; awarded_on: string; description: string | null }[];
     // Public address and contact, kept in their own table so a missing table or row never hides an award.
     const ueis = awards.map((x) => x.recipient_uei).filter((u): u is string => Boolean(u));
     const contactRows = ueis.length

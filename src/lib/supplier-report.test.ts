@@ -173,3 +173,19 @@ test("the page states the number of sample states from the list itself", async (
   expect(SUPPLIER_ANY_STATE_NOTE).toBe("The sample shows nine states. The report covers any state: pick yours in the form.");
   expect(readFileSync(new URL("../routes/index.tsx", import.meta.url), "utf8")).toContain("for all {SUPPLIER_SAMPLE_COUNT_WORD} states");
 });
+
+describe("the sample's lead job is construction work", () => {
+  test("a software renewal with 'bridge' inside a word is not a construction job", async () => {
+    const { SUPPLIER_TITLE_PATTERN, SUPPLIER_SUPPLY_PATTERN } = await import("./supplier-report");
+    const js = (p: string) => new RegExp(p.replace(/\\m|\\M/g, "\\b"), "i");
+    const title = js(SUPPLIER_TITLE_PATTERN);
+    const supply = js(SUPPLIER_SUPPLY_PATTERN);
+    const saas = "30-270093-ITD Everbridge Safety Connection (SaaS) Renewal - IT Sourcing Event";
+    expect(title.test(saas)).toBe(false);
+    expect(supply.test(saas)).toBe(true);
+    expect(title.test("Replace Bridge No. 14 over Mill Creek")).toBe(true);
+    expect(title.test("Rehabilitation of Three Bridges")).toBe(true);
+    expect(supply.test("Raleigh Fire Stations HVAC Replacement")).toBe(false);
+    expect(supply.test("Building Automation Software License")).toBe(true);
+  });
+});

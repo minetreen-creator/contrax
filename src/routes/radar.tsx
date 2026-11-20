@@ -57,6 +57,7 @@ import { TRADE_SUGGESTIONS } from "~/lib/trade-suggestions";
 import { STATE_NAMES } from "~/lib/contract-map";
 import { dismissReturnPrompt, readReturnDismissedAt, recordRadarVisitDay, returnSignupHref, shouldShowReturnPrompt } from "~/lib/radar-return";
 import { STARTER_FIRST_MONTH_PRICE } from "~/lib/starter-offer";
+import { REPEAT_OFFER_FROM, REPEAT_SEARCH_KEY, recordRepeatSearch, repeatSearchOffer } from "~/lib/repeat-search";
 import { wantsRadarMore } from "~/lib/radar-more";
 import { broaderRadarTrade } from "~/lib/radar-fallback";
 import {
@@ -1412,6 +1413,12 @@ function RadarLanding() {
   // revealed (non-blocking — never a hard gate; the real gate still only
   // appears after the free cap).
   const [nudgeDismissed, setNudgeDismissed] = useState(false);
+  // How many separate visits ran this same trade and state in the last week (this browser only).
+  const [repeatCount, setRepeatCount] = useState(0);
+  useEffect(() => {
+    // Once per search that reaches the threshold, not once per render.
+    if (repeatCount >= REPEAT_OFFER_FROM && !getTrackingUser()) trackEvent("radar_repeat_offer_shown", String(repeatCount));
+  }, [repeatCount]);
   // RADAR CONVERSION SPRINT PR1 (owner 2026-09-07): anonymous visitors no
   // longer stop at the free cap mid-scan — they complete the FULL scan and see
   // ALL their matches on the results screen (authenticated users keep normal
@@ -1683,6 +1690,13 @@ function RadarLanding() {
         return;
       }
       trackEvent("radar_scan_complete", input.cert);
+      try {
+        const rec = recordRepeatSearch(window.localStorage.getItem(REPEAT_SEARCH_KEY), input.trade, input.state, Date.now());
+        window.localStorage.setItem(REPEAT_SEARCH_KEY, rec.raw);
+        setRepeatCount(rec.count);
+      } catch {
+        // Private browsing or storage turned off: the visitor simply never sees the repeat line.
+      }
       // Radar scan diagnostics (owner 2026-09-28): the scan cohort — signed-in
       // vs anonymous × matches-found vs ZERO matches. Recorded on the same
       // success path as radar_scan_complete so the two can never disagree;
@@ -2260,6 +2274,25 @@ function RadarLanding() {
                 </span>
               </div>
             )}
+            {(() => {
+              const again = isAnonymous && scan.matches.length > 0 ? repeatSearchOffer(repeatCount, trade.trim(), state ? (STATE_NAMES[state] ?? state) : null) : null;
+              if (!again) return null;
+              return (
+                <a
+                  href="/upgrade?plan=starter"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    trackEvent("radar_repeat_offer_click", `${trade}|${state}|${repeatCount}`);
+                    void redirectToCheckout("starter");
+                  }}
+                  className="mb-4 block rounded-xl border border-amber-400/60 bg-amber-500/15 px-4 py-4 text-amber-50 hover:bg-amber-500/25"
+                >
+                  <span className="block text-base font-bold">{again.headline}</span>
+                  <span className="mt-1 block text-sm text-amber-100">{again.detail}</span>
+                  <span className="mt-3 inline-block rounded-lg bg-amber-400 px-4 py-2.5 text-sm font-bold text-slate-950">{again.button}</span>
+                </a>
+              );
+            })()}
             {/* PR1 (owner 2026-09-07): anonymous visitors see their first
                 FREE_ANONYMOUS_RADAR_RESULTS REAL matches up front on the results
                 screen (no mid-flow gate). The lined count is always the real

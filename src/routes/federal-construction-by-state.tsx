@@ -7,6 +7,7 @@ import {
   bigDollars,
   federalConstructionStates,
   federalConstructionTotals,
+  federalWinnersStateHref,
 } from "~/lib/federal-construction";
 import { seoHead } from "~/lib/seo-landing";
 import { WinnersListOffer } from "~/components/WinnersListOffer";
@@ -75,14 +76,18 @@ function FederalConstructionByState() {
                   </td>
                   <td className="px-3 py-2 text-right font-bold tabular-nums">{s.outShare}%</td>
                   <td className="px-3 py-2 text-right tabular-nums">{bigDollars(s.dollars)}</td>
-                  <td className="px-3 py-2 text-right tabular-nums">{s.awards.toLocaleString("en-US")}</td>
+                  <td className="px-3 py-2 text-right tabular-nums">
+                    <a href={federalWinnersStateHref(s.slug)} className="text-blue-700 hover:text-blue-800">
+                      {s.awards.toLocaleString("en-US")}
+                    </a>
+                  </td>
                   <td className="px-3 py-2 text-right tabular-nums">{s.outAwards.toLocaleString("en-US")}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        <p className="mt-2 text-xs text-slate-500">Each state name opens the construction bids open in that state now.</p>
+        <p className="mt-2 text-xs text-slate-500">Each state name opens the construction bids open in that state now. Each contract count opens who won there.</p>
 
         <WinnersListOffer source="/federal-construction-by-state" />
 

@@ -37,3 +37,27 @@ describe("federal construction by state", () => {
     expect(sitemap).toContain(`"${FEDERAL_CONSTRUCTION_PATH}"`);
   });
 });
+
+describe("a winners page per state", () => {
+  test("every state has a page address and three largest contracts", async () => {
+    const { federalConstructionStateBySlug, federalWinnersStateHref, FEDERAL_WINNERS_STATE_PATH } = await import("./federal-construction");
+    const { FEDERAL_CONSTRUCTION_TOP } = await import("./federal-construction-top");
+    const states = federalConstructionStates();
+    expect(Object.keys(FEDERAL_CONSTRUCTION_TOP)).toHaveLength(states.length);
+    for (const s of states) {
+      expect(federalConstructionStateBySlug(s.slug)?.code).toBe(s.code);
+      const top = FEDERAL_CONSTRUCTION_TOP[s.code];
+      expect(top).toHaveLength(3);
+      // Largest first, and no single contract is larger than the state's total.
+      expect(top[0][2]).toBeGreaterThanOrEqual(top[1][2]);
+      expect(top[1][2]).toBeGreaterThanOrEqual(top[2][2]);
+      expect(top[0][2]).toBeLessThanOrEqual(s.dollars);
+    }
+    expect(federalWinnersStateHref("north-carolina")).toBe("/federal-construction-winners/north-carolina");
+    expect(federalConstructionStateBySlug("NORTH-CAROLINA")?.code).toBe("NC");
+    expect(federalConstructionStateBySlug("atlantis")).toBeNull();
+    const sitemap = readFileSync(new URL("../../scripts/generate-sitemap.mjs", import.meta.url), "utf8");
+    expect(sitemap).toContain(`${FEDERAL_WINNERS_STATE_PATH}/\${slug}`);
+  });
+});
+

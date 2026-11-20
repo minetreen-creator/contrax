@@ -144,6 +144,8 @@ const STATE_SLUGS = {
   VA: "virginia", WA: "washington", WV: "west-virginia", WI: "wisconsin",
   WY: "wyoming", DC: "district-of-columbia",
 };
+// Who won federal construction work, one page per state (owner 2026-11-20).
+for (const slug of Object.values(STATE_SLUGS)) PRODUCT_PATHS.push([`/federal-construction-winners/${slug}`, "monthly", "0.6"]);
 /** Resolve a bid's location string to a 2-letter US state code, or null. */
 function deriveStateCode(location) {
   const loc = String(location ?? "").trim();

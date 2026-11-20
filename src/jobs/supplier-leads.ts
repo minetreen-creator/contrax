@@ -32,6 +32,13 @@
  * PA: Fizzano Brothers Concrete, Groff Tractor, Best Line Equipment, The Graham Company, Henderson
  * Brothers, McKee Risk Management.
  * VA: McClung-Logan Equipment, Hilb Group, Loudoun Insurance Group, Dominion Risk Advisors.
+ * Third batch, 2026-11-20: NY: Milton CAT, Dykes Lumber, Cranesville Block, Curtis Lumber, Marshall &
+ * Sterling. CA: Hawthorne CAT, Quinn Company, Robertson's Ready Mix, Angelus Block. IL: McCann
+ * Industries. MI: Fendt Builder's Supply. Also OST Global Solutions (a consultant that finds bids
+ * for clients). Best Line Equipment's address bounced (rejected by its mail server): do not retry.
+ * Passed the site check but held, because we list few open jobs in their states: 4Rivers
+ * Equipment, Flood and Peterson, Moody Insurance Agency, CCIG (CO); TIS Insurance, Smyrna Ready
+ * Mix (TN); Miles Sand & Gravel (WA). Wrong inbox, left out: Golden State Lumber, Cavignac.
  * Checked and left out because the only published address was a help desk, HR or accounts inbox:
  * McCoy's Building Supply, Elliott Electric Supply, Summit Electric Supply, Equipment Depot, Luck
  * Stone.

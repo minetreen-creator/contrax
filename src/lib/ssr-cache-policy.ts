@@ -44,6 +44,10 @@ export const PUBLIC_SSR_CACHEABLE_EXACT_PATHS: readonly string[] = [
   "/radar",
   "/contracts-by-industry",
   "/contracts-hvac-mechanical",
+  // 2026-11-20: every supplier email links here, and each uncached render took 1.5 to 2 seconds
+  // (nine states of sample queries). Its loader reads no session; the header resolves the viewer
+  // in the browser.
+  "/suppliers",
 ];
 
 /** Certification hub landing pages: `/<cert>-contracts`. */
@@ -61,6 +65,13 @@ const CLAUSES_PATTERN = /^\/clauses(?:\/[A-Za-z0-9.\-]+)?$/;
 
 /** Per-state landing pages: `/contracts-in/<state-slug>`. */
 const STATE_LANDING_PATTERN = /^\/contracts-in\/[a-z0-9-]+$/;
+
+/**
+ * State and trade pages: `/contracts-in/<state>/<trade>` (2026-11-20). Where visitors from ChatGPT
+ * and Google land; an uncached render measured 6.4 seconds. Same loader family as the state page
+ * (src/lib/seo-landing.tsx), which reads open bids and no session.
+ */
+const STATE_TRADE_PATTERN = /^\/contracts-in\/[a-z0-9-]+\/[a-z0-9-]+$/;
 
 /**
  * Contracts-ending pages (owner 2026-11-14): `/contracts-ending` and
@@ -99,6 +110,7 @@ export function isPublicSsrCacheable(method: string, pathname: string): boolean 
   if (PUBLIC_SSR_CACHEABLE_EXACT_PATHS.includes(path)) return true;
   if (CERT_HUB_PATTERN.test(path)) return true;
   if (STATE_LANDING_PATTERN.test(path)) return true;
+  if (STATE_TRADE_PATTERN.test(path)) return true;
   if (LOCAL_LANDING_PATTERN.test(path)) return true;
   if (CLAUSES_PATTERN.test(path)) return true;
   if (ENDING_PATTERN.test(path)) return true;

@@ -87,6 +87,9 @@ describe("ssr-cache-policy: cookie-agnostic marketing/SEO routes keep the cache"
     "/contracts-in/texas",
     "/contracts-in/new-york",
     "/contracts-in/district-of-columbia",
+    "/contracts-in/texas/construction",
+    "/contracts-in/california/security-guard",
+    "/suppliers",
     "/local-bids",
     "/bids-in/texas/dallas",
     "/agency/city-of-dallas",
@@ -112,7 +115,8 @@ describe("ssr-cache-policy: cookie-agnostic marketing/SEO routes keep the cache"
       "/contracts-in", // no state slug
       "/contracts-in/", // no state slug
       "/contracts-in/TEXAS", // uppercase slug never matches
-      "/contracts-in/texas/extra", // deeper segment
+      "/contracts-in/texas/construction/extra", // deeper than state and trade
+      "/suppliers/profile", // only the report page itself
       "/8a-contract", // singular typo
       "/map/state", // deeper segment
       "/contracts-by-industry/foo",

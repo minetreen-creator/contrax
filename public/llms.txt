@@ -54,6 +54,8 @@ Contrax is operated by Contrax LLC (Virginia) and is available in the United Sta
 ## For material suppliers and equipment rental
 
 - [Suppliers](https://www.contrax.company/suppliers): The public paving, concrete, site and building jobs bidding in each territory, who is buying and when bids are due, for concrete plants, supply houses and rental yards.
+- [Federal construction contracts by state](https://www.contrax.company/federal-construction-by-state): How much federal construction money in each state goes to companies registered in another state, fiscal year 2025, from USAspending.gov records.
+- [Who won federal construction contracts, by state](https://www.contrax.company/federal-construction-winners/texas): One page per state (replace texas with the state name, for example north-carolina): the number of contracts, the total awarded and the three largest winners. The full list for a state is $29.
 
 ## Good to know when citing Contrax
 

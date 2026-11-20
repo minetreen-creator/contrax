@@ -6,6 +6,7 @@ import { trackEvent } from "~/lib/track";
 import { SupplierRequestForm as RequestForm } from "~/components/SupplierRequestForm";
 import { PLAN_COPY } from "~/lib/plan-features";
 import {
+  SUPPLIER_EYEBROW,
   SUPPLIER_INCLUDES,
   SUPPLIER_NOT_YET,
   SUPPLIER_PLAN_BILLED_AS,
@@ -67,7 +68,7 @@ function SuppliersPage() {
         <section className="bg-slate-950 px-4 py-14 text-white sm:py-20">
           <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-start">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-400">For businesses that sell to contractors</p>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-400">{SUPPLIER_EYEBROW}</p>
               <h1 className="mt-3 text-3xl font-extrabold leading-tight sm:text-5xl">Know which public jobs are opening in your state before your competitors do</h1>
               <p className="mt-4 max-w-2xl text-base text-slate-300 sm:text-lg">
                 {SUPPLIER_SUBHEAD} Contrax reads the bid boards for you and sends one report a week.

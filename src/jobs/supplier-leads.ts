@@ -39,6 +39,12 @@
  * Passed the site check but held, because we list few open jobs in their states: 4Rivers
  * Equipment, Flood and Peterson, Moody Insurance Agency, CCIG (CO); TIS Insurance, Smyrna Ready
  * Mix (TN); Miles Sand & Gravel (WA). Wrong inbox, left out: Golden State Lumber, Cavignac.
+ * Fourth batch, 2026-11-20 (mid-size): FL: Shell Lumber & Hardware, Preferred Materials. NC: Fitch
+ * Lumber. NY: Haylor Freyer & Coon, Tracey Road Equipment, Bonded Concrete, Duke Concrete Products.
+ * PA: Tague Lumber. VA: Siewers Lumber & Millwork. Passed the site check but held: Higginbotham
+ * Brothers (customer service inbox), Best Block and Adonel Concrete (order desks), Branscome
+ * (estimating inbox; a paving contractor), and four whose state or trade was not confirmed:
+ * Bearing Insurance Group, Five Star Equipment, Texas Building Products, New Home Building Supply.
  * Checked and left out because the only published address was a help desk, HR or accounts inbox:
  * McCoy's Building Supply, Elliott Electric Supply, Summit Electric Supply, Equipment Depot, Luck
  * Stone.

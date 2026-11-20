@@ -1,6 +1,6 @@
 import { STATE_NAMES } from "./contract-map";
 import { usaspendingUrl } from "./award-leads";
-import { SUPPLIER_AWARD_MIN, SUPPLIER_SUPPLY_PATTERN, SUPPLIER_TITLE_PATTERN, clip, contactLine, tidyCaps, type SupplierSample } from "./supplier-report";
+import { SUPPLIER_AWARD_MIN, SUPPLIER_SUPPLY_PATTERN, SUPPLIER_TITLE_PATTERN, clip, contactLine, tidyCaps, tidyJobTitle, type SupplierSample } from "./supplier-report";
 
 const okUrl = (v: unknown): string | null => (/^https?:\/\/[^\s"'<>]+$/i.test(String(v ?? "")) ? String(v) : null);
 
@@ -62,7 +62,7 @@ export async function loadSupplierSample(state: string): Promise<SupplierSample 
       open: counts[0]?.open ?? 0,
       newThisWeek: counts[0]?.new_week ?? 0,
       closingSoon: counts[0]?.closing ?? 0,
-      newJobs: jobs.map((j) => ({ id: j.id, title: clip(tidyCaps(String(j.title)), 110), agency: tidyCaps(j.agency ?? ""), due: iso(j.due_date) })),
+      newJobs: jobs.map((j) => ({ id: j.id, title: clip(tidyCaps(tidyJobTitle(String(j.title))), 110), agency: tidyCaps(j.agency ?? ""), due: iso(j.due_date) })),
       awards: awards.map((a) => ({
         company: tidyCaps(a.recipient_name),
         where: [a.recipient_city ? tidyCaps(a.recipient_city) : null, a.recipient_state].filter(Boolean).join(", "),

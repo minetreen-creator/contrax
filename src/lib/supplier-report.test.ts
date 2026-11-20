@@ -189,3 +189,36 @@ describe("the sample's lead job is construction work", () => {
     expect(supply.test("Building Automation Software License")).toBe(true);
   });
 });
+
+describe("sample rows read as jobs", () => {
+  test("leading filing codes come off a title, and nothing else does", async () => {
+    const { tidyJobTitle } = await import("./supplier-report");
+    expect(tidyJobTitle("5400030235 Open Grid Deck 22 x 60 D3 Bridge")).toBe("Open Grid Deck 22 x 60 D3 Bridge");
+    expect(tidyJobTitle("IFB 32A0743 Painting Services in Yuba County")).toBe("Painting Services in Yuba County");
+    expect(tidyJobTitle("P2640009 - HVAC/UV Treatment Filtration Systems Maintenance and Repair")).toBe("HVAC/UV Treatment Filtration Systems Maintenance and Repair");
+    expect(tidyJobTitle("RFB-IS-27200352 - 27-00318 Water Generator - Closing: 12/9/2026 12:00 PM")).toBe("Water Generator");
+    expect(tidyJobTitle("491/26587.KMM; CFP - Roof & Flashing Rplcmnt/Repair")).toBe("CFP - Roof & Flashing Rplcmnt/Repair");
+    expect(tidyJobTitle("AFB 2750 - CON 2752 HR Office Renovation at PPSC CC")).toBe("HR Office Renovation at PPSC CC");
+    // Years, counts, street numbers and ordinary titles are left alone.
+    expect(tidyJobTitle("2027 Concrete and Asphalt Crushing")).toBe("2027 Concrete and Asphalt Crushing");
+    expect(tidyJobTitle("2026 North Fork Road Bridge Replacement")).toBe("2026 North Fork Road Bridge Replacement");
+    expect(tidyJobTitle("Cohoes City Hall HVAC Replacement")).toBe("Cohoes City Hall HVAC Replacement");
+    expect(tidyJobTitle("Modular Office Building")).toBe("Modular Office Building");
+    expect(tidyJobTitle("Collins Building 2 HVAC Upgrades: Collins West Project")).toBe("Collins Building 2 HVAC Upgrades: Collins West Project");
+  });
+
+  test("consultant, letter-of-interest, change-order and signage notices are not sample jobs", async () => {
+    const { SUPPLIER_SUPPLY_PATTERN, contactLine } = await import("./supplier-report");
+    const supply = new RegExp(SUPPLIER_SUPPLY_PATTERN.replace(/\\m|\\M/g, "\\b"), "i");
+    for (const t of [
+      "Pine Street Elementary School - Roof Consultant",
+      "RFLOI 367-OC5491R BL-0139 Orange County Road Transit Access Sidewalk Project",
+      "Spectrum Center Renovation - Digital Signage",
+      "26PS759001 Change Order/Increase New Boiler at Chicago West",
+      "RENEWAL NOTICE: AGR-DQ B and G-Generator Repair and Maintenance",
+    ]) expect(supply.test(t)).toBe(true);
+    for (const t of ["Modular Office Building", "Saunders St & Hinton St Sidewalk", "Reno of Workforce Housing Hammond Avenue Roofs"]) expect(supply.test(t)).toBe(false);
+    expect(contactLine("Ryan Krispinsky", "Chief Estimator/project Manager")).toBe("Ryan Krispinsky, Chief Estimator/Project Manager");
+  });
+});
+

@@ -112,3 +112,16 @@ export function bigDollars(n: number): string {
   if (n >= 1e9) return `$${(n / 1e9).toFixed(1)} billion`;
   return `$${(n / 1e6).toFixed(1)} million`;
 }
+
+export const FEDERAL_WINNERS_STATE_PATH = "/federal-construction-winners";
+
+/** "/federal-construction-winners/north-carolina" */
+export function federalWinnersStateHref(slug: string): string {
+  return `${FEDERAL_WINNERS_STATE_PATH}/${slug}`;
+}
+
+/** The state for a page slug ("north-carolina"), or null when there is no such state. */
+export function federalConstructionStateBySlug(slug: string): FederalConstructionState | null {
+  const want = String(slug ?? "").toLowerCase();
+  return federalConstructionStates().find((s) => s.slug === want) ?? null;
+}

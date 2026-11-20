@@ -7,9 +7,9 @@ import { trackEvent } from "~/lib/track";
  * The $29 state winners list (owner 2026-11-19). One choice (the state) and one button that goes
  * straight to Stripe; no account and no form beyond that.
  */
-export function WinnersListOffer({ source, place = "ranking" }: { source: string; place?: "ranking" | "home" }) {
+export function WinnersListOffer({ source, place = "ranking", initialState = "" }: { source: string; place?: "ranking" | "home" | "state"; initialState?: string }) {
   const states = federalConstructionStates().slice().sort((a, b) => a.name.localeCompare(b.name));
-  const [state, setState] = useState("");
+  const [state, setState] = useState(initialState);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -37,7 +37,9 @@ export function WinnersListOffer({ source, place = "ranking" }: { source: string
       <p className="mt-2 text-sm text-slate-700">
         {place === "home"
           ? "The winners above are a sample. The list is every one: the company that won, where it is based and how much the job is worth."
-          : "The table above is the summary. The list is every contract behind it: the company that won, where it is based and how much the job is worth."}{" "}
+          : place === "state"
+            ? "The three above are the largest. The list is every one: the company that won, where it is based and how much the job is worth."
+            : "The table above is the summary. The list is every contract behind it: the company that won, where it is based and how much the job is worth."}{" "}
         These are the companies buying materials, renting equipment and hiring subs for federal work in your state right now.
       </p>
       <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-slate-700">

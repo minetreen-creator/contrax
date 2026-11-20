@@ -23,26 +23,38 @@ export async function loadSupplierSample(state: string): Promise<SupplierSample 
     const s = sql();
     const P = SUPPLIER_TITLE_PATTERN;
     const X = SUPPLIER_SUPPLY_PATTERN;
-    const counts = (await s`
+    // The four reads do not depend on each other, so they run together (2026-11-20: nine states read
+    // one after another made the homepage take 2.5 to 4.6 seconds when it was not cached).
+    // The largest of the 20 most recent, so a $101,000 job never leads the list (Texas, 2026-11-20).
+    const [countsRaw, jobsRaw, awardsRaw, endingRaw] = await Promise.all([
+      s`
       SELECT count(*)::int AS open,
              count(*) FILTER (WHERE created_at > NOW() - INTERVAL '7 days')::int AS new_week,
              count(*) FILTER (WHERE due_date < NOW() + INTERVAL '7 days')::int AS closing
       FROM bids
       WHERE normalized_state = ${state} AND due_date > NOW() AND source NOT LIKE 'sam%' AND source NOT LIKE '%bidnet%'
-        AND title ~* ${P} AND title !~* ${X}`) as { open: number; new_week: number; closing: number }[];
-    const jobs = (await s`
+        AND title ~* ${P} AND title !~* ${X}`,
+      s`
       SELECT id, title, agency, due_date FROM bids
       WHERE normalized_state = ${state} AND due_date > NOW() + INTERVAL '5 days' AND source NOT LIKE 'sam%' AND source NOT LIKE '%bidnet%'
         AND created_at > NOW() - INTERVAL '7 days' AND title ~* ${P} AND title !~* 'addendum|cancel' AND title !~* ${X}
-      ORDER BY created_at DESC LIMIT 8`) as { id: number; title: string; agency: string | null; due_date: string }[];
-    // The largest of the 20 most recent, so a $101,000 job never leads the list (Texas, 2026-11-20).
-    const awards = (await s`
+      ORDER BY created_at DESC LIMIT 8`,
+      s`
       SELECT * FROM (
         SELECT a.award_key, a.recipient_uei, a.recipient_name, a.recipient_city, a.recipient_state, a.amount, a.awarded_on, a.description, r.url AS site
         FROM award_leads a LEFT JOIN sam_registrants r ON r.uei = a.recipient_uei
         WHERE a.pop_state = ${state} AND a.naics_code LIKE '23%' AND a.awarded_on IS NOT NULL AND a.amount >= ${SUPPLIER_AWARD_MIN}
         ORDER BY a.awarded_on DESC LIMIT 20
-      ) recent ORDER BY amount DESC LIMIT 5`.catch(() => [])) as { site: string | null; award_key: string; recipient_uei: string | null; recipient_name: string; recipient_city: string | null; recipient_state: string | null; amount: number | string; awarded_on: string; description: string | null }[];
+      ) recent ORDER BY amount DESC LIMIT 5`.catch(() => []),
+      s`
+      SELECT DISTINCT ON (award_key) recipient_name, amount, end_date, agency FROM recompete_contracts
+      WHERE pop_state = ${state} AND naics_code LIKE '23%' AND end_date BETWEEN NOW() AND NOW() + INTERVAL '6 months'
+      ORDER BY award_key, amount DESC`.catch(() => []),
+    ]);
+    const counts = countsRaw as { open: number; new_week: number; closing: number }[];
+    const jobs = jobsRaw as { id: number; title: string; agency: string | null; due_date: string }[];
+    const awards = awardsRaw as { site: string | null; award_key: string; recipient_uei: string | null; recipient_name: string; recipient_city: string | null; recipient_state: string | null; amount: number | string; awarded_on: string; description: string | null }[];
+    const ending = endingRaw as { recipient_name: string; amount: number | string; end_date: string; agency: string | null }[];
     // Public address and contact, kept in their own table so a missing table or row never hides an award.
     const ueis = awards.map((x) => x.recipient_uei).filter((u): u is string => Boolean(u));
     const contactRows = ueis.length
@@ -51,10 +63,6 @@ export async function loadSupplierSample(state: string): Promise<SupplierSample 
         }[])
       : [];
     const contactByUei = new Map(contactRows.map((c) => [c.uei, c]));
-    const ending = (await s`
-      SELECT DISTINCT ON (award_key) recipient_name, amount, end_date, agency FROM recompete_contracts
-      WHERE pop_state = ${state} AND naics_code LIKE '23%' AND end_date BETWEEN NOW() AND NOW() + INTERVAL '6 months'
-      ORDER BY award_key, amount DESC`.catch(() => [])) as { recipient_name: string; amount: number | string; end_date: string; agency: string | null }[];
     const iso = (v: unknown) => new Date(String(v)).toISOString();
     return {
       state,

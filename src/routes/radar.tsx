@@ -1489,7 +1489,11 @@ function RadarLanding() {
   const localMatches = localKnown ? Math.min(scan.localMatched ?? 0, totalMatches) : totalMatches;
   const nationwideMatches = Math.max(totalMatches - localMatches, 0);
   const emailUnlocked = scan.status === "done" && scan.emailUnlocked === true;
-  const freeCap = scan.status === "done" && typeof scan.previewLimit === "number" ? scan.previewLimit : FREE_ANONYMOUS_RADAR_RESULTS;
+  // Owner 2026-11-20 ("like he's abusing it"): from the third visit that runs the same search in a
+  // week, a visitor without an account sees the count but no free matches. Their email or the pass
+  // opens them, the same two ways as before.
+  const repeatGate = isAnonymous && repeatCount >= REPEAT_OFFER_FROM;
+  const freeCap = repeatGate ? 0 : scan.status === "done" && typeof scan.previewLimit === "number" ? scan.previewLimit : FREE_ANONYMOUS_RADAR_RESULTS;
   const visibleCount = emailUnlocked ? scan.matches.length : Math.min(totalMatches, freeCap);
   /**
    * What an email unlock shows: the rest of the cards, up to the list cap
@@ -2300,7 +2304,9 @@ function RadarLanding() {
                 4th+ match can never claim "of 3". */}
             {scan.matches.length > 0 && (
               <p className="mt-3 text-xs font-medium text-slate-500">
-                {isAnonymous
+                {isAnonymous && freeCap === 0
+                  ? `${totalMatches} ${totalMatches === 1 ? "match is" : "matches are"} waiting. The free preview ends after three visits for the same search.`
+                  : isAnonymous
                   ? Math.min(scan.matches.length, freeCap) === 1
                     ? "Here's your best match"
                     : `Here are your best ${Math.min(scan.matches.length, freeCap)} matches`

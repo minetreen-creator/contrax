@@ -48,5 +48,8 @@ describe("a visitor who keeps running the same search", () => {
     expect(page).toContain("recordRepeatSearch(");
     expect(page).toContain("repeatSearchOffer(repeatCount");
     expect(page).toContain('trackEvent("radar_repeat_offer_click"');
+    // From the third visit the free matches stop; the count stays.
+    expect(page).toContain("const repeatGate = isAnonymous && repeatCount >= REPEAT_OFFER_FROM;");
+    expect(page).toContain("const freeCap = repeatGate ? 0 :");
   });
 });

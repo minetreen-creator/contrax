@@ -48,6 +48,8 @@ export const SUPPLIER_TYPES: readonly { id: string; label: string; why: string }
 ];
 
 /** Under the counts table: what "closing in 7 days" means to someone who sells to the bidders. */
+/** Under the sample counts: a job closing in two days is often too late to quote, so the date is what makes a row usable. */
+export const SUPPLIER_DUE_NOTE = "Every job comes with its exact bid due date, so you can see which ones still leave time for a quote.";
 export const SUPPLIER_CLOSING_NOTE = "Closing in 7 days means contractors are pricing those jobs now. Get your quote to them before bid day.";
 /** Under the table: the sample is a handful of states, the report is any state. */
 export const SUPPLIER_ANY_STATE_NOTE = `The sample shows ${SUPPLIER_SAMPLE_COUNT_WORD} states. The report covers any state: pick yours in the form.`;

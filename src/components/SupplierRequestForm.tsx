@@ -9,7 +9,6 @@ const STATES = Object.entries(STATE_NAMES).sort((a, b) => a[1].localeCompare(b[1
 
 export function SupplierRequestForm({ where }: { where: string }) {
   const [email, setEmail] = useState("");
-  const [company, setCompany] = useState("");
   const [type, setType] = useState(SUPPLIER_TYPES[0].id);
   // No state is chosen for the visitor (owner's review 2026-11-18): a pre-picked South Carolina told
   // someone in Pennsylvania the report was for the Southeast only.
@@ -37,7 +36,8 @@ export function SupplierRequestForm({ where }: { where: string }) {
           const res = await fetch("/api/supplier-report", {
             method: "POST",
             headers: { "content-type": "application/json" },
-            body: JSON.stringify({ email, company, type, state }),
+            // No company field (2026-11-20): the work email already names the business, and one less field to fill.
+            body: JSON.stringify({ email, type, state }),
           });
           const body = (await res.json().catch(() => ({}))) as { error?: string };
           if (!res.ok) throw new Error(body.error || "Something went wrong. Please try again.");
@@ -53,10 +53,6 @@ export function SupplierRequestForm({ where }: { where: string }) {
       <label className="mt-4 block text-sm font-semibold">
         Work email
         <input type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} className={field} />
-      </label>
-      <label className="mt-3 block text-sm font-semibold">
-        Company
-        <input type="text" autoComplete="organization" value={company} onChange={(e) => setCompany(e.target.value)} className={field} />
       </label>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <label className="block text-sm font-semibold">
@@ -85,11 +81,12 @@ export function SupplierRequestForm({ where }: { where: string }) {
       <p className="mt-2 text-center text-xs font-semibold text-slate-600">{SUPPLIER_AUDIENCE}</p>
       <p className="mt-2 text-xs text-slate-500">One report, free. To keep getting it, the {SUPPLIER_PLAN_NAME} is {SUPPLIER_PRICE} a month, month to month, and only if you choose it.</p>
       <p className="mt-1 text-xs text-slate-500">{SUPPLIER_MULTI_STATE}</p>
-      <p className="mt-1 text-xs text-slate-600">
-        {WINNERS_SUPPLIER_LINE}{" "}
-        <a href="/federal-construction-by-state#list" className="font-semibold text-blue-700 hover:text-blue-800">Get the list →</a>
-      </p>
       <p className="mt-1 text-xs text-slate-500">{SUPPLIER_FORWARD_NOTE}</p>
+      {/* The $29 list is the second offer: last and quiet, so it does not compete with the free report. */}
+      <p className="mt-3 border-t border-slate-100 pt-3 text-xs text-slate-400">
+        {WINNERS_SUPPLIER_LINE}{" "}
+        <a href="/federal-construction-by-state#list" className="underline hover:text-slate-600">Get the list</a>
+      </p>
     </form>
   );
 }

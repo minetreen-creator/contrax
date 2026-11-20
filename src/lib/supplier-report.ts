@@ -170,7 +170,11 @@ export function clip(raw: string, max: number): string {
   if (text.length <= max) return text;
   const cut = text.slice(0, max);
   const at = cut.lastIndexOf(" ");
-  return `${(at > max * 0.6 ? cut.slice(0, at) : cut).replace(/[\s,;:(-]+$/, "")}…`;
+  let kept = at > max * 0.6 ? cut.slice(0, at) : cut;
+  // "…Charleston, SC (Project…" reads as a mistake: an opened bracket that never closes goes too.
+  const open = kept.lastIndexOf("(");
+  if (open > max * 0.5 && !kept.slice(open).includes(")")) kept = kept.slice(0, open);
+  return `${kept.replace(/[\s,;:(-]+$/, "")}…`;
 }
 
 export const SUPPLIER_NOT_YET = "Winners of state, county and school jobs are not in the report yet. Federal winners are.";

@@ -17,7 +17,7 @@ export const WINNERS_MIN_AMOUNT = 100_000;
 export const WINNERS_PATH = "/winners-list";
 export const WINNERS_OFFER_HREF = "/federal-construction-by-state#list";
 /** The one-state, one-payment step below the monthly supplier plan. */
-export const WINNERS_SUPPLIER_LINE = `Only want the names? Every company that won federal construction work in your state since October 2024, in one file, is ${WINNERS_PRICE} one time.`;
+export const WINNERS_SUPPLIER_LINE = `Want the full backlog too? Every company that won federal construction work in your state since October 2024, in one spreadsheet file, is ${WINNERS_PRICE} one time.`;
 
 /** Exactly what the buyer gets. Every line is a column the file really has. */
 export const WINNERS_INCLUDES = [
@@ -27,7 +27,7 @@ export const WINNERS_INCLUDES = [
   "The city where the work is done and the government's description of the job",
   "A link to each contract's public federal record",
 ];
-export const WINNERS_FORMAT_NOTE = "A spreadsheet file (CSV) that opens in Excel or Google Sheets. Phone numbers and emails are not included.";
+export const WINNERS_FORMAT_NOTE = "A spreadsheet file (CSV) that opens in Excel or Google Sheets. It has the company, its city and state, the amount and the link to the federal record. Street addresses, websites and named contacts come with the weekly report, not this file. Phone numbers and emails are not included.";
 
 const COVERED = new Set(FEDERAL_CONSTRUCTION_ROWS.map((r) => r[0]));
 

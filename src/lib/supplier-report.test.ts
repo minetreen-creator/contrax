@@ -39,10 +39,10 @@ describe("supplier report (owner 2026-11-18)", () => {
     expect(home).toContain('href="/suppliers"');
     // Owner 2026-11-18: the homepage opens with the supplier report and its request form.
     expect(home).toContain("<HomeSupplierHero samples={supplierSamples} />");
-    expect(home).toContain("<HomeSupplierRows key={one.state} sample={one} />");
+    expect(home).toContain("<HomeSupplierRows key={shown.state} sample={shown} />");
     // Owner 2026-11-18 ("lets add NC too", "might as well add VA, FL and GA"); small awards left out.
     expect([...SUPPLIER_SAMPLE_STATES]).toEqual(["SC", "NC", "VA", "GA", "FL", "TX", "PA", "OH", "NY"]);
-    expect(home).toContain("supplierSamples.slice(0, SUPPLIER_HOME_ROW_STATES).map(");
+    expect(home).toContain("<HomeSupplierTabs samples={supplierSamples} />");
     expect(SUPPLIER_AWARD_MIN).toBe(100_000);
     // The pitch names only what the report holds: no bidder lists, no contact details, federal winners only.
     expect(SUPPLIER_SUBHEAD).toContain("who just won federal work");
@@ -73,7 +73,7 @@ describe("supplier report (owner 2026-11-18)", () => {
     const contractors = readFileSync(new URL("../routes/contractors.tsx", import.meta.url), "utf8");
     expect(contractors).toContain("<ContractorSections sample={sample} contractMap={contractMap} maxProofCurrent={maxProofCurrent} />");
     expect(readFileSync(new URL("../routes/prep.tsx", import.meta.url), "utf8")).toContain("/contractors?utm_source=");
-    expect(home).toContain('<SupplierRequestForm where="home_hero" />');
+    expect(home).toContain('<SupplierRequestForm where="home_hero" listHref="#list" />');
     expect(home.match(/<h1/g)?.length).toBe(1);
   });
 });
@@ -92,6 +92,7 @@ describe("readable rows (owner 2026-11-18)", () => {
     expect(tidyCaps("Town of Sullivan's Island")).toBe("Town of Sullivan's Island");
     expect(clip("Design Build Construction for HC-130J Flight Simulator Facility at U.S. Coast Guard Base Elizabeth City", 90)).toBe("Design Build Construction for HC-130J Flight Simulator Facility at U.S. Coast Guard Base…");
     expect(clip("short", 90)).toBe("short");
+    expect(clip("Renovate SPS Spaces at the Ralph H. Johnson VA Medical Center, Charleston, SC (Project 534-22-103) and more", 90)).toBe("Renovate SPS Spaces at the Ralph H. Johnson VA Medical Center, Charleston, SC…");
     // Goods are not construction work.
     const supply = new RegExp(SUPPLIER_SUPPLY_PATTERN.replace(/\\m|\\M/g, "\\b"), "i");
     expect(supply.test("District 6 Deicer for Bridges")).toBe(true);

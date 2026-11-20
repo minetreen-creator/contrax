@@ -23,7 +23,9 @@ export const SUPPLIER_PLAN_NAME = "Territory plan";
 export const SUPPLIER_PLAN_BILLED_AS = "Billed as the Contrax Agency plan.";
 /** The one-line pitch. It names only what the report holds: jobs opening, and federal winners. */
 export const SUPPLIER_SUBHEAD =
-  "For material suppliers, equipment rental, staffing and bonding agents: a weekly list of the public jobs opening in your state, and the contractors who just won federal work there.";
+  "A weekly list of the public construction jobs opening in your state, and the contractors who just won federal work there, so you can quote before bid day.";
+/** The small line above the headline: who the page is for, by trade (2026-11-20, moved out of the subhead). */
+export const SUPPLIER_EYEBROW = "For material suppliers, equipment rental, staffing and bonding agents";
 export const SUPPLIER_SAMPLE_STATE = "SC";
 /** States shown in the live sample (owner 2026-11-18: "lets add NC too", then "might as well add VA, FL and GA"). The first is the form's default. */
 // Owner 2026-11-19 ("we need to add more states"): Texas, Pennsylvania and Ohio added, the three
@@ -84,7 +86,7 @@ export const SUPPLIER_MULTI_STATE = "Cover more than one state? The plan include
 
 /** The one line of fine print the homepage shows; /suppliers carries the full wording. */
 // Owner's review 2026-11-18: lead with what the rep can do with it; the limit stays, said plainly, second.
-export const SUPPLIER_FINE_PRINT_SHORT = "Federal winners come with the company's website, office address and named contact where public: enough to look them up and add them to your CRM. Phone numbers and emails are not included.";
+export const SUPPLIER_FINE_PRINT_SHORT = "Phone numbers and emails are not included. Federal winners do come with the company's website, office address and named contact where public: enough to look them up and add them to your CRM.";
 
 /**
  * Titles that are a purchase of goods, not work on a site (owner 2026-11-18: "District 6 Deicer for

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { SUPPLIER_ANY_STATE_NOTE, SUPPLIER_SAMPLE_COUNT_WORD, SUPPLIER_CLOSING_NOTE, SUPPLIER_FINE_PRINT_SHORT, SUPPLIER_INCLUDES, SUPPLIER_SUBHEAD, SUPPLIER_SAMPLE_STATES, supplierDay, supplierMoney, type SupplierSample } from "~/lib/supplier-report";
+import { SUPPLIER_ANY_STATE_NOTE, SUPPLIER_EYEBROW, SUPPLIER_SAMPLE_COUNT_WORD, SUPPLIER_CLOSING_NOTE, SUPPLIER_FINE_PRINT_SHORT, SUPPLIER_INCLUDES, SUPPLIER_SUBHEAD, SUPPLIER_SAMPLE_STATES, supplierDay, supplierMoney, type SupplierSample } from "~/lib/supplier-report";
 import { SupplierRequestForm } from "~/components/SupplierRequestForm";
 import { PrivateBidsBlock } from "~/components/PrivateBidsBlock";
 import { WinnersListOffer } from "~/components/WinnersListOffer";
@@ -457,7 +457,7 @@ function HomeSupplierHero({ samples }: { samples: SupplierSample[] }) {
     <section id="suppliers" aria-labelledby="home-suppliers-title" className="bg-slate-950 px-4 py-10 text-white sm:px-8 sm:py-16">
       <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-start">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-400">For businesses that sell to contractors</p>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-400">{SUPPLIER_EYEBROW}</p>
           <h1 id="home-suppliers-title" className="mt-3 text-[1.75rem] font-extrabold leading-[1.12] tracking-tight [text-wrap:balance] sm:text-5xl">
             Know which public jobs are opening in your state before your competitors do
           </h1>

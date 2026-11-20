@@ -88,7 +88,7 @@ export const SUPPLIER_FINE_PRINT_SHORT = "Federal winners come with the company'
  * Titles that are a purchase of goods, not work on a site (owner 2026-11-18: "District 6 Deicer for
  * Bridges" led the construction sample because its title says "bridge"). Postgres ~* and JS.
  */
-export const SUPPLIER_SUPPLY_PATTERN = "de-?icer|supplies|purchase of|furnish and deliver|aggregate|road salt|rock salt|\\mparts\\M|\\mfuel\\M|request for qualifications|statement of qualifications|engineering services|consulting services|architectural services|design services";
+export const SUPPLIER_SUPPLY_PATTERN = "de-?icer|supplies|purchase of|furnish and deliver|aggregate|road salt|rock salt|\\mparts\\M|\\mfuel\\M|request for qualifications|statement of qualifications|engineering services|consulting services|architectural services|design services|software|saas|subscription|licens|sourcing event|maintenance agreement";
 
 const HONORIFIC = /^(mr|mrs|ms|miss|mx|dr|sir|madam|n\/?a|none)\.?$/i;
 
@@ -149,9 +149,12 @@ export function clip(raw: string, max: number): string {
 
 export const SUPPLIER_NOT_YET = "Winners of state, county and school jobs are not in the report yet. Federal winners are.";
 
-/** Titles that read as construction or building-trade work (Postgres ~* and JS). */
+/**
+ * Titles that read as construction or building-trade work (Postgres ~* and JS). "bridge" is a whole
+ * word: "Everbridge Safety Connection (SaaS) Renewal" led the North Carolina sample on 2026-11-20.
+ */
 export const SUPPLIER_TITLE_PATTERN =
-  "roof|paving|resurfac|sidewalk|renovation|construction|building|hvac|chiller|boiler|electrical|generator|plumbing|painting|demolition|concrete|fenc|bridge|water line|sewer";
+  "roof|paving|resurfac|sidewalk|renovation|construction|building|hvac|chiller|boiler|electrical|generator|plumbing|painting|demolition|concrete|fenc|\\mbridges?\\M|water line|sewer";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 

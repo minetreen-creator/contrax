@@ -90,7 +90,7 @@ export const SUPPLIER_FINE_PRINT_SHORT = "Federal winners come with the company'
  * Titles that are a purchase of goods, not work on a site (owner 2026-11-18: "District 6 Deicer for
  * Bridges" led the construction sample because its title says "bridge"). Postgres ~* and JS.
  */
-export const SUPPLIER_SUPPLY_PATTERN = "de-?icer|supplies|purchase of|furnish and deliver|aggregate|road salt|rock salt|\\mparts\\M|\\mfuel\\M|request for qualifications|statement of qualifications|engineering services|consulting services|architectural services|design services|software|saas|subscription|licens|sourcing event|maintenance agreement";
+export const SUPPLIER_SUPPLY_PATTERN = "de-?icer|supplies|purchase of|furnish and deliver|aggregate|road salt|rock salt|\\mparts\\M|\\mfuel\\M|request for qualifications|statement of qualifications|engineering services|consulting services|architectural services|design services|software|saas|subscription|licens|sourcing event|maintenance agreement|consultant|letters? of interest|\\mrfloi\\M|change order|contract increase|renewal notice|signage";
 
 const HONORIFIC = /^(mr|mrs|ms|miss|mx|dr|sir|madam|n\/?a|none)\.?$/i;
 
@@ -99,7 +99,8 @@ export function contactLine(name: string | null | undefined, title: string | nul
   // SAM stores some names already in mixed case ("Mcalhaney"), which tidyCaps leaves alone.
   const n = (name ?? "").trim().replace(/\bMc([a-z])(?=[a-z]{2})/g, (_m, ch: string) => `Mc${ch.toUpperCase()}`);
   if (!n) return null;
-  const t = (title ?? "").trim();
+  // "Chief Estimator/project Manager" as SAM stores it: the word after a slash starts with a capital too.
+  const t = (title ?? "").trim().replace(/\/([a-z])/g, (_m, ch: string) => `/${ch.toUpperCase()}`);
   return t && !HONORIFIC.test(t) ? `${n}, ${t}` : n;
 }
 
@@ -140,13 +141,40 @@ export function tidyCaps(raw: string): string {
     .join(" ");
 }
 
+/**
+ * A bid title without the agency's own filing codes, so the row reads as the job: "5400030235 Open
+ * Grid Deck 22 x 60 D3 Bridge" -> "Open Grid Deck 22 x 60 D3 Bridge", "IFB 32A0743 Painting Services
+ * in Yuba County" -> "Painting Services in Yuba County". Only leading codes are removed, and never
+ * the whole title. PURE.
+ */
+export function tidyJobTitle(raw: string): string {
+  const text = String(raw ?? "").replace(/\s+/g, " ").trim();
+  let rest = text.replace(/\s+-\s+Closing:.*$/i, "");
+  for (let i = 0; i < 4; i++) {
+    const m = rest.match(/^(\S+)\s*[-–:;]*\s+(.*)$/);
+    if (!m) break;
+    const token = m[1].replace(/[:;,]+$/, "");
+    const isLabel = /^(IFB|RFB|RFP|RFQ|ITB|RFI|CON|AFB|Bid|Proposal)$/i.test(token) && /^[A-Z#]?[\w./-]*\d/.test(m[2]);
+    // A code carries a digit and is not an ordinary year or count ("2027 Concrete…", "12 Washington Street").
+    const isCode = /\d/.test(token) && !/^\d{1,4}$/.test(token) && (/\d{4,}/.test(token) || /[A-Za-z]/.test(token) && /[-/.]|\d{2,}/.test(token));
+    if (!isLabel && !isCode) break;
+    // A label takes its number with it: "AFB 2750 - CON 2752 HR Office…" loses all four.
+    rest = (isLabel ? m[2].replace(/^\S+/, "") : m[2]).replace(/^[\s\-–:;]+/, "");
+  }
+  return rest.length >= 8 ? rest : text;
+}
+
 /** Cut at a word boundary and end with an ellipsis, so nothing stops mid-word. PURE. */
 export function clip(raw: string, max: number): string {
   const text = String(raw ?? "").replace(/\s+/g, " ").trim();
   if (text.length <= max) return text;
   const cut = text.slice(0, max);
   const at = cut.lastIndexOf(" ");
-  return `${(at > max * 0.6 ? cut.slice(0, at) : cut).replace(/[\s,;:(-]+$/, "")}…`;
+  let kept = at > max * 0.6 ? cut.slice(0, at) : cut;
+  // "…Charleston, SC (Project…" reads as a mistake: an opened bracket that never closes goes too.
+  const open = kept.lastIndexOf("(");
+  if (open > max * 0.5 && !kept.slice(open).includes(")")) kept = kept.slice(0, open);
+  return `${kept.replace(/[\s,;:(-]+$/, "")}…`;
 }
 
 export const SUPPLIER_NOT_YET = "Winners of state, county and school jobs are not in the report yet. Federal winners are.";

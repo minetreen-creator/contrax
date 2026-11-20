@@ -7,7 +7,7 @@ import { SUPPLIER_AUDIENCE, SUPPLIER_FORWARD_NOTE, SUPPLIER_MULTI_STATE, SUPPLIE
 /** The free supplier report request (see ~/lib/supplier-report). Used on /suppliers and at the top of the homepage. */
 const STATES = Object.entries(STATE_NAMES).sort((a, b) => a[1].localeCompare(b[1]));
 
-export function SupplierRequestForm({ where }: { where: string }) {
+export function SupplierRequestForm({ where, listHref = "/federal-construction-by-state#list" }: { where: string; listHref?: string }) {
   const [email, setEmail] = useState("");
   const [type, setType] = useState(SUPPLIER_TYPES[0].id);
   // No state is chosen for the visitor (owner's review 2026-11-18): a pre-picked South Carolina told
@@ -85,7 +85,7 @@ export function SupplierRequestForm({ where }: { where: string }) {
       {/* The $29 list is the second offer: last and quiet, so it does not compete with the free report. */}
       <p className="mt-3 border-t border-slate-100 pt-3 text-xs text-slate-400">
         {WINNERS_SUPPLIER_LINE}{" "}
-        <a href="/federal-construction-by-state#list" className="underline hover:text-slate-600">Get the list</a>
+        <a href={listHref} className="underline hover:text-slate-600">Get the list →</a>
       </p>
     </form>
   );

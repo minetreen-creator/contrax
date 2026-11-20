@@ -1,4 +1,5 @@
-import { SUPPLIER_ANY_STATE_NOTE, SUPPLIER_SAMPLE_COUNT_WORD, SUPPLIER_CLOSING_NOTE, SUPPLIER_FINE_PRINT_SHORT, SUPPLIER_HOME_ROW_STATES, SUPPLIER_INCLUDES, SUPPLIER_SUBHEAD, SUPPLIER_SAMPLE_STATES, supplierDay, supplierMoney, type SupplierSample } from "~/lib/supplier-report";
+import { useState } from "react";
+import { SUPPLIER_ANY_STATE_NOTE, SUPPLIER_SAMPLE_COUNT_WORD, SUPPLIER_CLOSING_NOTE, SUPPLIER_FINE_PRINT_SHORT, SUPPLIER_INCLUDES, SUPPLIER_SUBHEAD, SUPPLIER_SAMPLE_STATES, supplierDay, supplierMoney, type SupplierSample } from "~/lib/supplier-report";
 import { SupplierRequestForm } from "~/components/SupplierRequestForm";
 import { PrivateBidsBlock } from "~/components/PrivateBidsBlock";
 import { WinnersListOffer } from "~/components/WinnersListOffer";
@@ -208,14 +209,22 @@ function Home() {
           rows and the form; contractors get one block with the search, and everything else that was
           here lives on /contractors (ContractorSections below), one click away. */}
       <HomeSupplierHero samples={supplierSamples} />
-      {supplierSamples.slice(0, SUPPLIER_HOME_ROW_STATES).map((one) => (
-        <HomeSupplierRows key={one.state} sample={one} />
-      ))}
+      {/* 2026-11-20: one state at a time, chosen from a tab bar, so the page is half as long and a
+          visitor from Texas or New York can look at their own state. */}
+      <HomeSupplierTabs samples={supplierSamples} />
       {/* Owner 2026-11-19 ("put this on the homepage"): the $29 state winners list, right under the sample winners. */}
       <section className="bg-[#f5f7fa] px-4 py-8 sm:px-8">
         <div className="mx-auto max-w-3xl">
           <WinnersListOffer source="/" place="home" />
         </div>
+      </section>
+      {/* 2026-11-20: a plain line between the supplier half and the contractor half, so a supplier
+          does not read the private jobs or the bid count below as part of the report. */}
+      <section aria-label="For contractors" className="border-y border-slate-200 bg-white px-4 py-5 text-center text-slate-900 sm:px-8">
+        <p className="text-sm font-semibold">
+          Are you a contractor looking for work to bid on yourself? Everything below is for you.{" "}
+          <a href="#home-contractors-title" className="text-blue-700 underline underline-offset-4 hover:text-blue-900">Go to the bid search ↓</a>
+        </p>
       </section>
       <HomePrivateBids />
       <section aria-labelledby="home-contractors-title" className="bg-[#07162e] px-4 pb-2 pt-8 text-white sm:px-8 sm:pt-10">
@@ -312,6 +321,43 @@ export function ContractorSections({
  */
 function HomePrivateBids() {
   return <PrivateBidsBlock variant="home" />;
+}
+
+/** The sample rows for one state at a time, with a tab for each state that has rows this week. */
+function HomeSupplierTabs({ samples }: { samples: SupplierSample[] }) {
+  const withRows = samples.filter((one) => one.newJobs.length > 0 || one.awards.length > 0);
+  const [picked, setPicked] = useState(withRows[0]?.state ?? "");
+  if (withRows.length === 0) return null;
+  const shown = withRows.find((one) => one.state === picked) ?? withRows[0];
+  return (
+    <>
+      {withRows.length > 1 && (
+        <div className="bg-white px-4 pt-6 text-slate-900 sm:px-8">
+          <div className="mx-auto max-w-7xl">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-600">This week's real rows · pick a state</p>
+            <div role="tablist" aria-label="Sample state" className="mt-3 flex flex-wrap gap-2">
+              {withRows.map((one) => (
+                <button
+                  key={one.state}
+                  type="button"
+                  role="tab"
+                  aria-selected={one.state === shown.state}
+                  onClick={() => {
+                    setPicked(one.state);
+                    trackEvent("home_supplier_tab", one.state);
+                  }}
+                  className={`rounded-lg border px-3 py-1.5 text-sm font-semibold ${one.state === shown.state ? "border-slate-900 bg-slate-900 text-white" : "border-slate-300 bg-white text-slate-700 hover:border-slate-500"}`}
+                >
+                  {one.stateName}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+      <HomeSupplierRows key={shown.state} sample={shown} />
+    </>
+  );
 }
 
 /** Real rows under the supplier hero: this week's new jobs and the latest federal awards. Nothing when there are none. */
@@ -452,11 +498,12 @@ function HomeSupplierHero({ samples }: { samples: SupplierSample[] }) {
             <a href="/suppliers#sample" className="font-semibold text-amber-400 underline underline-offset-4 hover:text-amber-300">See this week's full sample for all {SUPPLIER_SAMPLE_COUNT_WORD} states →</a>
           </p>
           <p className="mt-2 text-xs text-slate-400">
-            {SUPPLIER_FINE_PRINT_SHORT}{" "}
-            <a href="/suppliers" className="underline underline-offset-2 hover:text-slate-200">What is in the report</a>
+            {SUPPLIER_FINE_PRINT_SHORT}
+            <span aria-hidden> · </span>
+            <a href="/suppliers" className="underline underline-offset-2 hover:text-slate-200">What is in the report →</a>
           </p>
         </div>
-        <SupplierRequestForm where="home_hero" />
+        <SupplierRequestForm where="home_hero" listHref="#list" />
       </div>
     </section>
   );

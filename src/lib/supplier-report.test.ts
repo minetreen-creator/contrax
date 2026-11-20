@@ -39,10 +39,10 @@ describe("supplier report (owner 2026-11-18)", () => {
     expect(home).toContain('href="/suppliers"');
     // Owner 2026-11-18: the homepage opens with the supplier report and its request form.
     expect(home).toContain("<HomeSupplierHero samples={supplierSamples} />");
-    expect(home).toContain("<HomeSupplierRows key={one.state} sample={one} />");
+    expect(home).toContain("<HomeSupplierRows key={shown.state} sample={shown} />");
     // Owner 2026-11-18 ("lets add NC too", "might as well add VA, FL and GA"); small awards left out.
     expect([...SUPPLIER_SAMPLE_STATES]).toEqual(["SC", "NC", "VA", "GA", "FL", "TX", "PA", "OH", "NY"]);
-    expect(home).toContain("supplierSamples.slice(0, SUPPLIER_HOME_ROW_STATES).map(");
+    expect(home).toContain("<HomeSupplierTabs samples={supplierSamples} />");
     expect(SUPPLIER_AWARD_MIN).toBe(100_000);
     // The pitch names only what the report holds: no bidder lists, no contact details, federal winners only.
     expect(SUPPLIER_SUBHEAD).toContain("who just won federal work");
@@ -73,7 +73,7 @@ describe("supplier report (owner 2026-11-18)", () => {
     const contractors = readFileSync(new URL("../routes/contractors.tsx", import.meta.url), "utf8");
     expect(contractors).toContain("<ContractorSections sample={sample} contractMap={contractMap} maxProofCurrent={maxProofCurrent} />");
     expect(readFileSync(new URL("../routes/prep.tsx", import.meta.url), "utf8")).toContain("/contractors?utm_source=");
-    expect(home).toContain('<SupplierRequestForm where="home_hero" />');
+    expect(home).toContain('<SupplierRequestForm where="home_hero" listHref="#list" />');
     expect(home.match(/<h1/g)?.length).toBe(1);
   });
 });
@@ -92,6 +92,7 @@ describe("readable rows (owner 2026-11-18)", () => {
     expect(tidyCaps("Town of Sullivan's Island")).toBe("Town of Sullivan's Island");
     expect(clip("Design Build Construction for HC-130J Flight Simulator Facility at U.S. Coast Guard Base Elizabeth City", 90)).toBe("Design Build Construction for HC-130J Flight Simulator Facility at U.S. Coast Guard Base…");
     expect(clip("short", 90)).toBe("short");
+    expect(clip("Renovate SPS Spaces at the Ralph H. Johnson VA Medical Center, Charleston, SC (Project 534-22-103) and more", 90)).toBe("Renovate SPS Spaces at the Ralph H. Johnson VA Medical Center, Charleston, SC…");
     // Goods are not construction work.
     const supply = new RegExp(SUPPLIER_SUPPLY_PATTERN.replace(/\\m|\\M/g, "\\b"), "i");
     expect(supply.test("District 6 Deicer for Bridges")).toBe(true);
@@ -189,3 +190,36 @@ describe("the sample's lead job is construction work", () => {
     expect(supply.test("Building Automation Software License")).toBe(true);
   });
 });
+
+describe("sample rows read as jobs", () => {
+  test("leading filing codes come off a title, and nothing else does", async () => {
+    const { tidyJobTitle } = await import("./supplier-report");
+    expect(tidyJobTitle("5400030235 Open Grid Deck 22 x 60 D3 Bridge")).toBe("Open Grid Deck 22 x 60 D3 Bridge");
+    expect(tidyJobTitle("IFB 32A0743 Painting Services in Yuba County")).toBe("Painting Services in Yuba County");
+    expect(tidyJobTitle("P2640009 - HVAC/UV Treatment Filtration Systems Maintenance and Repair")).toBe("HVAC/UV Treatment Filtration Systems Maintenance and Repair");
+    expect(tidyJobTitle("RFB-IS-27200352 - 27-00318 Water Generator - Closing: 12/9/2026 12:00 PM")).toBe("Water Generator");
+    expect(tidyJobTitle("491/26587.KMM; CFP - Roof & Flashing Rplcmnt/Repair")).toBe("CFP - Roof & Flashing Rplcmnt/Repair");
+    expect(tidyJobTitle("AFB 2750 - CON 2752 HR Office Renovation at PPSC CC")).toBe("HR Office Renovation at PPSC CC");
+    // Years, counts, street numbers and ordinary titles are left alone.
+    expect(tidyJobTitle("2027 Concrete and Asphalt Crushing")).toBe("2027 Concrete and Asphalt Crushing");
+    expect(tidyJobTitle("2026 North Fork Road Bridge Replacement")).toBe("2026 North Fork Road Bridge Replacement");
+    expect(tidyJobTitle("Cohoes City Hall HVAC Replacement")).toBe("Cohoes City Hall HVAC Replacement");
+    expect(tidyJobTitle("Modular Office Building")).toBe("Modular Office Building");
+    expect(tidyJobTitle("Collins Building 2 HVAC Upgrades: Collins West Project")).toBe("Collins Building 2 HVAC Upgrades: Collins West Project");
+  });
+
+  test("consultant, letter-of-interest, change-order and signage notices are not sample jobs", async () => {
+    const { SUPPLIER_SUPPLY_PATTERN, contactLine } = await import("./supplier-report");
+    const supply = new RegExp(SUPPLIER_SUPPLY_PATTERN.replace(/\\m|\\M/g, "\\b"), "i");
+    for (const t of [
+      "Pine Street Elementary School - Roof Consultant",
+      "RFLOI 367-OC5491R BL-0139 Orange County Road Transit Access Sidewalk Project",
+      "Spectrum Center Renovation - Digital Signage",
+      "26PS759001 Change Order/Increase New Boiler at Chicago West",
+      "RENEWAL NOTICE: AGR-DQ B and G-Generator Repair and Maintenance",
+    ]) expect(supply.test(t)).toBe(true);
+    for (const t of ["Modular Office Building", "Saunders St & Hinton St Sidewalk", "Reno of Workforce Housing Hammond Avenue Roofs"]) expect(supply.test(t)).toBe(false);
+    expect(contactLine("Ryan Krispinsky", "Chief Estimator/project Manager")).toBe("Ryan Krispinsky, Chief Estimator/Project Manager");
+  });
+});
+

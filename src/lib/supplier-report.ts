@@ -23,7 +23,7 @@ export const SUPPLIER_PLAN_NAME = "Territory plan";
 export const SUPPLIER_PLAN_BILLED_AS = "Billed as the Contrax Agency plan.";
 /** The one-line pitch. It names only what the report holds: jobs opening, and federal winners. */
 export const SUPPLIER_SUBHEAD =
-  "Suppliers, equipment rental, staffing and bonding agents: a weekly list of the public jobs opening in your territory, and the contractors who just won federal work there.";
+  "For material suppliers, equipment rental, staffing and bonding agents: a weekly list of the public jobs opening in your state, and the contractors who just won federal work there.";
 export const SUPPLIER_SAMPLE_STATE = "SC";
 /** States shown in the live sample (owner 2026-11-18: "lets add NC too", then "might as well add VA, FL and GA"). The first is the form's default. */
 // Owner 2026-11-19 ("we need to add more states"): Texas, Pennsylvania and Ohio added, the three
@@ -48,6 +48,8 @@ export const SUPPLIER_TYPES: readonly { id: string; label: string; why: string }
 ];
 
 /** Under the counts table: what "closing in 7 days" means to someone who sells to the bidders. */
+/** Under the sample counts: a job closing in two days is often too late to quote, so the date is what makes a row usable. */
+export const SUPPLIER_DUE_NOTE = "Every job comes with its exact bid due date, so you can see which ones still leave time for a quote.";
 export const SUPPLIER_CLOSING_NOTE = "Closing in 7 days means contractors are pricing those jobs now. Get your quote to them before bid day.";
 /** Under the table: the sample is a handful of states, the report is any state. */
 export const SUPPLIER_ANY_STATE_NOTE = `The sample shows ${SUPPLIER_SAMPLE_COUNT_WORD} states. The report covers any state: pick yours in the form.`;

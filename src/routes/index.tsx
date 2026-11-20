@@ -434,7 +434,8 @@ function HomeSupplierHero({ samples }: { samples: SupplierSample[] }) {
                 </tr>
               </thead>
               <tbody>
-                {samples.map((one) => (
+                {/* Largest first (2026-11-20): the reader sees the biggest states before the smallest. */}
+                {[...samples].sort((a, b) => b.open - a.open).map((one) => (
                   <tr key={one.state} className="border-t border-white/10">
                     <th scope="row" className="py-2 font-semibold">{one.stateName}</th>
                     <td className="py-2 text-xl font-bold">{one.open}</td>
@@ -448,7 +449,7 @@ function HomeSupplierHero({ samples }: { samples: SupplierSample[] }) {
           <p className="mt-3 max-w-lg text-sm text-slate-300">{SUPPLIER_CLOSING_NOTE}</p>
           <p className="mt-2 max-w-lg text-sm text-slate-400">{SUPPLIER_ANY_STATE_NOTE}</p>
           <p className="mt-4 text-sm text-slate-300">
-            <a href="/suppliers" className="font-semibold text-amber-400 underline underline-offset-4 hover:text-amber-300">See this week's full sample for all {SUPPLIER_SAMPLE_COUNT_WORD} states →</a>
+            <a href="/suppliers#sample" className="font-semibold text-amber-400 underline underline-offset-4 hover:text-amber-300">See this week's full sample for all {SUPPLIER_SAMPLE_COUNT_WORD} states →</a>
           </p>
           <p className="mt-2 text-xs text-slate-400">
             {SUPPLIER_FINE_PRINT_SHORT}{" "}

@@ -16,6 +16,8 @@ import {
   SUPPLIER_USES,
   SUPPLIER_SUBHEAD,
   supplierDay,
+  SUPPLIER_CLOSING_NOTE,
+  SUPPLIER_DUE_NOTE,
   supplierMoney,
   type SupplierSample,
 } from "~/lib/supplier-report";
@@ -76,6 +78,7 @@ function SuppliersPage() {
                 ))}
               </ul>
               <p className="mt-4 text-xs text-slate-400">{SUPPLIER_NOT_YET}</p>
+              <a href="#sample" className="mt-5 inline-block text-sm font-semibold text-amber-400 hover:text-amber-300">See this week's real rows before you ask ↓</a>
             </div>
             <RequestForm where="hero" />
           </div>
@@ -115,8 +118,8 @@ function SuppliersPage() {
           </div>
         </section>
 
-        {samples.filter((sample) => sample.newJobs.length > 0 || sample.awards.length > 0).map((sample) => (
-          <section key={sample.state} className="bg-slate-50 px-4 py-12 sm:py-16">
+        {samples.filter((sample) => sample.newJobs.length > 0 || sample.awards.length > 0).map((sample, i) => (
+          <section key={sample.state} id={i === 0 ? "sample" : undefined} className="scroll-mt-20 bg-slate-50 px-4 py-12 sm:py-16">
             <div className="mx-auto max-w-4xl">
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-600">This week's sample, from live data</p>
               <h2 className="mt-2 text-2xl font-extrabold text-slate-900 sm:text-3xl">{sample.stateName} public construction</h2>
@@ -132,6 +135,7 @@ function SuppliersPage() {
                   </div>
                 ))}
               </dl>
+              <p className="mt-3 text-sm text-slate-600">{SUPPLIER_CLOSING_NOTE} {SUPPLIER_DUE_NOTE}</p>
 
               {sample.newJobs.length > 0 && (
                 <>

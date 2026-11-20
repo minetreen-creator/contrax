@@ -14,6 +14,27 @@
  * queued here: Metromont, Tindall, Cregger Company, Holder Electric Supply, Eastern Industrial
  * Supplies, Gateway Supply, Bennett Equipment & Supply, Outsource, CCS Construction Staffing,
  * Palmetto Surety, Russell-Massey & Company, Anderson Insurance Associates, C. T. Lowndes & Company.
+ *
+ * Written to from the owner's own Gmail on 2026-11-20 (two batches), never to be queued here:
+ * NC: Kluttz Lumber, Johnson Concrete, Pine Hall Brick, Sentinel Risk Advisors, National Surety
+ * Services, Central Carolina Insurance Agency.
+ * GA: Magbee, Dixie Plywood, Norcross Supply, Ernst Concrete, Thomas Concrete, Reynolds-Warren,
+ * Vermeer Southeast, Guignard, American Surety Bonds Agency, Snellings Walters, Oakbridge, Palomar
+ * Insurance.
+ * SC: Flint Equipment, Taylor Agency, Turner Agency Insurance, Kinghorn Insurance, Hutson
+ * Etherredge Companies.
+ * TX: Acme Brick, Kirby-Smith Machinery, HOLT CAT, Closner Equipment, The Sweeney Company, Bowen
+ * Miclette & Britt, TexCap Insurance, Watkins Insurance Group.
+ * FL: Tibbetts Lumber, Gulfeagle Supply, World Electric Supply, A-1 Block, Supermix Concrete, Ring
+ * Power, Kelly Tractor, Acentria Insurance, Waldorff Insurance & Bonding.
+ * OH: Ohio CAT, Columbus Equipment, Southeastern Equipment, Murphy Tractor, Company Wrench,
+ * Schauer Group.
+ * PA: Fizzano Brothers Concrete, Groff Tractor, Best Line Equipment, The Graham Company, Henderson
+ * Brothers, McKee Risk Management.
+ * VA: McClung-Logan Equipment, Hilb Group, Loudoun Insurance Group, Dominion Risk Advisors.
+ * Checked and left out because the only published address was a help desk, HR or accounts inbox:
+ * McCoy's Building Supply, Elliott Electric Supply, Summit Electric Supply, Equipment Depot, Luck
+ * Stone.
  */
 export const SUPPLIER_LEADS: readonly (readonly [string, string, string, string])[] = [
   // Building materials and supply
@@ -35,12 +56,10 @@ export const SUPPLIER_LEADS: readonly (readonly [string, string, string, string]
   ["Blanchard Machinery", "https://blanchardmachinery.com", "equipment", "SC"],
   ["Thompson Rental Services", "https://thompsonrentalservices.com", "equipment", "SC"],
   ["Hills Machinery", "https://hillsmachinery.com", "equipment", "SC"],
-  ["Flint Equipment", "https://flintequipco.com", "equipment", "SC"],
   ["Linder Industrial Machinery", "https://linder.com", "equipment", "SC"],
   // Staffing and labor
   ["Labor Source of South Carolina", "https://laborsourcesc.com", "staffing", "SC"],
   // Bonding and insurance
   ["Correll Insurance Group", "https://correllinsurance.com", "bonding", "SC"],
   ["McCartha, Cobb & Associates", "https://mccarthacobb.com", "bonding", "SC"],
-  ["Taylor Agency", "https://tayloragency.com", "bonding", "SC"],
 ];

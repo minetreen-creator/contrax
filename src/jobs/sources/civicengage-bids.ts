@@ -87,8 +87,12 @@ import {
   httpFailureDetail,
   requestFailureDetail,
   SourceUnreachableError,
+  isLookupHiccup,
 } from "../fetch-failure";
 import { stripHtml, type RawBid } from "./sam-gov";
+
+/** Pause before the one retry after a name-lookup hiccup. */
+const LOOKUP_RETRY_WAIT_MS = 3000;
 
 /**
  * The due-date zone is NOT settled for any CivicEngage board (see the header).
@@ -575,17 +579,26 @@ export async function fetchCivicEngageBoard(
   now: number = Date.now(),
 ): Promise<FetchResult> {
   assertCivicEngageConfig(config);
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 20000);
-  let resp: Response;
-  try {
-    resp = await fetch(config.endpoint, { headers: CIVICENGAGE_HEADERS, signal: controller.signal });
-  } catch (e) {
-    const detail = requestFailureDetail(e);
-    console.error(`  ${config.source}: ${detail}`);
-    throw new SourceUnreachableError(config.source, [detail]);
-  } finally {
-    clearTimeout(timer);
+  let resp: Response | undefined;
+  // One GET per sync. The only second try is after a name-lookup hiccup, which never reached the
+  // site (owner 2026-11-21, "Add the retry"). An HTTP answer of any kind is never retried.
+  for (let attempt = 1; !resp; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 20000);
+    try {
+      resp = await fetch(config.endpoint, { headers: CIVICENGAGE_HEADERS, signal: controller.signal });
+    } catch (e) {
+      if (attempt === 1 && isLookupHiccup(e)) {
+        console.warn(`  ${config.source}: name lookup timed out, trying once more`);
+        await new Promise((r) => setTimeout(r, LOOKUP_RETRY_WAIT_MS));
+        continue;
+      }
+      const detail = requestFailureDetail(e);
+      console.error(`  ${config.source}: ${detail}`);
+      throw new SourceUnreachableError(config.source, [detail]);
+    } finally {
+      clearTimeout(timer);
+    }
   }
   if (!resp.ok) {
     const detail = httpFailureDetail(resp.status, config.endpoint);

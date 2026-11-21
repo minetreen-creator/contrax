@@ -14,6 +14,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { SignupContextPanel } from "~/components/SignupContextPanel";
 import { getCurrentUser } from "~/lib/auth";
 import { trackEvent } from "~/lib/track";
+import { LOGIN_EMAIL_HINT_KEY } from "~/lib/login-email-hint";
 import {
   buildExitPayload,
   buildFieldErrorPayload,
@@ -1281,6 +1282,17 @@ function SignupPage() {
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Signup failed. Please try again.";
+      // Owner 2026-11-21: 2 of 4 people who pressed submit that week already had an account. The
+      // sign-in page picks this up so they do not type the email twice. Kept in this tab only,
+      // never in the address, so it is not logged with the page view.
+      if (/already exists/i.test(msg)) {
+        try {
+          window.sessionStorage.setItem(LOGIN_EMAIL_HINT_KEY, email);
+        } catch {
+          // Storage can be blocked: the sign-in page then starts empty, as before.
+        }
+        trackEvent("signup_existing_account", "shown");
+      }
       setError(msg);
       // Track the server-side signup failure so failed submissions are visible
       // in the funnel (distinct event from client-side field errors).
@@ -1612,10 +1624,17 @@ function SignupPage() {
               <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-slate-800">
                 <p className="font-semibold">You already have a Contrax account with this email.</p>
                 <p className="mt-1">
-                  If you just paid, your pass is on that account, so please don&apos;t make a second one with a different email. We emailed you a
-                  link to set your password.
+                  Sign in to it below. If you just paid, your pass is on that account, so please don&apos;t make a second one with a different
+                  email. We emailed you a link to set your password.
                 </p>
-                <a href="/forgot-password" className="mt-2 inline-block font-semibold text-blue-700 underline">Send me a new link to set my password →</a>
+                <a
+                  href="/login"
+                  onClick={() => trackEvent("signup_existing_account", "sign_in")}
+                  className="mt-3 block rounded-lg bg-slate-900 px-4 py-2.5 text-center font-semibold text-white hover:bg-slate-800"
+                >
+                  Sign in with this email →
+                </a>
+                <a href="/forgot-password" className="mt-2 inline-block font-semibold text-blue-700 underline">No password yet? Send me a link to set one →</a>
               </div>
             )}
 

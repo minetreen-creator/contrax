@@ -1,5 +1,6 @@
 import { createFileRoute, useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { cleanLoginEmailHint, LOGIN_EMAIL_HINT_KEY } from "~/lib/login-email-hint";
 import { embeddedAppName, IN_APP_GOOGLE_NOTE, isEmbeddedBrowser } from "~/lib/in-app-browser";
 import { getCurrentUser } from "~/lib/auth";
 import { getOrCreateVisitorId } from "~/lib/visitor";
@@ -104,6 +105,16 @@ function LoginPage({ linkedInAuthUrl, googleAuthUrl }: { linkedInAuthUrl: string
   // /login?error=<code> (see the OAuth callback redirects). Render an honest
   // message once, then strip the param so a refresh doesn't re-surface it — a
   // silent dead-end with no explanation is gone.
+  // Sent here from /signup's "you already have an account" box: start with the email they typed.
+  useEffect(() => {
+    try {
+      const hint = cleanLoginEmailHint(window.sessionStorage.getItem(LOGIN_EMAIL_HINT_KEY));
+      window.sessionStorage.removeItem(LOGIN_EMAIL_HINT_KEY);
+      if (hint) setEmail((cur) => cur || hint);
+    } catch {
+      // Storage can be blocked: the field starts empty.
+    }
+  }, []);
   useEffect(() => {
     const code = new URLSearchParams(searchStr).get("error");
     const msg = getOAuthErrorMessage(code);

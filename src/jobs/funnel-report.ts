@@ -104,6 +104,7 @@ export async function funnelReport(days: number): Promise<void> {
   await signupBreakdown(days, human);
   await checkoutBreakdown(days, human);
   await pricingBreakdown(days, human);
+  await supplierPath(days, human);
 }
 
 /**
@@ -300,6 +301,54 @@ async function pricingBreakdown(days: number, human: string): Promise<void> {
   for (const [k, n] of top("prev_page")) console.log(`  ${k} | ${n}`);
   console.log("Went next (page | views):");
   for (const [k, n] of top("next_page")) console.log(`  ${k} | ${n}`);
+}
+
+/**
+ * The supplier path (owner 2026-11-21, "Both"): the steps above follow a contractor, so they could
+ * not say whether outreach to suppliers brought anyone. Unique visitors per step, plus the newer
+ * search events. Counts only.
+ */
+async function supplierPath(days: number, human: string): Promise<void> {
+  const db = sql();
+  const [pv] = (await db`
+    SELECT COUNT(DISTINCT visitor_id) FILTER (WHERE path = '/' OR path LIKE '/?%')::int AS home,
+           COUNT(DISTINCT visitor_id) FILTER (WHERE path = '/suppliers' OR path LIKE '/suppliers?%')::int AS suppliers,
+           COUNT(DISTINCT visitor_id) FILTER (WHERE (path = '/suppliers' OR path LIKE '/suppliers?%') AND LOWER(COALESCE(device_type, '')) <> 'mobile')::int AS suppliers_desktop,
+           COUNT(DISTINCT visitor_id) FILTER (WHERE path LIKE '/federal-construction-winners/%')::int AS state_winners,
+           COUNT(DISTINCT visitor_id) FILTER (WHERE path = '/federal-construction-by-state' OR path LIKE '/federal-construction-by-state?%')::int AS ranking
+    FROM page_views
+    WHERE created_at > NOW() - make_interval(days => ${days})
+      AND visitor_id IS NOT NULL
+      AND ${db.unsafe(human)}
+  `) as { home: number; suppliers: number; suppliers_desktop: number; state_winners: number; ranking: number }[];
+  const NAMES = ["home_supplier_tab", "supplier_report_request", "suppliers_cta_click", "winners_list_checkout", "radar_repeat_offer_shown", "radar_repeat_offer_click", "radar_place_in_trade", "home_place_in_trade", "signup_existing_account"];
+  const ev = (await db`
+    SELECT event_name, COUNT(DISTINCT visitor_id)::int AS visitors, COUNT(*)::int AS times
+    FROM funnel_events
+    WHERE created_at > NOW() - make_interval(days => ${days})
+      AND event_name = ANY(${NAMES})
+      AND ${db.unsafe(human)}
+    GROUP BY 1
+  `) as { event_name: string; visitors: number; times: number }[];
+  const by = new Map(ev.map((e) => [e.event_name, e]));
+  const n = (k: string) => by.get(k)?.visitors ?? 0;
+  console.log("");
+  console.log(`🧱 Supplier path, last ${days} days (unique visitors)`);
+  console.log(`Saw the homepage | ${pv?.home ?? 0}`);
+  console.log(`Saw /suppliers | ${pv?.suppliers ?? 0} (desktop ${pv?.suppliers_desktop ?? 0})`);
+  console.log(`Saw the state ranking | ${pv?.ranking ?? 0}`);
+  console.log(`Saw a state winners page | ${pv?.state_winners ?? 0}`);
+  console.log(`Switched a state tab on the homepage | ${n("home_supplier_tab")}`);
+  console.log(`Sent the free report form | ${n("supplier_report_request")}`);
+  console.log(`Tapped the $199 plan button | ${n("suppliers_cta_click")}`);
+  console.log(`Tapped the $29 list checkout | ${n("winners_list_checkout")}`);
+  console.log("");
+  console.log(`🔁 Search extras, last ${days} days (unique visitors)`);
+  console.log(`Saw the repeat-search offer | ${n("radar_repeat_offer_shown")}`);
+  console.log(`Tapped the repeat-search offer | ${n("radar_repeat_offer_click")}`);
+  console.log(`Typed a place with the trade (search page) | ${n("radar_place_in_trade")}`);
+  console.log(`Typed a place with the trade (homepage) | ${n("home_place_in_trade")}`);
+  console.log(`Told "account already exists" on signup | ${n("signup_existing_account")}`);
 }
 
 if (import.meta.main) {

@@ -59,6 +59,16 @@ export const SUPPLIER_ANY_STATE_NOTE = `The sample shows ${SUPPLIER_SAMPLE_COUNT
 export const SUPPLIER_AUDIENCE = "Written for outside sales reps, estimators and branch managers.";
 /** The report is sent as an ordinary email by the owner, so it can be forwarded as it is. */
 export const SUPPLIER_FORWARD_NOTE = "Need a manager's sign-off? The report arrives as a plain email you can forward.";
+/**
+ * Under the send button (review note 2026-11-21): the same four facts as before, as three labelled
+ * lines a skimmer can read. [label, text]. Nothing here is new: the price, "cancel anytime" and the
+ * 10 territories are what /suppliers and the plan already say.
+ */
+export const SUPPLIER_FORM_POINTS: readonly (readonly [string, string])[] = [
+  ["Try it free", `Your first weekly report is free. To keep getting it, the ${SUPPLIER_PLAN_NAME} is ${SUPPLIER_PRICE} a month, month to month. Cancel anytime.`],
+  ["More than one state", `Up to 10 territories, each with its own states and trades, for the same ${SUPPLIER_PRICE} a month.`],
+  ["Manager sign-off", "The report arrives as a plain email you can forward to your branch manager."],
+];
 
 export const SUPPLIER_INCLUDES: readonly string[] = [
   "New public construction jobs in your state, sorted by trade",
@@ -86,7 +96,7 @@ export const SUPPLIER_MULTI_STATE = "Cover more than one state? The plan include
 
 /** The one line of fine print the homepage shows; /suppliers carries the full wording. */
 // Owner's review 2026-11-18: lead with what the rep can do with it; the limit stays, said plainly, second.
-export const SUPPLIER_FINE_PRINT_SHORT = "Phone numbers and emails are not included. Federal winners do come with the company's website, office address and named contact where public: enough to look them up and add them to your CRM.";
+export const SUPPLIER_FINE_PRINT_SHORT = "Federal winners come with the company's website, office address and named contact where public: enough to look them up and add them to your CRM. Phone numbers and emails are not included.";
 
 /**
  * Titles that are a purchase of goods, not work on a site (owner 2026-11-18: "District 6 Deicer for

@@ -2,7 +2,7 @@ import { WINNERS_SUPPLIER_LINE } from "~/lib/state-winners";
 import { useState } from "react";
 import { trackEvent } from "~/lib/track";
 import { STATE_NAMES } from "~/lib/contract-map";
-import { SUPPLIER_AUDIENCE, SUPPLIER_FORWARD_NOTE, SUPPLIER_MULTI_STATE, SUPPLIER_PLAN_NAME, SUPPLIER_PRICE, SUPPLIER_TAILOR_NOTE, SUPPLIER_TYPES } from "~/lib/supplier-report";
+import { SUPPLIER_AUDIENCE, SUPPLIER_FORM_POINTS, SUPPLIER_TAILOR_NOTE, SUPPLIER_TYPES } from "~/lib/supplier-report";
 
 /** The free supplier report request (see ~/lib/supplier-report). Used on /suppliers and at the top of the homepage. */
 const STATES = Object.entries(STATE_NAMES).sort((a, b) => a[1].localeCompare(b[1]));
@@ -79,9 +79,17 @@ export function SupplierRequestForm({ where, listHref = "/federal-construction-b
         {status === "sending" ? "Sending…" : `Send my free ${state ? `${STATE_NAMES[state]} ` : ""}report →`}
       </button>
       <p className="mt-2 text-center text-xs font-semibold text-slate-600">{SUPPLIER_AUDIENCE}</p>
-      <p className="mt-2 text-xs text-slate-500">One report, free. To keep getting it, the {SUPPLIER_PLAN_NAME} is {SUPPLIER_PRICE} a month, month to month, and only if you choose it.</p>
-      <p className="mt-1 text-xs text-slate-500">{SUPPLIER_MULTI_STATE}</p>
-      <p className="mt-1 text-xs text-slate-500">{SUPPLIER_FORWARD_NOTE}</p>
+      {/* Review note 2026-11-21: three labelled lines, not four look-alike paragraphs. SUPPLIER_MULTI_STATE and SUPPLIER_FORWARD_NOTE say the same on /suppliers. */}
+      <ul className="mt-3 space-y-1.5 text-left text-xs text-slate-600">
+        {SUPPLIER_FORM_POINTS.map(([label, text]) => (
+          <li key={label} className="flex gap-2">
+            <span aria-hidden className="text-emerald-600">✓</span>
+            <span>
+              <b className="text-slate-800">{label}:</b> {text}
+            </span>
+          </li>
+        ))}
+      </ul>
       {/* The $29 list is the second offer: last and quiet, so it does not compete with the free report. */}
       <p className="mt-3 border-t border-slate-100 pt-3 text-xs text-slate-400">
         {WINNERS_SUPPLIER_LINE}{" "}

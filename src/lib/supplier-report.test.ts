@@ -136,7 +136,7 @@ describe("role lines, closing note and forward note", () => {
     expect(new Set(SUPPLIER_TYPES.map((t) => t.why)).size).toBe(SUPPLIER_TYPES.length);
     const form = readFileSync(new URL("../components/SupplierRequestForm.tsx", import.meta.url), "utf8");
     expect(form).toContain("?.why");
-    expect(form).toContain("SUPPLIER_FORWARD_NOTE");
+    expect(form).toContain("SUPPLIER_FORM_POINTS");
   });
   test("the homepage says what closing in 7 days means for a supplier, and nothing promises a document we do not send", async () => {
     const { SUPPLIER_CLOSING_NOTE, SUPPLIER_FORWARD_NOTE } = await import("./supplier-report");
@@ -164,6 +164,11 @@ describe("third round of review notes (2026-11-18)", () => {
     expect(form).toContain('<option value="">Choose your state</option>');
     const { SUPPLIER_FINE_PRINT_SHORT, cleanSupplierRequest } = await import("./supplier-report");
     expect(SUPPLIER_FINE_PRINT_SHORT).toContain("Phone numbers and emails are not included.");
+    // Review note 2026-11-21: what you get comes first, the limit last.
+    expect(SUPPLIER_FINE_PRINT_SHORT.startsWith("Federal winners come with")).toBe(true);
+    const { SUPPLIER_FORM_POINTS } = await import("./supplier-report");
+    expect(SUPPLIER_FORM_POINTS.map((p) => p[0])).toEqual(["Try it free", "More than one state", "Manager sign-off"]);
+    expect(SUPPLIER_FORM_POINTS[1][1]).toContain("Up to 10 territories");
     expect(cleanSupplierRequest({ email: "a@b.co", state: "", type: "materials" }).ok).toBe(false);
   });
 });

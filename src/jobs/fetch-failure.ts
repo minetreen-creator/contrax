@@ -152,3 +152,21 @@ export function failureDetail(error: unknown): string {
   }
   return requestFailureDetail(error);
 }
+
+/**
+ * True when a request failed because the name lookup timed out or was told to try again
+ * (owner 2026-11-21: la_sulphur was reported dead after two "getaddrinfo ETIMEOUT" in a row while
+ * the city's site was up). The request never reached the site, so one more try is not a second
+ * hit on it. A name that does not exist (ENOTFOUND) and every HTTP answer are NOT hiccups. PURE.
+ */
+export function isLookupHiccup(error: unknown): boolean {
+  const seen: string[] = [];
+  let e: any = error;
+  for (let depth = 0; e && depth < 4; depth++) {
+    seen.push(String(e.code ?? ""), String(e.syscall ?? ""), String(e.message ?? ""));
+    e = e.cause;
+  }
+  const text = seen.join(" ");
+  if (/ENOTFOUND/.test(text)) return false;
+  return /EAI_AGAIN/.test(text) || (/getaddrinfo/.test(text) && /ETIMEOUT|ETIMEDOUT/.test(text));
+}

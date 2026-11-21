@@ -15,7 +15,11 @@ test("llms.txt gives today's offer, not the old plans and trial", () => {
   expect(llms).toContain("$9 one time for 30 days");
   expect(llms).toContain("$14 a month");
   expect(llms).toContain("There is no trial");
-  expect(llms).not.toMatch(/\$19|\$79|\$199|7-day|free trial/i);
+  // $199 a month is the supplier report (owner 2026-11-12); the old $19 and $79 plans stay out.
+  expect(llms).not.toMatch(/\$19(?!9)|\$79|7-day|free trial/i);
+  expect(llms).toContain("$199 a month");
+  expect(llms).toContain("$29 one time");
+  expect(llms.indexOf("## For material suppliers")).toBeLessThan(llms.indexOf("## Find open bids"));
 });
 
 test("llms.txt points at the pages assistants send people to", () => {

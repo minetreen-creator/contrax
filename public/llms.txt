@@ -1,23 +1,31 @@
 # Contrax
 
-> Contrax lists open U.S. government bids (federal, state, county, city and school district) and helps small contractors find the ones they can win. For companies with a sales team it also prepares reports of the federal contracts ending in their line of work. Every bid has its own public page with the job, the buyer, the place and the due date. Searching needs no account.
+> Contrax tracks open U.S. public bids (federal, state, county, city and school district) and who wins federal construction work. For material suppliers, equipment rental, staffing and bonding agents it sends a weekly report of the public construction jobs opening in a state and the contractors who just won federal work there. For contractors it lists open bids by trade and state. Searching needs no account.
 
 Contrax is operated by Contrax LLC (Virginia) and is available in the United States. Bids come from SAM.gov and from state and local purchasing boards, refreshed several times a day. Closed bids drop off the lists.
 
 ## What it costs
 
+- Supplier report (for companies that sell to contractors): the first weekly report for one state is free on request; after that it is $199 a month, month to month.
+- Federal construction winners list for one state: $29 one time, delivered as a spreadsheet file.
 - Searching and reading what each job is: no charge, no account.
 - Basic account: no charge. One state and one trade, 5 Radar searches a day, 1 saved bid.
-- Starter pass: $5 one time for 30 days. It opens the official notice and bid documents for every bid and sends new bids in your trade and states by email each morning. Nothing renews; the pass ends on day 30.
+- Starter pass: $9 one time for 30 days. It opens the official notice and bid documents for every bid and sends new bids in your trade and states by email each morning. Nothing renews; the pass ends on day 30.
 - Starter after the pass, only if the member chooses it: $14 a month.
 - There is no trial and no card is needed to search.
+
+## For material suppliers, equipment rental, staffing and bonding agents
+
+- [Suppliers](https://www.contrax.company/suppliers): The public paving, concrete, site and building jobs bidding in each territory, who is buying and when bids are due, for concrete plants, supply houses, rental yards, staffing firms and bonding agents. The page shows this week's real rows for several states and takes a request for a free report.
+- [Federal construction contracts by state](https://www.contrax.company/federal-construction-by-state): How much federal construction money in each state goes to companies registered in another state, fiscal year 2025, from USAspending.gov records.
+- [Who won federal construction contracts, by state](https://www.contrax.company/federal-construction-winners/texas): One page per state (replace texas with the state name, for example north-carolina): the number of contracts, the total awarded and the three largest winners. The full list for a state is $29.
 
 ## Find open bids
 
 - [Contract Radar](https://www.contrax.company/radar): Search open bids by trade and state. Shows the best matches with the reason each one matches.
 - [Bids by state and trade](https://www.contrax.company/trades): A page for each state and trade, for example [janitorial bids in Texas](https://www.contrax.company/contracts-in/texas/janitorial) or [construction bids in Ohio](https://www.contrax.company/contracts-in/ohio/construction). The pattern is /contracts-in/{state}/{trade}. Trades: janitorial, landscaping, construction, hvac, electrical, trucking, security-guard, waste-hauling, it-services, cybersecurity.
 - [Bid map](https://www.contrax.company/map): Open bids on a map of the United States.
-- A single bid: https://www.contrax.company/bid/{id}. The page gives the title, the buyer, where the work is, the due date and a plain-language summary. All open bids are listed in https://www.contrax.company/sitemap-bids.xml.
+- A single bid: https://www.contrax.company/bid/{id}. The page gives the job, the kind of public agency buying it, the state, the due date and a plain-language summary. The agency's name, its own bid number and the link to the official notice are for members. All open bids are listed in https://www.contrax.company/sitemap-bids.xml.
 - [Local bids](https://www.contrax.company/local-bids): Open bids from cities, counties and school districts.
 
 ## Subcontracting and teaming
@@ -50,12 +58,6 @@ Contrax is operated by Contrax LLC (Virginia) and is available in the United Sta
 - [Sample pipeline report](https://www.contrax.company/sample-report): A real, live report anyone can read, for federal IT services in Virginia, janitorial in Virginia, or HVAC and plumbing in Texas.
 - [About the AI assistant connection](https://www.contrax.company/mcp): What the Contrax MCP server is, its address, tools, example questions and limits.
 - [AI assistant connection (MCP)](https://www.contrax.company/api/mcp): A read-only Model Context Protocol endpoint. Tools: contracts_ending_soon (state, line of work) and list_trades. Returns totals and a handful of federal contracts ending soon, with links to the public records.
-
-## For material suppliers and equipment rental
-
-- [Suppliers](https://www.contrax.company/suppliers): The public paving, concrete, site and building jobs bidding in each territory, who is buying and when bids are due, for concrete plants, supply houses and rental yards.
-- [Federal construction contracts by state](https://www.contrax.company/federal-construction-by-state): How much federal construction money in each state goes to companies registered in another state, fiscal year 2025, from USAspending.gov records.
-- [Who won federal construction contracts, by state](https://www.contrax.company/federal-construction-winners/texas): One page per state (replace texas with the state name, for example north-carolina): the number of contracts, the total awarded and the three largest winners. The full list for a state is $29.
 
 ## Good to know when citing Contrax
 

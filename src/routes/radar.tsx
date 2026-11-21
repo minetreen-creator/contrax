@@ -84,6 +84,7 @@ import { zeroStateOptions } from "~/lib/zero-results";
 import { radarShareUrl } from "~/lib/radar-share";
 import { closingSoonLast, roomToBidFirst } from "~/lib/radar-closing-soon";
 import { ADDRESS_TIP, isKnownTrade, looksLikeAddress, notATradeLine } from "~/lib/trade-input";
+import { splitTradeAndPlace } from "~/lib/trade-place";
 import { redirectToCheckout } from "~/lib/checkout";
 import { cleanBidTitle, displayTitle } from "~/lib/bid-title";
 import { stateFromGeoHeaders, withTimeout } from "~/lib/radar-geo";
@@ -517,9 +518,12 @@ export const runRadarScan = createServerFn({ method: "POST" })
     const v = (d as any) ?? {};
     const cert = String(v.cert ?? "sb");
     const sizePref = String(v.sizePref ?? "any");
+    // Owner 2026-11-21: "Jacksonville concrete" found nothing. A place typed with the trade
+    // comes off here too, so every form that calls this search gets the same answer.
+    const typed = splitTradeAndPlace(String(v.trade ?? ""), String(v.state ?? ""));
     return {
-      trade: String(v.trade ?? "").trim(),
-      state: normalizeStateInput(String(v.state ?? "").trim()),
+      trade: typed.trade,
+      state: typed.state,
       cert: (RADAR_CERTS as readonly string[]).includes(cert) ? cert : "sb",
       sizePref: (SIZE_OPTS as readonly { id: string }[]).some((s) => s.id === sizePref) ? sizePref : "any",
       unlock: v.unlock === true,
@@ -1651,9 +1655,18 @@ function RadarLanding() {
   };
 
   const runScan = (
-    input: { trade: string; state: string; cert: RadarCert; sizePref: SizeId },
+    asked: { trade: string; state: string; cert: RadarCert; sizePref: SizeId },
     opts?: { timeoutMs?: number; unlock?: boolean; fallbackFrom?: string },
   ) => {
+    // Owner 2026-11-21: a place typed with the trade ("Jacksonville concrete") moves to the
+    // state box, so the results, the saved search and the pass offer all name the right state.
+    const typed = splitTradeAndPlace(asked.trade, asked.state);
+    const input = typed.place ? { ...asked, trade: typed.trade, state: typed.state } : asked;
+    if (typed.place) {
+      setTrade(typed.trade);
+      setState(typed.state);
+      trackEvent("radar_place_in_trade", `${typed.place}|${typed.trade}`.slice(0, 80));
+    }
     setFallbackFrom(opts?.fallbackFrom ?? null);
     // A visitor-initiated scan is real activity — from here on the save effect
     // may persist the criteria (and runScan itself persists the SEEN matches).

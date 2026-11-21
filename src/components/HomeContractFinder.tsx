@@ -18,6 +18,7 @@ import { trackEvent } from "~/lib/track";
 import { CheckoutTrust } from "~/components/CheckoutTrust";
 import { redirectToCheckout } from "~/lib/checkout";
 import { ADDRESS_TIP, ADDRESS_TIP_ES, isKnownTrade, looksLikeAddress, notATradeLine } from "~/lib/trade-input";
+import { splitTradeAndPlace } from "~/lib/trade-place";
 import { STARTER_FIRST_MONTH_PRICE } from "~/lib/starter-offer";
 
 const STATES = [...US_PLACES].sort((a, b) =>
@@ -154,9 +155,11 @@ export function HomeContractFinder({ sample, openTotal = 0, heading = "h1" }: { 
   async function search(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (running.current) return;
+    // Owner 2026-11-21: a place typed with the trade ("Jacksonville concrete") moves to the state box.
+    const typed = splitTradeAndPlace(trade, state);
     const answers: RadarAnswers = {
-      trade: trade.trim(),
-      state,
+      trade: typed.trade,
+      state: typed.state,
       cert: "sb",
       sizePref: "any",
     };
@@ -169,6 +172,11 @@ export function HomeContractFinder({ sample, openTotal = 0, heading = "h1" }: { 
       trackEvent("home_address_in_trade", answers.trade.slice(0, 40));
       setError(lang === "es" ? ADDRESS_TIP_ES : ADDRESS_TIP);
       return;
+    }
+    if (typed.place) {
+      setTrade(typed.trade);
+      setState(typed.state);
+      trackEvent("home_place_in_trade", `${typed.place}|${typed.trade}`.slice(0, 80));
     }
     running.current = true;
     setBusy(true);

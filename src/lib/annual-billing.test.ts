@@ -106,7 +106,9 @@ describe("yearly checkout", () => {
   test("yearly amounts are 10 × monthly", () => {
     // Owner 2026-11-22: Starter is $9 a month for a new buyer, so $90 a year ("$90 is good").
     expect(stripeLib.ANNUAL_UNIT_AMOUNTS).toEqual({ starter: 9000, professional: 79000, agency: 199000 });
-    for (const tier of ["starter", "professional", "agency"] as const) {
+    // Starter's ten months are the $9 a new buyer pays, not the $14 list month.
+    expect(stripeLib.ANNUAL_UNIT_AMOUNTS.starter).toBe(900 * 10);
+    for (const tier of ["professional", "agency"] as const) {
       expect(stripeLib.ANNUAL_UNIT_AMOUNTS[tier]).toBe(stripeLib.MONTHLY_PRICE_USD[tier]! * 100 * 10);
     }
   });

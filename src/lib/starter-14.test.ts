@@ -39,16 +39,17 @@ describe("Starter at $14", () => {
       const src = readFileSync(new URL(f, import.meta.url), "utf8");
       expect(src).not.toMatch(/name: "Starter",\s*price: 19/);
     }
-    expect(readFileSync(new URL("../routes/vad.tsx", import.meta.url), "utf8")).not.toContain('was: "19"');
   });
 });
 
-test("veterans (VAD26) Starter is $10 a month, billed inline on the VAD Starter product", async () => {
-  const { VAD_STARTER_MONTHLY_CENTS } = await import("./starter-offer");
-  expect(VAD_STARTER_MONTHLY_CENTS).toBe(1000);
-  const stripe = readFileSync(new URL("./stripe.ts", import.meta.url), "utf8");
-  expect(stripe).toContain('} else if (interval === "month" && planTier === "starter" && isVad) {');
-  expect(stripe).toContain("unit_amount: VAD_STARTER_MONTHLY_CENTS,");
+// Owner 2026-11-22: "get rid of any VAD information and payments".
+test("the VAD partner price is retired: no page, no link, and no code reaches the checkout", () => {
   const vad = readFileSync(new URL("../routes/vad.tsx", import.meta.url), "utf8");
-  expect(vad).toMatch(/name: "Starter",\s*price: "10",\s*was: "14",/);
+  expect(vad).toContain('throw redirect({ to: "/pricing", statusCode: 301 });');
+  expect(vad).not.toMatch(/Diabetes|VAD26|price:/);
+  expect(readFileSync(new URL("../routes/pricing/index.tsx", import.meta.url), "utf8")).not.toMatch(/\/vad|Veterans Against/);
+  expect(readFileSync(new URL("./stripe.ts", import.meta.url), "utf8")).toContain("const isVad: boolean = false;");
+  for (const f of ["../routes/api/stripe/create-checkout-session.ts", "../../serve.ts", "../../vercel-entry.ts"]) {
+    expect(readFileSync(new URL(f, import.meta.url), "utf8")).not.toContain('"VAD26"');
+  }
 });

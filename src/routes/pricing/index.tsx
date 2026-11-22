@@ -391,12 +391,6 @@ function PricingPage() {
           {/* Owner 2026-11-03 ("do 2 and 3"): one product until there are
               paying customers. The other plans and products stay reachable by
               their own links but are no longer listed here. */}
-          <p className="mt-3 text-center text-sm text-gray-500">
-            Veterans Against Diabetes partner?{" "}
-            <a href="/vad" className="font-medium text-amber-600 hover:text-amber-500 transition-colors">
-              View exclusive VAD pricing
-            </a>
-          </p>
         </div>
       </section>
 

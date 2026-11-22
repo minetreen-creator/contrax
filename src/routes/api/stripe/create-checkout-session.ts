@@ -83,14 +83,11 @@ async function handler({ request }: { request: Request }) {
       );
     }
 
-    // Optional server-side verification code ("VAD26"). Normalized to lowercase,
-    // then passed through as "VAD26" when it matches — the checkout then uses
-    // the dedicated exact VAD Stripe price for the tier.
-    const normalized = (body.promoCode ?? "").trim().toLowerCase();
-    const promoCode = normalized === "vad26" ? "VAD26" : undefined;
+    // Owner 2026-11-22: the VAD26 partner price is retired; no code changes the price any more.
+    const promoCode: string | undefined = undefined;
     // Starter 30-day pass (owner 2026-10-30, src/lib/starter-pass.ts).
     const { starterCheckoutOptions } = await import("~/lib/starter-pass.server");
-    const starterOpts = await starterCheckoutOptions(body, userId ?? null);
+    const starterOpts = await starterCheckoutOptions({ ...body, promoCode: undefined }, userId ?? null);
     const { visitorIdFromCookieHeader, recordCheckoutOpened } = await import("~/lib/checkout-attribution.server");
     const visitorId = visitorIdFromCookieHeader(request.headers.get("cookie"));
     const result = await createCheckoutSession(body.planTier as PlanTier, {

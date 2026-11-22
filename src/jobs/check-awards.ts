@@ -157,6 +157,11 @@ export async function checkAwards(): Promise<{ checked: number; found: number; e
       byUser.set(uid, entry);
     }
     entry.savedIds.push(Number(r.saved_id));
+    // Owner 2026-11-22: tell me when a member wins. Once per member and bid; never throws.
+    if (isOwnAward(r.awardee_uei, r.member_uei)) {
+      const { alertOwnerOfMemberWin } = await import("~/lib/member-win-alert.server");
+      await alertOwnerOfMemberWin(uid, Number(r.bid_id), "award_check", r.amount != null ? Number(r.amount) : null);
+    }
     entry.items.push({
       bidId: Number(r.bid_id),
       title: String(r.title ?? "Untitled opportunity"),

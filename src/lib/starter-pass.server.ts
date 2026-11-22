@@ -129,7 +129,7 @@ export async function recordCheckoutPass(
   }
 }
 
-const OWNER_EMAIL = "minetreen@gmail.com";
+export const OWNER_EMAIL = "minetreen@gmail.com";
 
 /** Phone push and email to the owner for a new pass. Never throws: a failed alert must not fail the checkout. */
 async function alertOwnerOfPass(buyerEmail: string | null, endsAt: Date): Promise<void> {

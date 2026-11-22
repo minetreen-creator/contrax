@@ -58,6 +58,8 @@ interface ResolveResult {
   signInRequired?: boolean;
   /** The $5 pass's end date (ISO), so the confirmation can say when it ends. */
   passEndsAt?: string | null;
+  /** A signed link that opens the monthly checkout for this pass buyer (owner 2026-11-22). */
+  passContinueUrl?: string | null;
 }
 
 const resolveCheckoutSession = createServerFn({ method: "POST" })

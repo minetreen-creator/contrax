@@ -26,6 +26,10 @@ import {
   STARTER_PASS_PRODUCT_DESCRIPTION,
   STARTER_PASS_PRODUCT_NAME,
   STARTER_PASS_SUBMIT_MESSAGE,
+  STARTER_PASS_CONTINUE_CENTS,
+  PASS_CONTINUE_MIN_LEAD_SECONDS,
+  passContinueSubmitMessage,
+  passEndDateLabel,
 } from "~/lib/starter-pass";
 
 // ── Client Initialization ──────────────────────────────────────────────────────
@@ -460,6 +464,13 @@ export interface CreateCheckoutSessionOptions {
   /** A monthly Starter subscription without the $5 first-month coupon (a returning pass buyer). */
   fullPrice?: boolean;
   /**
+   * A pass buyer continuing by choice (owner 2026-11-22): monthly Starter at the pass holder's
+   * price (STARTER_PASS_CONTINUE_CENTS). With `trialEndSec` the first charge falls on that
+   * moment (the day the pass ends) and nothing is charged at checkout.
+   */
+  passContinue?: boolean;
+  trialEndSec?: number | null;
+  /**
    * The daily money-path check (src/lib/path-checks.ts), owner 2026-11-03: the
    * session is labeled ("Contrax path check" / metadata probe=path_check) and
    * expires in about 30 minutes, so it doesn't look like a buyer in Stripe.
@@ -640,10 +651,27 @@ export async function createCheckoutSession(
         quantity: 1,
       };
     }
+    const passContinue = opts.passContinue === true && !starterPass && planTier === "starter" && interval === "month" && mode === "subscription" && !isVad && !founding;
+    if (opts.passContinue === true && !passContinue) {
+      return { success: false, error: "The pass holder's price is for monthly Starter only." };
+    }
+    if (passContinue) {
+      lineItem = {
+        price_data: {
+          currency: "usd",
+          unit_amount: STARTER_PASS_CONTINUE_CENTS,
+          recurring: { interval: "month" },
+          product_data: { name: "Contrax Starter", metadata: { plan_tier: "starter", pass_continue: "true" } },
+        },
+        quantity: 1,
+      };
+    }
+    const trialEnd = passContinue && typeof opts.trialEndSec === "number" && opts.trialEndSec - Math.floor(Date.now() / 1000) >= PASS_CONTINUE_MIN_LEAD_SECONDS ? Math.floor(opts.trialEndSec) : null;
     const sessionMode: CheckoutMode = starterPass ? "payment" : mode;
 
     const metadata: Record<string, string> = { plan_tier: planTier };
     if (starterPass) metadata[STARTER_PASS_FLAG] = "true";
+    if (passContinue) metadata.pass_continue = "true";
     if (interval === "year") {
       metadata.billing_interval = "year";
     }
@@ -662,7 +690,7 @@ export async function createCheckoutSession(
     if (opts.probe) metadata.probe = "path_check";
     if (opts.visitorId) metadata.visitor_id = String(opts.visitorId).slice(0, 64);
 
-    const firstMonth = !starterPass && opts.fullPrice !== true && starterFirstMonthApplies({ planTier, interval, mode, vad: isVad });
+    const firstMonth = !starterPass && !passContinue && opts.fullPrice !== true && starterFirstMonthApplies({ planTier, interval, mode, vad: isVad });
     if (firstMonth) {
       metadata.first_month_offer = STARTER_FIRST_MONTH_COUPON;
       await ensureStarterFirstMonthCoupon();
@@ -672,7 +700,7 @@ export async function createCheckoutSession(
       mode: sessionMode,
       line_items: [lineItem],
       // Owner 2026-10-30 (item 3): what happens next, under the pay button.
-      ...(planTier !== "savings_premium" ? { custom_text: { submit: { message: starterPass ? STARTER_PASS_SUBMIT_MESSAGE : CHECKOUT_SUBMIT_MESSAGE } } } : {}),
+      ...(planTier !== "savings_premium" ? { custom_text: { submit: { message: starterPass ? STARTER_PASS_SUBMIT_MESSAGE : passContinue ? passContinueSubmitMessage(trialEnd ? passEndDateLabel(new Date(trialEnd * 1000)) : null) : CHECKOUT_SUBMIT_MESSAGE } } } : {}),
       // A pass buyer keeps a Stripe customer, so continuing at $19 later reuses it.
       ...(starterPass ? { customer_creation: "always" as const } : {}),
       ...(firstMonth ? { discounts: [{ coupon: STARTER_FIRST_MONTH_COUPON }] } : {}),
@@ -687,7 +715,7 @@ export async function createCheckoutSession(
       // checkout — the Grants checkout has always done this. `subscription_data`
       // is only valid in subscription mode (a one-time price would be rejected),
       // so it is omitted for mode="payment".
-      ...(sessionMode === "subscription" ? { subscription_data: { metadata } } : {}),
+      ...(sessionMode === "subscription" ? { subscription_data: { metadata, ...(trialEnd ? { trial_end: trialEnd } : {}) } } : {}),
       success_url: `${BASE_URL}/post-checkout?session_id={CHECKOUT_SESSION_ID}&plan=${planTier}`,
       // Send canceled buyers back to the offer they were considering (#441).
       cancel_url: isVad

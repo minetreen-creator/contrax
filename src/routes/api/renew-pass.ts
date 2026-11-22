@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 /**
- * GET /api/renew-pass?t=… — the "Keep my bid emails ($19/month)" button in the
- * $5 pass reminder (owner 2026-11-07, "2 only"). The signed token names one
+ * GET /api/renew-pass?t=… — the "Keep my bid emails ($14/month)" button in the
+ * pass reminder, the pass confirmation and the after-payment page (owner 2026-11-07, "2 only"). The signed token names one
  * account and expires 14 days after its pass ends. It opens a monthly Starter
- * checkout at full price for that account and redirects to Stripe; nothing is
+ * checkout at the pass holder's price for that account and redirects to Stripe; nothing is
  * charged unless the buyer completes Stripe's page. Any problem falls back to
  * the normal /upgrade page, so the button never dead-ends.
  */
@@ -30,7 +30,16 @@ async function handler({ request }: { request: Request }) {
     // Already subscribed (a subscription clears the pass): nothing to buy.
     if (u.subscription_status === "active" && !u.starter_pass_ends_at) return redirect("https://www.contrax.company/dashboard?renewed=already");
     const { createCheckoutSession } = await import("~/lib/stripe");
-    const result = await createCheckoutSession("starter", { userId: u.id, fullPrice: true, mode: "subscription", interval: "month" });
+    // Owner 2026-11-22: a pass holder continues at Starter's $14 a month, and when the pass still has days
+    // left the first monthly charge waits for the day it ends (nothing is charged at checkout).
+    const { passContinueTrialEnd } = await import("~/lib/starter-pass");
+    const result = await createCheckoutSession("starter", {
+      userId: u.id,
+      passContinue: true,
+      trialEndSec: passContinueTrialEnd(u.starter_pass_ends_at),
+      mode: "subscription",
+      interval: "month",
+    });
     if (!result.success || !result.url) {
       console.error("[renew-pass] checkout failed:", result.success ? "no url" : result.error);
       return redirect(FALLBACK);

@@ -14,7 +14,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { Resend } from "resend";
 import { sql } from "~/db";
-import {
+import { passContinueTrialEnd,
   PASS_ENDED_STATUS,
   passBoughtOwnerAlert,
   passConfirmationEmail,
@@ -122,7 +122,7 @@ export async function recordCheckoutPass(
       WHERE id = ${userId}`;
     if (firstPurchase.length) {
       await alertOwnerOfPass(firstPurchase[0].email, new Date(ends));
-      await sendPassConfirmation(firstPurchase[0].email, new Date(ends));
+      await sendPassConfirmation(firstPurchase[0].email, new Date(ends), userId);
     }
   } else if (session.mode === "subscription") {
     await sql()`UPDATE users SET starter_pass_ends_at = NULL WHERE id = ${userId}`;
@@ -154,9 +154,15 @@ async function alertOwnerOfPass(buyerEmail: string | null, endsAt: Date): Promis
 }
 
 /** The buyer's written confirmation: end date, nothing renews. Never throws. */
-async function sendPassConfirmation(buyerEmail: string | null, endsAt: Date): Promise<void> {
+async function sendPassConfirmation(buyerEmail: string | null, endsAt: Date, userId?: number): Promise<void> {
   if (!buyerEmail || !process.env.RESEND_API_KEY) return;
-  const mail = passConfirmationEmail(endsAt);
+  let continueUrl: string | undefined;
+  try {
+    if (userId != null) continueUrl = passRenewUrl(userId, endsAt);
+  } catch (e) {
+    console.error("[starter-pass] continue link unavailable:", (e as Error).message);
+  }
+  const mail = passConfirmationEmail(endsAt, { continueUrl });
   try {
     await new Resend(process.env.RESEND_API_KEY).emails.send({
       from: "Contrax <hello@contrax.company>",
@@ -242,10 +248,19 @@ export async function runStarterPassJobs(): Promise<{ reminded: number; failed: 
 export async function starterCheckoutOptions(
   body: Parameters<typeof starterPassEligibleRequest>[0],
   userId: number | null,
-): Promise<{ starterPass?: true; fullPrice?: true }> {
+): Promise<{ starterPass?: true; fullPrice?: true; passContinue?: true; trialEndSec?: number | null }> {
   if (!starterPassEligibleRequest(body)) return {};
   const kind = await starterKindForUser(userId);
   if (kind === "pass") return { starterPass: true };
-  if (kind === "subscription_full_price") return { fullPrice: true };
+  // Owner 2026-11-22: someone who bought a pass continues at $14 a month, first charged the day
+  // the pass ends when it is still running.
+  if (kind === "subscription_full_price") {
+    let endsAt: string | Date | null = null;
+    if (userId != null) {
+      const [u] = (await sql()`SELECT starter_pass_ends_at FROM users WHERE id = ${userId}`) as { starter_pass_ends_at: string | Date | null }[];
+      endsAt = u?.starter_pass_ends_at ?? null;
+    }
+    return { passContinue: true, trialEndSec: passContinueTrialEnd(endsAt) };
+  }
   return {};
 }

@@ -48,11 +48,24 @@ const fields = ["notes", "next_action", "contact_name", "contact_organization", 
 export interface PipelineWorkspaceDeps {
   store?: PipelineWorkspaceStore;
   authenticate?: (request: Request) => Promise<{ id: number } | null>;
+  /** Called after a save that leaves the bid marked "won" (owner 2026-11-22: tell me when someone wins). */
+  onWon?: (userId: number, bidId: number) => Promise<void>;
+}
+
+/** The real thing: one owner alert per member and bid. Never throws. */
+async function alertOwnerOfMarkedWin(userId: number, bidId: number): Promise<void> {
+  try {
+    const { alertOwnerOfMemberWin } = await import("~/lib/member-win-alert.server");
+    await alertOwnerOfMemberWin(userId, bidId, "marked_won");
+  } catch (e) {
+    console.error("[api/pipeline-workspace] win alert failed (non-fatal)", e);
+  }
 }
 
 export function pipelineWorkspaceHandler(deps: PipelineWorkspaceDeps = {}) {
   const store = deps.store ?? neonPipelineWorkspaceStore;
   const authenticate = deps.authenticate ?? getUserFromRequest;
+  const onWon = deps.onWon ?? (deps.store ? async () => {} : alertOwnerOfMarkedWin);
   return async function handler({ request }: { request: Request }) {
     const user = await authenticate(request);
     if (!user) return Response.json({ error: "Not authenticated" }, { status: 401 });
@@ -98,6 +111,7 @@ export function pipelineWorkspaceHandler(deps: PipelineWorkspaceDeps = {}) {
         crmContactId: link.value,
       });
       if (!row) return Response.json({ error: "Saved bid not found" }, { status: 404 });
+      if (body.pursuit_status === "won") await onWon(user.id, bidId).catch(() => {});
       return Response.json({ data: { ...row, bid_id: Number(row.bid_id), follow_up_date: dateOnly(row.follow_up_date) } });
     } catch (error) {
       console.error("[api/pipeline-workspace] update failed", error);

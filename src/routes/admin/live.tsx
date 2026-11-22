@@ -1,4 +1,5 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
+import { pollWhileVisible } from "~/lib/visible-poll";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { afterWakeWord, bootReport, isWakePhrase, JARVIS_VISUALS, type JarvisAction, type JarvisServerStats, type JarvisSnapshot, type JarvisVisual, type SimMonth, type SimResult } from "~/lib/jarvis";
 import { announcements, isRedAlert, pageName, type Announcement, type AnnounceState } from "~/lib/hot-leads";
@@ -339,8 +340,7 @@ function TrackDrawer({ vid, label, onClose, onChanged }: { vid: string; label: s
   }, [vid]);
   useEffect(() => {
     load();
-    const t = setInterval(load, POLL_MS);
-    return () => clearInterval(t);
+    return pollWhileVisible(load, POLL_MS);
   }, [load]);
 
   const block = async () => {
@@ -1605,10 +1605,10 @@ function LivePage() {
       }
     }
     load();
-    const t = setInterval(load, POLL_MS);
+    const stopPolling = pollWhileVisible(load, POLL_MS);
     return () => {
       stop = true;
-      clearInterval(t);
+      stopPolling();
     };
   }, [reload]);
 

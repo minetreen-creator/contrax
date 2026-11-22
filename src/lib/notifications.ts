@@ -86,6 +86,15 @@ export async function createNotificationsBatch(
     `;
     inserted += (out as unknown[]).length;
   }
+  // Owner 2026-11-22: keep each account to its newest 200 match notifications. Never fails the batch.
+  if (inserted > 0) {
+    try {
+      const { trimMatchNotifications } = await import("~/lib/notification-trim.server");
+      await trimMatchNotifications(rows.filter((r) => r.type === "new_bid_match").map((r) => r.userId));
+    } catch (e) {
+      console.error("[notifications] trim failed (non-fatal):", (e as Error).message);
+    }
+  }
   return inserted;
 }
 

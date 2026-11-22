@@ -1,0 +1,36 @@
+name: Trim Match Notifications
+
+# Owner 2026-11-22 ("delete them"): removes "new bid match" notifications beyond the newest 200 per
+# account (src/lib/notification-trim.server.ts). Other notification kinds are not touched. Run by hand.
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: trim-notifications
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  trim:
+    name: Trim match notifications
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Trim match notifications
+        run: bun run trim-notifications

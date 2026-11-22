@@ -1,0 +1,37 @@
+name: Ensure Database Indexes
+
+# Owner 2026-11-22 ("yes"): the busiest tables had no lookup indexes, so every page read them whole
+# and the database bill was almost all compute. This creates the indexes listed in
+# src/lib/db-indexes.ts if they are missing. It changes no rows. Run by hand; safe to run twice.
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ensure-indexes
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  indexes:
+    name: Create missing indexes
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Create missing indexes
+        run: bun run ensure-indexes

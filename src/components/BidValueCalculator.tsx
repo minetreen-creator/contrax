@@ -89,7 +89,7 @@ export function BidValueCalculator() {
             }}
             className="mt-5 w-full rounded-xl bg-amber-500 px-6 py-3 text-sm font-semibold text-white transition-all active:scale-[0.98]"
           >
-            Start Starter for ${STARTER_FIRST_MONTH_PRICE}
+            Start Starter for ${STARTER_FIRST_MONTH_PRICE} a month
           </button>
         </div>
       </div>

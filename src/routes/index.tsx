@@ -234,7 +234,7 @@ function Home() {
           <p className="mt-2 text-sm text-slate-300">
             Pick your trade and state below.{" "}
             <a href="/contractors" className="font-semibold text-amber-400 underline underline-offset-4 hover:text-amber-300">
-              Bid Prep, the $9 pass and everything else for contractors →
+              Bid Prep, Starter at $9 a month and everything else for contractors →
             </a>
           </p>
         </div>

@@ -5,7 +5,8 @@ import { isAuthorizedCron } from "~/lib/cron-dispatch";
  * GET /api/cron/starter-pass — daily from Vercel Cron (build-vercel.sh `crons`,
  * 14:41 UTC). Sends the one "your bid emails stop on …" reminder five days before
  * a $5 Starter pass ends, and returns ended passes to free Basic
- * (src/lib/starter-pass.server.ts). Charges nothing. Auth: `Authorization:
+ * (src/lib/starter-pass.server.ts). Owner 2026-11-22: it also emails each $9 a month
+ * subscriber one reminder three days before every charge. Charges nothing itself. Auth: `Authorization:
  * Bearer $CRON_SECRET` only (fail-closed).
  */
 async function handler({ request }: { request: Request }) {

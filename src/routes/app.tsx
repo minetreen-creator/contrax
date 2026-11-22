@@ -261,7 +261,7 @@ function AppPage() {
             </div>
           ) : alerts === "needs-plan" ? (
             <a href="/upgrade?plan=starter" onClick={() => trackEvent("app_alerts_upgrade_click")} className="mt-3 block rounded-xl bg-emerald-500 px-4 py-3 text-center text-sm font-bold text-slate-950">
-              Turn on alerts with Starter: ${STARTER_FIRST_MONTH_PRICE} for 30 days
+              Turn on alerts with Starter: ${STARTER_FIRST_MONTH_PRICE} a month
             </a>
           ) : alerts === "ios-install-first" ? (
             <p className="mt-3 text-sm text-amber-200">On iPhone, add Contrax to your home screen first (steps above), then open it from there to turn on alerts.</p>

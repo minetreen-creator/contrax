@@ -54,7 +54,7 @@ export function repeatSearchOffer(count: number, trade: string, stateName: strin
   const where = stateName ? ` in ${stateName}` : "";
   return {
     headline: `You've checked ${what} bids${where} ${count} times this week.`,
-    detail: "Get the new ones emailed every morning at 6 AM, so you stop checking. $9 for 30 days, one payment, nothing renews.",
-    button: "Email me the new ones: $9 →",
+    detail: "Get the new ones emailed every morning at 6 AM, so you stop checking. $9 a month, cancel anytime.",
+    button: "Email me the new ones: $9 a month →",
   };
 }

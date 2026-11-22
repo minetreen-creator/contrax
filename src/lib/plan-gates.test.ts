@@ -192,7 +192,7 @@ describe("plan gates: the attempt prompt copy", () => {
       body:
         "Proposal drafting and pipeline CSV export come with every paid Contrax plan, starting with Starter.",
       ctaLabel: "See plans →",
-      priceNote: "Starter: $9 for your first 30 days · No automatic renewal",
+      priceNote: "Starter: $9 a month · Cancel anytime",
       href: "/pricing",
       checkout: false,
       checkoutPlan: "starter",

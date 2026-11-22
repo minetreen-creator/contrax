@@ -28,7 +28,7 @@ export const SAVE_LIMIT_PAYWALL_MESSAGE =
 export const SAVE_LIMIT_PAYWALL_TITLE = "Upgrade to Starter";
 /** CTA label / price note for the saved-bid-limit prompt (Starter, $19/mo). */
 export const SAVE_LIMIT_PAYWALL_CTA = "Upgrade to Starter →";
-export const SAVE_LIMIT_PAYWALL_PRICE = "$9 for 30 days · No automatic renewal";
+export const SAVE_LIMIT_PAYWALL_PRICE = "$9 a month · Cancel anytime";
 
 /** Stripe plan tier that the "Upgrade" CTA boots into (default: Professional). */
 type CheckoutPlan = "starter" | "professional" | "agency";

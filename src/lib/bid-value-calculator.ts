@@ -1,4 +1,4 @@
-import { STARTER_MONTHLY_CENTS } from "~/lib/starter-offer";
+import { STARTER_PASS_AMOUNT } from "~/lib/starter-pass";
 
 /**
  * Bid value calculator for /pricing (owner 2026-10-27, after reviewing a
@@ -9,8 +9,8 @@ import { STARTER_MONTHLY_CENTS } from "~/lib/starter-offer";
  * here claims Contrax will raise a win rate or produce a set number of bids.
  */
 
-/** Twelve Starter months at today's price ($14 → $168). It read $228 after the price moved from $19 (owner 2026-11-11). */
-export const STARTER_YEARLY_COST = (STARTER_MONTHLY_CENTS / 100) * 12;
+/** Twelve Starter months at what a new buyer pays: $9 a month → $108 (owner 2026-11-22). It read $168 at $14. */
+export const STARTER_YEARLY_COST = (STARTER_PASS_AMOUNT / 100) * 12;
 
 export type BidValueInputs = {
   /** Extra bids a month the visitor thinks they could submit. */

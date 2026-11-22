@@ -39,14 +39,14 @@ export function StickyOfferBar({ text, source }: { text: string; source: string 
       <div className="mx-auto flex max-w-5xl items-center gap-3">
         <p className="min-w-0 flex-1 text-sm font-semibold leading-snug">
           📧 {text}
-          <span className="hidden font-normal text-slate-400 sm:inline"> · ${STARTER_FIRST_MONTH_PRICE} for 30 days, no automatic renewal</span>
+          <span className="hidden font-normal text-slate-400 sm:inline"> · ${STARTER_FIRST_MONTH_PRICE} a month, cancel anytime</span>
         </p>
         <a
           href={`/upgrade?plan=starter&source=${encodeURIComponent(source)}`}
           onClick={() => trackEvent("offer_bar_click", source)}
           className="shrink-0 rounded-lg bg-amber-500 px-3 py-2 text-sm font-bold text-slate-950 hover:bg-amber-400"
         >
-          ${STARTER_FIRST_MONTH_PRICE} Starter →
+          ${STARTER_FIRST_MONTH_PRICE} a month →
         </a>
         <button
           type="button"

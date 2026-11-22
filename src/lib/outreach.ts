@@ -657,7 +657,7 @@ export function outreachEmail(i: OutreachEmailInput): { subject: string; text: s
       "",
       // Owner 2026-10-30: "I'm not sending out bids for free" → "yes change it":
       // the ask is the $5 pass, not a free list by reply.
-      `I'm Nathaniel, and I run Contrax, a small company that finds government bids for local contractors. If you'd like new ${i.tradeLabel} bids near you every morning, Contrax emails them at 6 AM. Your first 30 days are $9, with no automatic renewal: ${link("/pricing", i.kind, i.contactId)}`,
+      `I'm Nathaniel, and I run Contrax, a small company that finds government bids for local contractors. If you'd like new ${i.tradeLabel} bids near you every morning, Contrax emails them at 6 AM. It is $9 a month, and you can cancel anytime: ${link("/pricing", i.kind, i.contactId)}`,
       "",
       "Good luck if you go for it.",
     ];
@@ -669,7 +669,7 @@ export function outreachEmail(i: OutreachEmailInput): { subject: string; text: s
       `Quick follow-up on the ${i.bidTitle} bid. It's due ${due}, so there's still time if you want to go for it.`,
       ...postingLines,
       "",
-      `If you'd like new ${i.tradeLabel} bids near you every morning, Contrax Starter is $9 for your first 30 days with no automatic renewal: ${link("/pricing", i.kind, i.contactId)}`,
+      `If you'd like new ${i.tradeLabel} bids near you every morning, Contrax Starter is $9 a month, and you can cancel anytime: ${link("/pricing", i.kind, i.contactId)}`,
       "",
       "Good luck on the bid.",
     ];

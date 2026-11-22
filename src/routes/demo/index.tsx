@@ -13,7 +13,7 @@ import {
 const PROD_URL = "https://www.contrax.company";
 const TITLE = "See Contrax in Action — Request a Live Demo";
 const DESC =
-  "Watch how Contrax helps certified small businesses find, understand, and win government contracts. Request a live demo or start with Starter for $9 for your first 30 days.";
+  "Watch how Contrax helps certified small businesses find, understand, and win government contracts. Request a live demo or start with Starter for $9 a month.";
 
 export const Route = createFileRoute("/demo/")({
   component: DemoPage,
@@ -103,7 +103,7 @@ const faqs = [
   },
   {
     q: "Is there a free trial?",
-    a: "Instead of a free trial, Starter is $9 for your first 30 days, one time, with no automatic renewal. Creating an account and searching on free Basic costs nothing.",
+    a: "Instead of a free trial, Starter is $9 a month, and you can cancel anytime. Creating an account and searching on free Basic costs nothing.",
   },
   {
     q: "What happens after I sign up?",
@@ -228,7 +228,7 @@ function DemoPage() {
                 contrax.companyllc@gmail.com
               </a>
               <p className="mt-4 text-center text-xs text-gray-500">
-                Or start with Starter for $9 for your first 30 days and explore on your own.
+                Or start with Starter for $9 a month and explore on your own.
               </p>
             </div>
           </div>
@@ -304,7 +304,7 @@ function DemoPage() {
             Start for $9
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-lg text-blue-100/80">
-            Starter is $9 for your first 30 days, with no automatic renewal. Set up your profile in
+            Starter is $9 a month, and you can cancel anytime. Set up your profile in
             minutes and start seeing set-aside opportunities matched to your certifications.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">

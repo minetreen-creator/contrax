@@ -70,7 +70,7 @@ export const HERO_COPY = {
     titleFallback: "Your next government customer",
     titleFallbackTail: "starts here.",
     sub: "Federal, state, city, county and school bids in all 50 states, matched to your trade.",
-    checks: ["Real government bids", "No card to search", "No automatic renewal"],
+    checks: ["Real government bids", "No card to search", "Cancel anytime"],
     veteran: "Built with veteran-owned businesses in mind. Open to every small business.",
     local: "Explore city & county bids →",
     xray: "Who's winning near you? Look up a competitor →",
@@ -537,7 +537,7 @@ export function HomeContractFinder({ sample, openTotal = 0, heading = "h1" }: { 
                       {result.answers.state ? ` in ${STATE_NAMES[result.answers.state] ?? result.answers.state}` : ""} are waiting.
                     </h3>
                     <p className="mt-2 text-sm text-slate-200">
-                      Open every official notice, and get each new bid in your trade at 6 AM, for 30 days. One time, no automatic renewal.
+                      Open every official notice, and get each new bid in your trade at 6 AM. $9 a month, cancel anytime.
                     </p>
                     <a
                       href="/upgrade?plan=starter"
@@ -549,7 +549,7 @@ export function HomeContractFinder({ sample, openTotal = 0, heading = "h1" }: { 
                       }}
                       className="mt-4 inline-block rounded-xl bg-amber-400 px-6 py-4 text-center text-base font-bold text-slate-950 hover:bg-amber-300"
                     >
-                      See all {result.total} for ${STARTER_FIRST_MONTH_PRICE} →
+                      See all {result.total} for ${STARTER_FIRST_MONTH_PRICE} a month →
                     </a>
                     <CheckoutTrust tone="dark" className="mt-2" />
                     <p className="mt-3 text-sm text-slate-300">

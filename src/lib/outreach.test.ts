@@ -217,7 +217,7 @@ describe("outreach review fixes (owner 2026-10-25)", () => {
     expect(m.html).not.toContain("botetourtva.gov/bids/123");
     expect(m.text).not.toContain("Official posting");
     expect(m.text).toContain("Details: https://www.contrax.company/bid/123");
-    expect(m.text).toContain("Your first 30 days are $9, with no automatic renewal: https://www.contrax.company/pricing?");
+    expect(m.text).toContain("It is $9 a month, and you can cancel anytime: https://www.contrax.company/pricing?");
     // "I'm not sending out bids for free": no free list by reply.
     expect(m.text).not.toContain('reply "yes"');
     expect(m.text).not.toContain("No charge");
@@ -237,7 +237,7 @@ describe("outreach review fixes (owner 2026-10-25)", () => {
     const m = outreachEmail({ ...base, kind: "followup", sourceUrl: "https://example.gov/b" });
     expect(m.text).not.toContain("example.gov/b");
     expect(m.text).toContain("Details: https://www.contrax.company/bid/123");
-    expect(m.text).toContain("Starter is $9 for your first 30 days");
+    expect(m.text).toContain("Starter is $9 a month");
     expect(m.text).not.toContain('reply "yes"');
     expect(m.text).not.toContain("free");
   });

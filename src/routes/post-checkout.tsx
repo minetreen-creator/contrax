@@ -60,6 +60,8 @@ interface ResolveResult {
   passEndsAt?: string | null;
   /** A signed link that opens the monthly checkout for this pass buyer (owner 2026-11-22). */
   passContinueUrl?: string | null;
+  /** Starter at $9 a month: the next charge date (ISO), so the confirmation can say it (owner 2026-11-22). */
+  monthlyNextChargeAt?: string | null;
 }
 
 const resolveCheckoutSession = createServerFn({ method: "POST" })
@@ -205,7 +207,7 @@ const resolveCheckoutSession = createServerFn({ method: "POST" })
 
     // The $5 pass: its end date, shown on the confirmation (owner 2026-11-09).
     const passEndsAt = session.metadata?.starter_pass === "true" ? new Date(session.created * 1000 + 30 * 24 * 60 * 60 * 1000).toISOString() : null;
-    // Owner 2026-11-22: a pass buyer can switch on Starter at $14 a month here; the signed link names this account.
+    // Owner 2026-11-22: a pass buyer can switch on Starter at $9 a month here; the signed link names this account.
     let passContinueUrl: string | null = null;
     if (passEndsAt && userId != null) {
       try {
@@ -215,11 +217,17 @@ const resolveCheckoutSession = createServerFn({ method: "POST" })
         console.error("[post-checkout] continue link unavailable:", (e as Error).message);
       }
     }
+    let monthlyNextChargeAt: string | null = null;
+    if (session.metadata?.starter_monthly === "true") {
+      const { starterNextChargeAt } = await import("~/lib/starter-pass");
+      monthlyNextChargeAt = starterNextChargeAt(session.created).toISOString();
+    }
     return {
       email,
       plan: planTier ?? "starter",
       passEndsAt,
       passContinueUrl,
+      monthlyNextChargeAt,
     };
   });
 
@@ -317,6 +325,7 @@ function PostCheckoutPage() {
   const [resolvedEmail, setResolvedEmail] = useState<string>("");
   const [passEndsAt, setPassEndsAt] = useState<string | null>(null);
   const [passContinueUrl, setPassContinueUrl] = useState<string | null>(null);
+  const [monthlyNextChargeAt, setMonthlyNextChargeAt] = useState<string | null>(null);
 
   // Derive display info from plan
   const planLabel = getPlanLabel(resolvedPlan);
@@ -350,6 +359,8 @@ function PostCheckoutPage() {
         const passEnd = "passEndsAt" in result ? ((result as { passEndsAt?: string | null }).passEndsAt ?? null) : null;
         setPassEndsAt(passEnd);
         setPassContinueUrl("passContinueUrl" in result ? ((result as { passContinueUrl?: string | null }).passContinueUrl ?? null) : null);
+        const monthlyNext = "monthlyNextChargeAt" in result ? ((result as { monthlyNextChargeAt?: string | null }).monthlyNextChargeAt ?? null) : null;
+        setMonthlyNextChargeAt(monthlyNext);
         // Paid: stop offering to resume this checkout (owner 2026-11-08).
         clearCheckoutStarted();
         // Started from a bid's "Open this bid: $5"? Land back on that bid, unlocked (owner 2026-11-08).
@@ -369,7 +380,7 @@ function PostCheckoutPage() {
           }
           navigate({ to: getRedirectTarget(result.plan) });
           // A pass buyer gets time to read the pass note and the report offer below (owner 2026-11-16).
-        }, passEnd ? PASS_REDIRECT_MS : 1500);
+        }, passEnd || monthlyNext ? PASS_REDIRECT_MS : 1500);
       } catch (err) {
         if (cancelled) return;
         setStatus("error");
@@ -468,6 +479,16 @@ function PostCheckoutPage() {
                   choose to keep going. We emailed you this too.
                 </p>
               )}
+              {monthlyNextChargeAt && (
+                <p className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+                  You paid $9 today. Starter renews at <span className="font-semibold">$9 each month</span> until you cancel; the next charge is on{" "}
+                  <span className="font-semibold">
+                    {new Date(monthlyNextChargeAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "America/New_York" })}
+                  </span>
+                  . We email you a reminder three days before each charge, and you can cancel anytime in{" "}
+                  <a href="/settings" className="font-semibold underline">Settings</a>. We emailed you this too.
+                </p>
+              )}
               {passEndsAt && passContinueUrl && (
                 <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-3 text-left text-sm text-slate-800">
                   <p className="font-semibold">{PASS_CONTINUE_OFFER_HEAD}</p>
@@ -484,7 +505,7 @@ function PostCheckoutPage() {
               )}
               {resolvedEmail && (
                 <p className="mt-3 rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-900">
-                  Your {planLabel} pass is on <span className="font-semibold">{resolvedEmail}</span>. Sign in with that email
+                  Your {planLabel} {passEndsAt ? "pass" : "plan"} is on <span className="font-semibold">{resolvedEmail}</span>. Sign in with that email
                   next time; we emailed it a link to set your password.
                 </p>
               )}

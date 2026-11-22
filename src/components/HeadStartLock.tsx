@@ -14,7 +14,7 @@ export function HeadStartLock({ compact = false }: { until?: string; compact?: b
         className="inline-flex items-center gap-1 text-sm font-medium text-amber-700 hover:text-amber-600"
         title="New on Contrax: Starter members can open the official solicitation today."
       >
-        <span aria-hidden="true">🔒</span> New: open it today with Starter · $9 for 30 days
+        <span aria-hidden="true">🔒</span> New: open it today with Starter · $9 a month
       </a>
     );
   }
@@ -24,13 +24,13 @@ export function HeadStartLock({ compact = false }: { until?: string; compact?: b
         <span aria-hidden="true">🔒</span> New bid
       </p>
       <p className="mt-1">
-        Starter members can open the official solicitation and start on it today. $9 for 30 days, no automatic renewal.
+        Starter members can open the official solicitation and start on it today. $9 a month, cancel anytime.
       </p>
       <a
         href="/pricing?source=head_start"
         className="mt-2 inline-block rounded-lg bg-amber-400 px-4 py-2.5 font-bold text-slate-950 hover:bg-amber-300"
       >
-        Open it today with Starter, $9 for 30 days
+        Open it today with Starter, $9 a month
       </a>
     </div>
   );

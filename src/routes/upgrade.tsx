@@ -37,7 +37,7 @@ export const Route = createFileRoute("/upgrade")({
 
 // Yearly = 10 × monthly (2 months free); mirrors ANNUAL_UNIT_AMOUNTS in src/lib/stripe.ts.
 const plans = [
-  { id: "starter", name: "Starter", price: 14, yearly: 140 },
+  { id: "starter", name: "Starter", price: 9, yearly: 140 },
   { id: "professional", name: "Professional", price: 79, yearly: 790 },
   { id: "agency", name: "Agency", price: 199, yearly: 1990 },
 ] as const;
@@ -64,7 +64,7 @@ function Upgrade() {
         </a>
         {bid && plan === "starter" && (
           <p className="mx-auto mt-6 max-w-2xl rounded-xl border border-amber-200 bg-amber-50 px-5 py-3 text-center text-sm text-amber-900">
-            Starter opens the official notice for the bid you were looking at, and every other one, for 30 days. $9, no automatic renewal.
+            Starter opens the official notice for the bid you were looking at, and every other one. $9 a month, cancel anytime.
           </p>
         )}
         <h1 className="mt-8 text-center text-3xl font-bold text-slate-900">
@@ -72,9 +72,9 @@ function Upgrade() {
         </h1>
         <p className="mt-3 text-center text-slate-600">
           {!signedIn && plan === "starter" && checkout !== "cancelled"
-            ? "Starter is $9 for your first 30 days, one time, with no automatic renewal."
+            ? "Starter is $9 a month, and you can cancel anytime."
             : !signedIn
-            ? "Starter is $9 for your first 30 days, one time, with no automatic renewal. Or create a free account and keep searching."
+            ? "Starter is $9 a month, and you can cancel anytime. Or create a free account and keep searching."
             : plan && checkout !== "cancelled" ? "Continue with your selected plan, or explore Contrax first." : status?.active
             ? `Your trial ends in ${status.daysLeft} day${status.daysLeft === 1 ? "" : "s"}${
                 endsLabel ? ` (${endsLabel})` : ""
@@ -100,7 +100,7 @@ function Upgrade() {
             button to Stripe, which asks for the email; /post-checkout creates the account after payment. */}
         {!signedIn && plan === "starter" && checkout !== "cancelled" && (
           <div className="mx-auto mt-6 max-w-xl rounded-2xl border-2 border-amber-400 bg-white p-6 text-center shadow-sm">
-            <p className="text-lg font-bold text-slate-900">$9 for 30 days. No account needed first.</p>
+            <p className="text-lg font-bold text-slate-900">$9 a month. No account needed first.</p>
             <p className="mt-1 text-sm text-slate-600">Stripe asks for your email, and your Contrax account is set up the moment you pay.</p>
             <button
               type="button"
@@ -124,7 +124,7 @@ function Upgrade() {
           <div className="mx-auto mt-6 max-w-xl rounded-2xl border border-amber-300 bg-amber-50 p-6 text-center">
             <p className="text-sm text-slate-700">
               Not ready to pay? A free account keeps searching on Basic. When you want unlimited Radar searches, every
-              state and trade and the 6 AM email of new bids, Starter is $9 for your first 30 days.
+              state and trade and the 6 AM email of new bids, Starter is $9 a month.
             </p>
             <a href={TRIAL_SIGNUP_HREF} className="mt-4 inline-block rounded-xl bg-amber-500 px-6 py-3 font-bold text-slate-950 hover:bg-amber-400">
               Create my free account
@@ -189,9 +189,15 @@ function Upgrade() {
                       ${p.yearly.toLocaleString("en-US")}
                       <span className="text-sm font-normal text-slate-500">/yr</span>
                     </p>
-                    <p className="mt-1 text-sm text-emerald-700">
-                      ${(p.price * 12).toLocaleString("en-US")} if paid monthly. You save ${(p.price * 2).toLocaleString("en-US")}.
-                    </p>
+                    {/* Owner 2026-11-22: Starter is $9 a month while its yearly price is still $140, so the
+                        saving is only stated where paying yearly really costs less. */}
+                    {p.yearly < p.price * 12 ? (
+                      <p className="mt-1 text-sm text-emerald-700">
+                        ${(p.price * 12).toLocaleString("en-US")} if paid monthly. You save ${(p.price * 12 - p.yearly).toLocaleString("en-US")}.
+                      </p>
+                    ) : (
+                      <p className="mt-1 text-sm text-slate-600">Paying monthly costs less: ${p.price} a month.</p>
+                    )}
                   </>
                 )}
                 {/* What the plan includes (owner 2026-10-19): the same list as /pricing. */}
@@ -210,7 +216,7 @@ function Upgrade() {
                   {pendingPlan === p.id
                     ? "Opening secure checkout…"
                     : p.id === "starter" && interval === "month"
-                      ? `Start Starter for $${STARTER_FIRST_MONTH_PRICE}`
+                      ? `Start Starter for $${STARTER_FIRST_MONTH_PRICE} a month`
                       : `Subscribe to ${p.name}`}
                 </button>
               </div>
@@ -283,7 +289,7 @@ function YourMatches({ pitch }: { pitch: UpgradePitch }) {
         <p className="mt-3 text-sm text-slate-700">
           Recent federal contracts for {pitch.typicalAward.scope === "state" ? where : pitch.tradeLabel || "your trade"}{" "}
           were awarded at a median of <strong>{formatDollars(pitch.typicalAward.median)}</strong> ({pitch.typicalAward.count}{" "}
-          awards, USAspending.gov). Starter is $14 a month.
+          awards, USAspending.gov). Starter is $9 a month.
         </p>
       )}
     </section>

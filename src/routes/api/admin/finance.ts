@@ -35,7 +35,7 @@ import { BID_SCOUT_PRICE_USD } from "~/lib/bid-scout";
  */
 
 const LIST_MRR_CENTS: Record<string, number> = {
-  starter: 1400, // $14/mo (owner 2026-11-09)
+  starter: 900, // $9/mo for new buyers (owner 2026-11-22); Stripe-live figures use each subscription's real amount
   professional: 7900, // $79/mo
   agency: 19900, // $199/mo
 };

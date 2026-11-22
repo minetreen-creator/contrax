@@ -54,7 +54,7 @@ export const BID_SCOUT_HREF = "/bid-scout";
 /** Where the paid-plan prompt for drafting/export goes (owner 2026-11-07). */
 export const PAID_PLAN_HREF = "/pricing";
 /** Mirrors STARTER_FIRST_MONTH_NOTE in src/lib/starter-offer.ts (the $5 first 30 days). */
-export const PAID_PLAN_PRICE_NOTE = "Starter: $9 for your first 30 days · No automatic renewal";
+export const PAID_PLAN_PRICE_NOTE = "Starter: $9 a month · Cancel anytime";
 
 /** Every gated action, keyed to the product that owns it. */
 export type GateAction = "ai_brief" | "score" | "incumbent" | "draft" | "export";

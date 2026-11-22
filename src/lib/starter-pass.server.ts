@@ -9,7 +9,10 @@
  *  - starterKindForUser: which monthly Starter checkout an account gets.
  *  - runStarterPassJobs (daily, /api/cron/starter-pass): one reminder email five
  *    days before the end, then the account returns to free Basic once the pass
- *    has ended without a subscription. Nothing is ever charged automatically.
+ *    has ended without a subscription. A pass never charges automatically.
+ *  - Starter at $9 a month (owner 2026-11-22): recordCheckoutPass alerts the owner and sends the
+ *    buyer the written confirmation; runStarterPassJobs also sends each monthly subscriber one
+ *    reminder three days before every charge (never to one who has already cancelled).
  */
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { Resend } from "resend";
@@ -19,6 +22,14 @@ import { passContinueTrialEnd,
   passBoughtOwnerAlert,
   passConfirmationEmail,
   passReminderEmail,
+  renewalReminderAmount,
+  renewalReminderDue,
+  renewalReminderEmail,
+  RENEWAL_REMIND_DAYS,
+  STARTER_MONTHLY_FLAG,
+  starterMonthlyConfirmationEmail,
+  starterMonthlyOwnerAlert,
+  starterNextChargeAt,
   STARTER_PASS_FLAG,
   STARTER_PASS_REMIND_DAYS,
   starterCheckoutKind,
@@ -98,7 +109,8 @@ export async function ensureStarterPassColumns(): Promise<void> {
   await sql()`ALTER TABLE users
     ADD COLUMN IF NOT EXISTS starter_pass_bought_at TIMESTAMPTZ,
     ADD COLUMN IF NOT EXISTS starter_pass_ends_at TIMESTAMPTZ,
-    ADD COLUMN IF NOT EXISTS starter_pass_reminded_at TIMESTAMPTZ`;
+    ADD COLUMN IF NOT EXISTS starter_pass_reminded_at TIMESTAMPTZ,
+    ADD COLUMN IF NOT EXISTS renewal_reminded_for TIMESTAMPTZ`;
   ensured = true;
 }
 
@@ -124,9 +136,99 @@ export async function recordCheckoutPass(
       await alertOwnerOfPass(firstPurchase[0].email, new Date(ends));
       await sendPassConfirmation(firstPurchase[0].email, new Date(ends), userId);
     }
+  } else if (session.metadata?.[STARTER_MONTHLY_FLAG] === "true") {
+    // Starter at $9 a month. The same atomic claim as the pass, so the webhook and /post-checkout
+    // between them alert the owner and write to the buyer once.
+    const bought = new Date(session.created * 1000).toISOString();
+    const first = (await sql()`UPDATE users SET starter_pass_bought_at = ${bought}, starter_pass_ends_at = NULL
+      WHERE id = ${userId} AND starter_pass_bought_at IS NULL
+      RETURNING email`) as { email: string | null }[];
+    await sql()`UPDATE users SET starter_pass_ends_at = NULL WHERE id = ${userId}`;
+    if (first.length) {
+      const next = starterNextChargeAt(session.created);
+      await sendOwnerAlert(starterMonthlyOwnerAlert(first[0].email, next));
+      await sendBuyerMail(first[0].email, starterMonthlyConfirmationEmail(next), "monthly confirmation");
+    }
   } else if (session.mode === "subscription") {
     await sql()`UPDATE users SET starter_pass_ends_at = NULL WHERE id = ${userId}`;
   }
+}
+
+/** Push and email to the owner. Never throws. */
+async function sendOwnerAlert(alert: { subject: string; text: string; push: { title: string; body: string; tag: string; url: string } }): Promise<void> {
+  try {
+    const { alertOwner } = await import("~/lib/live-push.server");
+    await alertOwner(alert.push);
+  } catch (e) {
+    console.error("[starter-pass] owner push failed:", (e as Error).message);
+  }
+  if (!process.env.RESEND_API_KEY) return;
+  try {
+    await new Resend(process.env.RESEND_API_KEY).emails.send({ from: "Contrax <hello@contrax.company>", to: OWNER_EMAIL, subject: alert.subject, text: alert.text });
+  } catch (e) {
+    console.error("[starter-pass] owner email failed:", (e as Error).message);
+  }
+}
+
+/** One email to a buyer. Returns whether it went out. Never throws. */
+async function sendBuyerMail(to: string | null, mail: { subject: string; text: string; html: string }, what: string): Promise<boolean> {
+  if (!to || !process.env.RESEND_API_KEY) return false;
+  try {
+    const { error } = await new Resend(process.env.RESEND_API_KEY).emails.send({
+      from: "Contrax <hello@contrax.company>",
+      replyTo: "contrax.companyllc@gmail.com",
+      to,
+      subject: mail.subject,
+      text: mail.text,
+      html: mail.html,
+    });
+    if (error) throw new Error(error.message);
+    return true;
+  } catch (e) {
+    console.error(`[starter-pass] ${what} failed:`, (e as Error).message);
+    return false;
+  }
+}
+
+/**
+ * One reminder before each monthly charge (owner 2026-11-22). Stripe is asked about every
+ * subscription first: a subscriber who has cancelled, or whose plan is not monthly, gets nothing.
+ */
+export async function sendRenewalReminders(): Promise<{ renewalReminded: number; renewalFailed: number }> {
+  await ensureStarterPassColumns();
+  let renewalReminded = 0;
+  let renewalFailed = 0;
+  const rows = (await sql()`
+    SELECT id, email, stripe_subscription_id, subscription_current_period_end, renewal_reminded_for FROM users
+    WHERE plan_tier = 'starter' AND subscription_status = 'active' AND stripe_subscription_id IS NOT NULL
+      AND subscription_current_period_end > NOW()
+      AND subscription_current_period_end <= NOW() + ${`${RENEWAL_REMIND_DAYS} days`}::interval
+  `) as { id: number; email: string; stripe_subscription_id: string; subscription_current_period_end: string | Date; renewal_reminded_for: string | Date | null }[];
+  const due = rows.filter((r) => renewalReminderDue({ periodEnd: r.subscription_current_period_end, remindedFor: r.renewal_reminded_for }));
+  if (!due.length) return { renewalReminded, renewalFailed };
+  const { getStripe } = await import("~/lib/stripe");
+  for (const u of due) {
+    try {
+      const subscription = await getStripe().subscriptions.retrieve(u.stripe_subscription_id);
+      const amount = renewalReminderAmount(subscription as unknown as Parameters<typeof renewalReminderAmount>[0]);
+      const periodEnd = new Date(u.subscription_current_period_end);
+      if (amount == null) {
+        // Cancelled or not monthly: mark the period so Stripe is not asked again every day.
+        await sql()`UPDATE users SET renewal_reminded_for = ${periodEnd.toISOString()} WHERE id = ${u.id}`;
+        continue;
+      }
+      if (await sendBuyerMail(u.email, renewalReminderEmail(periodEnd, amount), `renewal reminder to user ${u.id}`)) {
+        await sql()`UPDATE users SET renewal_reminded_for = ${periodEnd.toISOString()} WHERE id = ${u.id}`;
+        renewalReminded++;
+      } else {
+        renewalFailed++;
+      }
+    } catch (e) {
+      renewalFailed++;
+      console.error(`[starter-pass] renewal check for user ${u.id} failed:`, (e as Error).message);
+    }
+  }
+  return { renewalReminded, renewalFailed };
 }
 
 export const OWNER_EMAIL = "minetreen@gmail.com";
@@ -187,7 +289,7 @@ export async function starterKindForUser(userId: number | null): Promise<Starter
   return starterCheckoutKind({ signedIn: true, subscriptionStatus: u?.subscription_status, passBoughtAt: u?.starter_pass_bought_at });
 }
 
-export async function runStarterPassJobs(): Promise<{ reminded: number; failed: number; ended: number }> {
+export async function runStarterPassJobs(): Promise<{ reminded: number; failed: number; ended: number; renewalReminded: number; renewalFailed: number }> {
   await ensureStarterPassColumns();
   let reminded = 0;
   let failed = 0;
@@ -237,7 +339,13 @@ export async function runStarterPassJobs(): Promise<{ reminded: number; failed: 
     WHERE starter_pass_ends_at IS NOT NULL AND starter_pass_ends_at <= NOW()
     RETURNING id
   `) as unknown[];
-  return { reminded, failed, ended: ended.length };
+  let renewals = { renewalReminded: 0, renewalFailed: 0 };
+  try {
+    renewals = await sendRenewalReminders();
+  } catch (e) {
+    console.error("[starter-pass] renewal reminders failed:", (e as Error).message);
+  }
+  return { reminded, failed, ended: ended.length, ...renewals };
 }
 
 /**
@@ -252,8 +360,8 @@ export async function starterCheckoutOptions(
   if (!starterPassEligibleRequest(body)) return {};
   const kind = await starterKindForUser(userId);
   if (kind === "pass") return { starterPass: true };
-  // Owner 2026-11-22: someone who bought a pass continues at $14 a month, first charged the day
-  // the pass ends when it is still running.
+  // Owner 2026-11-22: someone who bought a pass continues at the same $9 a month, first charged the
+  // day the pass ends when it is still running.
   if (kind === "subscription_full_price") {
     let endsAt: string | Date | null = null;
     if (userId != null) {

@@ -35,9 +35,9 @@ describe("one-tap guest $9 checkout", () => {
       postalAddress: "100 Main St, Richmond VA 23219",
       unsubscribeUrl: "https://www.contrax.company/api/outreach/unsubscribe?t=x",
     });
-    expect(m.subject).toBe("Your $9 Contrax pass is one click away");
-    expect(m.text).toContain("new janitorial bids in LA every morning at 6 AM for 30 days");
-    expect(m.text).toContain("$9 once, with no automatic renewal");
+    expect(m.subject).toBe("Contrax Starter is one click away");
+    expect(m.text).toContain("new janitorial bids in LA every morning at 6 AM. It's $9 a month");
+    expect(m.text).toContain("you can cancel anytime");
     expect(m.text).toContain("nothing was charged");
   });
 });

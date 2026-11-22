@@ -44,7 +44,7 @@ async function issue({ request }: { request: Request }): Promise<Response> {
       {
         locked: true,
         error: "Starter required",
-        message: "The calendar feed of your saved bids' deadlines is part of Starter ($14/month).",
+        message: "The calendar feed of your saved bids' deadlines is part of Starter ($9 a month).",
       },
       { status: 402 },
     );

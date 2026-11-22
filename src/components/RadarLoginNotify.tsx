@@ -192,7 +192,7 @@ export function RadarLoginNotify() {
                   onClick={() => trackEvent("radar_login_notify_upgrade", label)}
                   className="font-bold underline hover:text-amber-700"
                 >
-                  Save them all with Starter, ${STARTER_FIRST_MONTH_PRICE} for 30 days
+                  Save them all with Starter, ${STARTER_FIRST_MONTH_PRICE} a month
                 </a>
                 .
               </p>

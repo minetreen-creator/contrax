@@ -918,7 +918,7 @@ function ScorePage() {
                   Draft my Technical Approach for this bid
                 </button>
                 <p className="text-[13px] font-medium text-slate-500">
-                  Proposal drafting comes with every paid plan. Starter is $9 for your first 30 days.
+                  Proposal drafting comes with every paid plan. Starter is $9 a month.
                 </p>
               </div>
               <div className="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-[13px] text-slate-500">

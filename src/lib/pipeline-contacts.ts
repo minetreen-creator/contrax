@@ -149,7 +149,7 @@ export const CRM_CONTACTS_LOCK_BODY =
 export const CRM_CONTACTS_LOCK_CTA = "Upgrade to Starter →";
 /** Mirrors the shipped Starter paywall note (PremiumUpgradeModal SAVE_LIMIT_PAYWALL_PRICE). */
 // Owner 2026-11-09: no trial exists; the way in is the $5 Starter pass, which ends on its own.
-export const CRM_CONTACTS_LOCK_PRICE = "Starter: $9 for 30 days · Nothing renews";
+export const CRM_CONTACTS_LOCK_PRICE = "Starter: $9 a month · Cancel anytime";
 /**
  * Shown under the locked card: Basic is READ-ONLY for contacts, and the phase-1
  * route is auth-only on reads, so a downgraded account keeps seeing the contacts

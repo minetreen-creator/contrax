@@ -33,7 +33,7 @@ describe("bid-page $9 confirm step", () => {
     expect(page).toContain("Starter is $${STARTER_PASS_CONTINUE_PRICE}/month. Cancel anytime.");
     expect(page).toContain('await import("~/lib/starter-pass.server")');
     const sheet = readFileSync(new URL("../components/UnlockBidSheet.tsx", import.meta.url), "utf8");
-    expect(sheet).toContain("one time. No automatic renewal.");
+    expect(sheet).toContain("a month. Cancel anytime.");
     expect(sheet).toContain("rememberCheckoutBid(bidId);");
   });
 

@@ -209,7 +209,7 @@ const PLAN_OPTIONS: {
   {
     slug: "starter",
     name: "Starter",
-    price: 14,
+    price: 9,
     bullets: [
       "Everything in Basic",
       "New bids the day they post, 7 days before free accounts",
@@ -1437,8 +1437,8 @@ function SignupPage() {
               right under the headline and the trial details follow it. */}
           <p className="mt-4 text-sm text-gray-500">
             {save_bid
-              ? "Your free account keeps 1 saved bid, with no credit card. When you want every bid and the daily bid email, Starter is $9 for your first 30 days, with no automatic renewal."
-              : "Creating your account is free, with no credit card. When you want the daily bid email and every state and trade, Starter is $9 for your first 30 days, with no automatic renewal."}
+              ? "Your free account keeps 1 saved bid, with no credit card. When you want every bid and the daily bid email, Starter is $9 a month, and you can cancel anytime."
+              : "Creating your account is free, with no credit card. When you want the daily bid email and every state and trade, Starter is $9 a month, and you can cancel anytime."}
           </p>
 
           {/* Social proof — live tracked-solicitation count (mirrors the homepage counter) */}
@@ -1624,7 +1624,7 @@ function SignupPage() {
               <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-slate-800">
                 <p className="font-semibold">You already have a Contrax account with this email.</p>
                 <p className="mt-1">
-                  Sign in to it below. If you just paid, your pass is on that account, so please don&apos;t make a second one with a different
+                  Sign in to it below. If you just paid, your plan is on that account, so please don&apos;t make a second one with a different
                   email. We emailed you a link to set your password.
                 </p>
                 <a
@@ -1677,7 +1677,7 @@ function SignupPage() {
               <span aria-hidden="true" className="text-gray-300">·</span>
               <span>Takes under 30 seconds</span>
               <span aria-hidden="true" className="text-gray-300">·</span>
-              <span>{selectedPlan === "basic" ? "Free forever" : selectedPlan === "starter" ? "Nothing renews" : "Cancel anytime"}</span>
+              <span>{selectedPlan === "basic" ? "Free forever" : "Cancel anytime"}</span>
             </p>}
           </form>
           {/* Plan selector — selectable cards. Cold arrivals default to Starter
@@ -1687,7 +1687,7 @@ function SignupPage() {
           {!save_bid && <div className="mt-6 border-t border-gray-100 pt-5">
             <p className="text-sm font-semibold text-slate-900">Select your plan</p>
             <p className="mt-0.5 text-xs text-gray-500">
-              Creating your account is free, with no credit card. When you want the daily bid email and every state and trade, Starter is $9 for your first 30 days, with no automatic renewal.
+              Creating your account is free, with no credit card. When you want the daily bid email and every state and trade, Starter is $9 a month, and you can cancel anytime.
             </p>
             <div className="mt-2.5 space-y-2" role="radiogroup" aria-label="Plan">
               {PLAN_OPTIONS.map((opt) => {
@@ -1729,7 +1729,7 @@ function SignupPage() {
                       </span>
                       <span className="text-sm font-semibold text-slate-700">
                         {opt.slug === "starter" ? "$9" : `$${opt.price}`}
-                        <span className="text-xs font-normal text-gray-500">{opt.slug === "starter" ? " for 30 days" : "/mo"}</span>
+                        <span className="text-xs font-normal text-gray-500">/mo</span>
                       </span>
                       <span
                         className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
@@ -1762,7 +1762,7 @@ function SignupPage() {
               {selectedPlan === "basic"
                 ? "Basic — $0/mo, free forever"
                 : selectedPlan === "starter"
-                  ? "Starter — $9 one time for 30 days. Nothing renews: on day 30 it simply ends unless you choose Starter at $14/month. Your account is free to create."
+                  ? "Starter — $9 a month. Renews each month until you cancel. Your account is free to create."
                   : `${planInfo.name} — $${planInfo.price}/mo. Your account is free to create; you pay only when you choose to.`}
             </p>
           </div>}

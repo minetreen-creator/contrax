@@ -652,7 +652,7 @@ export function SeoLanding(props: {
               🔍 See open bids now →
             </a>
             <p className="mt-2 text-xs font-medium text-blue-200/60">
-              No card to search · $9 for 30 days to open every notice · No automatic renewal
+              No card to search · $9 a month to open every notice · Cancel anytime
             </p>
           </div>
         </div>
@@ -1019,7 +1019,7 @@ export function RegionView({ data }: { data: RegionData }) {
           🔍 See open {name} bids →
         </a>
         <p className="mt-2 text-xs text-blue-200/60">
-          No card to search · $9 for 30 days to open every notice · No automatic renewal
+          No card to search · $9 a month to open every notice · Cancel anytime
         </p>
       </div>
     </div>
@@ -1211,7 +1211,7 @@ export function DailyEmailOffer({ tradeLabel, stateName, count }: { tradeLabel: 
       </p>
       <p className="mt-2 text-sm text-slate-300">
         {count.toLocaleString("en-US")} are open today and more post every week. Starter emails you each new one in your
-        trade every weekday morning and opens every official notice, for 30 days.
+        trade every weekday morning and opens every official notice.
       </p>
       <a
         href="/upgrade?plan=starter"
@@ -1222,7 +1222,7 @@ export function DailyEmailOffer({ tradeLabel, stateName, count }: { tradeLabel: 
         }}
         className="mt-4 inline-block rounded-xl bg-amber-400 px-6 py-3 text-base font-bold text-slate-950 hover:bg-amber-300"
       >
-        Start for ${STARTER_FIRST_MONTH_PRICE} · 30 days, no auto-renew →
+        Start for ${STARTER_FIRST_MONTH_PRICE} a month · cancel anytime →
       </a>
       <CheckoutTrust tone="dark" className="mt-2" />
     </div>

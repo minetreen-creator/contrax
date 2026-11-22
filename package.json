@@ -21,6 +21,7 @@
     "announcement": "bun run src/jobs/send-announcement.ts",
     "radar-search-usage": "bun run src/jobs/radar-search-usage.ts",
     "ensure-indexes": "bun run src/jobs/ensure-indexes.ts",
+    "trim-notifications": "bun run src/jobs/trim-notifications.ts",
     "funnel-report": "bun run src/jobs/funnel-report.ts",
     "account-search-profile": "bun run src/jobs/account-search-profile.ts",
     "upgrade-pitch-preview": "bun run src/jobs/upgrade-pitch-preview.ts",

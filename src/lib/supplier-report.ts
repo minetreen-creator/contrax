@@ -31,8 +31,10 @@ export const SUPPLIER_SAMPLE_STATE = "SC";
 // Owner 2026-11-19 ("we need to add more states"): Texas, Pennsylvania and Ohio added, the three
 // largest of the states checked that morning (169, 70 and 56 open construction jobs). New York added
 // the same morning on the owner's word ("add NY too").
-export const SUPPLIER_SAMPLE_STATES: readonly string[] = ["SC", "NC", "VA", "GA", "FL", "TX", "PA", "OH", "NY"];
-const NUMBER_WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"];
+// Owner 2026-11-22 ("we should add more states"): California, Massachusetts, Michigan and Connecticut,
+// the four largest states not yet shown in the 2026-11-21 read (141, 102, 51 and 48 open construction jobs).
+export const SUPPLIER_SAMPLE_STATES: readonly string[] = ["SC", "NC", "VA", "GA", "FL", "TX", "PA", "OH", "NY", "CA", "MA", "MI", "CT"];
+const NUMBER_WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen"];
 /** "eight": how many states the sample shows, in words, so the page never says the wrong number. */
 export const SUPPLIER_SAMPLE_COUNT_WORD = NUMBER_WORDS[SUPPLIER_SAMPLE_STATES.length] ?? String(SUPPLIER_SAMPLE_STATES.length);
 /** The homepage lists every state's counts but real rows for only this many, so it stays short; /suppliers shows them all. */

@@ -1,4 +1,5 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
+import { pollWhileVisible } from "~/lib/visible-poll";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getCurrentUser } from "~/lib/auth";
 import { ADMIN_SECTIONS, ADMIN_TABS, fetchFinance, moneyWhole, type FinanceResult } from "~/components/AdminShared";
@@ -71,8 +72,7 @@ function CommandCenter() {
   useEffect(() => {
     load();
     fetchFinance().then(setFin).catch(() => setFin(null));
-    const t = setInterval(load, 60_000);
-    return () => clearInterval(t);
+    return pollWhileVisible(load, 60_000);
   }, [load]);
 
   return (

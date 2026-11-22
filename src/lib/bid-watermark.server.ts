@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { sql } from "~/db";
 import { getRequestContext } from "~/lib/request-context";
-import { newWatermarkToken } from "~/lib/bid-watermark";
+import { isDeclaredCrawler, newWatermarkToken } from "~/lib/bid-watermark";
 
 /** See src/lib/bid-watermark.ts. The IP is kept only as an md5 hash. */
 let ready = false;
@@ -19,9 +19,21 @@ async function ensureTable(): Promise<void> {
   ready = true;
 }
 
+/** The browser string of the request being served, or "" when there is none (a job, a test). */
+async function requestUserAgent(): Promise<string> {
+  try {
+    const { getRequest } = await import("@tanstack/react-start/server");
+    return getRequest().headers.get("user-agent") ?? "";
+  } catch {
+    return "";
+  }
+}
+
 /** Record a token for this render of a bid page. Fail-open: null means no watermark. */
 export async function recordBidWatermark(bidId: number): Promise<string | null> {
   try {
+    // A search or AI crawler that names itself gets the page without a mark and without a row.
+    if (isDeclaredCrawler(await requestUserAgent())) return null;
     await ensureTable();
     const ip = getRequestContext().ip;
     const ipMd5 = ip ? createHash("md5").update(ip).digest("hex") : null;

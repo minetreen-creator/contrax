@@ -52,3 +52,19 @@ export function watermarkText(text: string, token: string | null | undefined): s
   const i = text.indexOf(" ");
   return i < 0 ? text + mark : text.slice(0, i) + mark + text.slice(i);
 }
+
+/**
+ * Search and AI crawlers that say who they are (owner 2026-11-22: bid pages were opened about
+ * 32,000 times a day against about 57 human visitors, and each open wrote a watermark row). A
+ * mark traces a copied listing back to a visit, and a search engine is not a visit to trace. A
+ * scraper pretending to be a browser, or a plain script, is still marked. PURE.
+ */
+const DECLARED_CRAWLERS = [
+  "googlebot", "google-inspectiontool", "googleother", "adsbot-google", "bingbot", "duckduckbot", "applebot", "yandexbot", "baiduspider",
+  "gptbot", "oai-searchbot", "chatgpt-user", "claudebot", "claude-user", "perplexitybot", "amazonbot", "bytespider", "ccbot",
+  "ahrefsbot", "semrushbot", "mj12bot", "dotbot", "petalbot", "facebookexternalhit", "meta-externalagent",
+];
+export function isDeclaredCrawler(userAgent: string | null | undefined): boolean {
+  const ua = String(userAgent ?? "").toLowerCase();
+  return ua !== "" && DECLARED_CRAWLERS.some((c) => ua.includes(c));
+}

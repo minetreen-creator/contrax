@@ -73,14 +73,14 @@ beforeAll(async () => {
 });
 
 describe("yearly checkout", () => {
-  test("Starter yearly: $140 a year on the Starter product, same metadata as monthly", async () => {
+  test("Starter yearly: $90 a year on the Starter product, same metadata as monthly", async () => {
     created.length = 0;
     const r = await stripeLib.createCheckoutSession("starter", { userId: 42, interval: "year" });
     expect(r).toEqual({ success: true, url: "https://checkout.stripe.test/session" });
     const params = created[0];
     expect(params.mode).toBe("subscription");
     expect(params.line_items).toEqual([
-      { price_data: { currency: "usd", product: "prod_starter", unit_amount: 14000, recurring: { interval: "year" } }, quantity: 1 },
+      { price_data: { currency: "usd", product: "prod_starter", unit_amount: 9000, recurring: { interval: "year" } }, quantity: 1 },
     ]);
     expect(params.metadata).toEqual({ plan_tier: "starter", user_id: "42", billing_interval: "year" });
     expect(params.subscription_data.metadata).toEqual(params.metadata);
@@ -104,8 +104,8 @@ describe("yearly checkout", () => {
   });
 
   test("yearly amounts are 10 × monthly", () => {
-    // Owner 2026-11-09: Starter is $14 a month, so $140 a year.
-    expect(stripeLib.ANNUAL_UNIT_AMOUNTS).toEqual({ starter: 14000, professional: 79000, agency: 199000 });
+    // Owner 2026-11-22: Starter is $9 a month for a new buyer, so $90 a year ("$90 is good").
+    expect(stripeLib.ANNUAL_UNIT_AMOUNTS).toEqual({ starter: 9000, professional: 79000, agency: 199000 });
     for (const tier of ["starter", "professional", "agency"] as const) {
       expect(stripeLib.ANNUAL_UNIT_AMOUNTS[tier]).toBe(stripeLib.MONTHLY_PRICE_USD[tier]! * 100 * 10);
     }

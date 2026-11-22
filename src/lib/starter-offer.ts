@@ -18,8 +18,8 @@ export const STARTER_FIRST_MONTH_AMOUNT_OFF = 500;
 export const STARTER_MONTHLY_CENTS = 1400;
 /** Veterans (VAD26 partner code) Starter month, in cents (owner 2026-11-09: $10, below the regular $14). */
 export const VAD_STARTER_MONTHLY_CENTS = 1000;
-/** Starter billed yearly, in dollars: 10 × the month (2 months free). */
-export const STARTER_ANNUAL_PRICE = (STARTER_MONTHLY_CENTS * 10) / 100;
+/** Starter billed yearly, in dollars: 10 × the $9 month a new buyer pays (2 months free). */
+export const STARTER_ANNUAL_PRICE = 90; // owner 2026-11-22: "$90 is good" (ten months at $9 a month); stripe.ts bills STARTER_PASS_AMOUNT * 10
 export const STARTER_FIRST_MONTH_PRICE = 9;
 /** The regular Starter month in dollars ($5 + the $14 first-month coupon); client-safe copy of stripe.ts MONTHLY_PRICE_USD.starter. */
 export const STARTER_FULL_PRICE = STARTER_FIRST_MONTH_PRICE + STARTER_FIRST_MONTH_AMOUNT_OFF / 100;

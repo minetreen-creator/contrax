@@ -18,7 +18,7 @@ describe("Starter at $14", () => {
     expect(STARTER_MONTHLY_CENTS).toBe(1400);
     expect(STARTER_FULL_PRICE).toBe(14);
     expect(STARTER_FIRST_MONTH_PRICE + STARTER_FIRST_MONTH_AMOUNT_OFF / 100).toBe(14);
-    expect(STARTER_ANNUAL_PRICE).toBe(140);
+    expect(STARTER_ANNUAL_PRICE).toBe(90); // owner 2026-11-22
     expect(FOUNDING_BUSINESS_RENEWAL_CENTS).toBe(14000);
     // A coupon's amount cannot change in Stripe, so the $5 first month needs a new coupon id.
     expect(STARTER_FIRST_MONTH_COUPON).toBe("contrax_starter_first_month_9_v1");
@@ -31,7 +31,7 @@ describe("Starter at $14", () => {
     expect(stripe).toContain('} else if (interval === "month" && planTier === "starter" && !isVad) {');
     expect(stripe).toContain("unit_amount: STARTER_MONTHLY_CENTS,");
     expect(stripe).toContain(': planTier === "starter" ? STARTER_MONTHLY_CENTS : monthly.unit_amount;');
-    expect(stripe).toContain("starter: STARTER_MONTHLY_CENTS * 10,");
+    expect(stripe).toContain("starter: STARTER_PASS_AMOUNT * 10,");
   });
 
   test("pages show $14 (Grants keeps its own $19)", () => {

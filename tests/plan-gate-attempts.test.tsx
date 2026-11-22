@@ -499,7 +499,7 @@ describe("F1: a gated DRAFTING attempt on /dashboard opens the Bid Scout prompt"
     );
     expect(html).toContain("Included with every paid plan");
     expect(html).toContain("Proposal drafting and pipeline CSV export come with every paid Contrax plan");
-    expect(html).toContain("Starter: $9 for your first 30 days · No automatic renewal");
+    expect(html).toContain("Starter: $9 a month · Cancel anytime");
     expect(html).toContain('href="/pricing"');
     expect(html).toContain("Maybe later");
     // THE DEFECT: the raw sentinel must not reach the user. Non-vacuous — the
@@ -640,7 +640,7 @@ describe("F3: no surface still sells proposal drafting on Professional", () => {
     // Owner 2026-11-01 ("do B"): the 7-day trial copy (#456) is replaced by
     // the $5 Starter line at both sites, and the badge no longer promises a trial.
     expect(
-      count(signup, "Creating your account is free, with no credit card. When you want the daily bid email and every state and trade, Starter is $9 for your first 30 days, with no automatic renewal."),
+      count(signup, "Creating your account is free, with no credit card. When you want the daily bid email and every state and trade, Starter is $9 a month, and you can cancel anytime."),
     ).toBe(2);
     expect(signup).toContain("🔒 Free account • No credit card");
     expect(signup).not.toContain("🔒 7-day trial starts today • No credit card");

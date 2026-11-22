@@ -22,7 +22,8 @@ describe("Starter at $14", () => {
     expect(FOUNDING_BUSINESS_RENEWAL_CENTS).toBe(14000);
     // A coupon's amount cannot change in Stripe, so the $5 first month needs a new coupon id.
     expect(STARTER_FIRST_MONTH_COUPON).toBe("contrax_starter_first_month_9_v1");
-    expect(STARTER_PASS_NOTE).toContain("Starter at $14/month");
+    // Owner 2026-11-22: a new buyer pays $9 a month; $14 stays the list price behind yearly and partner plans.
+    expect(STARTER_PASS_NOTE).toContain("$9 a month");
   });
 
   test("checkout bills $14 inline, never the old $19 catalog price", () => {

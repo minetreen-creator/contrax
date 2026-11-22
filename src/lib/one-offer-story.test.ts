@@ -15,11 +15,23 @@ import {
 const read = (f: string) => readFileSync(f, "utf8");
 
 describe("one offer story", () => {
-  test("the pass note is the same everywhere and says nothing renews", () => {
+  // Owner 2026-11-22: Starter is $9 a month. Every place that names the price says that it renews
+  // and that the buyer can cancel; nowhere may still promise "nothing renews" for a new purchase.
+  test("the Starter note is the same everywhere and says it renews until cancelled", () => {
     expect(STARTER_FIRST_MONTH_NOTE).toBe(STARTER_PASS_NOTE);
-    expect(STARTER_PASS_NOTE).toContain("Nothing renews");
-    expect(STARTER_PASS_PRODUCT_DESCRIPTION).toContain("Nothing renews");
-    expect(STARTER_PASS_SUBMIT_MESSAGE).toContain("won't be charged again unless you choose");
+    expect(STARTER_PASS_NOTE).toBe("$9 a month. Renews each month until you cancel, and you can cancel anytime in Settings.");
+    expect(STARTER_PASS_PRODUCT_DESCRIPTION).toContain("charged each month until you cancel");
+    expect(STARTER_PASS_SUBMIT_MESSAGE).toContain("$9 today, then $9 each month until you cancel");
+    for (const f of [
+      "src/lib/starter-offer.ts", "src/routes/signup.tsx", "src/routes/pricing/index.tsx", "src/routes/upgrade.tsx", "src/routes/copilot.tsx",
+      "src/routes/compare/index.tsx", "src/routes/radar.tsx", "src/routes/bid.$bidId.tsx", "src/components/TrialEndedCard.tsx",
+      "src/components/UnlockBidSheet.tsx", "src/components/StickyOfferBar.tsx", "src/components/HomeContractFinder.tsx",
+      "src/components/CheckoutTrust.tsx", "src/lib/trial-emails.ts", "src/lib/announcement-email.ts", "src/lib/chat.ts",
+      "src/lib/seo-landing.tsx", "src/lib/plan-gates.ts", "src/lib/email.ts", "src/lib/checkout-followup.ts", "src/lib/repeat-search.ts",
+    ]) {
+      const src = read(f).split("\n").filter((l) => !/^\s*(\/\/|\*|\/\*|\{\/\*)/.test(l)).join("\n");
+      expect({ f, hit: /nothing renews|no automatic renewal|no auto-renew|\$9,? once|\$9 one time/i.test(src) }).toEqual({ f, hit: false });
+    }
   });
 
   test("no page or email says 'ask before charging' or 'then $19'", () => {
@@ -41,7 +53,7 @@ describe("one offer story", () => {
     }
     expect(read("src/components/CEOPosts.tsx")).toContain("Past update: the 7-day trial (ended November 1, 2026)");
     expect(read("src/lib/plan-gates.ts")).toContain('"$79/mo · Cancel anytime"');
-    expect(read("src/lib/pipeline-contacts.ts")).toContain('"Starter: $9 for 30 days · Nothing renews"');
+    expect(read("src/lib/pipeline-contacts.ts")).toContain('"Starter: $9 a month · Cancel anytime"');
   });
 
   test("free Basic shows the real search limit, and a free signup never says 'Cancel anytime'", () => {
@@ -75,7 +87,7 @@ describe("the report offer after checkout", () => {
   });
   test("a pass buyer has time to read it, and the pass note still comes first", () => {
     expect(page).toContain("const PASS_REDIRECT_MS = 25_000;");
-    expect(page).toContain("passEnd ? PASS_REDIRECT_MS : 1500");
+    expect(page).toContain("passEnd || monthlyNext ? PASS_REDIRECT_MS : 1500");
     expect(page.indexOf("Nothing renews</span>")).toBeLessThan(page.indexOf("{!savingsProduct && <ReportOffer />}"));
   });
 });

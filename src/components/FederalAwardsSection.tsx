@@ -102,9 +102,9 @@ export function FederalAwardsSection({ data }: { data: FederalAwardsData }) {
                 onClick={() => trackEvent("awards_federal_unlock", data.state || "all", "/awards")}
                 className="mt-3 inline-block rounded-xl bg-amber-500 px-5 py-2.5 font-bold text-slate-950 hover:bg-amber-400"
               >
-                See them all: ${STARTER_FIRST_MONTH_PRICE} for 30 days
+                See them all: ${STARTER_FIRST_MONTH_PRICE} a month
               </a>
-              <p className="mt-2 text-xs text-slate-500">One time. No automatic renewal.</p>
+              <p className="mt-2 text-xs text-slate-500">Renews each month. Cancel anytime.</p>
             </div>
           ) : null}
           <p className="mt-3 text-xs text-slate-500">

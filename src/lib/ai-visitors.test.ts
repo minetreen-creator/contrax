@@ -12,8 +12,8 @@ import { SEO_TRADES } from "~/lib/seo-trades";
 const llms = readFileSync("public/llms.txt", "utf8");
 
 test("llms.txt gives today's offer, not the old plans and trial", () => {
-  expect(llms).toContain("$9 one time for 30 days");
-  expect(llms).toContain("$14 a month");
+  expect(llms).toContain("Starter: $9 a month");
+  expect(llms).toContain("renews each month until the member cancels");
   expect(llms).toContain("There is no trial");
   // $199 a month is the supplier report (owner 2026-11-12); the old $19 and $79 plans stay out.
   expect(llms).not.toMatch(/\$19(?!9)|\$79|7-day|free trial/i);
@@ -50,7 +50,7 @@ test("the buyer reads right inside a sentence", () => {
 });
 
 test("the pricing calculator uses today's Starter price", () => {
-  expect(STARTER_YEARLY_COST).toBe(168);
+  expect(STARTER_YEARLY_COST).toBe(108);
 });
 
 test("mail-scanner clicks on outreach emails are not counted as visitors", () => {

@@ -10,7 +10,7 @@ describe("page-worded offer bar", () => {
     expect(src).toContain("/upgrade?plan=starter&source=");
     expect(src).toContain("7 * 86_400_000");
     expect(src).toMatch(/window\.scrollY > /);
-    expect(src).toContain("no automatic renewal");
+    expect(src).toContain("a month, cancel anytime");
     expect(src).not.toMatch(/\bfree\b/i);
   });
   test("state pages name the state; clause pages name the clause", () => {

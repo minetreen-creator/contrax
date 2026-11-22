@@ -94,7 +94,7 @@ describe("radar results", () => {
     expect(radar).toContain("{isAnonymous && scan.matches.length > 0 && locked === 0 && (\n              <SaveMatchesCard");
     expect(radar).toContain("(scan.sections?.related ?? []).length > 0 && (");
     expect(radar).not.toContain("full incumbent intel");
-    expect(radar).toContain("🔒 Official notice + bid documents: ${STARTER_FIRST_MONTH_PRICE} for 30 days");
+    expect(radar).toContain("🔒 Official notice + bid documents: ${STARTER_FIRST_MONTH_PRICE} a month");
     expect(radar).not.toContain("Official notice for members: details");
     expect(radar).not.toContain('reasons.push("Estimated value not listed');
   });
@@ -118,7 +118,7 @@ describe("homepage", () => {
     expect(finder).toContain('trackEvent("home_results_pass_click"');
     // Design pass (owner 2026-11-02, "do all but 4"): the trust line sits under
     // the search button on every screen size, and the badge and glow are gone.
-    expect(finder).toContain('checks: ["Real government bids", "No card to search", "No automatic renewal"],');
+    expect(finder).toContain('checks: ["Real government bids", "No card to search", "Cancel anytime"],');
     expect(finder).not.toContain("blur-3xl");
     expect(finder).not.toContain("c.badge");
     const { QUICK_TRADES } = await import("../components/HomeContractFinder");

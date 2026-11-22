@@ -2132,7 +2132,7 @@ function RadarLanding() {
             </h2>
             <p className="mt-3 text-slate-300">
               {scan.signupRequired
-                ? "You've used your anonymous preview. Create a free account to keep going, or get unlimited Radar searches, every state and trade, and the daily bid email with Starter: $9 for your first 30 days, no automatic renewal."
+                ? "You've used your anonymous preview. Create a free account to keep going, or get unlimited Radar searches, every state and trade, and the daily bid email with Starter: $9 a month, cancel anytime."
                 : "You've used the two Radar searches included with your free Basic account. Choose a paid plan for continued Radar access."}
             </p>
             <a href={scan.signupRequired ? radarSignupHref({ trade, state, cert, sizePref }, { cta: true, free: true }) : "/upgrade"}
@@ -2213,7 +2213,7 @@ function RadarLanding() {
                     className="mt-3 block rounded-xl border border-amber-400/50 bg-amber-500/15 px-4 py-3 text-sm text-amber-50 hover:bg-amber-500/25"
                   >
                     📬 <b>{passOfferCount(scan.localMatched ?? 0)} open {tradeLabel(track).replace(/["“”]/g, "")} bids{state ? ` in ${STATE_NAMES[state] ?? state}` : ""} right now.</b>{" "}
-                    Get every new one at 6 AM for 30 days: <b className="text-amber-300">${STARTER_FIRST_MONTH_PRICE} →</b>
+                    Get every new one at 6 AM: <b className="text-amber-300">${STARTER_FIRST_MONTH_PRICE} a month →</b>
                   </a>
                 )}
               </div>
@@ -2476,7 +2476,7 @@ function RadarLanding() {
                     <span className="block text-base font-bold">{pitch.headline}</span>
                     <span className="mt-1 block text-sm text-amber-100">{pitch.detail}</span>
                     <span className="mt-3 inline-block rounded-lg bg-amber-400 px-4 py-2.5 text-sm font-bold text-slate-950">
-                      ${STARTER_FIRST_MONTH_PRICE} for 30 days, no auto-renew →
+                      ${STARTER_FIRST_MONTH_PRICE} a month, cancel anytime →
                     </span>
                     <CheckoutTrust tone="dark" className="mt-2" />
                   </a>
@@ -3087,7 +3087,7 @@ export function RadarCard({
             >
               {/* Owner 2026-11-02: the lock names its price. The bid page shows
                   the job and the $9 button that carries this bid to checkout. */}
-              🔒 Official notice + bid documents: ${STARTER_FIRST_MONTH_PRICE} for 30 days <span aria-hidden="true">→</span>
+              🔒 Official notice + bid documents: ${STARTER_FIRST_MONTH_PRICE} a month <span aria-hidden="true">→</span>
             </a>
           )}
         </div>

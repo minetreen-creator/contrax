@@ -36,11 +36,11 @@ describe("a visitor who keeps running the same search", () => {
     const o = repeatSearchOffer(5, "hvac", "Colorado")!;
     expect(o.headline).toBe("You've checked hvac bids in Colorado 5 times this week.");
     expect(o.detail).toContain("every morning at 6 AM");
-    expect(o.detail).toContain("$9 for 30 days, one payment, nothing renews");
+    expect(o.detail).toContain("$9 a month, cancel anytime");
     expect(repeatSearchOffer(3, "janitorial", null)!.headline).toBe("You've checked janitorial bids 3 times this week.");
     expect(repeatSearchOffer(4, "", "Texas")).toBeNull();
-    // The pass really is a morning email at 6 AM (src/lib/starter-pass.ts).
-    expect(readFileSync(new URL("./starter-pass.ts", import.meta.url), "utf8")).toContain("emailed every morning at 6 AM, for 30 days");
+    // Starter really is a morning email at 6 AM (src/lib/starter-pass.ts).
+    expect(readFileSync(new URL("./starter-pass.ts", import.meta.url), "utf8")).toContain("emailed every morning at 6 AM. $9 a month");
   });
 
   test("the search page shows it to visitors without an account and sends them to the pass checkout", () => {

@@ -101,7 +101,7 @@ export function RedFlagScanner({ noticeText, bidId }: { noticeText: string | nul
                 onClick={() => trackEvent("redflags_unlock_click", String(bidId))}
                 className="mt-3 inline-block rounded-lg bg-emerald-500 px-4 py-2 text-sm font-bold text-slate-950 hover:bg-emerald-400"
               >
-                See every quoted line and page · ${STARTER_FIRST_MONTH_PRICE} for 30 days
+                See every quoted line and page · ${STARTER_FIRST_MONTH_PRICE} a month
               </a>
             ) : null}
           </div>

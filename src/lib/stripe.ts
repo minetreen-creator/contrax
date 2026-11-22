@@ -22,7 +22,7 @@ import { STARTER_MONTHLY_CENTS, VAD_STARTER_MONTHLY_CENTS,
 import {
   CHECKOUT_SUBMIT_MESSAGE,
   STARTER_PASS_AMOUNT,
-  STARTER_PASS_FLAG,
+  STARTER_MONTHLY_FLAG,
   STARTER_PASS_PRODUCT_DESCRIPTION,
   STARTER_PASS_PRODUCT_NAME,
   STARTER_PASS_SUBMIT_MESSAGE,
@@ -632,20 +632,22 @@ export async function createCheckoutSession(
       }
     }
 
-    // Starter 30-day pass: one-time $5 on the Starter product, no subscription.
+    // Starter for a new buyer (owner 2026-11-22: "$9 a month, automatic, cancel anytime"): a monthly
+    // subscription at STARTER_PASS_AMOUNT, billed inline. Until that day this was a one-time 30-day pass.
     const starterPass = opts.starterPass === true && planTier === "starter" && interval === "month" && !isVad && !founding;
     if (opts.starterPass === true && !starterPass) {
-      return { success: false, error: "The $9 pass is for monthly Starter only." };
+      return { success: false, error: "The $9 a month price is for monthly Starter only." };
     }
     if (starterPass) {
       lineItem = {
         price_data: {
           currency: "usd",
           unit_amount: STARTER_PASS_AMOUNT,
+          recurring: { interval: "month" },
           product_data: {
             name: STARTER_PASS_PRODUCT_NAME,
             description: STARTER_PASS_PRODUCT_DESCRIPTION,
-            metadata: { plan_tier: "starter", [STARTER_PASS_FLAG]: "true" },
+            metadata: { plan_tier: "starter", [STARTER_MONTHLY_FLAG]: "true" },
           },
         },
         quantity: 1,
@@ -667,10 +669,10 @@ export async function createCheckoutSession(
       };
     }
     const trialEnd = passContinue && typeof opts.trialEndSec === "number" && opts.trialEndSec - Math.floor(Date.now() / 1000) >= PASS_CONTINUE_MIN_LEAD_SECONDS ? Math.floor(opts.trialEndSec) : null;
-    const sessionMode: CheckoutMode = starterPass ? "payment" : mode;
+    const sessionMode: CheckoutMode = starterPass ? "subscription" : mode;
 
     const metadata: Record<string, string> = { plan_tier: planTier };
-    if (starterPass) metadata[STARTER_PASS_FLAG] = "true";
+    if (starterPass) metadata[STARTER_MONTHLY_FLAG] = "true";
     if (passContinue) metadata.pass_continue = "true";
     if (interval === "year") {
       metadata.billing_interval = "year";
@@ -701,8 +703,6 @@ export async function createCheckoutSession(
       line_items: [lineItem],
       // Owner 2026-10-30 (item 3): what happens next, under the pay button.
       ...(planTier !== "savings_premium" ? { custom_text: { submit: { message: starterPass ? STARTER_PASS_SUBMIT_MESSAGE : passContinue ? passContinueSubmitMessage(trialEnd ? passEndDateLabel(new Date(trialEnd * 1000)) : null) : CHECKOUT_SUBMIT_MESSAGE } } } : {}),
-      // A pass buyer keeps a Stripe customer, so continuing at $19 later reuses it.
-      ...(starterPass ? { customer_creation: "always" as const } : {}),
       ...(firstMonth ? { discounts: [{ coupon: STARTER_FIRST_MONTH_COUPON }] } : {}),
       metadata,
       ...(opts.userId == null && opts.customerEmail ? { customer_email: opts.customerEmail } : {}),

@@ -108,12 +108,12 @@ export function AreaAwardsBox({ data, stateName, bidId }: { data: AreaAwards; st
               <p className="mt-1 text-xs text-slate-400">One-time, for this bid. No account or subscription needed.</p>
               {buyError && <p className="mt-1 text-xs text-rose-300">{buyError}</p>}
               <a href="/upgrade?plan=starter" className="mt-2 block text-xs font-semibold text-emerald-300 hover:text-emerald-200">
-                Or see it on every bid with Starter, ${STARTER_FIRST_MONTH_PRICE} for 30 days →
+                Or see it on every bid with Starter, ${STARTER_FIRST_MONTH_PRICE} a month →
               </a>
             </>
           ) : (
             <a href="/upgrade?plan=starter" className="mt-2 inline-block text-sm font-semibold text-emerald-300 hover:text-emerald-200">
-              Unlock with Starter, ${STARTER_FIRST_MONTH_PRICE} for 30 days →
+              Unlock with Starter, ${STARTER_FIRST_MONTH_PRICE} a month →
             </a>
           )}
         </>

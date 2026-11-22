@@ -9,7 +9,7 @@ describe("sales fixes", () => {
   test("the trust line names Stripe, Apple Pay / Google Pay and no auto-renew, under every main $9 button", () => {
     expect(CHECKOUT_TRUST_TEXT).toContain("Secure checkout by Stripe");
     expect(CHECKOUT_TRUST_TEXT).toContain("Apple Pay or Google Pay");
-    expect(CHECKOUT_TRUST_TEXT).toContain("No auto-renew");
+    expect(CHECKOUT_TRUST_TEXT).toContain("$9 a month, cancel anytime");
     for (const f of ["../routes/radar.tsx", "../components/UnlockBidSheet.tsx", "../components/HomeContractFinder.tsx", "./seo-landing.tsx", "../routes/pricing/index.tsx"]) {
       expect(read(f)).toContain("<CheckoutTrust");
     }

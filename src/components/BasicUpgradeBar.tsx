@@ -34,7 +34,7 @@ export function BasicUpgradeBar() {
   if (resume) {
     return (
       <div className="sticky top-0 z-40 border-b border-amber-500/40 bg-amber-500 px-4 py-2 text-center text-sm font-semibold text-slate-950">
-        Your account is ready. Finish your ${STARTER_FIRST_MONTH_PRICE} Starter checkout to open official notices, contacts and the daily bid email.{" "}
+        Your account is ready. Finish your ${STARTER_FIRST_MONTH_PRICE} a month Starter checkout to open official notices, contacts and the daily bid email.{" "}
         <button
           type="button"
           disabled={opening}
@@ -45,7 +45,7 @@ export function BasicUpgradeBar() {
           }}
           className="underline underline-offset-2 hover:no-underline disabled:opacity-60"
         >
-          {opening ? "Opening checkout…" : `Finish for $${STARTER_FIRST_MONTH_PRICE} →`}
+          {opening ? "Opening checkout…" : `Finish for $${STARTER_FIRST_MONTH_PRICE} a month →`}
         </button>
       </div>
     );
@@ -58,7 +58,7 @@ export function BasicUpgradeBar() {
         onClick={() => trackEvent("basic_upgrade_bar_click")}
         className="underline underline-offset-2 hover:no-underline"
       >
-        Get Starter for ${STARTER_FIRST_MONTH_PRICE} for 30 days →
+        Get Starter for ${STARTER_FIRST_MONTH_PRICE} a month →
       </a>
     </div>
   );

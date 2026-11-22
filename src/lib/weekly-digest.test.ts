@@ -93,7 +93,7 @@ describe("weekly digest — top 5 only (owner 2026-10-08)", () => {
     expect(WEEKLY_DIGEST_LIST_LIMIT).toBe(5);
     const bid = { bid_id: 1, title: "Snow plowing", agency: "City", source_url: "https://x", location: "Ohio", due_date: null };
     const html = bidDigestHtml([bid], 28, { unsubscribeUrl: weeklyUnsubscribeUrl("t") });
-    expect(html).toContain("+ 27 more new bids with the $9 pass.");
+    expect(html).toContain("+ 27 more new bids with Starter, $9 a month.");
     expect(html).toContain(WEEKLY_PASS_URL);
     expect(bidDigestHtml([bid], 28)).toContain("+ 27 more new bids on Contrax.");
   });
@@ -107,9 +107,9 @@ describe("weekly digest — email", () => {
     expect(url).toBe("https://www.contrax.company/api/email/weekly-unsubscribe?token=abc123");
     const html = bidDigestHtml([bid], 1, { unsubscribeUrl: url });
     expect(html).toContain("this past week");
-    expect(html).toContain("The $9 pass");
-    expect(html).toContain("for 30 days. No auto-renew.");
-    expect(html).toContain("Get the $9 pass");
+    expect(html).toContain("<strong>Starter</strong> sends every new");
+    expect(html).toContain("$9 a month, cancel anytime.");
+    expect(html).toContain("Get Starter: $9 a month");
     expect(WEEKLY_PASS_URL).toBe("https://www.contrax.company/upgrade?plan=starter&source=weekly_email");
     expect(html).toContain(WEEKLY_PASS_URL);
     expect(html).not.toContain("$14/month");
@@ -132,7 +132,7 @@ describe("founding offer in the free emails (owner 2026-10-03)", () => {
   test("the weekly email offers only the $9 pass, founding spots or not", () => {
     for (const spots of [7, 0, null, undefined]) {
       const html = bidDigestHtml([bid], 1, { unsubscribeUrl: unsub, foundingSpots: spots });
-      expect(html).toContain("Get the $9 pass");
+      expect(html).toContain("Get Starter: $9 a month");
       expect(html).not.toContain("founding");
       expect(html).not.toContain("$14/month");
     }
@@ -143,7 +143,7 @@ describe("founding offer in the free emails (owner 2026-10-03)", () => {
   test("radar match alert offers the $9 pass, never the founding year or $19/month", () => {
     for (const spots of [1, 0, null]) {
       const html = radarMatchAlertHtml([bid], 0, "https://u", spots);
-      expect(html).toContain("Get the $9 pass");
+      expect(html).toContain("Get Starter: $9 a month");
       expect(html).toContain("upgrade?plan=starter&source=radar_alert");
       expect(html).not.toContain("founding");
       expect(html).not.toContain("$14/month");
@@ -152,7 +152,7 @@ describe("founding offer in the free emails (owner 2026-10-03)", () => {
 
   test("starterPriceHtml", () => {
     expect(starterPriceHtml(3)).toContain("3 spots left");
-    expect(starterPriceHtml(null)).toBe("$14/month");
+    expect(starterPriceHtml(null)).toBe("$9/month");
   });
 });
 

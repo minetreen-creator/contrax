@@ -201,20 +201,23 @@ describe("Starter $9 first month", () => {
   });
 });
 
-describe("Starter $9 30-day pass (owner 2026-10-30)", () => {
-  test("a pass is a one-time $9 payment on the Starter product, with no coupon and no subscription", async () => {
+describe("Starter at $9 a month for a new buyer (owner 2026-11-22; a one-time pass before that)", () => {
+  test("a new buyer's checkout is a $9 monthly subscription on the Starter product, with no coupon and no trial", async () => {
     created.length = 0;
     expect((await stripeLib.createCheckoutSession("starter", { starterPass: true })).success).toBe(true);
     const s = created[0];
-    expect(s.mode).toBe("payment");
+    expect(s.mode).toBe("subscription");
     expect(s.line_items[0].price_data.unit_amount).toBe(900);
-    expect(s.line_items[0].price_data.recurring).toBeUndefined();
-    expect(s.line_items[0].price_data.product_data.name).toBe("Contrax Starter: 30 days of bid emails");
+    expect(s.line_items[0].price_data.recurring).toEqual({ interval: "month" });
+    expect(s.line_items[0].price_data.product_data.name).toBe("Contrax Starter");
     expect(s.discounts).toBeUndefined();
-    expect(s.subscription_data).toBeUndefined();
-    expect(s.metadata.starter_pass).toBe("true");
-    expect(s.customer_creation).toBe("always");
+    expect(s.subscription_data.metadata.starter_monthly).toBe("true");
+    expect(s.subscription_data.trial_end).toBeUndefined();
+    expect(s.metadata.starter_monthly).toBe("true");
+    expect(s.metadata.starter_pass).toBeUndefined();
+    expect(s.customer_creation).toBeUndefined();
     expect(s.custom_text.submit.message).toContain("6 AM");
+    expect(s.custom_text.submit.message).toContain("$9 today, then $9 each month until you cancel");
   });
 
   test("a returning pass buyer continues at full price; the pass is never yearly or Professional", async () => {

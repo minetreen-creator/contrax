@@ -61,7 +61,7 @@ export function UnlockBidSheet({ bidId, bid, onClose }: { bidId: number; bid?: U
       <div className="w-full max-w-md rounded-t-2xl bg-white p-5 text-slate-900 shadow-2xl sm:rounded-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-3">
           <p id="unlock-bid-title" className="text-lg font-extrabold leading-tight">
-            Unlock this bid for ${STARTER_FIRST_MONTH_PRICE}
+            Unlock this bid for ${STARTER_FIRST_MONTH_PRICE} a month
           </p>
           <button type="button" onClick={onClose} aria-label="Close" className="px-1 text-xl leading-none text-slate-400 hover:text-slate-600">
             ✕
@@ -80,12 +80,12 @@ export function UnlockBidSheet({ bidId, bid, onClose }: { bidId: number; bid?: U
         <ul className="mt-1.5 space-y-1.5 text-sm text-slate-700">
           <li>✓ This bid&apos;s official notice and documents, with how to submit</li>
           {bid?.has_contact ? <li>✓ The buyer&apos;s contact for this bid</li> : null}
-          <li>✓ Every new bid in your trade and states, emailed at 6 AM, for 30 days</li>
-          <li>✓ Every other locked bid on Contrax, open for 30 days</li>
+          <li>✓ Every new bid in your trade and states, emailed at 6 AM</li>
+          <li>✓ Every other locked bid on Contrax, open</li>
         </ul>
 
         <div className="mt-4 rounded-xl bg-amber-50 px-3 py-2.5 text-center">
-          <p className="text-base font-extrabold text-slate-900">${STARTER_FIRST_MONTH_PRICE} one time. No automatic renewal.</p>
+          <p className="text-base font-extrabold text-slate-900">${STARTER_FIRST_MONTH_PRICE} a month. Cancel anytime.</p>
           <p className="mt-1 text-sm text-slate-700">{STARTER_PASS_ANCHOR}</p>
           <p className="mt-0.5 text-xs text-slate-600">On day 30 it simply ends. We email you once before; do nothing and you&apos;re never charged again.</p>
         </div>
@@ -96,7 +96,7 @@ export function UnlockBidSheet({ bidId, bid, onClose }: { bidId: number; bid?: U
           disabled={opening}
           className="mt-4 w-full rounded-xl bg-amber-400 px-4 py-3 text-base font-bold text-slate-950 hover:bg-amber-300 disabled:opacity-60"
         >
-          {opening ? "Opening secure checkout…" : `Continue to secure checkout: $${STARTER_FIRST_MONTH_PRICE}`}
+          {opening ? "Opening secure checkout…" : `Continue to secure checkout: $${STARTER_FIRST_MONTH_PRICE} a month`}
         </button>
         <CheckoutTrust className="mt-2 text-center" />
         <p className="mt-1 text-center text-xs text-slate-500">You&apos;ll come right back to this bid.</p>

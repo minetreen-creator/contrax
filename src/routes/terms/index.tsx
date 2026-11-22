@@ -58,7 +58,7 @@ function TermsPage() {
           </section>
           <section>
             <h2 className="text-xl font-semibold text-slate-900">3. Accounts and Billing</h2>
-            <p className="mt-3">You must create an account to access paid features. The $9 Starter pass is a one-time payment for 30 days of access; it does not renew and you are not charged again. Monthly and yearly plans are billed in advance via Stripe. You may cancel a plan at any time; cancellation takes effect at the end of the current billing period. No refunds for partial months.</p>
+            <p className="mt-3">You must create an account to access paid features. Starter is $9 a month: your card is charged $9 when you start and $9 each month after that until you cancel, and we email a reminder three days before each charge. A $9 Starter pass bought before November 22, 2026 was a one-time payment for 30 days; it does not renew and is not charged again. Monthly and yearly plans are billed in advance via Stripe. You may cancel a plan at any time in Settings (Manage subscription); cancellation takes effect at the end of the current billing period. No refunds for partial months.</p>
           </section>
           <section>
             <h2 className="text-xl font-semibold text-slate-900">4. Acceptable Use</h2>

@@ -167,7 +167,7 @@ function CompetitorXray() {
                         onClick={() => trackEvent("xray_unlock_click", state || "all")}
                         className="mt-3 rounded-lg bg-amber-500 px-4 py-2 text-sm font-bold text-slate-950 hover:bg-amber-400"
                       >
-                        Unlock the contract list · ${STARTER_FIRST_MONTH_PRICE} for 30 days
+                        Unlock the contract list · ${STARTER_FIRST_MONTH_PRICE} a month
                       </a>
                     </div>
                   </div>

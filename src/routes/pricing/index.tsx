@@ -14,9 +14,9 @@ import { trackEvent } from "~/lib/track";
 // Owner 2026-10-19 (item 6): descriptive title (prices in the title itself);
 // og:title / twitter:title read the same string. The meta descriptions are
 // unchanged — they already carry the prices.
-const PAGE_TITLE = "Pricing: Government Bid Alerts from $14/Month";
+const PAGE_TITLE = "Pricing: Government Bid Alerts from $9/Month";
 const META_DESCRIPTION =
-  "Contrax plans for every stage of growth. Start with Starter for $9 for your first 30 days, with no automatic renewal, or keep searching on free Basic.";
+  "Contrax plans for every stage of growth. Start with Starter for $9 a month, and you can cancel anytime, or keep searching on free Basic.";
 
 export const Route = createFileRoute("/pricing/")({
   component: PricingPage,
@@ -26,7 +26,7 @@ export const Route = createFileRoute("/pricing/")({
       { name: "description", content: META_DESCRIPTION },
       { name: "robots", content: "index, follow" },
       { property: "og:title", content: PAGE_TITLE },
-      { property: "og:description", content: "Contrax plans for every stage of growth. Starter is $9 one time for 30 days, and nothing renews. Basic search is free." },
+      { property: "og:description", content: "Contrax plans for every stage of growth. Starter is $9 a month, cancel anytime. Basic search is free." },
       { property: "og:image", content: "https://www.contrax.company/logo-square.png" },
       { property: "og:image:type", content: "image/png" },
       { property: "og:image:width", content: "1200" },
@@ -44,13 +44,13 @@ export const Route = createFileRoute("/pricing/")({
 // Starter and Professional cards, verbatim. It is a price comparison, not a
 // feature bullet, so it renders directly under the price, not in the list.
 const VALUE_ANCHOR =
-  "Paid alert services run $49-149 a month for watching portals. Enterprise intelligence starts around $6,000 a year. Starter is $14.";
+  "Paid alert services run $49-149 a month for watching portals. Enterprise intelligence starts around $6,000 a year. Starter is $9 a month.";
 
 /** Yearly = 10 × monthly (2 months free) — mirrors ANNUAL_UNIT_AMOUNTS in src/lib/stripe.ts and /upgrade. */
 const plans = [
   {
     name: "Starter",
-    price: 14,
+    price: 9,
     yearly: 190,
     slug: "starter",
     href: "/upgrade?plan=starter",
@@ -104,7 +104,7 @@ const plans = [
 // visitors read (4 items; owner 2026-11-06: one offer, no plan comparisons).
 const FAQS = [
   { q: "What do I get?", a: "Every new government bid in your trade and states, in your inbox at 6 AM Eastern every morning, plus the official notice link and documents for every bid on Contrax. City, county, state and federal bids, matched to what your business does." },
-  { q: "Is there a free trial?", a: "Instead of a free trial, Starter costs $9 for your first 30 days, one time, with no automatic renewal. That is 30 days of the daily bid email and every state and trade. On day 30 the pass simply ends: you're never charged again unless you choose Starter at $14/month." },
+  { q: "Is there a free trial?", a: "Instead of a free trial, Starter costs $9 a month, and you can cancel anytime. That is the daily bid email and every state and trade. It renews each month until you cancel, and we email you a reminder three days before each charge." },
   { q: "Can I cancel anytime?", a: "Yes. Cancel anytime and your access continues until the end of the billing period. No refunds for partial months." },
   { q: "What payment methods do you accept?", a: "We accept all major credit and debit cards through Stripe." },
 ];
@@ -213,8 +213,8 @@ function PricingPage() {
   // Owner 2026-10-30 ("3"): the button says what $5 opens in the visitor's own
   // state, using the same live count as the line above it.
   const starterLabel = near
-    ? `See all ${near.open.toLocaleString("en-US")} ${STATE_NAMES[near.state] ?? near.state} bids for $${STARTER_FIRST_MONTH_PRICE}`
-    : `Start Starter for $${STARTER_FIRST_MONTH_PRICE}`;
+    ? `See all ${near.open.toLocaleString("en-US")} ${STATE_NAMES[near.state] ?? near.state} bids for $${STARTER_FIRST_MONTH_PRICE} a month`
+    : `Start Starter for $${STARTER_FIRST_MONTH_PRICE} a month`;
   const startStarter = (where: string) => (e: MouseEvent) => {
     trackEvent("pricing_starter_click", where);
     e.preventDefault();
@@ -249,7 +249,7 @@ function PricingPage() {
               Never miss a bid in your trade again
             </h2>
             <p className="mt-4 text-lg text-gray-600">
-              Most businesses start with Starter: every new bid in your trade and states, in your inbox at 6 AM. Your first 30 days are $9, one time, with no automatic renewal.
+              Most businesses start with Starter: every new bid in your trade and states, in your inbox at 6 AM. It is $9 a month, and you can cancel anytime.
             </p>
             {near && (
               <p className="mt-5 text-base font-semibold text-slate-900">
@@ -295,7 +295,7 @@ function PricingPage() {
               >
                 {plan.featured && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-blue-600 px-4 py-1 text-xs font-semibold uppercase tracking-wider text-white shadow-md">
-                    {plan.slug === "starter" && interval === "month" ? "$9 for 30 days" : "Recommended"}
+                    {plan.slug === "starter" && interval === "month" ? "$9 a month" : "Recommended"}
                   </div>
                 )}
                 <div className="mb-6">
@@ -371,7 +371,7 @@ function PricingPage() {
                       : "border-2 border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white"
                   }`}
                 >
-                  {plan.slug === "starter" && interval === "month" ? `Start Starter for $${STARTER_FIRST_MONTH_PRICE}` : plan.cta}
+                  {plan.slug === "starter" && interval === "month" ? `Start Starter for $${STARTER_FIRST_MONTH_PRICE} a month` : plan.cta}
                 </a>
                 {plan.slug === "starter" && interval === "month" ? <CheckoutTrust className="mt-2 text-center" /> : null}
               </div>

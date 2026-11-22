@@ -37,7 +37,7 @@ describe("pass claim", () => {
     const src = readFileSync("src/routes/post-checkout.tsx", "utf8");
     expect(src).toContain("metadataUserId == null && session.metadata?.starter_pass === \"true\"");
     expect(src).toContain("createPassClaim(userId)");
-    expect(src).toContain("pass is on");
+    expect(src).toContain('{passEndsAt ? "pass" : "plan"} is on');
   });
 
   test("signup moves the pass, clears the cookie and never fails because of it", () => {

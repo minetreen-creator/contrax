@@ -631,8 +631,8 @@ export function radarMatchAlertHtml(
             See all my matches →
           </a>
           <p style="margin:16px 0 0;color:#6b7280;font-size:13px;line-height:1.5;">
-            Free match alerts arrive once a week. <strong>The $9 pass</strong> sends every new matching bid at 6 AM Eastern, every morning, with the official notices and documents, for 30 days. No auto-renew.
-            <a href="${RADAR_ALERT_PASS_URL}" style="color:#2563eb;font-weight:600;">Get the $9 pass →</a>
+            Free match alerts arrive once a week. <strong>Starter</strong> sends every new matching bid at 6 AM Eastern, every morning, with the official notices and documents. $9 a month, cancel anytime.
+            <a href="${RADAR_ALERT_PASS_URL}" style="color:#2563eb;font-weight:600;">Get Starter: $9 a month →</a>
           </p>
         </td>
       </tr>
@@ -984,7 +984,7 @@ export function foundingOfferOpen(spots: number | null | undefined): spots is nu
 
 /** First-year bundle and renewal terms, or the ordinary Starter monthly price. */
 export function starterPriceHtml(spots: number | null | undefined): string {
-  if (!foundingOfferOpen(spots)) return "$14/month";
+  if (!foundingOfferOpen(spots)) return "$9/month";
   // No "10 spots left" while none are taken (owner 2026-10-04): it reads as "nobody bought".
   const left = spots >= 10 ? "" : ` (only ${spots} spot${spots === 1 ? "" : "s"} left)`;
   return `<strong>$99 for your first year</strong> of Starter, with a 12-month company feature and one Facebook spotlight${left}. Renews at $140/year unless canceled; the feature does not renew automatically`
@@ -1111,7 +1111,7 @@ export function bidDigestHtml(
           <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
             ${bidRows}
           </table>
-          ${moreCount > 0 ? `<p style="margin:12px 0 0;color:#374151;font-size:14px;text-align:center;">${weekly ? `<strong>+ ${moreCount} more new ${weekly.matchLabel ? "matching " : ""}bid${moreCount === 1 ? "" : "s"} with the $9 pass.</strong> <a href="${WEEKLY_PASS_URL}" style="color:#2563eb;font-weight:600;text-decoration:none;">See them all →</a>` : `+ ${moreCount} more new bid${moreCount === 1 ? "" : "s"} on Contrax.`}</p>` : ""}
+          ${moreCount > 0 ? `<p style="margin:12px 0 0;color:#374151;font-size:14px;text-align:center;">${weekly ? `<strong>+ ${moreCount} more new ${weekly.matchLabel ? "matching " : ""}bid${moreCount === 1 ? "" : "s"} with Starter, $9 a month.</strong> <a href="${WEEKLY_PASS_URL}" style="color:#2563eb;font-weight:600;text-decoration:none;">See them all →</a>` : `+ ${moreCount} more new bid${moreCount === 1 ? "" : "s"} on Contrax.`}</p>` : ""}
         </td>
       </tr>` : ""}
       ${openToAll.length > 0 ? `<!-- Open to all businesses (owner 2026-11-09) -->
@@ -1151,9 +1151,9 @@ export function bidDigestHtml(
       <tr>
         <td style="padding:0 32px 24px;text-align:center;">
           <p style="margin:0;color:#374151;font-size:14px;line-height:1.6;">
-            ${weekly.headStartCount ? `<strong>+ ${weekly.headStartCount} newer ${weekly.matchLabel ? "matching " : ""}bid${weekly.headStartCount === 1 ? " was" : "s were"} posted in the last ${HEAD_START_DAYS} days.</strong> $9 pass members already have ${weekly.headStartCount === 1 ? "it" : "them"}; free accounts see new bids after a ${HEAD_START_DAYS}-day head start.<br>` : ""}
-            You get this once a week on a free account. <strong>The $9 pass</strong> sends every new bid ${weekly.matchLabel ? `for ${escapeHtml(weekly.matchLabel)} ` : ""}at 6 AM Eastern, every morning, for 30 days. No auto-renew.
-            <a href="${WEEKLY_PASS_URL}" style="color:#2563eb;font-weight:600;text-decoration:none;">Get the $9 pass →</a>
+            ${weekly.headStartCount ? `<strong>+ ${weekly.headStartCount} newer ${weekly.matchLabel ? "matching " : ""}bid${weekly.headStartCount === 1 ? " was" : "s were"} posted in the last ${HEAD_START_DAYS} days.</strong> Starter members already have ${weekly.headStartCount === 1 ? "it" : "them"}; free accounts see new bids after a ${HEAD_START_DAYS}-day head start.<br>` : ""}
+            You get this once a week on a free account. <strong>Starter</strong> sends every new bid ${weekly.matchLabel ? `for ${escapeHtml(weekly.matchLabel)} ` : ""}at 6 AM Eastern, every morning. $9 a month, cancel anytime.
+            <a href="${WEEKLY_PASS_URL}" style="color:#2563eb;font-weight:600;text-decoration:none;">Get Starter: $9 a month →</a>
           </p>
         </td>
       </tr>` : ""}

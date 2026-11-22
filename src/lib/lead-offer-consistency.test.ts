@@ -12,13 +12,13 @@ describe("email-only leads and Max are offered the $9 pass", () => {
     const src = readFileSync(new URL("./email.ts", import.meta.url), "utf8");
     const start = src.indexOf("function radarMatchAlertHtml");
     const body = src.slice(start, src.indexOf("\n}\n", start));
-    expect(body).toContain("Get the $9 pass");
+    expect(body).toContain("Get Starter: $9 a month");
     expect(body).not.toContain("$19/month");
     expect(body).not.toContain("founding-businesses");
   });
 
   test("Max tells people about the $9 pass and no automatic trial", () => {
-    expect(SYSTEM_PROMPT).toContain("$9 pass");
+    expect(SYSTEM_PROMPT).toContain("Starter at $9 a month");
     expect(SYSTEM_PROMPT).toContain("There is no automatic free trial");
     expect(SYSTEM_PROMPT).not.toContain("7-day Professional trial");
   });

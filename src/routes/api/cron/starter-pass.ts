@@ -15,7 +15,23 @@ async function handler({ request }: { request: Request }) {
   }
   try {
     const { runStarterPassJobs } = await import("~/lib/starter-pass.server");
-    return Response.json(await runStarterPassJobs());
+    const jobs = await runStarterPassJobs();
+    // Owner 2026-11-22 ("You can handle stripe"): once a day, make sure Stripe has what a monthly
+    // plan needs (the cancel page, and the webhook events that carry renewals and cancellations),
+    // and keep the result where a read-only job can see it. Never fails the pass jobs.
+    let stripeSetup: unknown = null;
+    try {
+      const { fixStripeSetup } = await import("~/lib/stripe-setup.server");
+      const { stripeSetupSummary } = await import("~/lib/stripe-setup-summary");
+      stripeSetup = stripeSetupSummary(await fixStripeSetup());
+      const { sql } = await import("~/db");
+      await sql()`CREATE TABLE IF NOT EXISTS ops_status (key TEXT PRIMARY KEY, value JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`;
+      await sql()`INSERT INTO ops_status (key, value) VALUES ('stripe_setup', ${JSON.stringify(stripeSetup)}::jsonb)
+        ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()`;
+    } catch (e) {
+      console.error("[cron/starter-pass] stripe setup check failed:", (e as Error).message);
+    }
+    return Response.json({ ...jobs, stripeSetup });
   } catch (err) {
     console.error("[cron/starter-pass] failed:", err);
     return Response.json({ error: "failed" }, { status: 500 });

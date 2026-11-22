@@ -51,7 +51,7 @@ const plans = [
   {
     name: "Starter",
     price: 9,
-    yearly: 190,
+    yearly: 90,
     slug: "starter",
     href: "/upgrade?plan=starter",
     headline: "Every new bid in your trade and states, emailed at 6 AM.",

@@ -119,7 +119,7 @@ export type BillingInterval = "month" | "year";
 
 /** Yearly unit_amount (cents) per tier: 10 × the monthly price. */
 export const ANNUAL_UNIT_AMOUNTS: Partial<Record<PlanTier, number>> = {
-  starter: STARTER_MONTHLY_CENTS * 10, // $140/yr (owner 2026-11-09: Starter $14/mo)
+  starter: STARTER_PASS_AMOUNT * 10, // $90/yr (owner 2026-11-22: "$90 is good"; ten months at $9)
   professional: 7900 * 10, // $790/yr
   agency: 19900 * 10, // $1,990/yr
 };

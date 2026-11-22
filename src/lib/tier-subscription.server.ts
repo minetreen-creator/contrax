@@ -62,7 +62,7 @@
  */
 import type Stripe from "stripe";
 import { sql } from "~/db";
-import { portalSessionParams } from "~/lib/stripe-setup.server";
+import { PORTAL_CONFIGURATION, portalSessionParams } from "~/lib/stripe-setup.server";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -514,11 +514,25 @@ export async function createTierPortalSession(
       };
     }
     const stripe = deps.stripe ?? (await stripeClient());
-    const session = await stripe.billingPortal.sessions.create({
-      customer,
-      return_url: `${BASE_URL}/settings`,
-      ...(await portalSessionParams(stripe)),
-    });
+    const open = async (extra: { configuration?: string }) =>
+      stripe.billingPortal.sessions.create({ customer, return_url: `${BASE_URL}/settings`, ...extra });
+    let session: Awaited<ReturnType<typeof open>>;
+    try {
+      session = await open(await portalSessionParams(stripe));
+    } catch (first) {
+      // Owner 2026-11-22 ("You can handle stripe"): with Starter renewing each month, a subscriber
+      // must always be able to cancel. When the account has no portal set up yet, set it up here
+      // (the same settings /admin offers) and open it; if that fails, the first error stands.
+      if (!isPortalConfigMissingError(first)) throw first;
+      let configuration: string;
+      try {
+        configuration = (await stripe.billingPortal.configurations.create(PORTAL_CONFIGURATION)).id;
+      } catch {
+        throw first;
+      }
+      console.log("[tier] billing portal was not set up; created it");
+      session = await open({ configuration });
+    }
     if (!session.url) {
       return { success: false, code: "stripe_error", error: "Stripe did not return a portal URL" };
     }

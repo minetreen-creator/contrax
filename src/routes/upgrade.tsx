@@ -37,7 +37,7 @@ export const Route = createFileRoute("/upgrade")({
 
 // Yearly = 10 × monthly (2 months free); mirrors ANNUAL_UNIT_AMOUNTS in src/lib/stripe.ts.
 const plans = [
-  { id: "starter", name: "Starter", price: 9, yearly: 140 },
+  { id: "starter", name: "Starter", price: 9, yearly: 90 },
   { id: "professional", name: "Professional", price: 79, yearly: 790 },
   { id: "agency", name: "Agency", price: 199, yearly: 1990 },
 ] as const;
@@ -189,8 +189,7 @@ function Upgrade() {
                       ${p.yearly.toLocaleString("en-US")}
                       <span className="text-sm font-normal text-slate-500">/yr</span>
                     </p>
-                    {/* Owner 2026-11-22: Starter is $9 a month while its yearly price is still $140, so the
-                        saving is only stated where paying yearly really costs less. */}
+                    {/* The saving is only stated where paying yearly really costs less (Starter: $90 against $108). */}
                     {p.yearly < p.price * 12 ? (
                       <p className="mt-1 text-sm text-emerald-700">
                         ${(p.price * 12).toLocaleString("en-US")} if paid monthly. You save ${(p.price * 12 - p.yearly).toLocaleString("en-US")}.

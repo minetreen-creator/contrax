@@ -537,11 +537,11 @@ async function handleCreateCheckoutSession(
       };
     }
 
-    const normalized = (parsed.promoCode ?? "").trim().toLowerCase();
-    const promoCode = normalized === "vad26" ? "VAD26" : undefined;
+    // Owner 2026-11-22: the VAD26 partner price is retired; no code changes the price any more.
+    const promoCode: string | undefined = undefined;
     // Starter 30-day pass (owner 2026-10-30, src/lib/starter-pass.ts).
     const { starterCheckoutOptions } = await import("./src/lib/starter-pass.server.ts");
-    const starterOpts = await starterCheckoutOptions(parsed, userId ?? null);
+    const starterOpts = await starterCheckoutOptions({ ...parsed, promoCode: undefined }, userId ?? null);
     // Checkout attribution (owner 2026-11-04, src/lib/checkout-attribution.server.ts).
     const { visitorIdFromCookieHeader, recordCheckoutOpened } = await import("./src/lib/checkout-attribution.server.ts");
     const visitorId = visitorIdFromCookieHeader(cookieHeader);

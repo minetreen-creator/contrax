@@ -93,14 +93,19 @@ describe("yearly checkout", () => {
     expect(created[0].metadata).toEqual({ plan_tier: "professional", user_id: "7" });
   });
 
-  test("yearly is refused with the VAD code and for the one-time premium", async () => {
+  test("yearly is refused for the one-time premium", async () => {
     created.length = 0;
-    expect(await stripeLib.createCheckoutSession("starter", { interval: "year", promoCode: "VAD26" })).toEqual({
-      success: false,
-      error: "Yearly billing is not available for this plan.",
-    });
     expect((await stripeLib.createCheckoutSession("savings_premium", { interval: "year" })).success).toBe(false);
     expect(created.length).toBe(0);
+  });
+
+  // Owner 2026-11-22: "get rid of any VAD information and payments".
+  test("the retired VAD26 code changes nothing: the buyer gets the regular checkout", async () => {
+    created.length = 0;
+    expect((await stripeLib.createCheckoutSession("starter", { interval: "year", promoCode: "VAD26" })).success).toBe(true);
+    expect(created[0].line_items[0].price_data.unit_amount).toBe(9000);
+    expect(created[0].metadata.promo_code).toBeUndefined();
+    expect(created[0].cancel_url).not.toContain("/vad");
   });
 
   test("yearly amounts are 10 × monthly", () => {

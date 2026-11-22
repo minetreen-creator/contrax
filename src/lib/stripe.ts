@@ -527,7 +527,10 @@ export async function createCheckoutSession(
   opts: CreateCheckoutSessionOptions = {},
 ): Promise<CreateCheckoutSessionResult> {
   try {
-    const isVad = opts.promoCode === "VAD26";
+    // Owner 2026-11-22: "get rid of any VAD information and payments". The VAD26 partner price is no
+    // longer sold: the code is ignored and the buyer gets the regular checkout. The VAD price ids
+    // below stay only so subscriptions already running on them are still recognised.
+    const isVad: boolean = false;
     const interval: BillingInterval = opts.interval ?? "month";
     const annualAmount = ANNUAL_UNIT_AMOUNTS[planTier];
     if (interval === "year" && (isVad || !annualAmount)) {

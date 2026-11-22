@@ -19,7 +19,8 @@ import type { AreaAwards } from "~/lib/area-awards";
 import { typicalRangeText } from "~/lib/area-awards";
 import { deriveWinnerPrice } from "~/lib/winner-price";
 import type { FPDSIntel } from "~/lib/fpds";
-import { STARTER_FIRST_MONTH_PRICE, STARTER_FULL_PRICE } from "~/lib/starter-offer";
+import { STARTER_FIRST_MONTH_PRICE } from "~/lib/starter-offer";
+import { STARTER_PASS_CONTINUE_PRICE } from "~/lib/starter-pass";
 import { useCallback, useEffect, useState } from "react";
 import { sql } from "~/db";
 import { RfpSummaryCard } from "~/components/RfpSummaryCard";
@@ -661,7 +662,7 @@ function BidDetailPage() {
                     <span className="text-amber-100">
                       🔒 {bid.has_contact ? "Notice, documents and contact" : "Notice and documents"}:{" "}
                       <span className="font-bold text-white">
-                        {pass ? `$${STARTER_FIRST_MONTH_PRICE} for 30 days, one time` : `Starter, $${STARTER_FULL_PRICE}/month`}
+                        {pass ? `$${STARTER_FIRST_MONTH_PRICE} for 30 days, one time` : `Starter, $${STARTER_PASS_CONTINUE_PRICE}/month`}
                       </span>
                     </span>
                     <span className="shrink-0 font-bold text-amber-300">Unlock →</span>
@@ -915,7 +916,7 @@ function BidContactPanel({ contact, bidId, pass, onUnlock }: { contact: BidConta
         }}
         className="mt-2 inline-block text-sm font-semibold text-amber-400 hover:text-amber-300"
       >
-        {pass ? `See who to contact: included in the $${STARTER_FIRST_MONTH_PRICE} pass →` : `See who to contact: Starter, $${STARTER_FULL_PRICE}/month →`}
+        {pass ? `See who to contact: included in the $${STARTER_FIRST_MONTH_PRICE} pass →` : `See who to contact: Starter, $${STARTER_PASS_CONTINUE_PRICE}/month →`}
       </a>
     </div>
   );
@@ -964,7 +965,7 @@ function NoticeLock({ bidId, signedIn, isNew = false, pass, onUnlock }: { bidId:
       <ul className="mt-2 space-y-1 text-sm text-slate-200">
         <li>✓ Open this notice and its documents today</li>
         <li>✓ Every new bid in your trade, emailed at 6 AM</li>
-        <li>{pass ? `✓ 30 days for $${STARTER_FIRST_MONTH_PRICE}, one time. No automatic renewal.` : `✓ Starter is $${STARTER_FULL_PRICE}/month. Cancel anytime.`}</li>
+        <li>{pass ? `✓ 30 days for $${STARTER_FIRST_MONTH_PRICE}, one time. No automatic renewal.` : `✓ Starter is $${STARTER_PASS_CONTINUE_PRICE}/month. Cancel anytime.`}</li>
       </ul>
       <a
         href={bidStarterHref(bidId, signedIn)}
@@ -978,7 +979,7 @@ function NoticeLock({ bidId, signedIn, isNew = false, pass, onUnlock }: { bidId:
         }}
         className="mt-3 block w-full rounded-lg bg-amber-400 px-4 py-3 text-center text-base font-bold text-slate-950 hover:bg-amber-300 sm:inline-block sm:w-auto"
       >
-        {pass ? `Open this bid + every new one for 30 days: $${STARTER_FIRST_MONTH_PRICE}` : `Open this bid with Starter: $${STARTER_FULL_PRICE}/month`}
+        {pass ? `Open this bid + every new one for 30 days: $${STARTER_FIRST_MONTH_PRICE}` : `Open this bid with Starter: $${STARTER_PASS_CONTINUE_PRICE}/month`}
       </a>
     </div>
   );

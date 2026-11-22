@@ -15,6 +15,40 @@ export const STARTER_PASS_DAYS = 30;
 export const STARTER_PASS_AMOUNT = 900;
 /** The reminder goes out this many days before the pass ends (day 25). */
 export const STARTER_PASS_REMIND_DAYS = 5;
+/**
+ * What a pass buyer pays to keep going (owner 2026-11-22: "we need to make the $9 pass not just a
+ * one time offer", then "it should start at $9 but keep the $14 if they continue"). The pass stays
+ * one $9 payment and nothing renews by itself; a buyer who chooses to continue pays Starter's
+ * regular $14 each month. What is new is being asked right after paying, not only on day 25.
+ */
+export const STARTER_PASS_CONTINUE_CENTS = 1400;
+export const STARTER_PASS_CONTINUE_PRICE = STARTER_PASS_CONTINUE_CENTS / 100;
+/** Stripe will not start a subscription's first charge less than 48 hours out; we leave a margin. */
+export const PASS_CONTINUE_MIN_LEAD_SECONDS = 49 * 3600;
+
+/**
+ * When the first monthly charge should fall for a pass buyer who switches on the monthly plan: the day
+ * the pass ends, so no day is paid for twice. null when the pass has ended or ends too soon for
+ * Stripe to schedule it, in which case the month starts (and is charged) right away. PURE.
+ */
+export function passContinueTrialEnd(passEndsAt: Date | string | null | undefined, nowMs: number = Date.now()): number | null {
+  if (!passEndsAt) return null;
+  const end = Math.floor(new Date(passEndsAt).getTime() / 1000);
+  if (!Number.isFinite(end)) return null;
+  return end - Math.floor(nowMs / 1000) >= PASS_CONTINUE_MIN_LEAD_SECONDS ? end : null;
+}
+
+/** Under Stripe's button when a pass buyer switches on the monthly plan. */
+export function passContinueSubmitMessage(firstChargeOn: string | null): string {
+  return firstChargeOn
+    ? `No charge today. Your pass runs to ${firstChargeOn}; on that day Starter continues at $${STARTER_PASS_CONTINUE_PRICE} a month. Cancel anytime with one click and you are not charged.`
+    : `Starter continues at $${STARTER_PASS_CONTINUE_PRICE} a month from today. Cancel anytime with one click.`;
+}
+
+/** The offer shown right after a pass is bought and in the buyer's emails. */
+export const PASS_CONTINUE_OFFER_HEAD = `Want it to keep going after day 30? Starter is $${STARTER_PASS_CONTINUE_PRICE} a month.`;
+export const PASS_CONTINUE_OFFER_BODY = "Switch it on now and nothing is charged today. The first monthly charge is the day your pass ends, and you can cancel before then with one click.";
+export const PASS_CONTINUE_BUTTON = `Keep it going for $${STARTER_PASS_CONTINUE_PRICE} a month →`;
 /** Stripe session/user metadata flag for a pass checkout. */
 export const STARTER_PASS_FLAG = "starter_pass";
 /** users.subscription_status once a pass has run out without a subscription. */
@@ -196,7 +230,7 @@ ${intro ? `<p>${esc(intro)}</p>\n` : ""}${exampleHtml}
  * The buyer's confirmation, sent once right after the $5 pass is bought (owner 2026-11-09): the end
  * date in writing and that nothing renews, so no one wonders whether they must cancel. PURE.
  */
-export function passConfirmationEmail(endsAt: Date): { subject: string; text: string; html: string } {
+export function passConfirmationEmail(endsAt: Date, opts: { continueUrl?: string } = {}): { subject: string; text: string; html: string } {
   const day = passEndDateLabel(endsAt);
   const subject = `Your Contrax Starter pass: 30 days, ends ${day}. Nothing renews`;
   const lines = [
@@ -204,6 +238,7 @@ export function passConfirmationEmail(endsAt: Date): { subject: string; text: st
     `You paid $9 one time. Your pass runs until ${day}.`,
     `Nothing renews. On ${day} your pass simply ends and your account goes back to free Basic. You will not be charged again, and there is nothing to cancel.`,
     "Five days before the end, we'll email you once. If you want to keep the 6 AM bid emails, you can choose Starter at $14/month then. If you do nothing, nothing happens.",
+    ...(opts.continueUrl ? [`${PASS_CONTINUE_OFFER_HEAD} ${PASS_CONTINUE_OFFER_BODY} ${opts.continueUrl}`] : []),
     "Pick your trade and states at https://www.contrax.company/settings and your bid email arrives every morning at 6 AM.",
     "Questions? Just reply to this email.",
     "Nathaniel Minetree, Contrax",
@@ -213,7 +248,7 @@ export function passConfirmationEmail(endsAt: Date): { subject: string; text: st
 <p>You paid <b>$9 one time</b>. Your pass runs until <b>${esc(day)}</b>.</p>
 <p><b>Nothing renews.</b> On ${esc(day)} your pass simply ends and your account goes back to free Basic. You will not be charged again, and there is nothing to cancel.</p>
 <p>Five days before the end, we'll email you once. If you want to keep the 6 AM bid emails, you can choose Starter at $14/month then. If you do nothing, nothing happens.</p>
-<p><a href="https://www.contrax.company/settings" style="color:#1d4ed8;font-weight:bold">Pick your trade and states</a> and your bid email arrives every morning at 6 AM.</p>
+${opts.continueUrl ? `<p><b>${esc(PASS_CONTINUE_OFFER_HEAD)}</b> ${esc(PASS_CONTINUE_OFFER_BODY)}<br><a href="${opts.continueUrl}" style="color:#1d4ed8;font-weight:bold">${esc(PASS_CONTINUE_BUTTON)}</a></p>\n` : ""}<p><a href="https://www.contrax.company/settings" style="color:#1d4ed8;font-weight:bold">Pick your trade and states</a> and your bid email arrives every morning at 6 AM.</p>
 <p>Questions? Just reply to this email.</p>
 <p>Nathaniel Minetree, Contrax</p>
 </div>`;

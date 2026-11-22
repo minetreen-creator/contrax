@@ -9,14 +9,14 @@ const banner = readFileSync(new URL("../components/AppInstallBanner.tsx", import
 
 test("a locked bid shows the $9 line in the first screen, opening the same confirm step", () => {
   expect(page).toContain('trackEvent("bid_top_starter_click", locked ? "new" : "members");');
-  expect(page).toContain("{pass ? `$${STARTER_FIRST_MONTH_PRICE} for 30 days, one time` : `Starter, $${STARTER_FULL_PRICE}/month`}");
+  expect(page).toContain("{pass ? `$${STARTER_FIRST_MONTH_PRICE} for 30 days, one time` : `Starter, $${STARTER_PASS_CONTINUE_PRICE}/month`}");
   // One sheet for the page; every $5 button calls the same unlock.
   expect(page.match(/<UnlockBidSheet /g)?.length).toBe(1);
   expect(page).toContain("<NoticeLock bidId={bid.id} signedIn={signedIn} isNew={locked} pass={pass} onUnlock={unlock} />");
 });
 
 test("the contact link says the $9 pass includes it, and only a used pass is told $19/month", () => {
-  expect(page).toContain("{pass ? `See who to contact: included in the $${STARTER_FIRST_MONTH_PRICE} pass →` : `See who to contact: Starter, $${STARTER_FULL_PRICE}/month →`}");
+  expect(page).toContain("{pass ? `See who to contact: included in the $${STARTER_FIRST_MONTH_PRICE} pass →` : `See who to contact: Starter, $${STARTER_PASS_CONTINUE_PRICE}/month →`}");
   expect(page).not.toContain("See who to contact: Starter, $19/month →");
 });
 

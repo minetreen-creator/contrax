@@ -20,6 +20,7 @@ import { hashPassword } from "~/lib/password";
 import { checkoutBidToOpen, clearCheckoutBid, clearCheckoutStarted } from "~/lib/checkout-resume";
 import { REPORT_DELIVERY, REPORT_PRICE } from "~/lib/pipeline-report";
 import { trackEvent } from "~/lib/track";
+import { PASS_CONTINUE_BUTTON, PASS_CONTINUE_OFFER_BODY, PASS_CONTINUE_OFFER_HEAD } from "~/lib/starter-pass";
 
 const SESSION_TTL_DAYS = 30;
 const SESSION_COOKIE = "contrax_session";
@@ -57,6 +58,8 @@ interface ResolveResult {
   signInRequired?: boolean;
   /** The $5 pass's end date (ISO), so the confirmation can say when it ends. */
   passEndsAt?: string | null;
+  /** A signed link that opens the monthly checkout for this pass buyer (owner 2026-11-22). */
+  passContinueUrl?: string | null;
 }
 
 const resolveCheckoutSession = createServerFn({ method: "POST" })
@@ -202,10 +205,21 @@ const resolveCheckoutSession = createServerFn({ method: "POST" })
 
     // The $5 pass: its end date, shown on the confirmation (owner 2026-11-09).
     const passEndsAt = session.metadata?.starter_pass === "true" ? new Date(session.created * 1000 + 30 * 24 * 60 * 60 * 1000).toISOString() : null;
+    // Owner 2026-11-22: a pass buyer can switch on Starter at $14 a month here; the signed link names this account.
+    let passContinueUrl: string | null = null;
+    if (passEndsAt && userId != null) {
+      try {
+        const { passRenewUrl } = await import("~/lib/starter-pass.server");
+        passContinueUrl = passRenewUrl(Number(userId), new Date(passEndsAt));
+      } catch (e) {
+        console.error("[post-checkout] continue link unavailable:", (e as Error).message);
+      }
+    }
     return {
       email,
       plan: planTier ?? "starter",
       passEndsAt,
+      passContinueUrl,
     };
   });
 
@@ -270,7 +284,8 @@ function SuccessIcon() {
 // ── Page Component ─────────────────────────────────────────────────────────────
 
 /** How long a $5 pass buyer stays on this page before moving on; "Continue" skips the wait. */
-const PASS_REDIRECT_MS = 12_000;
+// Owner 2026-11-22: longer, so the $9-a-month offer can be read before the page moves on.
+const PASS_REDIRECT_MS = 25_000;
 
 /**
  * The prepared report, offered to someone who has just paid (owner 2026-11-16: "$5 offers dont go
@@ -301,6 +316,7 @@ function PostCheckoutPage() {
   const [resolvedPlan, setResolvedPlan] = useState<string | undefined>(plan);
   const [resolvedEmail, setResolvedEmail] = useState<string>("");
   const [passEndsAt, setPassEndsAt] = useState<string | null>(null);
+  const [passContinueUrl, setPassContinueUrl] = useState<string | null>(null);
 
   // Derive display info from plan
   const planLabel = getPlanLabel(resolvedPlan);
@@ -333,6 +349,7 @@ function PostCheckoutPage() {
         setResolvedEmail(result.email);
         const passEnd = "passEndsAt" in result ? ((result as { passEndsAt?: string | null }).passEndsAt ?? null) : null;
         setPassEndsAt(passEnd);
+        setPassContinueUrl("passContinueUrl" in result ? ((result as { passContinueUrl?: string | null }).passContinueUrl ?? null) : null);
         // Paid: stop offering to resume this checkout (owner 2026-11-08).
         clearCheckoutStarted();
         // Started from a bid's "Open this bid: $5"? Land back on that bid, unlocked (owner 2026-11-08).
@@ -450,6 +467,20 @@ function PostCheckoutPage() {
                   . <span className="font-semibold">Nothing renews</span>: on that day it simply ends, and you&apos;re never charged again unless you
                   choose to keep going. We emailed you this too.
                 </p>
+              )}
+              {passEndsAt && passContinueUrl && (
+                <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-3 text-left text-sm text-slate-800">
+                  <p className="font-semibold">{PASS_CONTINUE_OFFER_HEAD}</p>
+                  <p className="mt-1">{PASS_CONTINUE_OFFER_BODY}</p>
+                  <a
+                    href={passContinueUrl}
+                    onClick={() => trackEvent("pass_continue_click", "post_checkout")}
+                    className="mt-2 block rounded-lg bg-amber-500 px-4 py-2.5 text-center font-semibold text-white hover:bg-amber-600"
+                  >
+                    {PASS_CONTINUE_BUTTON}
+                  </a>
+                  <p className="mt-1.5 text-xs text-slate-500">Or do nothing: your pass ends on its own and you are never charged. This offer is in your email too.</p>
+                </div>
               )}
               {resolvedEmail && (
                 <p className="mt-3 rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-900">

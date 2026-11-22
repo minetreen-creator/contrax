@@ -30,7 +30,7 @@ describe("one offer story", () => {
     ];
     for (const f of files) {
       const src = read(f).split("\n").filter((l) => !/^\s*(\/\/|\*|\/\*|\{\/\*)/.test(l)).join("\n");
-      expect({ f, hit: /ask before charging|we ask before|then \$19/i.test(src) }).toEqual({ f, hit: false });
+      expect({ f, hit: /ask before charging|we ask before|then \$19(?!9)/i.test(src) }).toEqual({ f, hit: false });
     }
   });
 
@@ -56,9 +56,9 @@ describe("one offer story", () => {
     const mail = passConfirmationEmail(new Date("2026-12-09T15:00:00Z"));
     expect(mail.subject).toBe("Your Contrax Starter pass: 30 days, ends December 9. Nothing renews");
     expect(mail.text).toContain("You will not be charged again, and there is nothing to cancel.");
-    expect(read("src/lib/starter-pass.server.ts")).toContain("await sendPassConfirmation(firstPurchase[0].email, new Date(ends));");
+    expect(read("src/lib/starter-pass.server.ts")).toContain("await sendPassConfirmation(firstPurchase[0].email, new Date(ends), userId);");
     expect(read("src/routes/post-checkout.tsx")).toContain("Nothing renews</span>: on that day it simply ends");
-    expect(read("src/lib/stripe.ts")).toContain("starterPass ? STARTER_PASS_SUBMIT_MESSAGE : CHECKOUT_SUBMIT_MESSAGE");
+    expect(read("src/lib/stripe.ts")).toContain("starterPass ? STARTER_PASS_SUBMIT_MESSAGE : passContinue ?");
   });
 });
 
@@ -74,7 +74,7 @@ describe("the report offer after checkout", () => {
     expect(page).toContain('trackEvent("post_checkout_click", "sample_report")');
   });
   test("a pass buyer has time to read it, and the pass note still comes first", () => {
-    expect(page).toContain("const PASS_REDIRECT_MS = 12_000;");
+    expect(page).toContain("const PASS_REDIRECT_MS = 25_000;");
     expect(page).toContain("passEnd ? PASS_REDIRECT_MS : 1500");
     expect(page.indexOf("Nothing renews</span>")).toBeLessThan(page.indexOf("{!savingsProduct && <ReportOffer />}"));
   });

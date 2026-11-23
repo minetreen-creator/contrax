@@ -5,6 +5,7 @@
  * and bid-digest emails after each sync run.
  */
 
+import { MEMBER_BID_NUDGE_BODY, MEMBER_BID_NUDGE_HEAD, MEMBER_BID_NUDGE_URL } from "./member-bid-activity";
 import { BID_PREP_MIN_DAYS, BID_PREP_PRICE } from "~/lib/bid-prep";
 import { digestBidsToList } from "./digest-recipients";
 import { OPEN_TO_ALL_EMAIL_MAX } from "./digest-open-to-all";
@@ -1158,6 +1159,15 @@ export function bidDigestHtml(
         </td>
       </tr>` : ""}
       ${daily?.subFinderHtml ?? weekly?.subFinderHtml ?? ""}
+      ${daily ? `<!-- Owner 2026-11-23: ask members to mark what they bid on (member-bid-activity.ts). -->
+      <tr>
+        <td style="padding:0 32px 20px;text-align:center;">
+          <p style="margin:0;color:#374151;font-size:14px;line-height:1.6;">
+            <strong>${MEMBER_BID_NUDGE_HEAD}</strong> ${MEMBER_BID_NUDGE_BODY}
+            <a href="${MEMBER_BID_NUDGE_URL}" style="color:#2563eb;font-weight:600;text-decoration:none;">Open my pipeline →</a>
+          </p>
+        </td>
+      </tr>` : ""}
       <!-- Bid Prep (owner 2026-11-17): one line under the bids, in every bid email. -->
       <tr>
         <td style="padding:0 32px 24px;text-align:center;">

@@ -3,6 +3,7 @@ import { displayTitle } from "~/lib/bid-title";
 import { createFileRoute } from "@tanstack/react-router";
 import { dueDayText } from "~/lib/deadline-label";
 import { UnlockBidSheet } from "~/components/UnlockBidSheet";
+import { noteNoticeOpen } from "~/lib/notice-open";
 import { BidPrepOffer } from "~/components/BidPrepOffer";
 import { bidPrepSource } from "~/lib/bid-prep";
 import { openBidsHrefForState } from "~/lib/open-bids-list";
@@ -692,6 +693,7 @@ function BidDetailPage() {
                     href={sourceUrl}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={() => noteNoticeOpen(bid.id)}
                     className="text-sm font-semibold text-amber-400 hover:text-amber-300"
                   >
                     Open original notice ↗

@@ -1,3 +1,4 @@
+import { noteNoticeOpen } from "~/lib/notice-open";
 import { createFileRoute, useNavigate, useLocation } from "@tanstack/react-router";
 import { DashboardCockpit } from "~/components/DashboardCockpit";
 import { TrialEndedCard } from "~/components/TrialEndedCard";
@@ -2156,7 +2157,7 @@ function DashboardPage({ user, trial, onTrialStarted }: { user: AuthUser; trial:
                               <div><HeadStartLock until={bid.head_start_until} compact /></div>
                             )}
                             {bid.source_url && (
-                              <div><a href={bid.source_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-500">View source posting<svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg></a></div>
+                              <div><a href={bid.source_url} target="_blank" rel="noopener noreferrer" onClick={() => noteNoticeOpen(bid.id)} className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-500">View source posting<svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg></a></div>
                             )}
                           </div>
                         )}

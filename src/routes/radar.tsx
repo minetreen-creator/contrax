@@ -1,3 +1,4 @@
+import { noteNoticeOpen } from "~/lib/notice-open";
 import { publicAgency, publicTitle } from "~/lib/public-bid";
 import { BID_PREP_PRICE } from "~/lib/bid-prep";
 import { isLearnRadarVisit } from "~/lib/learn-radar";
@@ -3074,7 +3075,7 @@ export function RadarCard({
               href={match.source_url}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() => trackEvent("radar_source_click", String(match.id))}
+              onClick={() => { trackEvent("radar_source_click", String(match.id)); noteNoticeOpen(match.id); }}
               className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-amber-400 hover:text-amber-300"
             >
               Open original notice <span aria-hidden="true">↗</span>

@@ -50,6 +50,8 @@ export interface PipelineWorkspaceDeps {
   authenticate?: (request: Request) => Promise<{ id: number } | null>;
   /** Called after a save that leaves the bid marked "won" (owner 2026-11-22: tell me when someone wins). */
   onWon?: (userId: number, bidId: number) => Promise<void>;
+  /** Owner 2026-11-23: the owner also hears when a member marks a bid Preparing or Submitted. */
+  onStage?: (userId: number, bidId: number, stage: "preparing" | "submitted") => Promise<void>;
 }
 
 /** The real thing: one owner alert per member and bid. Never throws. */
@@ -62,10 +64,20 @@ async function alertOwnerOfMarkedWin(userId: number, bidId: number): Promise<voi
   }
 }
 
+async function alertOwnerOfMarkedStage(userId: number, bidId: number, stage: "preparing" | "submitted"): Promise<void> {
+  try {
+    const { alertOwnerOfBidStage } = await import("~/lib/member-bid-activity.server");
+    await alertOwnerOfBidStage(userId, bidId, stage);
+  } catch (e) {
+    console.error("[api/pipeline-workspace] stage alert failed (non-fatal)", e);
+  }
+}
+
 export function pipelineWorkspaceHandler(deps: PipelineWorkspaceDeps = {}) {
   const store = deps.store ?? neonPipelineWorkspaceStore;
   const authenticate = deps.authenticate ?? getUserFromRequest;
   const onWon = deps.onWon ?? (deps.store ? async () => {} : alertOwnerOfMarkedWin);
+  const onStage = deps.onStage ?? (deps.store ? async () => {} : alertOwnerOfMarkedStage);
   return async function handler({ request }: { request: Request }) {
     const user = await authenticate(request);
     if (!user) return Response.json({ error: "Not authenticated" }, { status: 401 });
@@ -112,6 +124,7 @@ export function pipelineWorkspaceHandler(deps: PipelineWorkspaceDeps = {}) {
       });
       if (!row) return Response.json({ error: "Saved bid not found" }, { status: 404 });
       if (body.pursuit_status === "won") await onWon(user.id, bidId).catch(() => {});
+      if (body.pursuit_status === "preparing" || body.pursuit_status === "submitted") await onStage(user.id, bidId, body.pursuit_status).catch(() => {});
       return Response.json({ data: { ...row, bid_id: Number(row.bid_id), follow_up_date: dateOnly(row.follow_up_date) } });
     } catch (error) {
       console.error("[api/pipeline-workspace] update failed", error);

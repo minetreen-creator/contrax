@@ -1,3 +1,4 @@
+import { noteNoticeOpen } from "~/lib/notice-open";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { getCurrentUser, type AuthUser } from "~/lib/auth";
@@ -503,7 +504,7 @@ function PipelinePage({ user: _user }: { user: AuthUser }) {
                   <div className="min-w-0 flex-1">
                     <h3 className="font-semibold leading-snug text-slate-900">
                       {item.source_url ? (
-                        <a href={item.source_url} target="_blank" rel="noopener noreferrer" className="hover:text-blue-600">
+                        <a href={item.source_url} target="_blank" rel="noopener noreferrer" onClick={() => noteNoticeOpen(item.bid_id)} className="hover:text-blue-600">
                           {item.title}
                         </a>
                       ) : (

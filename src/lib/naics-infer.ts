@@ -78,6 +78,8 @@ const KEYWORD_OVERRIDES: Record<string, string[]> = {
   "541512": ["computer systems", "systems design", "it consulting", "information technology", "it services", "network design"],
   "541513": ["computer facilities", "it infrastructure", "data center", "facilities management"],
   "541519": ["computer services", "it support", "it services", "technology services"],
+  // 541610 is the 2007-era code many firms still type; a visitor searched it in PA and got 0 (2026-11-23).
+  "541610": ["management consulting", "business consulting", "administrative consulting"],
   "541611": ["management consulting", "business consulting", "administrative consulting"],
   "541612": ["human resources", "hr consulting", "recruiting consulting"],
   "541613": ["marketing consulting", "marketing services", "branding"],

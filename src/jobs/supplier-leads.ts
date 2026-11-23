@@ -48,6 +48,22 @@
  * Checked and left out because the only published address was a help desk, HR or accounts inbox:
  * McCoy's Building Supply, Elliott Electric Supply, Summit Electric Supply, Equipment Depot, Luck
  * Stone.
+ * Fifth batch, 2026-11-22 (Sunday evening, on the owner's word: "we should send monday morning emails
+ * now"), 56 emails from his own Gmail, never to be queued here. Suppliers (17): AIS Construction
+ * Equipment, Bejac, Buck Lumber, Bobcat Enterprises, Chaney Enterprises, Consumers Concrete, Hayward
+ * Lumber, Insurance Service of Asheville, Maschmeyer Concrete, Allen & Allen Company, Mason Tractor,
+ * Mead Clark Lumber, Rancho Mesa Insurance Services, Point Ready Mix, Synergy Equipment, Wells
+ * Insurance, Westview Concrete. Federal winners (16): Advanced Technology Construction, JR Merit,
+ * David Industrial Services, Hammer LGC, Monument Construction Services, KMC Solutions, Range
+ * Construction, Reilly Construction, Facility Products & Services, OAC Action Construction, Valiant
+ * Construction, Sealaska Secure Construction Solutions, Barque Consulting, Wright Bros, Koman
+ * Construction Management, Signature Renovations. Associations (15): TEXO, ASA Houston, Texas
+ * Aggregates and Concrete Association, Florida Transportation Builders' Association, AGC Florida
+ * East Coast, ABC Florida East Coast, ABC Virginia, ABC Carolinas, Master Builders' Association of
+ * Western Pennsylvania, Keystone Contractors Association, Ohio Concrete, AGC New York State, Long
+ * Island Contractors' Association, AGC of Michigan, Michigan Infrastructure & Transportation
+ * Association. Press (8): Providence Business News, Ocean State Media, Delaware Online, Tennessee
+ * Lookout, Hartford Business Journal, Connecticut Public, NonDoc, KOKH Fox 25.
  */
 export const SUPPLIER_LEADS: readonly (readonly [string, string, string, string])[] = [
   // Building materials and supply

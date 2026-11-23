@@ -66,7 +66,9 @@ describe("Connect with Thumbtack (owner 2026-10-22)", () => {
     expect(sealed).not.toContain("access-token-xyz");
     expect(decryptToken(sealed, KEY_ENV)).toBe("access-token-xyz");
     const parts = sealed.split(".");
-    parts[3] = parts[3]!.slice(0, -2) + (parts[3]!.endsWith("A") ? "BB" : "AA");
+    // Change the first character, which always changes the bytes. The old version changed the last
+    // two, and about once in 250 runs those fell in base64's unused bits and decoded the same (2026-11-23).
+    parts[3] = (parts[3]!.startsWith("A") ? "B" : "A") + parts[3]!.slice(1);
     expect(() => decryptToken(parts.join("."), KEY_ENV)).toThrow();
     expect(() => encryptToken("x", { TOKEN_ENCRYPTION_KEY: "short" })).toThrow("TOKEN_ENCRYPTION_KEY");
   });

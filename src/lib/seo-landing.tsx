@@ -13,7 +13,7 @@
  * verified live homepage hero). No "unlimited" claims anywhere.
  */
 import { biddableFirst } from "~/lib/biddable-first";
-import { publicAgency, publicTitle, scrubAgencyName } from "~/lib/public-bid";
+import { publicAgency, publicPlace, publicTitle, scrubAgencyName } from "~/lib/public-bid";
 import { agencyCardLabel, jobSummary, publicJobText, valueLabel } from "~/lib/bid-job-summary";
 import { displayTitle } from "~/lib/bid-title";
 import { createServerFn } from "@tanstack/react-start";
@@ -155,7 +155,8 @@ export function mapSeoBid(r: any): SeoBid {
     due_date: r.due_date ? String(r.due_date) : null,
     estimated_value: r.estimated_value ? String(r.estimated_value) : null,
     naics_code: r.naics_code ? String(r.naics_code) : null,
-    location: r.location ? String(r.location) : null,
+    // Owner 2026-11-23 ("do 2"): the city or county, read from the buyer when the row has only the state.
+    location: publicPlace(r.agency ? String(r.agency) : null, r.location ? String(r.location) : null, seoBidStateName(r), r.source ? String(r.source) : null),
     set_aside: r.set_aside ? String(r.set_aside) : null,
     source_url: null,
     source: r.source ? String(r.source) : null,

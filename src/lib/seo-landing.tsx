@@ -630,7 +630,10 @@ export function SeoLanding(props: {
       <SiteHeader />
       {/* Hero */}
       <section className="relative overflow-hidden bg-slate-950 text-white">
-        <div className="mx-auto max-w-6xl px-6 py-16 sm:py-20">
+        {/* Owner 2026-11-23 ("do it"): two in three Facebook visitors left from the page they landed on,
+            nearly all on phones, where this section pushed the first bid below the first screen.
+            On a phone it is now short enough that the list starts on that screen. */}
+        <div className="mx-auto max-w-6xl px-6 py-7 sm:py-20">
           <p className="text-xs font-bold uppercase tracking-widest text-amber-400">
             {props.eyebrow}
           </p>
@@ -643,7 +646,7 @@ export function SeoLanding(props: {
 
           {/* PRIMARY CTA: the search (owner 2026-11-03: the 7-day trial ended
               on 2026-11-01, so the old trial button was a dead promise). */}
-          <div className="mt-8">
+          <div className="mt-5 sm:mt-8">
             <a
               href={props.radarHref}
               onClick={() => trackEvent("hero_cta_click", "radar_primary")}
@@ -659,15 +662,21 @@ export function SeoLanding(props: {
         <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-slate-50 to-transparent" />
       </section>
 
-      {/* Honesty banner */}
-      <div className="border-b border-slate-200 bg-slate-100">
+      {/* Honesty banner: above the list on wide screens, below it on phones so the bids come first. */}
+      <div className="hidden border-b border-slate-200 bg-slate-100 sm:block">
         <div className="mx-auto max-w-6xl px-6 py-3 text-sm text-slate-600">
           {props.honesty}
         </div>
       </div>
 
       {/* Real content */}
-      <div className="mx-auto max-w-6xl px-6 py-10">{props.children}</div>
+      <div className="mx-auto max-w-6xl px-6 py-5 sm:py-10">{props.children}</div>
+
+      <div className="border-t border-slate-200 bg-slate-100 sm:hidden">
+        <div className="mx-auto max-w-6xl px-6 py-3 text-sm text-slate-600">
+          {props.honesty}
+        </div>
+      </div>
 
       {/* Daily-email offer worded for this page (owner 2026-11-08). */}
       <StickyOfferBar

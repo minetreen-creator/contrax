@@ -105,3 +105,38 @@ export function publicTitle(title: string | null | undefined, agency?: string | 
   if (t.length < 8) return original.length >= 8 && !/\d{3,}/.test(original) ? original : "Public bid";
   return t.charAt(0).toUpperCase() + t.slice(1);
 }
+
+const PLACE_LEAD = /^(?:the|board|of|school|schools|public|government|commissioners|commission|district|county|city|town)$/i;
+
+/**
+ * Where a job is, for someone who has not paid (owner 2026-11-23, "do 2": two in three Facebook
+ * visitors left from the list they landed on, and a list that says only "South Carolina" cannot tell
+ * a contractor whether a job is 10 minutes away or 4 hours). When the stored location is no more than
+ * the state, the city or county is read from the buyer's name: "City of Rock Hill" gives "Rock Hill",
+ * "Lancaster County School District" gives "Lancaster County". For a city or county government that
+ * does point at the buyer; the owner chose that. State, federal and college buyers give nothing.
+ * A location that already says more than the state is returned as it is. PURE.
+ */
+export function publicPlace(agency: string | null | undefined, location: string | null | undefined, stateName: string | null | undefined, source?: string | null): string | null {
+  const loc = String(location ?? "").trim();
+  const st = String(stateName ?? "").trim();
+  const onlyState = !loc || (!!st && loc.toLowerCase() === st.toLowerCase()) || /^[A-Z]{2}$/.test(loc);
+  if (!onlyState) return loc || null;
+  const a = String(agency ?? "").trim();
+  const kind = agencyKind(a, source);
+  let place: string | null = null;
+  if (kind === "county" || kind === "city" || kind === "school") {
+    const cityOf = a.match(/\b(?:City|Town|Village|Borough|Township)\s+of\s+([A-Z][A-Za-z.'-]*(?:\s+[A-Z][A-Za-z.'-]*){0,3})/);
+    const countyOf = a.match(/\bCounty\s+of\s+([A-Z][A-Za-z.'-]*(?:\s+[A-Z][A-Za-z.'-]*){0,2})/);
+    const county = a.match(/((?:[A-Z][A-Za-z.'-]*\s+){1,4})County\b/);
+    if (cityOf) place = cityOf[1].trim();
+    else if (countyOf) place = `${countyOf[1].trim()} County`;
+    else if (county) {
+      const words = county[1].trim().split(/\s+/);
+      while (words.length && PLACE_LEAD.test(words[0])) words.shift();
+      if (words.length && words.length <= 3) place = `${words.join(" ")} County`;
+    }
+  }
+  if (!place) return loc || null;
+  return st ? `${place}, ${st}` : place;
+}

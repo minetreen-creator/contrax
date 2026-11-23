@@ -289,7 +289,8 @@ export async function sendRadarLeadConfirmationEmail(
       from: "Contrax <hello@contrax.company>",
       replyTo: "contrax.companyllc@gmail.com",
       to: [to],
-      subject: "Confirm your Contrax match alerts",
+      // 14 of 20 never confirmed (2026-11-23): the subject now says what the one tap gets them.
+      subject: "One tap to get your matching bids by email",
       html: radarLeadConfirmationHtml(confirmUrl, unsubscribeUrl),
     });
 

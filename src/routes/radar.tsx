@@ -2454,6 +2454,7 @@ function RadarLanding() {
                     interest is right after the free bid, and no price was shown. */}
                 {/* Owner 2026-11-09 (about 3% of searchers clicked buy): the offer names their own
                     results and stays after an email unlock, when they have seen the whole list. */}
+                {emailUnlocked && <ConfirmEmailNudge />}
                 {(locked > 0 || emailUnlocked) && (() => {
                   const pitch = radarPassPitch({
                     total: totalMatches,
@@ -3772,6 +3773,8 @@ function EmailUnlockCard({
       }
       trackEvent("radar_lead_captured", compact ? "email_unlock_top" : "email_unlock");
       markEmailGiven();
+      // The list opens at once, so nothing told the visitor a confirmation email was waiting (2026-11-23).
+      try { sessionStorage.setItem(CONFIRM_NUDGE_KEY, "1"); } catch { /* private mode: no note */ }
       if (!data.unlocked) {
         // Saved for alerts, but this browser couldn't be unlocked (no visitor
         // cookie, or an unsubscribed address): the account is the way in.
@@ -4239,6 +4242,26 @@ const moneyShort = (n: number) =>
  * bids in a state ends with real next steps instead of a dead end. Data from
  * /api/radar/more; each block hides when it has nothing.
  */
+const CONFIRM_NUDGE_KEY = "contrax_confirm_nudge";
+
+/**
+ * Owner 2026-11-23 ("just 3"): 20 visitors gave an email for bid alerts and 14 never confirmed it,
+ * so they get nothing. The email opens the full list at once and nothing on the page said a
+ * confirmation was waiting. Shown only in the visit where the email was given.
+ */
+function ConfirmEmailNudge() {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    try { setShow(sessionStorage.getItem(CONFIRM_NUDGE_KEY) === "1"); } catch { /* no note */ }
+  }, []);
+  if (!show) return null;
+  return (
+    <p role="status" className="rounded-xl border border-emerald-400/50 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-200">
+      📬 One more step: we just emailed you a Confirm button. Tap it and we&apos;ll send your new matching bids as they post.
+    </p>
+  );
+}
+
 function RadarMoreOptions({ trade, state, onPickState }: { trade: string; state: string; onPickState: (s: string) => void }) {
   const [more, setMore] = useState<RadarMore | null>(null);
   useEffect(() => {

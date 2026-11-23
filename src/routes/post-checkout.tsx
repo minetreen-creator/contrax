@@ -62,6 +62,8 @@ interface ResolveResult {
   passContinueUrl?: string | null;
   /** Starter at $9 a month: the next charge date (ISO), so the confirmation can say it (owner 2026-11-22). */
   monthlyNextChargeAt?: string | null;
+  /** A one-hour link to set a password, only for an account this checkout created (owner 2026-11-23). */
+  setPasswordUrl?: string | null;
 }
 
 const resolveCheckoutSession = createServerFn({ method: "POST" })
@@ -222,12 +224,27 @@ const resolveCheckoutSession = createServerFn({ method: "POST" })
       const { starterNextChargeAt } = await import("~/lib/starter-pass");
       monthlyNextChargeAt = starterNextChargeAt(session.created).toISOString();
     }
+    // Owner 2026-11-23 ("add it"): the first monthly buyer paid, then went signup, login, forgot
+    // password and reset before he could set a password. An account this checkout made (bought
+    // signed out; an older account sharing the email was turned away above) gets the button here.
+    // The emailed link still works; this one lasts an hour.
+    let setPasswordUrl: string | null = null;
+    if (metadataUserId == null) {
+      try {
+        const { issuePasswordResetToken } = await import("~/lib/password-reset-tokens");
+        const resetToken = await issuePasswordResetToken(email, 60 * 60 * 1000);
+        setPasswordUrl = `/reset-password?token=${encodeURIComponent(resetToken)}`;
+      } catch (e) {
+        console.error("[post-checkout] set-password link unavailable:", (e as Error).message);
+      }
+    }
     return {
       email,
       plan: planTier ?? "starter",
       passEndsAt,
       passContinueUrl,
       monthlyNextChargeAt,
+      setPasswordUrl,
     };
   });
 
@@ -326,6 +343,7 @@ function PostCheckoutPage() {
   const [passEndsAt, setPassEndsAt] = useState<string | null>(null);
   const [passContinueUrl, setPassContinueUrl] = useState<string | null>(null);
   const [monthlyNextChargeAt, setMonthlyNextChargeAt] = useState<string | null>(null);
+  const [setPasswordUrl, setSetPasswordUrl] = useState<string | null>(null);
 
   // Derive display info from plan
   const planLabel = getPlanLabel(resolvedPlan);
@@ -361,6 +379,7 @@ function PostCheckoutPage() {
         setPassContinueUrl("passContinueUrl" in result ? ((result as { passContinueUrl?: string | null }).passContinueUrl ?? null) : null);
         const monthlyNext = "monthlyNextChargeAt" in result ? ((result as { monthlyNextChargeAt?: string | null }).monthlyNextChargeAt ?? null) : null;
         setMonthlyNextChargeAt(monthlyNext);
+        setSetPasswordUrl("setPasswordUrl" in result ? ((result as { setPasswordUrl?: string | null }).setPasswordUrl ?? null) : null);
         // Paid: stop offering to resume this checkout (owner 2026-11-08).
         clearCheckoutStarted();
         // Started from a bid's "Open this bid: $5"? Land back on that bid, unlocked (owner 2026-11-08).
@@ -508,6 +527,15 @@ function PostCheckoutPage() {
                   Your {planLabel} {passEndsAt ? "pass" : "plan"} is on <span className="font-semibold">{resolvedEmail}</span>. Sign in with that email
                   next time; we emailed it a link to set your password.
                 </p>
+              )}
+              {setPasswordUrl && (
+                <a
+                  href={setPasswordUrl}
+                  onClick={() => trackEvent("post_checkout_set_password_click", resolvedPlan ?? "")}
+                  className="mt-3 block w-full rounded-xl bg-slate-900 px-6 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-slate-800"
+                >
+                  Set your password now →
+                </a>
               )}
               {!savingsProduct && <ReportOffer />}
               {!savingsProduct && (

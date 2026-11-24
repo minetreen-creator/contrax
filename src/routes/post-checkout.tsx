@@ -537,6 +537,17 @@ function PostCheckoutPage() {
                   Set your password now →
                 </a>
               )}
+              {/* Owner 2026-11-24 ("add it"): 107 visitors were shown the app banner and 1 installed. The
+                  app's alerts are for members, so it is offered here, to the person who just paid. */}
+              {!savingsProduct && (
+                <a
+                  href="/app?source=post_checkout"
+                  onClick={() => trackEvent("post_checkout_click", "app")}
+                  className="mt-3 block rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-blue-700 hover:border-blue-300"
+                >
+                  📱 Get new matching bids on your phone →
+                </a>
+              )}
               {!savingsProduct && <ReportOffer />}
               {!savingsProduct && (
                 <a

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { dayChange, etDayStartMs, paidByEtDay } from "./live-console";
+import { chatgptNote, dayChange, etDayStartMs, paidByEtDay } from "./live-console";
 
 // Owner 2026-11-03: "a mission control rework, something that doesn't look too
 // lengthy and looks cool" / "yes, don't keep the current version".
@@ -136,4 +136,14 @@ test("Mission Control counts a search only when a person ran it", () => {
   // The feed, the map, the 14-day trend and today's tile all use the same rule.
   expect(api.match(/AND \$\{db\.unsafe\(REAL_SEARCHER_SQL\)\}/g)?.length).toBe(2);
   expect(api.match(/AND \$\{REAL_SEARCHER_SQL\}/g)?.length).toBe(2);
+});
+
+// Owner 2026-11-24 ("do it"): ChatGPT sent 225 visitors in 30 days and the console did not show them.
+describe("ChatGPT as a source", () => {
+  test("the People tile says how many came from ChatGPT, and stays quiet when none did", () => {
+    expect(chatgptNote({ today: 3, week: 95 })).toBe("3 from ChatGPT today · 95 in 7 days");
+    expect(chatgptNote({ today: 0, week: 12 })).toBe("0 from ChatGPT today · 12 in 7 days");
+    expect(chatgptNote({ today: 0, week: 0 })).toBeNull();
+    expect(chatgptNote(undefined)).toBeNull();
+  });
 });

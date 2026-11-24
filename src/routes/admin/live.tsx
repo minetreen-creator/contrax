@@ -33,6 +33,7 @@ import {
   matchCount,
   trendPaths,
   bidOpensNote,
+  chatgptNote,
 } from "~/lib/live-console";
 import type { TrackedVisitor, VisitorTrail } from "~/lib/scraper-watch";
 
@@ -1746,7 +1747,7 @@ function StatStrip({ today, online }: { today: TodayStats | null; online: number
   if (!today) return null;
   const money = (n: number) => `$${n.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
   const cards: { label: string; value: string; change: ReturnType<typeof dayChange> | null; color: string; note?: string; note2?: string | null; icon: typeof Search; lead?: boolean }[] = [
-    { label: "People today", value: today.people.today.toLocaleString("en-US"), change: dayChange(today.people.today, today.people.yesterdaySoFar), color: "#2dd4bf", icon: Users, lead: true, note: `${today.people.yesterday.toLocaleString("en-US")} all day yesterday · bots and scanners left out` },
+    { label: "People today", value: today.people.today.toLocaleString("en-US"), change: dayChange(today.people.today, today.people.yesterdaySoFar), color: "#2dd4bf", icon: Users, lead: true, note2: chatgptNote(today.chatgpt), note: `${today.people.yesterday.toLocaleString("en-US")} all day yesterday · bots and scanners left out` },
     // Owner 2026-11-04: "Thats a stat I don't really need" (Checkouts tile removed).
     {
       label: "Paid today",

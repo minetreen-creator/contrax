@@ -32,6 +32,7 @@ import {
   type OnlineVisitor,
   type StateSearchStat,
   type TodayStats,
+  CHATGPT_VIEW_SQL,
   type TrialCard,
   type TrendDay,
   fillTrend,
@@ -714,6 +715,16 @@ async function loadToday(db: ReturnType<typeof sql>, stripe: { day: ReturnType<t
     }
   } catch (e) {
     console.error("[api/admin/live-console] people today unavailable:", e);
+  }
+  try {
+    const rows = (await db.query(
+      `SELECT COUNT(DISTINCT visitor_id) FILTER (WHERE ${isToday})::int AS today, COUNT(DISTINCT visitor_id)::int AS week
+       FROM page_views
+       WHERE created_at >= NOW() - INTERVAL '7 days' AND visitor_id IS NOT NULL AND path NOT LIKE '/admin%' AND ${human} AND ${CHATGPT_VIEW_SQL}`,
+    )) as { today: number; week: number }[];
+    out.chatgpt = { today: Number(rows[0]?.today ?? 0), week: Number(rows[0]?.week ?? 0) };
+  } catch (e) {
+    console.error("[api/admin/live-console] ChatGPT visitors unavailable:", e);
   }
   try {
     const rows = (await db.query(

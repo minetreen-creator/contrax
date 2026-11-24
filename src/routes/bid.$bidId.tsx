@@ -606,6 +606,7 @@ function BidDetailPage() {
             )}
             {/* Owner 2026-11-11 ("build it"): a trail up to the state and trade pages, for visitors and
                 search engines. The JSON-LD says the same thing in the form Google reads. */}
+            {!signedIn && <ArrivalNote stateName={bid.state_name} stateHref={stateHref} openInState={bid.similar?.scope !== "naics" ? (bid.similar?.total ?? 0) : 0} />}
             <BidBreadcrumbs crumbs={crumbs} />
             <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd(crumbs, `https://www.contrax.company/bid/${bid.id}`)) }} />
             <article className="mt-3 overflow-hidden rounded-2xl border border-slate-700 bg-slate-900">
@@ -821,6 +822,44 @@ function BidDetailPage() {
       {bid && confirming ? <UnlockBidSheet bidId={bid.id} bid={bid} onClose={closeSheet} /> : null}
     </main>
     </>
+  );
+}
+
+/**
+ * Owner 2026-11-24 ("do it"): in 30 days ChatGPT sent 225 visitors, 141 of them straight to a single
+ * bid page, and two in three left from it. Someone arriving cold has never heard of Contrax and the
+ * page said nothing about what it is. Shown only to a signed-out visitor who arrived from outside
+ * the site (a link from ChatGPT, a search result, a post), never while moving around the site.
+ */
+function ArrivalNote({ stateName, stateHref, openInState }: { stateName: string | null; stateHref: string | null; openInState: number }) {
+  const [from, setFrom] = useState<string | null>(null);
+  useEffect(() => {
+    try {
+      const tagged = new URLSearchParams(window.location.search).get("utm_source");
+      let host = "";
+      try { host = document.referrer ? new URL(document.referrer).hostname.toLowerCase() : ""; } catch { host = ""; }
+      const inside = /(^|\.)contrax\.company$/.test(host);
+      if (inside && !tagged) return;
+      if (!host && !tagged) return;
+      const label = /chatgpt|openai/i.test(`${tagged ?? ""} ${host}`) ? "chatgpt" : tagged ? "tagged" : "outside";
+      setFrom(label);
+      trackEvent("bid_arrival_note_shown", label);
+    } catch { /* no note */ }
+  }, []);
+  if (!from) return null;
+  return (
+    <aside aria-label="About Contrax" className="mb-3 rounded-xl border border-sky-500/40 bg-sky-500/10 px-4 py-3 text-sm leading-relaxed text-sky-100">
+      <span className="font-bold text-white">New to Contrax?</span> We gather open public bids from cities, counties, schools, state and federal
+      agencies in one place, updated every weekday.
+      {stateHref && stateName && (
+        <>
+          {" "}
+          <a href={stateHref} onClick={() => trackEvent("bid_arrival_note_click", from)} className="font-bold text-amber-300 underline hover:text-amber-200">
+            {openInState > 1 ? `This is one of ${openInState.toLocaleString("en-US")} open in ${stateName}. See them all →` : `See every open bid in ${stateName} →`}
+          </a>
+        </>
+      )}
+    </aside>
   );
 }
 

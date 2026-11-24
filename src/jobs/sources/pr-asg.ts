@@ -32,7 +32,8 @@ const HEADERS = { "user-agent": "Mozilla/5.0 (compatible; ContraxBot/1.0; +https
 
 export const asgListUrl = (page: number): string =>
   page <= 1 ? `${ASG_ORIGIN}/subastas` : `${ASG_ORIGIN}/subastas?page=${page}&order_by=-creado&date_scope=link`;
-export const asgDetailUrl = (number: string): string => `${ASG_ORIGIN}/subastas${number}`;
+// The portal was rebuilt in November 2026: the detail page moved from /subastas{number} to /subastas/{number}.
+export const asgDetailUrl = (number: string): string => `${ASG_ORIGIN}/subastas/${number}`;
 
 export interface AsgCard {
   method: string;
@@ -88,6 +89,16 @@ export function parseAsgList(html: string): AsgCard[] {
     if (!/^[0-9A-Z][0-9A-Z-]{3,40}$/i.test(number)) continue;
     out.push({ method: decode(m[1]), agency: decode(m[2]), number, purpose: decode(m[4]) });
   }
+  if (out.length > 0) return out;
+  // The rebuilt portal (seen 2026-11-24, after two failed syncs): new class names and a new order,
+  // method, then number, then agency, then the summary. The old cards above no longer appear.
+  const re2 =
+    /subastas-card-title">([\s\S]*?)<\/h2>[\s\S]*?subastas-case-heading">([\s\S]*?)<\/h3>[\s\S]*?subastas-card-agency">([\s\S]*?)<\/p>[\s\S]*?subastas-card-summary">([\s\S]*?)<\/p>/g;
+  while ((m = re2.exec(html)) !== null) {
+    const number = decode(m[2]);
+    if (!/^[0-9A-Z][0-9A-Z-]{3,40}$/i.test(number)) continue;
+    out.push({ method: decode(m[1]), agency: decode(m[3]), number, purpose: decode(m[4]) });
+  }
   return out;
 }
 
@@ -108,15 +119,32 @@ export function asgDateToIso(date: string, time: string | null): string | null {
   return Number.isFinite(ms) ? new Date(ms).toISOString() : null;
 }
 
+/** "01/13/2027 · 10:30 AM" (month/day/year, Puerto Rico, UTC−4) → ISO, or null; no time means end of day. PURE. */
+function asgNumericDateToIso(m: RegExpExecArray): string | null {
+  const month = Number(m[1]);
+  const day = Number(m[2]);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+  let hour = 23;
+  let minute = 59;
+  if (m[4] && m[5] && m[6]) {
+    hour = Number(m[4]) % 12 + (m[6].toUpperCase() === "P" ? 12 : 0);
+    minute = Number(m[5]);
+  }
+  const ms = Date.UTC(Number(m[3]), month - 1, day, hour + 4, minute);
+  return Number.isFinite(ms) ? new Date(ms).toISOString() : null;
+}
+
 /** Localidad and the "Acto de Apertura" opening from a detail page. PURE. */
 export function parseAsgDetail(html: string): AsgDetail {
   const text = decode(html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>|<!--[\s\S]*?-->/gi, " "));
   const loc = /Localidad<\/h2>\s*([^<]{1,200})</i.exec(html);
   const ap = /Acto de Apertura\s+(\d{1,2}\s+de\s+[a-záéíóú]+\s+de\s+\d{4})\s*(\d{1,2}:\d{2}\s*[AP]\.?\s*M\.?)?/i.exec(text);
   const localidad = loc ? decode(loc[1]) : null;
+  // The rebuilt portal writes the opening as "01/13/2027 · 10:30 AM" (month/day/year) and shows no Localidad.
+  const ap2 = ap ? null : /Acto de Apertura\s+(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s*·?\s*(\d{1,2}):(\d{2})\s*([AP])\.?\s*M)?/i.exec(text);
   return {
     localidad: localidad && localidad.length <= 60 ? localidad : null,
-    apertura: ap ? asgDateToIso(ap[1], ap[2] ?? null) : null,
+    apertura: ap ? asgDateToIso(ap[1], ap[2] ?? null) : ap2 ? asgNumericDateToIso(ap2) : null,
   };
 }
 

@@ -41,7 +41,7 @@ describe("Puerto Rico ASG portal", () => {
     if ("skip" in row) throw new Error("expected a row");
     expect(row.external_id).toBe("prasg-27J-03663");
     expect(row.location).toBe("San Juan, PR");
-    expect(row.source_url).toBe("https://asg.pr.gov/subastas27J-03663");
+    expect(row.source_url).toBe("https://asg.pr.gov/subastas/27J-03663");
     expect(row.due_date).toBe("2026-12-03T14:00:00.000Z");
     expect(row.description).toContain("request for proposals (RFP) 27J-03663");
     expect(deriveInsertLocationColumns({ ...row, sourceName: "pr_asg" }).normalized_state).toBe("PR");
@@ -60,5 +60,24 @@ describe("Puerto Rico ASG portal", () => {
     expect(TAIL_SOURCES.some((t) => t.name === "pr_asg")).toBe(true);
     expect(SOURCE_CLASSES["pr_asg"]).toEqual({ class: "state", scopeState: "PR", searchScope: "state-portal", recordType: "opportunity" });
     expect(SOURCE_HOME_JURISDICTIONS["pr_asg"]).toBe("PR");
+  });
+  // The portal was rebuilt in November 2026 (two failed syncs, alert 2026-11-24). Markup as fetched that morning.
+  test("rebuilt portal: the new cards and the month/day/year opening are read", () => {
+    const list = `<div class="subastas-card-head"><h2 class="subastas-card-title">Subasta Formal</h2> </div> <div class="subastas-card-body"> <h3 class="subastas-case-heading">27J-07152</h3> <span class="subastas-status-badge">Abierta</span>
+      <div class="subastas-agency-desc"> <p class="subastas-card-agency">Compañía de Fomento Industrial</p> <p class="subastas-card-summary">DEMOLICIÓN Y DISPOSICIÓN DE EDIFICIOS INDUSTRIALES UBICADO EN EL MUNICIPIO DE CANOVANAS </p> </div> </div>
+      <a class="subastas-card-link" href="/subastas/27J-07152">Ver detalle</a>
+      <h2 class="subastas-card-title">Subasta Informal</h2> <h3 class="subastas-case-heading">27J-01687</h3> <p class="subastas-card-agency">Gerencia y Presupuesto</p> <p class="subastas-card-summary">REMODELACIÓN DEL TERCER PISO</p>`;
+    const cards = parseAsgList(list);
+    expect(cards.map((c) => c.number)).toEqual(["27J-07152", "27J-01687"]);
+    expect(cards[0]).toMatchObject({ method: "Subasta Formal", agency: "Compañía de Fomento Industrial" });
+    expect(cards[0]!.purpose.startsWith("DEMOLICIÓN Y DISPOSICIÓN")).toBe(true);
+    const detail = parseAsgDetail(`<article class="subasta-meeting-item"> <h3 class="subasta-meeting-title">Reunión Pre-subasta</h3> <p class="subasta-meeting-meta"> 12/02/2026 · 9:00 AM </p></article>
+      <article class="subasta-meeting-item"> <div class="subasta-meeting-content"> <h3 class="subasta-meeting-title">Acto de Apertura</h3> <p class="subasta-meeting-meta"> <i class="far fa-calendar-alt" aria-hidden="true"></i> 01/13/2027 · 10:30 AM - Virtual </p></div></article>`);
+    expect(detail.apertura).toBe("2027-01-13T14:30:00.000Z");
+    expect(detail.localidad).toBeNull();
+    const row = asgRow(cards[0]!, detail, Date.parse("2026-11-24T00:00:00Z")) as { source_url: string; location: string; due_date: string };
+    expect(row.source_url).toBe("https://asg.pr.gov/subastas/27J-07152");
+    expect(row.location).toBe("Puerto Rico");
+    expect(row.due_date).toBe("2027-01-13T14:30:00.000Z");
   });
 });

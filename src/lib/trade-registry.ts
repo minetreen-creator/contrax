@@ -583,6 +583,15 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
       "grounds keeping",
       "groundskeeping",
       "snow removal",
+      // Owner 2026-11-23 ("check snow"): winter is when a landscaper plows. Of 19 open snow service
+      // jobs in Pennsylvania, 12 were missing from a landscaping search because their titles say
+      // "Snow & Ice Removal" or "Snow Plowing", not "snow removal". Services only: none of these
+      // phrases matches a salt, ice-melt or equipment purchase.
+      "snow plowing",
+      "snow and ice removal",
+      "snow & ice removal",
+      "snow and ice control",
+      "snow & ice control",
       // Owner 2026-10-27: mowing, tree and brush titles carry no "lawn" or
       // "landscap" (e.g. "Landfill Vegetation Mowing and Brush Removal").
       "mowing",

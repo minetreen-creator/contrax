@@ -324,7 +324,21 @@ export interface TodayStats {
   checkouts: DayPair;
   /** Dollars paid through Stripe; null when Stripe could not be read. */
   paid: (DayPair & { salesToday: number }) | null;
+  /**
+   * Visitors ChatGPT sent (owner 2026-11-24: 225 in 30 days, more buyers than Facebook, and the
+   * console did not show them as a group). Same people rules as `people`.
+   */
+  chatgpt?: { today: number; week: number };
 }
+
+/** "3 from ChatGPT today · 95 in 7 days", or null when there were none this week. PURE. */
+export function chatgptNote(c: { today: number; week: number } | undefined): string | null {
+  if (!c || c.week <= 0) return null;
+  return `${c.today.toLocaleString("en-US")} from ChatGPT today · ${c.week.toLocaleString("en-US")} in 7 days`;
+}
+
+/** Page views that came from ChatGPT: its own referrer, or the utm_source it adds to links it cites. */
+export const CHATGPT_VIEW_SQL = "(referrer ILIKE '%chatgpt.com%' OR referrer ILIKE '%openai.com%' OR source ILIKE '%chatgpt%')";
 
 /** Midnight today in New York, as ms since epoch. PURE. */
 export function etDayStartMs(nowMs: number): number {

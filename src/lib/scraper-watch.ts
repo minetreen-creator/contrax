@@ -202,6 +202,8 @@ export function cameFromLabel(rows: readonly { referrer: string | null; source: 
   if (tagged) {
     const src = String(tagged.source).toLowerCase();
     const medium = String(tagged.medium ?? "").toLowerCase();
+    // ChatGPT adds utm_source=chatgpt.com to the links it cites, and often sends no referrer (2026-11-24).
+    if (src.includes("chatgpt") || src.includes("openai")) return "ChatGPT";
     if (src === "google") return medium === "cpc" ? "Google Ads" : "Google search";
     if (src === "facebook" && medium !== "cpc" && medium !== "paid") return "Facebook";
     if (src === "linkedin" && medium === "social") return "LinkedIn";

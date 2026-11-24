@@ -52,4 +52,10 @@ describe("first-arrival attribution reads plainly", () => {
     expect(cameFromLabel([r(null, "facebook", "social")])).toBe("Facebook");
     expect(cameFromLabel([r(null, "linkedin", "social")])).toBe("LinkedIn");
   });
+  // Owner 2026-11-24: ChatGPT tags the links it cites and often sends no referrer.
+  test("ChatGPT is named from its referrer or from the tag it adds to links", () => {
+    expect(cameFromLabel([{ referrer: "https://chatgpt.com/", source: null }])).toBe("ChatGPT");
+    expect(cameFromLabel([{ referrer: null, source: "chatgpt.com", medium: "referral" }])).toBe("ChatGPT");
+    expect(cameFromLabel([{ referrer: "https://www.contrax.company/bid/1", source: "chatgpt.com" }])).toBe("ChatGPT");
+  });
 });

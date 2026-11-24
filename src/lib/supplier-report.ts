@@ -34,7 +34,7 @@ export const SUPPLIER_SAMPLE_STATE = "SC";
 // Owner 2026-11-22 ("we should add more states"): California, Massachusetts, Michigan and Connecticut,
 // the largest states in the 2026-11-21 read not yet shown (141, 102, 51 and 48 open construction jobs).
 // Washington added the same morning on the owner's word ("add it"): 81 open on its construction page.
-export const SUPPLIER_SAMPLE_STATES: readonly string[] = ["SC", "NC", "VA", "GA", "FL", "TX", "PA", "OH", "NY", "CA", "MA", "MI", "CT", "WA"];
+export const SUPPLIER_SAMPLE_STATES: readonly string[] = ["SC", "NC", "VA", "GA", "FL", "TX", "PA", "OH", "NY", "CA", "MA", "MI", "CT", "WA", "TN"];
 const NUMBER_WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen"];
 /** "eight": how many states the sample shows, in words, so the page never says the wrong number. */
 export const SUPPLIER_SAMPLE_COUNT_WORD = NUMBER_WORDS[SUPPLIER_SAMPLE_STATES.length] ?? String(SUPPLIER_SAMPLE_STATES.length);

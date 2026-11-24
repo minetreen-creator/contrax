@@ -735,6 +735,7 @@ export function welcomeEmailHtml(email: string, setPasswordToken?: string): stri
                 <li>Complete your onboarding — tell us about your services and locations</li>
                 <li>Browse live government contracts matched to your profile</li>
                 <li>Use AI to summarize bids and draft proposals in seconds</li>
+                <li>Put Contrax on your phone at <a href="https://www.contrax.company/app?source=welcome_email" style="color:#2563eb;">www.contrax.company/app</a>. Members get an alert when a new matching bid posts.</li>
               </ol>
             </td>
           </tr>

@@ -41,8 +41,9 @@ export function sitemapLocs(xml: string): string[] {
  * page, for use after a change to the bid page itself.
  */
 export const INDEXNOW_SITEMAPS = {
-  pages: ["/sitemap.xml", "/sitemap-local.xml"],
-  all: ["/sitemap.xml", "/sitemap-local.xml", "/sitemap-bids.xml"],
+  // The award pages (src/lib/award-pages.ts) ride with the weekly "pages" resubmit (owner 2026-11-24).
+  pages: ["/sitemap.xml", "/sitemap-local.xml", "/sitemap-awards.xml"],
+  all: ["/sitemap.xml", "/sitemap-local.xml", "/sitemap-awards.xml", "/sitemap-bids.xml"],
   // The company pages (src/lib/company-pages.ts). This one is a sitemap index: one child per state.
   companies: ["/sitemap-companies.xml"],
 } as const;

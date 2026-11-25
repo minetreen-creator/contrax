@@ -208,3 +208,24 @@ describe("paid vs checkout opens (owner 2026-10-31)", () => {
     expect(readFileSync("src/routes/api/admin/live-console.ts", "utf8")).toContain("today: await loadToday(db, stripe)");
   });
 });
+
+describe("money panel counts purchases made from a bid page (owner 2026-11-24)", () => {
+  test("a bid-page unlock click is a buy click and a server-made checkout is an opened checkout", async () => {
+    const { isMoneyClick, isMoneyOpened, MONEY_CLICKED_SQL, MONEY_OPENED_SQL } = await import("./live-console");
+    for (const e of ["bid_top_starter_click", "bid_lock_starter_click", "pricing_starter_click", "plan_checkout_started"]) {
+      expect(isMoneyClick(e)).toBe(true);
+    }
+    expect(isMoneyClick("bid_lock_sheet_shown")).toBe(false);
+    expect(isMoneyOpened("checkout_session_created")).toBe(true);
+    expect(isMoneyOpened("plan_checkout_redirected")).toBe(true);
+    expect(isMoneyOpened("plan_checkout_started")).toBe(false);
+    expect(MONEY_CLICKED_SQL).toContain("'bid_lock_starter_click'");
+    expect(MONEY_OPENED_SQL).toContain("'checkout_session_created'");
+  });
+  test("only a purchase made while passes were sold counts as a pass", async () => {
+    const { wasStarterPass } = await import("./starter-pass");
+    expect(wasStarterPass("2026-11-22T02:41:00Z")).toBe(true);
+    expect(wasStarterPass("2026-11-23T18:59:00Z")).toBe(false);
+    expect(wasStarterPass(null)).toBe(false);
+  });
+});

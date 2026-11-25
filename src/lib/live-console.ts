@@ -211,9 +211,9 @@ export interface MoneyStats {
   payingNow: number;
   /** Unique visitors who opened /pricing or /upgrade. */
   sawPlans: number;
-  /** Clicked a plan's buy button. */
+  /** Clicked a buy button: on the plans or on a locked bid page (MONEY_CLICKED_SQL). */
   clickedBuy: number;
-  /** Reached Stripe checkout. */
+  /** Reached Stripe checkout from any page (MONEY_OPENED_SQL). */
   openedCheckout: number;
   /** Clicked buy while signed out and were sent to sign up. */
   signinRequired: number;
@@ -271,6 +271,24 @@ export function trialsEndingWithin(trials: readonly TrialCard[], days: number, n
       return end > now && end <= limit;
     })
     .sort((a, b) => new Date(a.endsAt).getTime() - new Date(b.endsAt).getTime());
+}
+
+/**
+ * What counts as a buy click and as an opened checkout (owner 2026-11-24: the panel read
+ * "0 clicked buy, 0 opened checkout" in a week with 5 sales). Buyers pay from a locked bid page,
+ * whose buttons and server-made checkout record these names, not the plans-page ones.
+ */
+export const MONEY_CLICK_EVENTS = ["bid_top_starter_click", "bid_lock_starter_click", "pricing_starter_click"] as const;
+export const MONEY_OPENED_EVENTS = ["plan_checkout_redirected", "checkout_session_created"] as const;
+/** SQL test for a buy click on any page. Event names are constants, never visitor input. */
+export const MONEY_CLICKED_SQL = `(event_name LIKE '%checkout_started' OR event_name IN (${MONEY_CLICK_EVENTS.map((e) => `'${e}'`).join(", ")}))`;
+export const MONEY_OPENED_SQL = `event_name IN (${MONEY_OPENED_EVENTS.map((e) => `'${e}'`).join(", ")})`;
+/** Pure twins of the SQL above, for the tests. */
+export function isMoneyClick(event: string): boolean {
+  return event.endsWith("checkout_started") || (MONEY_CLICK_EVENTS as readonly string[]).includes(event);
+}
+export function isMoneyOpened(event: string): boolean {
+  return (MONEY_OPENED_EVENTS as readonly string[]).includes(event);
 }
 
 /** The money panel's steps, in order. */

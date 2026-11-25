@@ -29,6 +29,18 @@ export const STARTER_PASS_REMIND_DAYS = 5;
  * for one day, until new buyers moved to $9 a month).
  */
 export const STARTER_PASS_CONTINUE_CENTS = 900;
+/**
+ * 30-day passes were sold until this moment (2026-11-22, 10:19 AM Eastern); every Starter sale after
+ * it is $9 a month from the start. Both kinds set starter_pass_bought_at, so this is what tells a
+ * pass holder who went on to a subscription (a renewal) from someone who subscribed outright.
+ */
+export const STARTER_PASS_SOLD_UNTIL = "2026-11-22T15:00:00Z";
+/** True when the purchase was a 30-day pass. PURE. */
+export function wasStarterPass(boughtAt: string | Date | null | undefined): boolean {
+  if (!boughtAt) return false;
+  const t = new Date(boughtAt).getTime();
+  return Number.isFinite(t) && t < new Date(STARTER_PASS_SOLD_UNTIL).getTime();
+}
 export const STARTER_PASS_CONTINUE_PRICE = STARTER_PASS_CONTINUE_CENTS / 100;
 /** Stripe will not start a subscription's first charge less than 48 hours out; we leave a margin. */
 export const PASS_CONTINUE_MIN_LEAD_SECONDS = 49 * 3600;

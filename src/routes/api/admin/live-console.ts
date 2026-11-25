@@ -579,7 +579,7 @@ async function loadStarterPassStats() {
     await ensureStarterPassColumns();
     const db = sql();
     const [r] = (await db`
-      SELECT COUNT(*)::int AS bought,
+      SELECT COUNT(*) FILTER (WHERE starter_pass_bought_at < ${STARTER_PASS_SOLD_UNTIL}::timestamptz)::int AS bought,
              COUNT(*) FILTER (WHERE starter_pass_ends_at > NOW())::int AS active_now,
              -- "Went on monthly" means a 30-day pass first, then a subscription. Someone who bought
              -- $9 a month outright carries starter_pass_bought_at too and is not a renewal

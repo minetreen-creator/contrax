@@ -85,4 +85,13 @@ describe("award pages (owner 2026-11-24)", () => {
     // Announced to Bing (which ChatGPT's search leans on) with the weekly resubmit.
     expect(readFileSync("src/lib/indexnow.ts", "utf8")).toContain('pages: ["/sitemap.xml", "/sitemap-local.xml", "/sitemap-awards.xml"]');
   });
+
+  test("the site title carries the full address (owner 2026-11-25)", () => {
+    const title = "Contrax (contrax.company): Government Bids for Contractors";
+    expect(readFileSync("src/routes/__root.tsx", "utf8")).toContain(`const SITE_TITLE = "${title}";`);
+    const home = readFileSync("src/routes/index.tsx", "utf8");
+    expect(home).toContain(`const PAGE_TITLE = "${title}";`);
+    expect(home).toContain('alternateName: ["contrax.company", "Contrax LLC"]');
+    expect(title.length).toBeLessThanOrEqual(60);
+  });
 });

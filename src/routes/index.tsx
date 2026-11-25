@@ -133,7 +133,8 @@ const getSupplierSamples = createServerFn({ method: "GET" }).handler(async (): P
 
 // Owner 2026-11-18 ("yes"): the site leads with the report for businesses that sell to contractors;
 // a month of contractor traffic searched and did not pay. Contractors keep their search, lower down.
-const PAGE_TITLE = "Contrax | The public construction jobs opening in your state, every week";
+// Owner 2026-11-25 ("do that"): the name with the full address, so a search for Contrax finds this site and not a namesake.
+const PAGE_TITLE = "Contrax (contrax.company): Government Bids for Contractors";
 const PAGE_DESCRIPTION =
   "For suppliers, equipment rental, staffing and bonding firms: a weekly report of the public construction jobs opening in your state, federal awards and who won them. Contractors can search open government bids by trade and state.";
 
@@ -184,6 +185,7 @@ function Home() {
     "@context": "https://schema.org",
     "@type": "Organization",
     name: "Contrax",
+    alternateName: ["contrax.company", "Contrax LLC"],
     legalName: "Contrax LLC",
     description:
       "Contrax sends businesses that sell to contractors a weekly report of the public construction jobs opening in their state. It also helps businesses win government work two ways. Contractors and small businesses search open bids from cities, counties, school districts, state and federal agencies, matched to their trade and state. Companies with a sales team get a prepared report of the federal contracts ending in their line of work, who holds them and the open bids that fit.",

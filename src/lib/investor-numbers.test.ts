@@ -38,7 +38,7 @@ describe("investor numbers", () => {
     expect(weekGrowthLabel(0, 0)).toBe("flat");
     expect(weekGrowthLabel(3, 2)).toBe("+50%");
     expect(weekGrowthLabel(1, 2)).toBe("-50%");
-    expect(dollars(5)).toBe("$9");
+    expect(dollars(9)).toBe("$9");
     expect(dollars(12.5)).toBe("$12.50");
     expect(dollars(1234)).toBe("$1,234");
   });

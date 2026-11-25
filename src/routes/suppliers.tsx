@@ -170,6 +170,12 @@ function SuppliersPage() {
                       </>
                     )}
                     <a href={a.url} target="_blank" rel="noopener noreferrer" className="font-semibold text-blue-700 underline underline-offset-4 hover:text-blue-900">Federal award record →</a>
+                    {a.page && (
+                      <>
+                        <span className="text-slate-400"> · </span>
+                        <a href={a.page} className="font-semibold text-blue-700 underline underline-offset-4 hover:text-blue-900">About this award →</a>
+                      </>
+                    )}
                   </p>
                       </li>
                     ))}

@@ -1,6 +1,7 @@
 import { STATE_NAMES } from "./contract-map";
 import { usaspendingUrl } from "./award-leads";
-import { SUPPLIER_AWARD_MIN, SUPPLIER_SUPPLY_PATTERN, SUPPLIER_TITLE_PATTERN, clip, contactLine, tidyCaps, tidyJobTitle, type SupplierSample } from "./supplier-report";
+import { AWARD_PAGE_MIN, awardPath } from "./award-pages";
+import { SUPPLIER_SAMPLE_STATES, SUPPLIER_AWARD_MIN, SUPPLIER_SUPPLY_PATTERN, SUPPLIER_TITLE_PATTERN, clip, contactLine, tidyCaps, tidyJobTitle, type SupplierSample } from "./supplier-report";
 
 const okUrl = (v: unknown): string | null => (/^https?:\/\/[^\s"'<>]+$/i.test(String(v ?? "")) ? String(v) : null);
 
@@ -41,7 +42,7 @@ export async function loadSupplierSample(state: string): Promise<SupplierSample 
       ORDER BY created_at DESC LIMIT 8`,
       s`
       SELECT * FROM (
-        SELECT a.award_key, a.recipient_uei, a.recipient_name, a.recipient_city, a.recipient_state, a.amount, a.awarded_on, a.description, r.url AS site
+        SELECT a.id, a.award_key, a.recipient_uei, a.recipient_name, a.recipient_city, a.recipient_state, a.amount, a.awarded_on, a.description, r.url AS site
         FROM award_leads a LEFT JOIN sam_registrants r ON r.uei = a.recipient_uei
         WHERE a.pop_state = ${state} AND a.naics_code LIKE '23%' AND a.awarded_on IS NOT NULL AND a.amount >= ${SUPPLIER_AWARD_MIN}
         ORDER BY a.awarded_on DESC LIMIT 20
@@ -53,7 +54,7 @@ export async function loadSupplierSample(state: string): Promise<SupplierSample 
     ]);
     const counts = countsRaw as { open: number; new_week: number; closing: number }[];
     const jobs = jobsRaw as { id: number; title: string; agency: string | null; due_date: string }[];
-    const awards = awardsRaw as { site: string | null; award_key: string; recipient_uei: string | null; recipient_name: string; recipient_city: string | null; recipient_state: string | null; amount: number | string; awarded_on: string; description: string | null }[];
+    const awards = awardsRaw as { id: number; site: string | null; award_key: string; recipient_uei: string | null; recipient_name: string; recipient_city: string | null; recipient_state: string | null; amount: number | string; awarded_on: string; description: string | null }[];
     const ending = endingRaw as { recipient_name: string; amount: number | string; end_date: string; agency: string | null }[];
     // Public address and contact, kept in their own table so a missing table or row never hides an award.
     const ueis = awards.map((x) => x.recipient_uei).filter((u): u is string => Boolean(u));
@@ -78,6 +79,8 @@ export async function loadSupplierSample(state: string): Promise<SupplierSample 
         date: iso(a.awarded_on),
         what: clip(tidyCaps(String(a.description ?? "")), 90),
         url: usaspendingUrl(a.award_key),
+        // Its own page (src/lib/award-pages.ts) when the award is large enough to have one.
+        page: Number(a.amount) >= AWARD_PAGE_MIN && SUPPLIER_SAMPLE_STATES.includes(state) ? awardPath(tidyCaps(a.recipient_name), state, Number(a.id)) : null,
         ...awardContact(a.site, a.recipient_uei ? contactByUei.get(a.recipient_uei) : undefined),
       })),
       ending: ending

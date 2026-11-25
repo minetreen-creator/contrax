@@ -37,7 +37,8 @@ import {
   type TrendDay,
   fillTrend,
   trendDays,
-  TREND_DAYS, BID_PAGE_SQL } from "~/lib/live-console";
+  TREND_DAYS, BID_PAGE_SQL, MONEY_CLICKED_SQL, MONEY_OPENED_SQL } from "~/lib/live-console";
+import { STARTER_PASS_CONTINUE_PRICE, STARTER_PASS_SOLD_UNTIL } from "~/lib/starter-pass";
 
 /**
  * A search by a person (owner 2026-11-17: 39 of 40 searches on the feed came from visitors that
@@ -411,14 +412,14 @@ async function handler({ request }: { request: Request }) {
           AND ${db.unsafe(human)}
       `) as { saw: number }[];
       const [ev] = (await db`
-        SELECT COUNT(DISTINCT visitor_id) FILTER (WHERE event_name LIKE '%checkout_started')::int AS clicked,
-               COUNT(DISTINCT visitor_id) FILTER (WHERE event_name = 'plan_checkout_redirected')::int AS opened,
+        SELECT COUNT(DISTINCT visitor_id) FILTER (WHERE ${db.unsafe(MONEY_CLICKED_SQL)})::int AS clicked,
+               COUNT(DISTINCT visitor_id) FILTER (WHERE ${db.unsafe(MONEY_OPENED_SQL)})::int AS opened,
                COUNT(DISTINCT visitor_id) FILTER (WHERE event_name = 'plan_checkout_signin_required')::int AS signin,
                COUNT(DISTINCT visitor_id) FILTER (WHERE event_name = 'plan_checkout_failed')::int AS failed
         FROM funnel_events
         WHERE created_at > NOW() - INTERVAL '7 days'
           AND visitor_id IS NOT NULL
-          AND event_name LIKE '%checkout%'
+          AND (event_name LIKE '%checkout%' OR ${db.unsafe(MONEY_CLICKED_SQL)})
           AND ${db.unsafe(human)}
       `) as { clicked: number; opened: number; signin: number; failed: number }[];
       const [paying] = (await db`
@@ -558,7 +559,9 @@ async function loadInvestorNumbers(
     }
     return {
       payingCustomers: Number(paying?.n ?? 0),
-      mrr: monthlyRecurring(byTier, MONTHLY_PRICE_USD),
+      // Owner 2026-11-24: this read $28 for two subscribers who each pay $9. Every Starter month
+      // sold now is $9 (stripe.ts bills STARTER_PASS_AMOUNT / STARTER_PASS_CONTINUE_CENTS).
+      mrr: monthlyRecurring(byTier, { ...MONTHLY_PRICE_USD, starter: STARTER_PASS_CONTINUE_PRICE }),
       ...revenueWindows(sessions, isAdminEmail, now),
       renewal: renewalRate(pass?.continued ?? 0, pass?.ended ?? 0),
       customersEver: Number(ever?.n ?? 0),
@@ -578,7 +581,11 @@ async function loadStarterPassStats() {
     const [r] = (await db`
       SELECT COUNT(*)::int AS bought,
              COUNT(*) FILTER (WHERE starter_pass_ends_at > NOW())::int AS active_now,
-             COUNT(*) FILTER (WHERE subscription_status = 'active' AND stripe_subscription_id IS NOT NULL)::int AS continued,
+             -- "Went on monthly" means a 30-day pass first, then a subscription. Someone who bought
+             -- $9 a month outright carries starter_pass_bought_at too and is not a renewal
+             -- (owner 2026-11-24: the panel read "2 of 2 renewed" for two such buyers).
+             COUNT(*) FILTER (WHERE subscription_status = 'active' AND stripe_subscription_id IS NOT NULL
+                              AND starter_pass_bought_at < ${STARTER_PASS_SOLD_UNTIL}::timestamptz)::int AS continued,
              COUNT(*) FILTER (WHERE subscription_status = 'pass_ended')::int AS ended
       FROM users
       WHERE starter_pass_bought_at IS NOT NULL AND ${db.unsafe(qaExternalUserSQL())}

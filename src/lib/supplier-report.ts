@@ -251,7 +251,8 @@ export interface SupplierSample {
   /** `url` is the award's public record on USAspending.gov . */
   /** `site` is the company's own website from its public SAM.gov registration, when it lists one. */
   /** `address` and `contact` come from the company's public SAM.gov registration, when it is on file. */
-  awards: { company: string; where: string; amount: number; date: string; what: string; url: string; site: string | null; address: string | null; contact: string | null }[];
+  /** `page` is the award's own Contrax page (src/lib/award-pages.ts), when it has one. */
+  awards: { company: string; where: string; amount: number; date: string; what: string; url: string; page?: string | null; site: string | null; address: string | null; contact: string | null }[];
   ending: { company: string; amount: number; end: string; agency: string }[];
 }
 

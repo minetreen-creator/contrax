@@ -82,5 +82,7 @@ describe("award pages (owner 2026-11-24)", () => {
     const xml = awardSitemapXml([{ company: "Semper Tek CMS JV LLC", state: "NC", id: 4812 }]);
     expect(xml).toContain("<loc>https://www.contrax.company/federal-award/semper-tek-cms-jv-llc-nc-4812</loc>");
     expect(readFileSync("public/robots.txt", "utf8")).toContain("Sitemap: https://www.contrax.company/sitemap-awards.xml");
+    // Announced to Bing (which ChatGPT's search leans on) with the weekly resubmit.
+    expect(readFileSync("src/lib/indexnow.ts", "utf8")).toContain('pages: ["/sitemap.xml", "/sitemap-local.xml", "/sitemap-awards.xml"]');
   });
 });

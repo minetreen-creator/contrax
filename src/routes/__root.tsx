@@ -26,7 +26,9 @@ import adminCss from "~/styles/admin.css?url";
 const PROD_URL = "https://www.contrax.company";
 // Fallbacks for pages without their own tags; kept inside what search results show
 // (title under 60 characters, description under 160).
-const SITE_TITLE = "Contrax | Government Bids Matched to Your Trade and State";
+// Owner 2026-11-25: a search for the name returned other companies called Contrax and none of our pages.
+// The title carries the full address so the name and what we do read together.
+const SITE_TITLE = "Contrax (contrax.company): Government Bids for Contractors";
 const SITE_DESCRIPTION =
   "Find open government bids for your trade and state: federal, state, county, city and school district. Search free, with no account needed.";
 

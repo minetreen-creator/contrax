@@ -159,9 +159,10 @@ const KEYWORD_OVERRIDES: Record<string, string[]> = {
   "484122": ["less than truckload", "ltl", "freight shipping"],
   "488119": ["airport operations", "airport"],
   "493110": ["warehousing", "warehouse", "storage", "distribution center"],
-  "517111": ["wired telecommunications", "telecom", "telecommunications", "fiber"],
+  // Owner 2026-11-25 (a Florida telecommunications search): school network cabling and internet service jobs were not matched.
+  "517111": ["wired telecommunications", "telecom", "telecommunications", "fiber", "network cabling", "structured cabling"],
   "517312": ["wireless", "telecommunications", "cellular", "mobile network"],
-  "517919": ["telecommunications", "network services", "voip"],
+  "517919": ["telecommunications", "network services", "voip", "internet services", "internet service"],
   "518210": ["data processing", "hosting", "cloud", "data center", "it hosting"],
   // ── Repair & maintenance ─────────────────────────────────────────────────
   "811210": ["electronics repair", "electronic repair", "refurbishment", "electronics"],

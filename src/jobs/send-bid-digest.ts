@@ -20,6 +20,7 @@ import { sendPersonalBidDigests } from "~/lib/email";
 import { isDigestEligible } from "~/lib/digest-recipients";
 import { ensureBidDigestLog, loadDigestBids, loadDigestMembers } from "~/lib/digest-inputs.server";
 import { autopilotBidsOf, autopilotProfileOf, memberDigestBids } from "~/lib/digest-member";
+import { withMemberNoticeLinks } from "~/lib/member-notice-link.server";
 import { autopilotEmailHtml, strongPicks } from "~/lib/autopilot";
 import { newYorkWeekday, subFinderPromptDue, subFinderPromptHtml } from "~/lib/sub-finder";
 import { autopilotEnabled, autopilotForMember, ensureAutopilotTable, newAutopilotBudget } from "~/lib/autopilot.server";
@@ -68,7 +69,9 @@ export async function sendMorningBidDigest(): Promise<{ bids: number; recipients
       noMatches++;
       continue;
     }
-    const strip = (list: typeof mine) => list.map(({ match: _match, ...b }) => b);
+    // Each bid links through the member's own signed address, so an opened notice is recorded
+    // (src/lib/member-notice-link.server.ts). The destination is the same government page as before.
+    const strip = (list: typeof mine) => withMemberNoticeLinks(u.user_id ? Number(u.user_id) : null, list.map(({ match: _match, ...b }) => b));
     let autopilotHtml = "";
     let autopilotPicks = 0;
     if (matcher.personal && u.user_id) {

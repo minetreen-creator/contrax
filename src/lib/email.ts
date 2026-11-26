@@ -5,7 +5,7 @@
  * and bid-digest emails after each sync run.
  */
 
-import { MEMBER_BID_NUDGE_BODY, MEMBER_BID_NUDGE_HEAD, MEMBER_BID_NUDGE_URL } from "./member-bid-activity";
+import { MEMBER_BID_NUDGE_BODY, MEMBER_BID_NUDGE_HEAD, MEMBER_BID_NUDGE_URL, MEMBER_BIDDING_LINK_TEXT } from "./member-bid-activity";
 import { BID_PREP_MIN_DAYS, BID_PREP_PRICE } from "~/lib/bid-prep";
 import { digestBidsToList } from "./digest-recipients";
 import { OPEN_TO_ALL_EMAIL_MAX } from "./digest-open-to-all";
@@ -24,6 +24,8 @@ export interface NewBidSummary {
   due_date: string | null;
   set_aside?: string | null;
   bid_id?: number;
+  /** The member's own "I'm bidding this" link (src/lib/member-notice-link.server.ts); paid morning email only. */
+  bidding_url?: string;
   /**
    * The stored `bids.source` label for this row (PR-1 restructure, owner
    * ruling d). Carried so the sync runner can keep AWARD-TYPE sources
@@ -1071,6 +1073,7 @@ export function bidDigestHtml(
         </td>
       </tr>
     </table>
+    ${bid.bidding_url ? `<p style="margin:8px 0 0;font-size:13px;"><a href="${bid.bidding_url}" style="color:#047857;font-weight:600;text-decoration:none;">${MEMBER_BIDDING_LINK_TEXT}</a></p>` : ""}
   </td>
 </tr>`;
   const bidRows = bids.map(bidRow).join("\n");

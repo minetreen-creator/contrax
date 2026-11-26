@@ -48,10 +48,39 @@ export function verifyMemberNotice(userId: number, bidId: number, sig: string, e
 }
 
 /** The email's bids with each link swapped for the member's signed one. Bids without an id, and every bid when signing is unavailable, keep their own link. */
-export function withMemberNoticeLinks<T extends { source_url: string; bid_id?: number }>(userId: number | null | undefined, bids: readonly T[], env?: Record<string, string | undefined>): T[] {
+export function withMemberNoticeLinks<T extends { source_url: string; bid_id?: number }>(userId: number | null | undefined, bids: readonly T[], env?: Record<string, string | undefined>): (T & { bidding_url?: string })[] {
   const id = Number(userId);
   return bids.map((b) => {
     const url = b.bid_id ? memberNoticeUrl(id, Number(b.bid_id), env) : null;
-    return url ? { ...b, source_url: url } : { ...b };
+    const bidding = b.bid_id ? memberBiddingUrl(id, Number(b.bid_id), env) : null;
+    return { ...b, ...(url ? { source_url: url } : {}), ...(bidding ? { bidding_url: bidding } : {}) };
   });
+}
+
+// ── "I'm bidding this" (owner 2026-11-26, "2") ────────────────────────────────
+// A second link beside each bid in the morning email. It opens a page with one button; pressing it
+// marks the bid Preparing in the member's pipeline. The link itself changes nothing, because mail
+// scanners follow every link in an email. Signed separately from the notice link, so one signature
+// can never be used for the other.
+
+export const MEMBER_BIDDING_PATH = "https://www.contrax.company/bidding";
+
+function signBidding(userId: number, bidId: number, k: Buffer): string {
+  return createHmac("sha256", k).update(`bidding:${userId}:${bidId}`).digest("base64url").slice(0, 22);
+}
+
+export function memberBiddingUrl(userId: number, bidId: number, env?: Record<string, string | undefined>): string | null {
+  if (!Number.isSafeInteger(userId) || userId <= 0 || !Number.isSafeInteger(bidId) || bidId <= 0) return null;
+  const k = key(env);
+  if (!k) return null;
+  return `${MEMBER_BIDDING_PATH}?b=${bidId}&u=${userId}&s=${signBidding(userId, bidId, k)}`;
+}
+
+export function verifyMemberBidding(userId: number, bidId: number, sig: string, env?: Record<string, string | undefined>): boolean {
+  if (!Number.isSafeInteger(userId) || userId <= 0 || !Number.isSafeInteger(bidId) || bidId <= 0) return false;
+  const k = key(env);
+  if (!k) return false;
+  const a = Buffer.from(String(sig ?? ""));
+  const b = Buffer.from(signBidding(userId, bidId, k));
+  return a.length === b.length && timingSafeEqual(a, b);
 }

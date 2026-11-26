@@ -53,7 +53,7 @@ export async function createBidReminder(input: { email: string; bidId: number; v
 }
 
 /** The daily sender (src/jobs/send-max-reminders.ts): every due reminder for a confirmed lead, once. */
-export async function sendDueBidReminders(): Promise<{ due: number; sent: number }> {
+export async function sendDueBidReminders(): Promise<{ due: number; sent: number; memberDue: number; memberSent: number }> {
   await ensureMaxRemindersTable();
   const rows = (await sql()`
     SELECT r.id, r.email, b.id AS bid_id, b.title, b.agency, b.due_date, l.unsubscribe_token
@@ -73,5 +73,8 @@ export async function sendDueBidReminders(): Promise<{ due: number; sent: number
       sent++;
     }
   }
-  return { due: rows.length, sent };
+  // Members' own "I'm bidding this" reminders ride the same daily run (src/lib/member-bidding.server.ts).
+  const { sendMemberBiddingReminders } = await import("~/lib/member-bidding.server");
+  const member = await sendMemberBiddingReminders();
+  return { due: rows.length, sent, memberDue: member.due, memberSent: member.sent };
 }

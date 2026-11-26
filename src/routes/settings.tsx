@@ -6,6 +6,8 @@ import { SPECIALTY_OPTIONS, daysUntilExpiry, type License } from "~/lib/healthca
 import { CERTIFICATIONS, certificationDaysRemaining, certificationStatus } from "~/lib/certifications";
 import { NaicsTypeahead, naicsTitle } from "~/components/NaicsTypeahead";
 import { openBillingPortal } from "~/lib/checkout";
+import { cleanOtherTrades, MAX_OTHER_TRADES, OTHER_TRADE_MAX } from "~/lib/other-trades";
+import { trackEvent } from "~/lib/track";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -62,6 +64,8 @@ interface SettingsFormData {
   pastPerformance: string;
   capabilityStatement: string;
   industry: string;
+  /** Extra trades this business bids on (src/lib/other-trades.ts); stored in service_categories. */
+  otherTrades: string[];
   locations: string[];
   naicsCodes: string[];
   naicsInactiveCodes: string[];
@@ -386,6 +390,7 @@ function SettingsPage({ currentUser }: { currentUser: AuthUser }) {
     pastPerformance: "",
     capabilityStatement: "",
     industry: "",
+    otherTrades: [],
     locations: [],
     naicsCodes: [],
     naicsInactiveCodes: [],
@@ -417,6 +422,7 @@ function SettingsPage({ currentUser }: { currentUser: AuthUser }) {
             capabilityStatement: profile.capability_statement ?? "",
             typicalContractValue: profile.typical_contract_value ?? "",
             industry: profile.industry,
+            otherTrades: cleanOtherTrades(profile.service_categories, profile.industry),
             locations: profile.locations,
             naicsCodes: profile.naics_codes,
             naicsInactiveCodes: profile.naics_inactive_codes ?? [],
@@ -437,6 +443,13 @@ function SettingsPage({ currentUser }: { currentUser: AuthUser }) {
   const updateField = useCallback((field: keyof SettingsFormData, value: any) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   }, []);
+
+  const [otherTradeDraft, setOtherTradeDraft] = useState("");
+  const addOtherTrade = () => {
+    setForm((prev) => ({ ...prev, otherTrades: cleanOtherTrades([...prev.otherTrades, otherTradeDraft], prev.industry) }));
+    setOtherTradeDraft("");
+    trackEvent("settings_other_trade_add");
+  };
 
   const toggleCertification = useCallback((cert: string) => {
     setForm((prev) => ({
@@ -1144,6 +1157,54 @@ function SettingsPage({ currentUser }: { currentUser: AuthUser }) {
                   <option key={ind.value} value={ind.value}>{ind.label}</option>
                 ))}
               </select>
+            </div>
+
+            {/* More trades (owner 2026-11-26): the morning email matches every trade listed here. */}
+            <div className="mb-6">
+              <label htmlFor="other-trade" className="block text-sm font-medium text-slate-700">
+                More trades you bid on
+              </label>
+              <p className="mt-1 text-sm text-slate-500">
+                Do more than one kind of work? Add up to {MAX_OTHER_TRADES} and your morning email lists bids for all of them.
+              </p>
+              {form.otherTrades.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {form.otherTrades.map((t) => (
+                    <span key={t} className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-sm font-medium text-blue-800">
+                      {t}
+                      <button
+                        type="button"
+                        aria-label={`Remove ${t}`}
+                        onClick={() => updateField("otherTrades", form.otherTrades.filter((x) => x !== t))}
+                        className="text-blue-500 hover:text-blue-800"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              {form.otherTrades.length < MAX_OTHER_TRADES && (
+                <div className="mt-2 flex max-w-sm gap-2">
+                  <input
+                    id="other-trade"
+                    value={otherTradeDraft}
+                    onChange={(e) => setOtherTradeDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addOtherTrade();
+                      }
+                    }}
+                    maxLength={OTHER_TRADE_MAX}
+                    placeholder="e.g., landscaping"
+                    className="block w-full rounded-lg border border-slate-300 px-4 py-2.5 text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  />
+                  <button type="button" onClick={addOtherTrade} className="shrink-0 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                    Add
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Locations */}

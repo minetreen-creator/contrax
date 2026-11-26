@@ -59,3 +59,30 @@ export function memberNoticeOpenOwnerAlert(a: { memberEmail: string | null; titl
 export const MEMBER_BID_NUDGE_HEAD = "Bidding on one of these?";
 export const MEMBER_BID_NUDGE_BODY = "Save it, then mark it Preparing or Submitted in your pipeline, so your bids stay in one list with their deadlines.";
 export const MEMBER_BID_NUDGE_URL = "https://www.contrax.company/pipeline?source=bid_email";
+
+// ── "I'm bidding this" (owner 2026-11-26) ─────────────────────────────────────
+/** The link under each bid in the paid morning email. */
+export const MEMBER_BIDDING_LINK_TEXT = "I'm bidding this: remind me before it's due →";
+/** Days before the due date the reminder goes out. */
+export const MEMBER_BIDDING_REMIND_DAYS = 3;
+
+/** The reminder a member gets before a bid they marked Preparing is due. PURE. */
+export function memberBiddingReminderEmail(a: { title: string; due: string; bidId: number }): { subject: string; text: string } {
+  const title = String(a.title ?? "").replace(/\s+/g, " ").trim() || "your bid";
+  return {
+    subject: `Due ${a.due}: ${title.slice(0, 90)}`,
+    text: [
+      `Your bid on "${title}" is due ${a.due}.`,
+      "",
+      "Check the official notice for the exact time and any last addenda before you submit:",
+      `www.contrax.company/bid/${a.bidId}`,
+      "",
+      "Once it is in, mark it Submitted in your pipeline so it stays with your other bids:",
+      "www.contrax.company/pipeline",
+      "",
+      "You are getting this because you marked this bid as one you are bidding. Good luck.",
+      "",
+      "Contrax",
+    ].join("\n"),
+  };
+}

@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { sql } from "~/db";
 import { getUserFromRequest } from "~/lib/api-auth";
 import type { License } from "~/lib/healthcare";
+import { cleanOtherTrades } from "~/lib/other-trades";
 
 /**
  * Business profile endpoint — replaces the saveProfile (onboarding + settings)
@@ -41,6 +42,8 @@ interface ProfilePayload {
   specialties?: string[];
   licenses?: License[];
   typicalContractValue?: string;
+  /** Settings: the extra trades a member bids on (src/lib/other-trades.ts). Absent leaves them as they are. */
+  otherTrades?: string[];
 }
 
 async function saveProfileHandler({ request }: { request: Request }): Promise<Response> {
@@ -97,6 +100,8 @@ async function saveProfileHandler({ request }: { request: Request }): Promise<Re
   const specialties = Array.isArray(d.specialties)
     ? d.specialties.filter((s: string) => typeof s === "string" && s.trim().length > 0).map((s: string) => s.trim())
     : [];
+  // null = this save did not send the list (an older page), so the stored trades are kept.
+  const otherTrades = Array.isArray(d.otherTrades) ? JSON.stringify(cleanOtherTrades(d.otherTrades, industry)) : null;
   const licenses = Array.isArray(d.licenses)
     ? d.licenses
         .filter((l: License) => l && typeof l.type === "string" && l.type.trim().length > 0)
@@ -133,6 +138,7 @@ async function saveProfileHandler({ request }: { request: Request }): Promise<Re
             industry = ${industry},
             locations = ${JSON.stringify(locations)}::jsonb,
             naics_codes = ${JSON.stringify(naicsArray)}::jsonb,
+            service_categories = COALESCE(${otherTrades}::jsonb, service_categories),
             naics_inactive_codes = ${JSON.stringify(naicsInactive)}::jsonb,
             uei = ${d.uei ? d.uei.trim() : null},
             cage_code = ${d.cageCode ? d.cageCode.trim() : null},

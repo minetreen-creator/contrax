@@ -409,6 +409,10 @@ export const ROBOTS_PAUSED_SOURCES: ReadonlySet<string> = new Set<string>([
   // it is a block we respect (owner rule: "403 = stop"). The reader stays; remove this line if the town
   // allows it again.
   "nc_huntersville",
+  // Miami-Dade County, FL (2026-11-27): www.miamidade.gov answered HTTP 403 two syncs in a row, so it is
+  // a block we respect (owner rule: "403 = stop"). The reader stays; remove this line if the county
+  // allows it again.
+  "fl_miami_dade",
 ]);
 
 /** The registry without the paused sources: what a sync actually reads. PURE. */

@@ -68,4 +68,15 @@ describe("Public Bid Paperwork Pack (owner 2026-11-27)", () => {
     expect(page).not.toContain("bid-pack-file");
     expect(page).not.toContain(".zip\"");
   });
+
+  test("it is on the main page and the daily site check opens its Stripe checkout", () => {
+    const home = readFileSync("src/routes/index.tsx", "utf8");
+    expect(home).toContain("href={`${BID_PACK_PATH}?source=home`}");
+    expect(home).toContain("{BID_PACK_NAME}");
+    const checks = readFileSync("src/lib/path-checks.ts", "utf8");
+    expect(checks).toContain('name: "Paperwork pack checkout opens ($19)"');
+    expect(checks).toContain('path: "/api/bid-pack/checkout"');
+    const server = readFileSync("src/lib/bid-pack.server.ts", "utf8");
+    expect(server).toContain('client_reference_id: "contrax-path-check"');
+  });
 });

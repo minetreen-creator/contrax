@@ -48,6 +48,17 @@ export const PATH_CHECKS: readonly PathCheck[] = [
     expectStatus: 200,
     mustContain: "checkout.stripe.com",
   },
+  // Public Bid Paperwork Pack, $19 one time (owner 2026-11-27, "make sure it's set up with Stripe"):
+  // the sales page loads and its buy button opens a real Stripe payment page.
+  { name: "Paperwork pack page", path: "/bid-pack", expectStatus: 200, mustContain: "Public Bid Paperwork Pack" },
+  {
+    name: "Paperwork pack checkout opens ($19)",
+    path: "/api/bid-pack/checkout",
+    method: "POST",
+    body: JSON.stringify({ probe: "path-check" }),
+    expectStatus: 200,
+    mustContain: "checkout.stripe.com",
+  },
 ];
 
 export interface PathCheckResult {

@@ -3,6 +3,7 @@ import { SUPPLIER_ANY_STATE_NOTE, SUPPLIER_EYEBROW, SUPPLIER_SAMPLE_COUNT_WORD, 
 import { SupplierRequestForm } from "~/components/SupplierRequestForm";
 import { PrivateBidsBlock } from "~/components/PrivateBidsBlock";
 import { WinnersListOffer } from "~/components/WinnersListOffer";
+import { BID_PACK_NAME, BID_PACK_PATH, BID_PACK_PRICE } from "~/lib/bid-pack";
 import { createFileRoute } from "@tanstack/react-router";
 import { HomeMaxProof } from "~/components/HomeMaxProof";
 import { createServerFn } from "@tanstack/react-start";
@@ -553,6 +554,21 @@ function HomeBidPrep() {
           Offered on state, county, city and school bids with {BID_PREP_MIN_DAYS} or more days left. Open the bid and press "Prepare this bid for me".
         </p>
       </div>
+      {/* Owner 2026-11-27 ("on the main page"): the do-it-yourself option, the $19 Public Bid Paperwork Pack. */}
+      <a
+        id="bid-pack"
+        href={`${BID_PACK_PATH}?source=home`}
+        onClick={() => trackEvent("home_bid_pack_click")}
+        className="mt-4 block rounded-2xl border-2 border-amber-400 bg-white p-5 text-slate-900 no-underline shadow-sm hover:border-amber-500 sm:p-6 dark:bg-slate-900 dark:text-slate-100"
+      >
+        <p className="text-xs font-bold uppercase tracking-wider text-amber-600">Do it yourself · {BID_PACK_PRICE} one time</p>
+        <p className="mt-1 text-xl font-bold leading-tight sm:text-2xl">{BID_PACK_NAME}</p>
+        <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
+          Six fill-in Word documents for bidding public work: capability statement, bid cover letter, bid or no-bid checklist, bid day
+          checklist and quote request form. Pay once, download right away.
+        </p>
+        <p className="mt-3 text-sm font-bold text-blue-700 dark:text-blue-300">See what is in the pack →</p>
+      </a>
     </section>
   );
 }

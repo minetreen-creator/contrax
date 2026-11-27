@@ -213,8 +213,18 @@ function Home() {
           rows and the form; contractors get one block with the search, and everything else that was
           here lives on /contractors (ContractorSections below), one click away. */}
       {/* Owner 2026-11-27 ("at the top of the homepage"): one big live number and a search that looks
-          like the product, above everything else. The supplier report follows, unchanged. */}
+          like the product, above everything else. */}
       <HomeBigNumber sample={sample} openTotal={contractMap?.totals?.totalOpen ?? 0} />
+      {/* Owner 2026-11-27 ("Yes"): the trade-and-state search sits directly under the number, so the
+          number, the button and the search are one block. Contractors are the customers who have
+          paid; the supplier report follows, unchanged. The count and the three examples are said
+          once, in the band above (underBand). */}
+      <HomeContractFinder sample={sample} openTotal={contractMap?.totals?.totalOpen ?? 0} heading="h2" underBand />
+      <section aria-label="More for contractors" className="border-b border-white/10 bg-[#07162e] px-4 pb-8 text-center text-sm text-slate-300 sm:px-8">
+        <a href="/contractors" className="font-semibold text-amber-400 underline underline-offset-4 hover:text-amber-300">
+          Bid Prep, Starter at $9 a month and everything else for contractors →
+        </a>
+      </section>
       <HomeSupplierHero samples={supplierSamples} />
       {/* 2026-11-20: one state at a time, chosen from a tab bar, so the page is half as long and a
           visitor from Texas or New York can look at their own state. */}
@@ -225,28 +235,7 @@ function Home() {
           <WinnersListOffer source="/" place="home" />
         </div>
       </section>
-      {/* 2026-11-20: a plain line between the supplier half and the contractor half, so a supplier
-          does not read the private jobs or the bid count below as part of the report. */}
-      <section aria-label="For contractors" className="border-y border-slate-200 bg-white px-4 py-5 text-center text-slate-900 sm:px-8">
-        <p className="text-sm font-semibold">
-          Are you a contractor looking for work to bid on yourself? Everything below is for you.{" "}
-          <a href="#home-contractors-title" className="text-blue-700 underline underline-offset-4 hover:text-blue-900">Go to the bid search ↓</a>
-        </p>
-      </section>
       <HomePrivateBids />
-      <section aria-labelledby="home-contractors-title" className="bg-[#07162e] px-4 pb-2 pt-8 text-white sm:px-8 sm:pt-10">
-        <div className="mx-auto max-w-7xl">
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-400">For contractors</p>
-          <h2 id="home-contractors-title" className="mt-2 text-2xl font-extrabold leading-tight sm:text-3xl">Looking for government work to bid on?</h2>
-          <p className="mt-2 text-sm text-slate-300">
-            Pick your trade and state below.{" "}
-            <a href="/contractors" className="font-semibold text-amber-400 underline underline-offset-4 hover:text-amber-300">
-              Bid Prep, Starter at $9 a month and everything else for contractors →
-            </a>
-          </p>
-        </div>
-      </section>
-      <HomeContractFinder sample={sample} openTotal={contractMap?.totals?.totalOpen ?? 0} heading="h2" />
       <Footer />
     </div>
   );

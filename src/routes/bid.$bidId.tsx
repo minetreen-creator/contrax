@@ -21,6 +21,8 @@ import { typicalRangeText } from "~/lib/area-awards";
 import { deriveWinnerPrice } from "~/lib/winner-price";
 import type { FPDSIntel } from "~/lib/fpds";
 import { STARTER_FIRST_MONTH_PRICE } from "~/lib/starter-offer";
+import { BID_PAGE_PACK_DETAIL, BID_PAGE_PACK_LEAD, BID_TOP_ALSO, BID_TOP_BUTTON_LEAD, bidTopLockLine } from "~/lib/bid-top-offer";
+import { BID_PACK_NAME, BID_PACK_PATH, BID_PACK_PRICE } from "~/lib/bid-pack";
 import { STARTER_PASS_CONTINUE_PRICE } from "~/lib/starter-pass";
 import { useCallback, useEffect, useState } from "react";
 import { sql } from "~/db";
@@ -611,7 +613,7 @@ function BidDetailPage() {
             <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd(crumbs, `https://www.contrax.company/bid/${bid.id}`)) }} />
             <article className="mt-3 overflow-hidden rounded-2xl border border-slate-700 bg-slate-900">
               <div className="border-b border-slate-800 px-5 py-4">
-                <h1 className="text-lg font-extrabold leading-snug text-white">
+                <h1 className="text-xl font-extrabold leading-snug text-white sm:text-2xl">
                   {displayTitle(bid.title) || "Solicitation"}
                 </h1>
                 {agencyDisplay(bid.agency) && (
@@ -651,24 +653,28 @@ function BidDetailPage() {
                 </p>
                 {/* Owner 2026-11-09: 110 real people opened a bid page in a week and 4 tapped $5;
                     on a phone the lock's button sat below the first screen. */}
+                {/* Owner 2026-11-27 ("1,3"): what is locked, one full-width button with the price, and
+                    what else comes with it, in the first screen (it was one thin line). */}
                 {lockShown && (
-                  <a
-                    href={bidStarterHref(bid.id, signedIn)}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      trackEvent("bid_top_starter_click", locked ? "new" : "members");
-                      unlock();
-                    }}
-                    className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-amber-500/50 bg-amber-500/10 px-3 py-2.5 text-sm hover:border-amber-400"
-                  >
-                    <span className="text-amber-100">
-                      🔒 {bid.has_contact ? "Notice, documents and contact" : "Notice and documents"}:{" "}
-                      <span className="font-bold text-white">
+                  <div className="mt-4 rounded-xl border border-amber-500/50 bg-amber-500/10 p-3">
+                    <p className="text-sm text-amber-100">🔒 {bidTopLockLine(!!bid.has_contact)}</p>
+                    <a
+                      href={bidStarterHref(bid.id, signedIn)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        trackEvent("bid_top_starter_click", locked ? "new" : "members");
+                        unlock();
+                      }}
+                      className="mt-2 flex min-h-[48px] w-full items-center justify-center gap-1.5 rounded-lg bg-amber-400 px-4 py-3 text-center text-base font-bold text-slate-950 hover:bg-amber-300"
+                    >
+                      <span>{BID_TOP_BUTTON_LEAD}</span>
+                      <span>
                         {pass ? `$${STARTER_FIRST_MONTH_PRICE} a month` : `Starter, $${STARTER_PASS_CONTINUE_PRICE}/month`}
                       </span>
-                    </span>
-                    <span className="shrink-0 font-bold text-amber-300">Unlock →</span>
-                  </a>
+                      <span aria-hidden="true">→</span>
+                    </a>
+                    <p className="mt-2 text-xs text-slate-300">{BID_TOP_ALSO}</p>
+                  </div>
                 )}
               </div>
               {/* Owner 2026-11-02 (design critique): the job is free to read; only
@@ -751,6 +757,16 @@ function BidDetailPage() {
 
             {/* Bid Prep (owner 2026-11-17): the $199 done-for-you bid package, on bids with a week or more left. */}
             <BidPrepOffer bidId={bid.id} dueDate={bid.prep_ok ? bid.due_date : null} />
+
+            {/* Owner 2026-11-27 ("1,3"): the $19 paperwork pack, offered where someone is reading a bid. */}
+            <a
+              href={`${BID_PACK_PATH}?source=bid`}
+              onClick={() => trackEvent("bid_pack_click", String(bid.id))}
+              className="mt-4 block rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm hover:border-amber-400"
+            >
+              <span className="font-semibold text-white">{BID_PAGE_PACK_LEAD}: {BID_PACK_NAME}, {BID_PACK_PRICE} →</span>
+              <span className="mt-0.5 block text-xs text-slate-400">{BID_PAGE_PACK_DETAIL}</span>
+            </a>
 
             {areaAwards && <AreaAwardsBox data={areaAwards} stateName={bid.state_name} bidId={bidId} />}
 

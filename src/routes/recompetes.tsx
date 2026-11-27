@@ -3,7 +3,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { SiteHeader } from "~/components/SiteHeader";
 import { fmtEndDate, RecompeteRow } from "~/components/FederalTradeFacts";
 import { STATE_NAMES } from "~/lib/contract-map";
-import { formatDollars, RECOMPETE_MONTH_CHOICES, type Recompete } from "~/lib/federal-trade-data";
+import { awardUrl, formatDollars, RECOMPETE_MONTH_CHOICES, type Recompete } from "~/lib/federal-trade-data";
+import { FEATURED_CTA, FEATURED_HIDDEN_LABEL, FEATURED_LEAD, FEATURED_PRIVATE_NOTE, featuredEnding, pickFeatured, type FeaturedEnding } from "~/lib/ending-featured";
 import { ENDING_ACCOUNT_ROWS } from "~/lib/ending-pages";
 import { RADAR_PRO_HREF, RADAR_PRO_PRICE_NOTE } from "~/lib/plan-gates";
 import { SEO_TRADES, SEO_TRADE_BY_SLUG } from "~/lib/seo-trades";
@@ -71,7 +72,19 @@ const getRecompetesPage = createServerFn({ method: "GET" })
       console.error("[recompetes] query failed:", e);
       failed = true;
     }
-    return { ...data, ...result, hasAccess, signedIn, failed };
+    // Owner 2026-11-27 ("do it"): one real contract at the top, the holder hidden until the visitor
+    // has an account. The name, award number and record link are removed here, on the server.
+    let featured: FeaturedEnding | null = null;
+    if (!failed && result.count > 0) {
+      try {
+        const { largestRecompetes } = await import("~/lib/federal-trade-data.server");
+        const candidates = await largestRecompetes({ ...data, limit: PREVIEW_ROWS + ACCOUNT_ROWS + 1 });
+        featured = featuredEnding(pickFeatured(candidates, result.rows.map((r) => r.award_key)), signedIn, SEO_TRADE_BY_SLUG[data.trade]?.label ?? "Federal");
+      } catch (e) {
+        console.error("[recompetes] featured contract failed (hidden):", (e as Error).message);
+      }
+    }
+    return { ...data, ...result, hasAccess, signedIn, failed, featured };
   });
 
 export const Route = createFileRoute("/recompetes")({
@@ -100,6 +113,53 @@ export const Route = createFileRoute("/recompetes")({
   }),
 });
 
+/** One real contract, shown like a record card. The holder is a black bar until the viewer has an account. */
+function FeaturedContract({ f, signupHref, note, onCta }: { f: FeaturedEnding; signupHref: string; note: string; onCta: () => void }) {
+  return (
+    <div className="mt-6">
+      <p className="text-lg font-bold text-slate-900">{FEATURED_LEAD}</p>
+      <div className="mt-3 overflow-hidden rounded-2xl border border-slate-300 border-t-4 border-t-amber-500 bg-white p-5 shadow-sm">
+        <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500">Federal contract · USAspending.gov record</p>
+        <p className="mt-2 text-xl font-extrabold leading-snug text-slate-900 sm:text-2xl">{f.title}</p>
+        {f.agency && <p className="mt-1 text-sm text-slate-600">{f.agency}</p>}
+        <div className="mt-4 grid gap-4 border-t border-slate-200 pt-4 sm:grid-cols-2">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500">Contract value</p>
+            <p className="mt-1 inline-block bg-amber-200 px-1 text-3xl font-extrabold text-slate-900">{formatDollars(f.amount)}</p>
+          </div>
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500">Contract ends</p>
+            <p className="mt-1 text-2xl font-extrabold text-red-700">{fmtEndDate(f.end_date)}</p>
+          </div>
+        </div>
+        <div className="mt-4 border-t border-slate-200 pt-4">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500">Held by</p>
+          {f.holder ? (
+            <>
+              <p className="mt-1 text-lg font-bold text-slate-900">{f.holder}</p>
+              {f.award_key && (
+                <a href={awardUrl(f.award_key)} target="_blank" rel="noopener noreferrer" className="mt-1 inline-block text-sm font-semibold text-blue-700 hover:underline">
+                  View contract {f.award_id} on USAspending.gov
+                </a>
+              )}
+            </>
+          ) : (
+            <>
+              <p className="mt-1">
+                <span role="img" aria-label={FEATURED_HIDDEN_LABEL} className="inline-block h-7 w-56 max-w-full rounded-sm bg-slate-900 align-middle" />
+              </p>
+              <a href={signupHref} onClick={onCta} className="mt-3 inline-block rounded-xl bg-blue-700 px-5 py-3 text-sm font-bold text-white hover:bg-blue-800">
+                {FEATURED_CTA}
+              </a>
+            </>
+          )}
+        </div>
+        <p className="mt-4 text-xs text-slate-500">{note} {FEATURED_PRIVATE_NOTE}</p>
+      </div>
+    </div>
+  );
+}
+
 const STATE_OPTIONS = Object.entries(STATE_NAMES).sort((a, b) => a[1].localeCompare(b[1]));
 
 function RecompetesPage() {
@@ -115,6 +175,14 @@ function RecompetesPage() {
       <section className="mx-auto max-w-4xl px-4 pb-6 pt-12">
         <p className="text-sm font-semibold uppercase tracking-wide text-amber-700">Contracts Ending Soon</p>
         <h1 className="mt-2 text-3xl font-extrabold leading-tight text-slate-900 sm:text-4xl">See which federal contracts are about to end</h1>
+        {d.featured && (
+          <FeaturedContract
+            f={d.featured}
+            signupHref={`/signup?source=recompetes_featured&next=${encodeURIComponent(here)}`}
+            note={`The largest ${lower} contract in ${where} ending in the next ${d.months} months that is not listed below.`}
+            onCta={() => trackEvent("recompetes_featured_click", d.trade)}
+          />
+        )}
         <p className="mt-4 text-lg text-slate-700">
           When a federal contract ends, the agency usually buys the work again, and the new solicitation often appears only weeks before it is due.
           This list shows contracts in your trade whose end date is coming up, who holds them now and what they are worth, so you can prepare early.

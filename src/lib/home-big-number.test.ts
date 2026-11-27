@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
+import { bidIsServiceJob } from "./outreach";
 import { bigNumber, dueShort, BIG_NUMBER_PRICE_NOTE, BIG_NUMBER_ROWS } from "./home-big-number";
 
 test("the big number is the real count with commas, and nothing when the count is missing", () => {
@@ -40,4 +41,15 @@ test("the search sits directly under the band and before the supplier report, wi
   const finder = readFileSync(new URL("../components/HomeContractFinder.tsx", import.meta.url), "utf8");
   expect(finder).toContain('className={underBand ? "sr-only" :');
   expect(finder).toContain("!busy && !underBand && sample.length > 0");
+});
+
+test("the hidden search title under the band names the search, not the count again", () => {
+  const finder = readFileSync(new URL("../components/HomeContractFinder.tsx", import.meta.url), "utf8");
+  expect(finder).toContain("{underBand\n              ? c.eyebrow");
+});
+
+test("a job that is only the design phase is not shown as hands-on work", () => {
+  expect(bidIsServiceJob("State Historical Building HVAC Replacement - Design")).toBe(false);
+  expect(bidIsServiceJob("Chiller Replacement for Health Department-Norman Location")).toBe(true);
+  expect(bidIsServiceJob("Design Center Roof Replacement")).toBe(true);
 });

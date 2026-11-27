@@ -15,6 +15,7 @@ import { radarHrefFor, SEO_TRADE_BY_SLUG } from "~/lib/seo-trades";
 import { FederalTradeFacts } from "~/components/FederalTradeFacts";
 import { ENDING_FIRST_TRADES } from "~/lib/ending-pages";
 import { findSubsPath, tradeWords } from "~/lib/sub-finder";
+import { regionTradeDescription, regionTradeTitle } from "~/lib/region-trade-head";
 
 // /contracts-in/{state}/{trade} — e.g. /contracts-in/virginia/janitorial.
 // The trailing underscore on $state_ keeps this route un-nested, so it renders
@@ -26,13 +27,15 @@ export const Route = createFileRoute("/contracts-in/$state_/$trade")({
     const name = loaderData?.name;
     const label = loaderData?.trade?.label;
     const head = seoHead({
+      // Owner 2026-11-27: the title leads with the page's own count of open bids and the month
+      // (src/lib/region-trade-head.ts), the way the pages that outrank this one do.
       title:
         name && label
-          ? `${label} Government Contracts in ${name} | Contrax`
+          ? regionTradeTitle({ label, name, count: loaderData?.count ?? 0, generatedAt: loaderData?.generatedAt })
           : "Government Contracts by State and Trade | Contrax",
       description:
         name && label
-          ? `Open ${label.toLowerCase()} government contracts in ${name}, from federal, state and local sources. Real deadlines and links to each official notice, updated every 4 hours on weekdays.`
+          ? regionTradeDescription({ label, name, count: loaderData?.count ?? 0, generatedAt: loaderData?.generatedAt })
           : "Open government contracts by state and trade, from federal, state and local sources.",
       canonical: `https://www.contrax.company/contracts-in/${(loaderData?.name ?? loaderData?.stateSlug ?? "").toLowerCase().replace(/\s+/g, "-")}/${loaderData?.trade?.slug ?? ""}`,
     });

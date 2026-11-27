@@ -24,6 +24,7 @@ import {
   type ContractMapAggregate,
 } from "~/lib/contract-map";
 import { getEverydaySample, type EverydaySampleBid } from "~/lib/sample-bids";
+import { BIG_NUMBER_CTA, BIG_NUMBER_NO_COUNT, BIG_NUMBER_PRICE_NOTE, BIG_NUMBER_REST, BIG_NUMBER_ROWS, BIG_NUMBER_SEARCH_TEXT, BIG_NUMBER_SUB, bigNumber, dueShort } from "~/lib/home-big-number";
 import { MAX_PROOF, maxProofStillCurrent } from "~/lib/max-proof";
 
 // ── Server Functions ──────────────────────────────────────────────────────────
@@ -211,6 +212,9 @@ function Home() {
       {/* Owner 2026-11-18 ("do all"): the homepage is about one customer. Suppliers get the hero, real
           rows and the form; contractors get one block with the search, and everything else that was
           here lives on /contractors (ContractorSections below), one click away. */}
+      {/* Owner 2026-11-27 ("at the top of the homepage"): one big live number and a search that looks
+          like the product, above everything else. The supplier report follows, unchanged. */}
+      <HomeBigNumber sample={sample} openTotal={contractMap?.totals?.totalOpen ?? 0} />
       <HomeSupplierHero samples={supplierSamples} />
       {/* 2026-11-20: one state at a time, chosen from a tab bar, so the page is half as long and a
           visitor from Texas or New York can look at their own state. */}
@@ -455,15 +459,79 @@ function HomeChoice({ heading = "h2" }: { heading?: "h1" | "h2" }) {
  * service is bought on a bid's own page, so this says what it is and sends the visitor to pick a bid.
  * Every line comes from src/lib/bid-prep.ts, the same words the bid page and the checkout use.
  */
+/**
+ * The top of the homepage (owner 2026-11-27): the live count of open bids as the headline, and under
+ * it a search panel filled with real open bids from the page's own sample (buyer described, not
+ * named, like every public list). Words and number rules live in ~/lib/home-big-number.
+ */
+function HomeBigNumber({ sample = [], openTotal }: { sample?: EverydaySampleBid[]; openTotal: number }) {
+  const count = bigNumber(openTotal);
+  const rows = sample.slice(0, BIG_NUMBER_ROWS);
+  return (
+    <section aria-labelledby="home-big-number-title" className="bg-gradient-to-b from-[#0a1f44] to-[#07162e] px-4 pb-10 pt-10 text-center text-white sm:px-8 sm:pb-14 sm:pt-14">
+      <div className="mx-auto max-w-3xl">
+        <h1 id="home-big-number-title" className="text-[2.1rem] font-extrabold leading-[1.08] tracking-tight [text-wrap:balance] sm:text-6xl">
+          {count ? (
+            <>
+              <span className="text-amber-400">{count}</span> {BIG_NUMBER_REST}
+            </>
+          ) : (
+            BIG_NUMBER_NO_COUNT
+          )}
+        </h1>
+        <p className="mx-auto mt-4 max-w-xl text-base text-slate-200 sm:text-lg">{BIG_NUMBER_SUB}</p>
+        <a
+          href="#find-bids"
+          onClick={() => trackEvent("home_big_number_click", "cta")}
+          className="mt-6 inline-flex min-h-[48px] items-center gap-2 rounded-full bg-amber-400 px-7 py-3 text-base font-bold text-slate-950 transition hover:bg-amber-300"
+        >
+          {BIG_NUMBER_CTA} <ArrowRight className="h-4 w-4" aria-hidden="true" />
+        </a>
+        <p className="mt-3 text-sm text-slate-300">{BIG_NUMBER_PRICE_NOTE}</p>
+      </div>
+      {rows.length > 0 ? (
+        <div className="mx-auto mt-8 max-w-2xl overflow-hidden rounded-2xl border border-white/15 bg-white text-left text-slate-900 shadow-2xl">
+          <a
+            href="#find-bids"
+            onClick={() => trackEvent("home_big_number_click", "search_bar")}
+            className="flex items-center justify-between gap-3 bg-[#0a1f44] px-4 py-3"
+          >
+            <span className="flex-1 truncate rounded-lg border border-white/25 bg-white/10 px-3 py-2 text-sm text-slate-100">{BIG_NUMBER_SEARCH_TEXT}</span>
+            <span className="rounded-lg bg-amber-400 px-4 py-2 text-sm font-bold text-slate-950">Search</span>
+          </a>
+          <ul className="divide-y divide-slate-200">
+            {rows.map((b) => (
+              <li key={b.id}>
+                <a
+                  href={`/bid/${b.id}?source=home_top`}
+                  onClick={() => trackEvent("home_big_number_click", "row")}
+                  className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-slate-50"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-bold">{b.title}</span>
+                    <span className="block truncate text-xs text-slate-600">{[b.trade, b.location].filter(Boolean).join(" · ")}</span>
+                  </span>
+                  <span className="shrink-0 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800">{dueShort(b.due_date) || "Open now"}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+          <p className="border-t border-slate-200 bg-slate-50 px-4 py-2 text-center text-xs text-slate-600">Real bids open today.</p>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 function HomeSupplierHero({ samples }: { samples: SupplierSample[] }) {
   return (
     <section id="suppliers" aria-labelledby="home-suppliers-title" className="bg-slate-950 px-4 py-10 text-white sm:px-8 sm:py-16">
       <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-start">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-400">{SUPPLIER_EYEBROW}</p>
-          <h1 id="home-suppliers-title" className="mt-3 text-[1.75rem] font-extrabold leading-[1.12] tracking-tight [text-wrap:balance] sm:text-5xl">
+          <h2 id="home-suppliers-title" className="mt-3 text-[1.75rem] font-extrabold leading-[1.12] tracking-tight [text-wrap:balance] sm:text-5xl">
             Know which public jobs are opening in your state before your competitors do
-          </h1>
+          </h2>
           <p className="mt-4 max-w-2xl text-base text-slate-300 sm:text-lg">
             {SUPPLIER_SUBHEAD}
           </p>

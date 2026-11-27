@@ -70,8 +70,9 @@ import { readFileSync } from "node:fs";
 describe("teams outreach schedule", () => {
   const job = readFileSync("src/jobs/teams-outreach.ts", "utf8");
   const wf = readFileSync(".github/workflows/teams-outreach.yml", "utf8");
-  test("a scheduled run takes the day's market and queues drafts; a hand run still needs apply", () => {
-    expect(wf).toContain('- cron: "47 10 * * 1-5"');
+  test("it no longer runs on a schedule (owner 2026-11-27, \"Off\"); a hand run still needs apply", () => {
+    expect(wf).not.toMatch(/^\s+- cron:/m);
+    expect(wf).not.toMatch(/^\s+schedule:\s*$/m);
     expect(wf).toContain("(github.event_name == 'schedule' || inputs.apply) && 'true' || 'false'");
     expect(wf).toContain("SENDS NOTHING");
     expect(job).toContain("teamsMarketFor(Date.now() / 86_400_000)");

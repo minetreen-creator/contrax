@@ -3,15 +3,17 @@ name: Teams Outreach
 # Owner 2026-11-14: emails for companies registered for federal work in one
 # trade and state, pointing at Contracts Ending Soon and /teams
 # (src/jobs/teams-outreach.ts). SENDS NOTHING: it queues drafts the owner
-# approves on /admin/outreach. Runs each weekday morning and by hand; a hand
-# run without apply only prints.
+# approves on /admin/outreach. Runs by hand only; a hand run without apply
+# only prints.
+#
+# Owner 2026-11-27 ("Off"): the weekday schedule is removed. 361 of these went
+# out in two weeks and brought 5 visitors to /teams and no sale, from the same
+# sending address as the members' morning email. To bring it back, restore
+#   schedule:
+#     - cron: "47 10 * * 1-5"
+# on the owner's word.
 
 on:
-  schedule:
-    # 10:47 UTC weekdays, half an hour after Outreach Prepare, so both sets of
-    # drafts are waiting when the owner opens /admin/outreach. The scheduled run
-    # takes the day's market from the rotation in src/jobs/teams-outreach.ts.
-    - cron: "47 10 * * 1-5"
   workflow_dispatch:
     inputs:
       state:

@@ -3,7 +3,7 @@
  * bid-pack.ts). The price is inline, so nothing is set up in Stripe.
  */
 import type Stripe from "stripe";
-import { getStripe } from "~/lib/stripe";
+import { getStripe, PROBE_SESSION_SECONDS } from "~/lib/stripe";
 import {
   BID_PACK_FORMAT_NOTE, BID_PACK_NAME, BID_PACK_PATH, BID_PACK_PRICE_CENTS, BID_PACK_PRODUCT,
   bidPackBuyerEmail, bidPackOwnerNotice, paidBidPack,
@@ -11,8 +11,12 @@ import {
 
 const SITE = "https://www.contrax.company";
 
-export async function createBidPackCheckout(stripe: Stripe = getStripe()): Promise<string> {
-  const metadata = { product: BID_PACK_PRODUCT };
+/**
+ * `probe`: the daily site check (src/lib/path-checks.ts) opens a real checkout to prove Stripe is
+ * wired up. Its session is labeled and expires in half an hour, so it is easy to tell from a buyer's.
+ */
+export async function createBidPackCheckout(opts: { probe?: boolean } = {}, stripe: Stripe = getStripe()): Promise<string> {
+  const metadata: Record<string, string> = { product: BID_PACK_PRODUCT, ...(opts.probe ? { probe: "path_check" } : {}) };
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
     metadata,
@@ -28,6 +32,7 @@ export async function createBidPackCheckout(stripe: Stripe = getStripe()): Promi
     custom_text: { submit: { message: "One payment, nothing renews. Your files download on the next page and the link is emailed to you." } },
     success_url: `${SITE}${BID_PACK_PATH}?session={CHECKOUT_SESSION_ID}`,
     cancel_url: `${SITE}${BID_PACK_PATH}?pack=cancelled`,
+    ...(opts.probe ? { client_reference_id: "contrax-path-check", expires_at: Math.floor(Date.now() / 1000) + PROBE_SESSION_SECONDS } : {}),
   });
   if (!session.url) throw new Error("Checkout unavailable");
   return session.url;

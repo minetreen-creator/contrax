@@ -123,6 +123,8 @@ const PRODUCT_PATHS = [
   ["/competitor-xray", "monthly", "0.6"],
   ["/checklists", "monthly", "0.6"],
   ["/federal-construction-by-state", "monthly", "0.7"],
+  // Public Bid Paperwork Pack, $19 one time (owner 2026-11-27, src/lib/bid-pack.ts).
+  ["/bid-pack", "monthly", "0.7"],
   ["/checklists/municipal-landscaping-ifb", "monthly", "0.6"],
   ["/checklists/commercial-janitorial-bid-prep", "monthly", "0.6"],
   ["/checklists/public-works-construction-bid", "monthly", "0.6"],

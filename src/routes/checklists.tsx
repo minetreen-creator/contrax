@@ -39,6 +39,13 @@ function ChecklistsIndex() {
             </a>
           ))}
         </div>
+        {/* Owner 2026-11-27: the paid pack of fill-in documents that go with these checklists. */}
+        <a href="/bid-pack?source=checklists" className="mt-8 block rounded-2xl border-2 border-amber-400 bg-white p-5 text-slate-900 no-underline shadow-sm hover:border-amber-500">
+          <p className="text-xs font-bold uppercase tracking-widest text-amber-600">Fill-in documents</p>
+          <p className="mt-1 text-lg font-bold">Public Bid Paperwork Pack: $19, one time</p>
+          <p className="mt-1 text-sm text-slate-600">A capability statement, bid cover letter, bid or no-bid checklist, bid day checklist and quote request form, as Word files you fill in.</p>
+          <p className="mt-2 text-sm font-semibold text-blue-700">See what is in it →</p>
+        </a>
         <p className="mt-8 text-sm text-slate-500">
           These list what public buyers commonly ask for. Each solicitation and its addenda are the rules for that bid: follow them where they differ.
         </p>

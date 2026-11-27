@@ -339,6 +339,18 @@ export async function queryRecompetes(q: { trade: string; state: string | null; 
   return { count: c.n, total: c.total, rows: (rows as Record<string, unknown>[]).map(rowToRecompete) };
 }
 
+/** The largest contracts in a trade (and state) ending within `months`: candidates for the one shown at the top of /recompetes. */
+export async function largestRecompetes(q: { trade: string; state: string | null; months: number; limit: number }): Promise<Recompete[]> {
+  await ensureFederalTradeTables();
+  const s = sql();
+  const statePred = q.state ? s`AND pop_state = ${q.state}` : s``;
+  const until = addMonths(new Date().toISOString().slice(0, 10), q.months);
+  const rows = await s`SELECT * FROM recompete_contracts
+    WHERE trade_slug = ${q.trade} AND end_date >= CURRENT_DATE AND end_date <= ${until} ${statePred}
+    ORDER BY amount DESC LIMIT ${q.limit}`;
+  return (rows as Record<string, unknown>[]).map(rowToRecompete);
+}
+
 /**
  * The biggest federal contracts in one state (any trade) ending within
  * `months` (owner 2026-10-29: "contracts ending near you" on the homepage).

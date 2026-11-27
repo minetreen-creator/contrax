@@ -282,14 +282,18 @@ export function HomeContractFinder({ sample, openTotal = 0, heading = "h1", unde
               </button>
             ))}
           </div>
-          {heading === "h2" ? <p className="mb-2 text-xs font-bold uppercase tracking-wider text-amber-400">{c.eyebrow}</p> : null}
+          {heading === "h2" ? <p aria-hidden={underBand ? true : undefined} className="mb-2 text-xs font-bold uppercase tracking-wider text-amber-400">{c.eyebrow}</p> : null}
           <Title
             id="first-contract-title"
             className={underBand ? "sr-only" : `max-w-2xl font-extrabold leading-[1.12] tracking-tight [text-wrap:balance] ${heading === "h2" ? "text-2xl sm:text-3xl lg:text-4xl" : "text-[1.75rem] sm:text-5xl lg:text-6xl"}`}
           >
-            {openTotal > 0
-              ? `${c.titleCount(openTotal.toLocaleString("en-US"))} ${c.titleCountTail}`
-              : `${c.titleFallback} ${c.titleFallbackTail}`}
+            {/* Under the homepage band the count is already the page's headline, so this hidden title
+                names the search instead of repeating the number (it showed up when the page was copied). */}
+            {underBand
+              ? c.eyebrow
+              : openTotal > 0
+                ? `${c.titleCount(openTotal.toLocaleString("en-US"))} ${c.titleCountTail}`
+                : `${c.titleFallback} ${c.titleFallbackTail}`}
           </Title>
           {/* Owner 2026-11-17 (homepage review): the trade buttons come first. Below the wide layout the
               supporting lines are left out, so nobody scrolls past text to reach the search; the

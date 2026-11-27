@@ -167,7 +167,10 @@ export function bidIsServiceJob(title: string): boolean {
   // Owner 2026-11-02: nor engineering, architecture or "professional services"
   // contracts (Fairfax County's MEP Engineering ordering agreement went to two
   // plumbers). An "Engineering Building" job is still work.
-  return !/\b(suppl(y|ies)|materials?|parts|products|equipment|filters?|pool only|pre-?qualif\w*|invitational|rfi|request for information|sources? sought|pre-?solicitation|design services|consult(ant|ants|ing)|project management|engineering services|a\s?&\s?e services|nsn|furnish(ing)?|feasibility|business feedback|market research|machining|\d+\s?psi|engineering(?!\s+(?:building|hall|center|complex|lab))|architect\w*|professional services)\b/i.test(title);
+  return !/\b(suppl(y|ies)|materials?|parts|products|equipment|filters?|pool only|pre-?qualif\w*|invitational|rfi|request for information|sources? sought|pre-?solicitation|design services|consult(ant|ants|ing)|project management|engineering services|a\s?&\s?e services|nsn|furnish(ing)?|feasibility|business feedback|market research|machining|\d+\s?psi|engineering(?!\s+(?:building|hall|center|complex|lab))|architect\w*|professional services)\b/i.test(title)
+    // Owner 2026-11-27: nor a job whose title ends in the design phase ("… HVAC Replacement - Design"
+    // was the homepage's HVAC example; an installer cannot bid the drawings).
+    && !/[-–—:]\s*design\s*$/i.test(title);
 }
 
 /**

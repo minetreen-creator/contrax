@@ -29,3 +29,15 @@ test("the band sits above everything else on the homepage, with the page's one h
   expect(BIG_NUMBER_ROWS).toBe(3);
   expect(BIG_NUMBER_PRICE_NOTE).toBe("Starter is $9 a month, cancel anytime.");
 });
+
+test("the search sits directly under the band and before the supplier report, without repeating the count or the examples", () => {
+  const home = readFileSync(new URL("../routes/index.tsx", import.meta.url), "utf8");
+  const band = home.indexOf("<HomeBigNumber ");
+  const search = home.indexOf('heading="h2" underBand />');
+  expect(search).toBeGreaterThan(band);
+  expect(search).toBeLessThan(home.indexOf("<HomeSupplierHero "));
+  expect(home).not.toContain("Everything below is for you");
+  const finder = readFileSync(new URL("../components/HomeContractFinder.tsx", import.meta.url), "utf8");
+  expect(finder).toContain('className={underBand ? "sr-only" :');
+  expect(finder).toContain("!busy && !underBand && sample.length > 0");
+});

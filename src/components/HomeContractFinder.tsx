@@ -120,7 +120,12 @@ function dueLabel(due: string | null): string | null {
   return `Due ${d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/New_York" })}`;
 }
 
-export function HomeContractFinder({ sample, openTotal = 0, heading = "h1" }: { sample: EverydaySampleBid[]; openTotal?: number; heading?: "h1" | "h2" }) {
+/**
+ * `underBand` (owner 2026-11-27, "Yes"): on the homepage the search sits directly under the big-number
+ * band, which already says the count and shows three real bids. The title is kept for screen readers
+ * only and the examples are left out, so nothing is said twice.
+ */
+export function HomeContractFinder({ sample, openTotal = 0, heading = "h1", underBand = false }: { sample: EverydaySampleBid[]; openTotal?: number; heading?: "h1" | "h2"; underBand?: boolean }) {
   // The homepage now opens with a choice between two ways to work (owner 2026-11-14), which
   // carries the page's h1; there this search is the second section and its title an h2.
   const Title = heading;
@@ -280,7 +285,7 @@ export function HomeContractFinder({ sample, openTotal = 0, heading = "h1" }: { 
           {heading === "h2" ? <p className="mb-2 text-xs font-bold uppercase tracking-wider text-amber-400">{c.eyebrow}</p> : null}
           <Title
             id="first-contract-title"
-            className={`max-w-2xl font-extrabold leading-[1.12] tracking-tight [text-wrap:balance] ${heading === "h2" ? "text-2xl sm:text-3xl lg:text-4xl" : "text-[1.75rem] sm:text-5xl lg:text-6xl"}`}
+            className={underBand ? "sr-only" : `max-w-2xl font-extrabold leading-[1.12] tracking-tight [text-wrap:balance] ${heading === "h2" ? "text-2xl sm:text-3xl lg:text-4xl" : "text-[1.75rem] sm:text-5xl lg:text-6xl"}`}
           >
             {openTotal > 0
               ? `${c.titleCount(openTotal.toLocaleString("en-US"))} ${c.titleCountTail}`
@@ -615,7 +620,7 @@ export function HomeContractFinder({ sample, openTotal = 0, heading = "h1" }: { 
               </div>
             )}
           </>
-        ) : !busy && sample.length > 0 ? (
+        ) : !busy && !underBand && sample.length > 0 ? (
           <div className="border-t border-white/15 pt-7">
             <p className="text-xs font-bold uppercase tracking-widest text-slate-400">
               Open right now · a few real examples
